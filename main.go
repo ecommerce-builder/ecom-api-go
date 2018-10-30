@@ -1,35 +1,23 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	controllers "bitbucket.org/andyfusniakteam/ecom-api-go/controllers"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/models"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/services"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s ", os.Getenv("ECOM_DBHOST"), os.Getenv("ECOM_DBPORT"), os.Getenv("ECOM_DBUSER"), os.Getenv("ECOM_DBPASS"), os.Getenv("ECOM_DBNAME"))
-
-	// default is to use SSL for DB connections
-	if os.Getenv("ECOM_SSL") == "disable" {
-		dsn = dsn + " sslmode=disable"
-	}
-
-	db, err := sql.Open("postgres", dsn)
+	db, err := services.ConnectDb()
 	if err != nil {
-		fmt.Println("Failed to open db", err)
+		panic(err)
 	}
-	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		fmt.Println("Failed to verify db connection", err)
-	}
+	controllers.DB = db
+	models.DB = db
 
 	r := mux.NewRouter()
 

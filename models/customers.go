@@ -5,32 +5,33 @@ import (
 	"time"
 )
 
+var DB *sql.DB
+
 // Customer details
 type Customer struct {
-	db           *sql.DB
 	id           int
-	customerUUID string
-	firstname    string
-	lastname     string
-	created      time.Time
-	modified     time.Time
+	CustomerUUID string    `json:"customer_uuid"`
+	Firstname    string    `json:"firstname"`
+	Lastname     string    `json:"lastname"`
+	Created      time.Time `json:"created"`
+	Modified     time.Time `json:"modified"`
 }
 
 // Address contains address information for a Customer
 type Address struct {
 	id          int
-	addrUUID    string
+	AddrUUID    string `json:"address_uuid"`
 	customerID  int
-	typ         string
-	contactName string
-	addr1       string
-	addr2       string
-	city        string
-	county      string
-	country     string
-	postcode    string
-	created     time.Time
-	modified    time.Time
+	Typ         string    `json:"type"`
+	ContactName string    `json:"contact_name"`
+	Addr1       string    `json:"address_line_1"`
+	Addr2       string    `json:"address_line_2"`
+	City        string    `json:"city"`
+	County      string    `json:"county"`
+	Country     string    `json:"country"`
+	Postcode    string    `json:"postcode"`
+	Created     time.Time `json:"created"`
+	Modified    time.Time `json:"modified"`
 }
 
 // CustomerModeler interface
@@ -49,18 +50,15 @@ type AddressModeler interface {
 }
 
 // CreateCustomer creates a new customer
-func CreateCustomer(db *sql.DB, firstname string, lastname string) *Customer {
+func CreateCustomer(firstname string, lastname string) *Customer {
 	c := Customer{}
 
 	sql := `INSERT INTO customers (firstname, lastname) VALUES ($1, $2) RETURNING *`
-
-	err := db.QueryRow(sql, firstname, lastname).Scan(
-		&c.id, &c.customerUUID, &c.firstname, &c.lastname, &c.created, &c.modified)
+	err := DB.QueryRow(sql, firstname, lastname).Scan(
+		&c.id, &c.CustomerUUID, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		panic(err)
 	}
-
-	c.db = db
 	return &c
 }
 
@@ -77,7 +75,7 @@ func (c *Customer) CreateAddress(typ string, contactName string, addr1 string, a
 		id, addr_uuid, customer_id, typ, contact_name, addr1, addr2, city, county, country, postcode, created, modified
 	`
 
-	err := c.db.QueryRow(sql, c.id, typ, contactName, addr1, addr2, city, county, country, postcode).Scan(&a.customerID, &a.addrUUID, &a.customerID, &a.typ, &a.contactName, &a.addr1, &a.addr2, &a.city, &a.county, &a.country, &a.postcode, &a.created, &a.modified)
+	err := DB.QueryRow(sql, c.id, typ, contactName, addr1, addr2, city, county, country, postcode).Scan(&a.customerID, &a.AddrUUID, &a.customerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Country, &a.Postcode, &a.Created, &a.Modified)
 	if err != nil {
 		panic(err)
 	}
@@ -87,7 +85,7 @@ func (c *Customer) CreateAddress(typ string, contactName string, addr1 string, a
 
 // GetAddress returns a pointer to an Address structure for a specific customer given the id
 func (c *Customer) GetAddress(id int) *Address {
-	addr := Address{}
+	a := Address{}
 
 	query := `
 	SELECT
@@ -97,9 +95,9 @@ func (c *Customer) GetAddress(id int) *Address {
 	WHERE customer_id = $1 AND id = $2
 	`
 
-	c.db.QueryRow(query, c.customerUUID, id).Scan(&addr.id, &addr.customerID, &addr.typ, &addr.contactName, &addr.addr1, &addr.addr2, &addr.city, &addr.county, &addr.country, &addr.postcode, &addr.created, &addr.modified)
+	DB.QueryRow(query, c.CustomerUUID, id).Scan(&a.id, &a.customerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Country, &a.Postcode, &a.Created, &a.Modified)
 
-	return &addr
+	return &a
 }
 
 // ListAddresses retrieves a slice of Address for a given customer
