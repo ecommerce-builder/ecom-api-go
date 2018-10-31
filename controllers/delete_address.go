@@ -1,13 +1,19 @@
 package controllers
 
 import (
-	"encoding/json"
 	"net/http"
 
-	models "bitbucket.org/andyfusniakteam/ecom-api-go/models"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/services"
+	"github.com/gorilla/mux"
 )
 
+// DeleteAddress handler
 func DeleteAddress(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(models.Customer{})
+	params := mux.Vars(r)
+
+	err := services.DeleteAddress(params["aid"])
+	if err != nil {
+		panic(err)
+	}
+	w.WriteHeader(204)
 }

@@ -24,8 +24,8 @@ func main() {
 	r.HandleFunc("/customers", controllers.CreateCustomer).Methods("POST")
 	r.HandleFunc("/customers/{cid}", controllers.GetCustomer).Methods("GET")
 	r.HandleFunc("/customers/{cid}/addresses", controllers.CreateAddress).Methods("POST")
-	r.HandleFunc("/customers/{cid}/addresses/{aid}", controllers.DeleteAddress).Methods("DELETE")
-	r.HandleFunc("/customers/{cid}/addresses/{aid}", controllers.GetAddress).Methods("GET")
+	r.HandleFunc("/addresses/{aid}", controllers.DeleteAddress).Methods("DELETE")
+	r.HandleFunc("/addresses/{aid}", controllers.GetAddress).Methods("GET")
 	r.HandleFunc("/customers/{cid}/addresses", controllers.ListAddresses).Methods("GET")
 	r.HandleFunc("/customers/{cid}/addresses/{aid}", controllers.UpdateAddress).Methods("PATCH")
 

@@ -4,10 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 
-	models "bitbucket.org/andyfusniakteam/ecom-api-go/models"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/services"
+	"github.com/gorilla/mux"
 )
 
+// GetAddress handler
 func GetAddress(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	a := services.GetAddress(params["aid"])
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(models.Customer{})
+	json.NewEncoder(w).Encode(a)
 }

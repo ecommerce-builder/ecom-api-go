@@ -29,8 +29,8 @@ func CreateCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c := services.CreateCustomer(o.Firstname, o.Lastname)
+	customer := services.CreateCustomer(o.Firstname, o.Lastname)
 	w.WriteHeader(201)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(c)
+	json.NewEncoder(w).Encode(customer)
 }
