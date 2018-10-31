@@ -7,13 +7,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// DeleteAddress handler
-func DeleteAddress(w http.ResponseWriter, r *http.Request) {
+// EmptyCartItems empty the cart of all items. This does not remove coupons
+func EmptyCartItems(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	err := services.DeleteAddress(params["aid"])
-	if err != nil {
-		panic(err)
-	}
+	services.EmptyCartItems(params["ctid"])
+
 	w.WriteHeader(http.StatusNoContent) // 204 No Content
 }

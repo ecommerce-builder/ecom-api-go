@@ -15,5 +15,6 @@ func GetAddress(w http.ResponseWriter, r *http.Request) {
 	a := services.GetAddress(params["aid"])
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK) // 200 OK
 	json.NewEncoder(w).Encode(a)
 }

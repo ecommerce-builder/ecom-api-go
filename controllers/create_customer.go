@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/services"
 )
 
+// DB is the database handle
 var DB *sql.DB
 
 type createCustomerRequestBody struct {
@@ -30,7 +31,8 @@ func CreateCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	customer := services.CreateCustomer(o.Firstname, o.Lastname)
-	w.WriteHeader(201)
+
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated) // 201 Created
 	json.NewEncoder(w).Encode(customer)
 }

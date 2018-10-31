@@ -38,3 +38,8 @@ func GetAddresses(customerUUID string) ([]models.Address, error) {
 func DeleteAddress(addrUUID string) error {
 	return models.DeleteAddressByUUID(addrUUID)
 }
+
+// UpdateAddress updates an address by uuid
+// func UpdateAddress() (*models.Address, error) {
+// 	return models.UpdateAddressByUUID(addrUUID)
+// }

@@ -165,8 +165,10 @@ func GetAddresses(customerID int) ([]Address, error) {
 	return addresses, nil
 }
 
-// UpdateAddress updates an address for a given customer
-func (c *Customer) UpdateAddress() *Address {
+// UpdateAddressByUUID updates an address for a given customer
+func UpdateAddressByUUID() *Address {
+
+	//query := `UPDATE addresses SET`
 	addr := Address{}
 	return &addr
 }

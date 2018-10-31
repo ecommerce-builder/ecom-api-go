@@ -15,5 +15,6 @@ func ListAddresses(w http.ResponseWriter, r *http.Request) {
 	addresses, _ := services.GetAddresses(params["cid"])
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK) // 200 OK
 	json.NewEncoder(w).Encode(addresses)
 }
