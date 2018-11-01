@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.2.0 (1 Nov 2018)
++ GetCartItems operation returns all items in a a shopping cart
++ AddItemToCart uses the products_pricing table to lookup the price using the default tier
+
 ## 0.1.1 (1 Nov 2018)
 + Fixed typo on README extension.
 

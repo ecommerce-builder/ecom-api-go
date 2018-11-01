@@ -65,6 +65,37 @@ func AddItemToCart(tierRef string, cartUUID string, sku string, qty int) (*CartI
 	return &item, nil
 }
 
+// GetCartItems get all items in the given cart
+func GetCartItems(cartUUID string) ([]CartItem, error) {
+	cartItems := make([]CartItem, 0, 20)
+
+	sql := `
+	SELECT
+		id, cart_uuid, sku, qty, unit_price, created, modified
+	FROM carts
+	WHERE cart_uuid = $1
+	`
+	rows, err := DB.Query(sql, cartUUID)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var c CartItem
+
+		err = rows.Scan(&c.id, &c.CartUUID, &c.Sku, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified)
+		if err != nil {
+			return nil, err
+		}
+
+		cartItems = append(cartItems, c)
+
+	}
+
+	return cartItems, nil
+}
+
 // UpdateCartItemByUUID updates the qty of a cart item of the given sku.
 func UpdateCartItemByUUID(cartUUID string, sku string, qty int) (*CartItem, error) {
 	query := `

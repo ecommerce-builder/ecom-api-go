@@ -17,6 +17,11 @@ func AddItemToCart(cartUUID string, sku string, qty int) (*models.CartItem, erro
 	return item, nil
 }
 
+// GetCartItems get all items in the given cart
+func GetCartItems(cartUUID string) ([]models.CartItem, error) {
+	return models.GetCartItems(cartUUID)
+}
+
 // UpdateCartItem updates a single item's qty
 func UpdateCartItem(cartUUID string, sku string, qty int) (*models.CartItem, error) {
 	return models.UpdateCartItemByUUID(cartUUID, sku, qty)

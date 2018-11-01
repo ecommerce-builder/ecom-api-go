@@ -32,6 +32,7 @@ func main() {
 
 	r.HandleFunc("/carts", controllers.CreateCart).Methods("POST")
 	r.HandleFunc("/carts/{ctid}/items", controllers.AddItemToCart).Methods("POST")
+	r.HandleFunc("/carts/{ctid}/items", controllers.GetCartItems).Methods("GET")
 	r.HandleFunc("/carts/{ctid}/items/{sku}", controllers.UpdateCartItem).Methods("PATCH")
 	r.HandleFunc("/carts/{ctid}/items/{sku}", controllers.DeleteCartItem).Methods("DELETE")
 	r.HandleFunc("/carts/{ctid}/items", controllers.EmptyCartItems).Methods("DELETE")

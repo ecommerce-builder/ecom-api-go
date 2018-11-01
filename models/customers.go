@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -155,13 +154,11 @@ func GetAddresses(customerID int) ([]Address, error) {
 
 		err = rows.Scan(&a.id, &a.AddrUUID, &a.customerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		addresses = append(addresses, a)
 	}
-
-	fmt.Println(len(addresses))
 
 	return addresses, nil
 }
