@@ -8,8 +8,13 @@ func CreateCart() string {
 }
 
 // AddItemToCart adds a single item to a given cart
-func AddItemToCart(cartUUID string, sku string, qty int, unitPrice float64) (*models.CartItem, error) {
-	return models.AddItemToCart(cartUUID, sku, qty, unitPrice)
+func AddItemToCart(cartUUID string, sku string, qty int) (*models.CartItem, error) {
+	item, err := models.AddItemToCart("default", cartUUID, sku, qty)
+	if err != nil {
+		panic(err)
+	}
+
+	return item, nil
 }
 
 // UpdateCartItem updates a single item's qty

@@ -24,7 +24,10 @@ func AddItemToCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, _ := services.AddItemToCart(params["ctid"], o.Sku, o.Qty, 1.0000)
+	item, err := services.AddItemToCart(params["ctid"], o.Sku, o.Qty)
+	if err != nil {
+		panic(err)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated) // 201 Created

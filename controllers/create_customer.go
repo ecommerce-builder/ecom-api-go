@@ -30,7 +30,7 @@ func CreateCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	customer := services.CreateCustomer(o.Firstname, o.Lastname)
+	customer, _ := services.CreateCustomer(o.Firstname, o.Lastname)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated) // 201 Created

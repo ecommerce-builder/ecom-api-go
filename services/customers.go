@@ -5,7 +5,7 @@ import (
 )
 
 // CreateCustomer creates a new customer
-func CreateCustomer(firstname string, lastname string) *models.Customer {
+func CreateCustomer(firstname, lastname string) (*models.Customer, error) {
 	return models.CreateCustomer(firstname, lastname)
 }
 

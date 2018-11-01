@@ -52,16 +52,17 @@ type AddressModeler interface {
 }
 
 // CreateCustomer creates a new customer
-func CreateCustomer(firstname string, lastname string) *Customer {
+func CreateCustomer(firstname string, lastname string) (*Customer, error) {
 	c := Customer{}
 
-	sql := `INSERT INTO customers (firstname, lastname) VALUES ($1, $2) RETURNING *`
+	sql := `INSERT INTO customers (firstname, lastname) VALUES ($1, $2) RETURNING id, customer_uuid, firstname, lastname, created, modified`
 	err := DB.QueryRow(sql, firstname, lastname).Scan(
 		&c.id, &c.CustomerUUID, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		panic(err)
 	}
-	return &c
+
+	return &c, nil
 }
 
 // GetCustomerByUUID gets a customer by customer UUID

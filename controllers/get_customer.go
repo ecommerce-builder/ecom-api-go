@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/services"
@@ -11,6 +12,9 @@ import (
 // GetCustomer controller
 func GetCustomer(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+
+	fmt.Println(r.Host)
+	fmt.Println(r.URL)
 
 	customer := services.GetCustomer(params["cid"])
 

@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -30,16 +32,34 @@ func CreateCart() string {
 }
 
 // AddItemToCart adds a new item with sku, qty and unit price
-func AddItemToCart(cartUUID string, sku string, qty int, unitPrice float64) (*CartItem, error) {
-	query := `
+func AddItemToCart(tierRef string, cartUUID string, sku string, qty int) (*CartItem, error) {
+	item := CartItem{}
+
+	// check if the item is alreadyd in the cart
+	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE cart_uuid=$1 AND sku=$2) AS exists;`
+	var exists bool
+	DB.QueryRow(query, cartUUID, sku).Scan(&exists)
+	if exists == true {
+		return nil, fmt.Errorf("Cart item %s already exists", sku)
+	}
+
+	var unitPriceStr []byte
+	query = `SELECT unit_price FROM product_pricing WHERE tier_ref = $1 AND sku = $2`
+	err := DB.QueryRow(query, tierRef, sku).Scan(&unitPriceStr)
+	if err != nil {
+		return &item, err
+	}
+
+	unitPrice, _ := strconv.ParseFloat(string(unitPriceStr), 64)
+	query = `
 	INSERT INTO carts (cart_uuid, sku, qty, unit_price) VALUES ($1, $2, $3, $4)
 	RETURNING id, cart_uuid, sku, qty, unit_price, created, modified
 	`
-	item := CartItem{}
-	err := DB.QueryRow(query, cartUUID, sku, qty, unitPrice).Scan(&item.id, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
+
+	err = DB.QueryRow(query, cartUUID, sku, qty, unitPrice).Scan(&item.id, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
 	if err != nil {
 		panic(err)
-		return &item, err
+		return nil, err
 	}
 
 	return &item, nil
