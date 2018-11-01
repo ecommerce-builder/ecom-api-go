@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.1.1 (1 Nov 2018)
++ Fixed typo on README extension.
+
 ## 0.1.0 (1 Nov 2018)
 + Initial API including model, service and controller layers
 + Cart API
