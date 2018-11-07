@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/services"
@@ -13,7 +12,6 @@ func DeleteCartItem(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	count, _ := services.DeleteCartItem(params["ctid"], params["sku"])
-	fmt.Println(count)
 
 	if count == 0 {
 		w.WriteHeader(http.StatusNotFound) // 404 Not Found

@@ -1,6 +1,12 @@
 package services
 
-import "bitbucket.org/andyfusniakteam/ecom-api-go/models"
+import (
+	"bitbucket.org/andyfusniakteam/ecom-api-go/models"
+	"cloud.google.com/go/logging"
+)
+
+// Lg provides a logger
+var Lg *logging.Logger
 
 // CreateCart generates a new random UUID to be used for subseqent cart calls
 func CreateCart() string {

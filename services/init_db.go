@@ -17,12 +17,12 @@ func ConnectDb() (*sql.DB, error) {
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		fmt.Println("Failed to open db", err)
+		fmt.Fprintf(os.Stderr, "Failed to open db", err)
 	}
 
 	err = db.Ping()
 	if err != nil {
-		fmt.Println("Failed to verify db connection", err)
+		fmt.Fprintf(os.Stderr, "Failed to verify db connection", err)
 	}
 
 	return db, nil

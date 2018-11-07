@@ -12,6 +12,8 @@ var DB *sql.DB
 type Customer struct {
 	id           int
 	CustomerUUID string    `json:"customer_uuid"`
+	UID          string    `json:"uid"`
+	Email        string    `json:"email"`
 	Firstname    string    `json:"firstname"`
 	Lastname     string    `json:"lastname"`
 	Created      time.Time `json:"created"`
@@ -21,23 +23,23 @@ type Customer struct {
 // Address contains address information for a Customer
 type Address struct {
 	id          int
-	AddrUUID    string `json:"address_uuid"`
+	AddrUUID    string `json:"addr_uuid"`
 	customerID  int
-	Typ         string         `json:"type"`
-	ContactName string         `json:"contact_name"`
-	Addr1       string         `json:"address_line_1"`
-	Addr2       sql.NullString `json:"address_line_2"`
-	City        string         `json:"city"`
-	County      sql.NullString `json:"county"`
-	Postcode    string         `json:"postcode"`
-	Country     string         `json:"country"`
-	Created     time.Time      `json:"created"`
-	Modified    time.Time      `json:"modified"`
+	Typ         string    `json:"typ"`
+	ContactName string    `json:"contact_name"`
+	Addr1       string    `json:"addr1"`
+	Addr2       *string   `json:"addr2,omitempty"`
+	City        string    `json:"city"`
+	County      *string   `json:"county,omitempty"`
+	Postcode    string    `json:"postcode"`
+	Country     string    `json:"country"`
+	Created     time.Time `json:"created"`
+	Modified    time.Time `json:"modified"`
 }
 
 // CustomerModeler interface
 type CustomerModeler interface {
-	CreateCustomer(firstname string, lastname string) *Customer
+	CreateCustomer(UID, email, firstname, lastname string) *Customer
 	GetCustomer(id int) *Customer
 }
 
@@ -50,13 +52,25 @@ type AddressModeler interface {
 	DeleteAddress()
 }
 
+// GetID returns the private ID from a customer struct
+func (c *Customer) GetID() int {
+	return c.id
+}
+
 // CreateCustomer creates a new customer
-func CreateCustomer(firstname string, lastname string) (*Customer, error) {
+func CreateCustomer(UID, email, firstname, lastname string) (*Customer, error) {
 	c := Customer{}
 
-	sql := `INSERT INTO customers (firstname, lastname) VALUES ($1, $2) RETURNING id, customer_uuid, firstname, lastname, created, modified`
-	err := DB.QueryRow(sql, firstname, lastname).Scan(
-		&c.id, &c.CustomerUUID, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	sql := `
+	INSERT INTO customers (
+		uid, email, firstname, lastname
+	) VALUES (
+		$1, $2, $3, $4
+	)
+	RETURNING id, customer_uuid, uid, email, firstname, lastname, created, modified`
+
+	err := DB.QueryRow(sql, UID, email, firstname, lastname).Scan(
+		&c.id, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		panic(err)
 	}
@@ -69,24 +83,25 @@ func GetCustomerByUUID(customerUUID string) *Customer {
 	c := Customer{}
 	sql := `
 	SELECT
-		id, customer_uuid, firstname, lastname, created, modified
+		id, customer_uuid, uid, email, firstname, lastname, created, modified
 	FROM customers
 	WHERE customer_uuid = $1`
-	err := DB.QueryRow(sql, customerUUID).Scan(&c.id, &c.CustomerUUID, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	err := DB.QueryRow(sql, customerUUID).Scan(&c.id, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		panic(err)
 	}
+
 	return &c
 }
 
 // CreateAddress creates a new billing or shipping address for a customer
 func CreateAddress(customerID int, typ string, contactName string, addr1 string,
-	addr2 string, city string, county string, postcode string, country string) *Address {
+	addr2 *string, city string, county *string, postcode string, country string) *Address {
 	a := Address{}
 
 	sql := `
 	INSERT INTO addresses (
-		customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country 
+		customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country
 	) VALUES (
 		$1, $2, $3, $4, $5, $6, $7, $8, $9
 	) RETURNING
@@ -98,6 +113,7 @@ func CreateAddress(customerID int, typ string, contactName string, addr1 string,
 		panic(err)
 	}
 
+
 	return &a
 }
 
@@ -107,13 +123,13 @@ func GetAddressByUUID(addrUUID string) *Address {
 
 	sql := `
 	SELECT
-		id, address_uuid, customer_id, typ, contact_name, addr1, addr2,
+		id, addr_uuid, customer_id, typ, contact_name, addr1, addr2,
 		city, county, postcode, country, created, modified
 	FROM addresses
-	WHERE address_uuid = $1
+	WHERE addr_uuid = $1
 	`
 
-	DB.QueryRow(sql, addrUUID).Scan(&a.id, &a.customerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
+	DB.QueryRow(sql, addrUUID).Scan(&a.id, &a.AddrUUID, &a.customerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 
 	return &a
 }
@@ -138,10 +154,11 @@ func GetAddresses(customerID int) ([]Address, error) {
 
 	sql := `
 	SELECT
-		id, addr_uuid, customer_id, typ, contact_name, addr1, addr2, city, county,
-		postcode, country, created, modified
+		id, addr_uuid, customer_id, typ, contact_name, addr1,
+		addr2, city, county, postcode, country, created, modified
 	FROM addresses
 	WHERE customer_id = $1
+	ORDER BY created DESC
 	`
 	rows, err := DB.Query(sql, customerID)
 	if err != nil {
