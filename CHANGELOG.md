@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.4.0 (15 Nov 2018)
++ Interfaces used to create application domain and model domain
++ Model implementation provided for PostgreSQL in models/postgres
++ Service implemenation provided for Firebase in service/firebase
++ Explict Google cloud logging removed (will use Stdout for future)
++ Tested against ecom-js-client 1.1.0 integration tests
+
 ## 0.3.0 (7 Nov 2018)
 + Firebase Auth Go library calls CreateUser
 + Google Stackdriver logging
