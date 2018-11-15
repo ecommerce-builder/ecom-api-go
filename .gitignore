@@ -1,1 +1,5 @@
+certs/
+main
 ecom-api-go
+ecom-test-*.json
+ssl-certs/
