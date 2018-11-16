@@ -9,20 +9,19 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type addressRequestBody struct {
-	Typ         string  `json:"typ"`
-	ContactName string  `json:"contact_name"`
-	Addr1       string  `json:"addr1"`
-	Addr2       *string `json:"addr2"`
-	City        string  `json:"city"`
-	County      *string `json:"county"`
-	Postcode    string  `json:"postcode"`
-	Country     string  `json:"country"`
-}
-
 // CreateAddressController handler
 func (a *App) CreateAddressController() http.HandlerFunc {
-	//  handler
+	type addressRequestBody struct {
+		Typ         string  `json:"typ"`
+		ContactName string  `json:"contact_name"`
+		Addr1       string  `json:"addr1"`
+		Addr2       *string `json:"addr2"`
+		City        string  `json:"city"`
+		County      *string `json:"county"`
+		Postcode    string  `json:"postcode"`
+		Country     string  `json:"country"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Body == nil {
 			http.Error(w, "Please send a request body", 400)
