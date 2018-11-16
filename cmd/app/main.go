@@ -7,54 +7,49 @@ import (
 	"net/http"
 	"os"
 
-	"bitbucket.org/andyfusniakteam/ecomapi"
-	model "bitbucket.org/andyfusniakteam/ecomapi/model/postgres"
-	service "bitbucket.org/andyfusniakteam/ecomapi/service/firebase"
+	"bitbucket.org/andyfusniakteam/ecom-api-go"
+	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	firebase "firebase.google.com/go"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 	"golang.org/x/net/context"
-	"google.golang.org/api/option"
 )
 
-// CredentialsFile contains the filename of the service credentials needed for Firebase Auth
-var CredentialsFile = os.Getenv("ECOM_CREDENTIALS_FILE")
+// DSN is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
+var DSN = os.Getenv("ECOM_DSN")
+
+// CredentialsJSON contains the JSON string of the service credentials needed for Firebase Auth
+//var CredentialsJSON = os.Getenv("ECOM_CREDENTIALS_JSON")
 
 func main() {
-	if CredentialsFile == "" {
-		fmt.Fprintf(os.Stderr, "missing credentials file. Use export ECOM_CREDENTIALS_FILE\n")
-		os.Exit(1)
+	if DSN == "" {
+		log.Fatal("missing DSN. Use export ECOM_DSN")
 	}
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s ", os.Getenv("ECOM_DBHOST"), os.Getenv("ECOM_DBPORT"), os.Getenv("ECOM_DBUSER"), os.Getenv("ECOM_DBPASS"), os.Getenv("ECOM_DBNAME"))
+	// if CredentialsJSON == "" {
+	// 	log.Fatal("missing credentials file. Use export ECOM_CREDENTIALS_JSON")
+	// }
 
-	// default is to use SSL for DB connections
-	if os.Getenv("ECOM_SSL") == "disable" {
-		dsn = dsn + " sslmode=disable"
-	}
-
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("postgres", DSN)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to open db: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to open db: %v", err)
 	}
 
 	err = db.Ping()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to verify db connection: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to verify db connection: %v", err)
 	}
 
 	// build a Postgres model
 	pgModel, _ := model.New(db)
 
 	// build a Google Firebase App
-	opt := option.WithCredentialsFile(CredentialsFile)
-	fbApp, err := firebase.NewApp(context.Background(), nil, opt)
+	//opt := option.WithCredentialsJSON([]byte(CredentialsJSON))
+	fbApp, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", fmt.Errorf("error initializing app: %v", err))
-		os.Exit(1)
+		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
 	}
 
 	// build a Firebase service injecting in the model and firebase app as dependencies

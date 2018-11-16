@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"bitbucket.org/andyfusniakteam/ecomapi/model"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 )
 
 type PgModel struct {
@@ -148,7 +148,6 @@ func (m *PgModel) CreateCustomer(UID, email, firstname, lastname string) (*model
 		)
 		RETURNING id, customer_uuid, uid, email, firstname, lastname, created, modified
 	`
-
 	err := m.db.QueryRow(query, UID, email, firstname, lastname).Scan(
 		&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {

@@ -2,9 +2,10 @@ package firebase
 
 import (
 	"context"
+	"fmt"
 
-	"bitbucket.org/andyfusniakteam/ecomapi"
-	"bitbucket.org/andyfusniakteam/ecomapi/model"
+	"bitbucket.org/andyfusniakteam/ecom-api-go"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 )
@@ -121,7 +122,10 @@ func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname st
 		return nil, err
 	}
 
-	c, _ := s.model.CreateCustomer(userRecord.UID, email, firstname, lastname)
+	c, err := s.model.CreateCustomer(userRecord.UID, email, firstname, lastname)
+	if err != nil {
+		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s) failed: %v", userRecord.UID, email, firstname, lastname, err)
+	}
 
 	ac := app.Customer{
 		CustomerUUID: c.CustomerUUID,

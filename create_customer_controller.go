@@ -46,11 +46,20 @@ func (a *App) CreateCustomerController() http.HandlerFunc {
 
 		customer, err := a.Service.CreateCustomer(o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service CreateCustomer(%s, %s, %s, %s) error: %v", o.Email, "*****", o.Firstname, o.Lastname, err)
+			fmt.Fprintf(os.Stderr, "CreateCustomerController: failed Service.CreateCustomer(%s, %s, %s, %s): %v\n", o.Email, "*****", o.Firstname, o.Lastname, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			json.NewEncoder(w).Encode(struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			}{
+				400,
+				err.Error(),
+			})
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(customer)
+		json.NewEncoder(w).Encode(*customer)
 	}
 }
