@@ -15,24 +15,20 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 	"golang.org/x/net/context"
+	"google.golang.org/api/option"
 )
 
-// DSN is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
-var DSN = os.Getenv("ECOM_DSN")
+// dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
+var dsn = os.Getenv("ECOM_DSN")
 
-// CredentialsJSON contains the JSON string of the service credentials needed for Firebase Auth
-//var CredentialsJSON = os.Getenv("ECOM_CREDENTIALS_JSON")
+var credentialsJSON = os.Getenv("ECOM_CREDENTIALS_JSON")
 
 func main() {
-	if DSN == "" {
+	if dsn == "" {
 		log.Fatal("missing DSN. Use export ECOM_DSN")
 	}
 
-	// if CredentialsJSON == "" {
-	// 	log.Fatal("missing credentials file. Use export ECOM_CREDENTIALS_JSON")
-	// }
-
-	db, err := sql.Open("postgres", DSN)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
@@ -46,8 +42,14 @@ func main() {
 	pgModel, _ := model.New(db)
 
 	// build a Google Firebase App
-	//opt := option.WithCredentialsJSON([]byte(CredentialsJSON))
-	fbApp, err := firebase.NewApp(context.Background(), nil)
+	var fbApp *firebase.App
+	if credentialsJSON != "" {
+		opt := option.WithCredentialsJSON([]byte(credentialsJSON))
+		fbApp, err = firebase.NewApp(context.Background(), nil, opt)
+	} else {
+		fbApp, err = firebase.NewApp(context.Background(), nil)
+	}
+
 	if err != nil {
 		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
 	}
@@ -78,5 +80,5 @@ func main() {
 	r.HandleFunc("/carts/{ctid}/items", a.EmptyCartItemsController()).Methods("DELETE")
 
 	handler := cors.Default().Handler(r)
-	log.Fatal(http.ListenAndServe(":9000", handler))
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }

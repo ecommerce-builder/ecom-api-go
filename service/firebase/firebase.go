@@ -1,13 +1,13 @@
 package firebase
 
 import (
-	"context"
 	"fmt"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
+	"golang.org/x/net/context"
 )
 
 type FirebaseService struct {
