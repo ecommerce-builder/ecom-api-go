@@ -1,4 +1,6 @@
 # CHANGELOG
+## 0.5.1 (19 Nov 2018)
++ Include missing file from 0.5.0
 
 ## 0.5.0 (19 Nov 2018)
 + Firebase Auth middleware
