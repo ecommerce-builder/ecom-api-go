@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecom-api-deployment
+  labels:
+    app: ecom-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ecom-api
+  template:
+    metadata:
+      labels:
+        app: ecom-api
+    spec:
+      containers:
+      - name: ecom-api
+        image: gcr.io/spycameracctv-d48ac/ecom-api-go:latest
+        ports:
+        - containerPort: 8080
+
+

@@ -1,23 +1,16 @@
 FROM alpine:latest
 RUN apk add ca-certificates
+
+# Make an app directory for our API app
 RUN mkdir /app
 
-# Google service account credentials
-COPY ./ecom-test-fa3e406ce4fe.json /app
-
-# Postgres SSL certificate files
+# Copy Postgres SSL certificate files (From Google Cloud Console)
 COPY ./certs/pg/ /app/certs/pg
 
-# Postgres SSL certificates (from GCP control panel)
-ENV PGSSLCERT /app/certs/pg/client-cert.pem
-ENV PGSSLROOTCERT /app/certs/pg/server-ca.pem
-ENV PGSSLKEY /app/certs/pg/client-key.pem
-ENV PGSSLMODE verify-ca
-
-# Ecom API
-COPY ./ecom-api-go /app
+# Copy Ecom API app to the app directory
+COPY ./ecom-api-go-alpine /app
 
 # Make the executable runnable
-RUN chmod 0744 /app/ecom-api-go
+RUN chmod 0744 /app/ecom-api-go-alpine
 
-CMD [ "/app/ecom-api-go" ]
+CMD [ "/app/ecom-api-go-alpine" ]

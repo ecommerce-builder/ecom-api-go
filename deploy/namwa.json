@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "spycameracctv-d48ac",
+  "private_key_id": "8af504867333571cb3d2d53c72a6c6ff4fe68a44",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDHgjwezJzK/4V9\nfoY5JQpX3yoxt5QOcdIy+tCjje3jgV6DxfzyFEVc5x2Fk/d9LR4Xt04U2V74HYnq\nfFNOA5UDDGJ982FP0heICuFgYiO9SJd5cRHJd8geSClWGg0+5kdCOnh6Jk3fKWLw\nrFLxuAeOWviMLXSXFoHLOdCrT+W8mRNgoUCNb+88bw+fXJThqBDuCKf4yF+x3AhF\ne4BBMfZbkZr9rI0CYpjgtmrNdy7NkuvCk3dE8LbYZPYqnZWlvuUZeeEsCa+R6xlB\nFeHKwWDfl06CFvZwyyfaR67SwJR3JPMywGsoXcqitVSRlYjM7KAN8F29TZnKqc6e\nR7vw0fzXAgMBAAECggEAGnqEdCn/3UlQdDloowjxeHwb44FT2x7sIOv86NgbbIhs\n/Nw4GADsu8nIt0POIwTr64XejRHUcuWoukBJ5h6/lin8oG6+yZM+oEWhZ+Neju6l\ne+6vx6doHezB37WRcHmrl3SfLMcMqsOZaAvW7lHYXuJf/mrCAJNyIoDH2xS9juwe\nAUH079Vh3InU016fon0c71P4kym6WS6pm/AEVM4zyE9T4PHNjvt9+yMynddWTM1o\nrA+JylIgKPVvmbw+WjIbs1w/0LjhNGSn3YHTHTK2b/E0jMxJSyRmtj5QkQoGQuyb\nmT+l6RjLaNAJo8AmbssVuqtZUY40Zm+JXfO5ae7LoQKBgQDtKaTI/x5FhLsks9/r\n0LIIFduM2O5kOgXD70PDbjno5H04eIvfFn/B+zeYY/VqqO1mIPK24eGo0vNN1b5s\nlvtXp3+CVz0m0EDiuGhFONyzDETrvzEcMWU+8jF87HkljAxxaGK4iFr11nOtx95U\nUUOmARy0dVTtC8M11PqsLjDuuQKBgQDXWvQLMXscvYoVgIwNodzMfulbMa2sCJzo\n9ke9n73RldU31eYJMlDE7KRibAoXX3Xbh5qTPgknej4Ea1zGGBwWUeYHGFrAha+9\nF6sP6ddi7lnY17YNW8eR0924bEuTCHF+f5Jn55Gt9YlVrfAfB1vZclXtiXE60ybh\n2guQgZQADwKBgQCZUdK2HjfzuVtC3wZj7QcrMvY8mAGFyfzwLj4gmaHWbeCGIWhL\nUMBHJ6FJY1XFHnBbFfHTSTQZcEbaitQQX4sdn6tPGBbwgLFx4MWH+rqzBbuIrJGT\nKFvL1ccoe7fWDjP9HP61TXGAfKNMNWoGGIMjTpTAFRpSJMiOhKGJrlL0AQKBgG6T\nAs9kfqQJJgdYU5EEVQyi9UqfvV6hpX9wRPG2PY6JcksTBuQd857JKrZmZuANYcRw\nYgvMRIMCnylBvwbvhixnrMZj2OUVP2DF8E1hcfgYDgXq7Ez7nQLhV+zDniJGqY+c\nDR5Qplo9wmA9yRcFfkGuFTS752me1U4N2PY/sjA9AoGBALzAX6JDp/k0MUBXddh6\nM0qfxQR6zw4Fm2A/JXLIukH9GHcf917dXAeTeyv1QeBUNIsXLCNo1A6P1lhF0iVC\nZxMzsq/qQqhNXlQ6wNY/KVxN2lO0QERq1eViYJHmHqsCjwlMhoTQjKQ9qKAfTfxy\nI05j1u32OFF7NsOy//AnU0Ki\n-----END PRIVATE KEY-----\n",
+  "client_email": "nawma-762@spycameracctv-d48ac.iam.gserviceaccount.com",
+  "client_id": "115003120602684593802",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/nawma-762%40spycameracctv-d48ac.iam.gserviceaccount.com"
+}
