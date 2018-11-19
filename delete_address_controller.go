@@ -16,6 +16,7 @@ func (a *App) DeleteAddressController() http.HandlerFunc {
 		err := a.Service.DeleteAddress(params["aid"])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service DeleteAddress(%s) error: %v", params["aid"], err)
+			return
 		}
 
 		w.WriteHeader(http.StatusNoContent) // 204 No Content

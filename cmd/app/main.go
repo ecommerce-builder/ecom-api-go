@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 )
@@ -23,7 +23,23 @@ var dsn = os.Getenv("ECOM_DSN")
 
 var credentialsJSON = os.Getenv("ECOM_CREDENTIALS_JSON")
 
+func initLogging() {
+	// Log as JSON instead of the default ASCII formatter.
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors: true,
+	})
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
+}
+
 func main() {
+	initLogging()
+
 	if dsn == "" {
 		log.Fatal("missing DSN. Use export ECOM_DSN")
 	}
@@ -37,6 +53,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to verify db connection: %v", err)
 	}
+
+	log.Infoln("established database connection")
 
 	// build a Postgres model
 	pgModel, _ := model.New(db)
@@ -65,19 +83,20 @@ func main() {
 
 	// Customer and address management API
 	r.HandleFunc("/customers", a.CreateCustomerController()).Methods("POST")
-	r.HandleFunc("/customers/{cid}", a.GetCustomerController()).Methods("GET")
-	r.HandleFunc("/customers/{cid}/addresses", a.CreateAddressController()).Methods("POST")
-	r.HandleFunc("/addresses/{aid}", a.GetAddressController()).Methods("GET")
-	r.HandleFunc("/customers/{cid}/addresses", a.ListAddressesController()).Methods("GET")
-	r.HandleFunc("/customers/{cid}/addresses/{aid}", a.UpdateAddressController()).Methods("PATCH")
-	r.HandleFunc("/addresses/{aid}", a.DeleteAddressController()).Methods("DELETE")
+	r.HandleFunc("/customers/{uid}", a.AuthenticateMiddleware(a.GetCustomerController())).Methods("GET")
+	r.HandleFunc("/customers/{cid}/addresses", a.AuthenticateMiddleware(a.CreateAddressController())).Methods("POST")
 
-	r.HandleFunc("/carts", a.CreateCartController()).Methods("POST")
-	r.HandleFunc("/carts/{ctid}/items", a.AddItemToCartController()).Methods("POST")
-	r.HandleFunc("/carts/{ctid}/items", a.GetCartItemsController()).Methods("GET")
-	r.HandleFunc("/carts/{ctid}/items/{sku}", a.UpdateCartItemController()).Methods("PATCH")
-	r.HandleFunc("/carts/{ctid}/items/{sku}", a.DeleteCartItemController()).Methods("DELETE")
-	r.HandleFunc("/carts/{ctid}/items", a.EmptyCartItemsController()).Methods("DELETE")
+	r.HandleFunc("/addresses/{aid}", a.AuthenticateMiddleware(a.GetAddressController())).Methods("GET")
+	r.HandleFunc("/customers/{cid}/addresses", a.AuthenticateMiddleware(a.ListAddressesController())).Methods("GET")
+	r.HandleFunc("/customers/{cid}/addresses/{aid}", a.AuthenticateMiddleware(a.UpdateAddressController())).Methods("PATCH")
+	r.HandleFunc("/addresses/{aid}", a.AuthenticateMiddleware(a.DeleteAddressController())).Methods("DELETE")
+
+	r.HandleFunc("/carts", a.AuthenticateMiddleware(a.CreateCartController())).Methods("POST")
+	r.HandleFunc("/carts/{ctid}/items", a.AuthenticateMiddleware(a.AddItemToCartController())).Methods("POST")
+	r.HandleFunc("/carts/{ctid}/items", a.AuthenticateMiddleware(a.GetCartItemsController())).Methods("GET")
+	r.HandleFunc("/carts/{ctid}/items/{sku}", a.AuthenticateMiddleware(a.UpdateCartItemController())).Methods("PATCH")
+	r.HandleFunc("/carts/{ctid}/items/{sku}", a.AuthenticateMiddleware(a.DeleteCartItemController())).Methods("DELETE")
+	r.HandleFunc("/carts/{ctid}/items", a.AuthenticateMiddleware(a.EmptyCartItemsController())).Methods("DELETE")
 
 	handler := cors.Default().Handler(r)
 	log.Fatal(http.ListenAndServe(":8080", handler))

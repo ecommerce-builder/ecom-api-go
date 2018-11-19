@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"firebase.google.com/go/auth"
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -13,8 +15,10 @@ import (
 func (a *App) GetAddressController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
+		decodedToken := context.Get(r, "decodedToken").(*auth.Token)
+		fmt.Printf("%+v\n", decodedToken.UID)
 
-		a, err := a.Service.GetAddress(params["aid"])
+		a, err := a.Service.GetAddress(decodedToken.UID, params["aid"])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to create cart: %v", err)
 		}

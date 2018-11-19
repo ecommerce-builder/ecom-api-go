@@ -13,14 +13,14 @@ import (
 func (a *App) GetCustomerController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
-
-		customer, err := a.Service.GetCustomer(params["cid"])
+		customer, err := a.Service.GetCustomer(params["uuid"])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %v", params["cid"], err)
+			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %v", params["uuid"], err)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(customer)
+		json.NewEncoder(w).Encode(*customer)
 	}
 }

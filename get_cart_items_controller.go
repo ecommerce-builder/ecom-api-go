@@ -17,6 +17,7 @@ func (a *App) GetCartItemsController() http.HandlerFunc {
 		cartItems, err := a.Service.GetCartItems(params["ctid"])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service GetCartItems(%s) error: %v", params["ctid"], err)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")

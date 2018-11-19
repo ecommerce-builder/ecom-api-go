@@ -40,6 +40,7 @@ func (a *App) CreateAddressController() http.HandlerFunc {
 		address, err := a.Service.CreateAddress(params["cid"], o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", params["cid"], err)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")

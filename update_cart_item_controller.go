@@ -28,6 +28,7 @@ func (a *App) UpdateCartItemController() http.HandlerFunc {
 		cart, err := a.Service.UpdateCartItem(params["ctid"], params["sku"], o.Qty)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service UpdateCartItem(%s, %s, %d) error: %v", params["ctid"], params["sku"], o.Qty, err)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
