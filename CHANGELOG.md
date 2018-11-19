@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.5.0 (19 Nov 2018)
++ Firebase Auth middleware
++ Pick runtime config from `ECOM_CREDENTIALS_JSON` and `ECOM_DSN` instead of individual `ECOM_DB*`
+  environment variables
++ Kubernetes deploy config
++ Git ignore the alpine binary
+
 ## 0.4.0 (15 Nov 2018)
 + Interfaces used to create application domain and model domain
 + Model implementation provided for PostgreSQL in models/postgres
