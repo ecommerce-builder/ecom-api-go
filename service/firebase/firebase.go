@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -20,22 +21,42 @@ func New(model model.EcomModel, fbApp *firebase.App) (*FirebaseService, error) {
 	return &s, nil
 }
 
-// CreateCart generates a new random UUID to be used for subseqent cart calls
-func (s *FirebaseService) CreateCart() (*string, error) {
-	strp, err := s.model.CreateCart()
+// Auth accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if
+func (s *FirebaseService) Authenticate(jwt string) (*auth.Token, error) {
+	ctx := context.Background()
+	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return strp, nil
+	token, err := authClient.VerifyIDToken(ctx, jwt)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+// CreateCart generates a new random UUID to be used for subseqent cart calls
+func (s *FirebaseService) CreateCart() (*string, error) {
+	strptr, err := s.model.CreateCart()
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("s.CreateCart() returned %s", *strptr)
+
+	return strptr, nil
 }
 
 // AddItemToCart adds a single item to a given cart
 func (s *FirebaseService) AddItemToCart(cartUUID string, sku string, qty int) (*app.CartItem, error) {
+	log.Debugf("s.AddItemToCart(%s, %s, %d) started", cartUUID, sku, qty)
+
 	item, err := s.model.AddItemToCart(cartUUID, "default", sku, qty)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug(item)
 
 	sitem := app.CartItem{
 		CartUUID:  item.CartUUID,
@@ -104,6 +125,8 @@ func (s *FirebaseService) EmptyCartItems(cartUUID string) (err error) {
 
 // CreateCustomer creates a new customer
 func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname string) (*app.Customer, error) {
+	log.Debugf("s.CreateCustomer(%s, %s, %s, %s) started", email, "*****", firstname, lastname)
+
 	ctx := context.Background()
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
@@ -114,7 +137,7 @@ func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname st
 		Email(email).
 		EmailVerified(false).
 		Password(password).
-		DisplayName(`${firstname} ${lastname}`).
+		DisplayName(fmt.Sprintf("%s %s", firstname, lastname)).
 		Disabled(false)
 
 	userRecord, err := authClient.CreateUser(ctx, user)
@@ -122,9 +145,21 @@ func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname st
 		return nil, err
 	}
 
+	log.Debugf("%+v", userRecord)
+
 	c, err := s.model.CreateCustomer(userRecord.UID, email, firstname, lastname)
 	if err != nil {
 		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s) failed: %v", userRecord.UID, email, firstname, lastname, err)
+	}
+
+	log.Debugf("%+v", c)
+
+	// Set the custom claims for this user
+	err = authClient.SetCustomUserClaims(ctx, c.UID, map[string]interface{}{
+		"cuuid": c.CustomerUUID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to set custom claims for uid=%s customer_uuid=%s: %v", c.UID, c.CustomerUUID, err)
 	}
 
 	ac := app.Customer{
@@ -136,6 +171,8 @@ func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname st
 		Created:      c.Created,
 		Modified:     c.Modified,
 	}
+
+	log.Debugf("%+v", ac)
 	return &ac, nil
 }
 
@@ -187,7 +224,8 @@ func (s *FirebaseService) CreateAddress(customerUUID, typ, contactName, addr1 st
 }
 
 // GetAddress gets an address by UUID
-func (s *FirebaseService) GetAddress(addressUUID string) (*app.Address, error) {
+func (s *FirebaseService) GetAddress(UID string, addressUUID string) (*app.Address, error) {
+	fmt.Printf("UID = %s\n", UID)
 	a, err := s.model.GetAddressByUUID(addressUUID)
 	if err != nil {
 		return nil, err
