@@ -1,9 +1,7 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gorilla/context"
@@ -27,6 +25,7 @@ func (a *App) AuthenticateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		// Single Bearer token line only
 		if len(token) != 1 {
+			log.Error("using multiple Bearer tokens")
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			return
@@ -35,22 +34,26 @@ func (a *App) AuthenticateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		// Authorization: Bearer <jwt> format only
 		pieces := strings.Split(token[0], " ")
 		if len(pieces) != 2 || strings.ToLower(pieces[0]) != "bearer" {
+			log.Errorf("invalid Authorization: Bearer <jwt> header. token=%s", token[0])
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			return
 		}
 
 		jwt := pieces[1]
-		decodedToken, err := a.Service.Authenticate(jwt)
+		decodedToken, err := a.Service.Authenticate(ctx, jwt)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error authenticating: %v", jwt)
+			log.Errorf("authenticating failure: jwt=%s", jwt)
 			return
 		}
 
+		log.Info("authentication success")
+
 		// store the decodedToken in the context
 		context.Set(r, "decodedToken", decodedToken)
+
 		next(w, r)
 
-		log.Debug("AuthenticateMiddleware started")
+		log.Debug("AuthenticateMiddleware ended")
 	}
 }

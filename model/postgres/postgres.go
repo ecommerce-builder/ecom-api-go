@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
+	log "github.com/sirupsen/logrus"
 )
 
 type PgModel struct {
@@ -19,11 +20,13 @@ func New(db *sql.DB) (*PgModel, error) {
 
 // CreateCart creates a new shopping cart
 func (m *PgModel) CreateCart() (*string, error) {
-	var cartUUID string
+	log.Debug("m.CreateCart() started")
 
+	var cartUUID string
 	query := `SELECT UUID_GENERATE_V4() AS cart_uuid`
 	err := m.db.QueryRow(query).Scan(&cartUUID)
 	if err != nil {
+		log.Errorf("db.QueryRow(%s) %+v", query, err)
 		return nil, err
 	}
 

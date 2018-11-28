@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // CreateCartController handler
 func (a *App) CreateCartController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Debug("CreateCartController started")
+
 		var cart struct {
 			CartUUID string `json:"cart_uuid"`
 		}
@@ -20,6 +24,7 @@ func (a *App) CreateCartController() http.HandlerFunc {
 			return
 		}
 
+		log.Debugf("a.Service.CreateCart() returned %s", *uuid)
 		cart.CartUUID = *uuid
 
 		w.Header().Set("Content-Type", "application/json")
