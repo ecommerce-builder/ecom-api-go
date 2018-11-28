@@ -45,6 +45,6 @@ func (a *App) CreateAddressController() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(address)
+		json.NewEncoder(w).Encode(*address)
 	}
 }
