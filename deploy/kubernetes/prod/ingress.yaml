@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ecom-api-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: ecom-api-static-ip
+    kubernetes.io/ingress.allow-http: "false"
+  labels:
+    app: ecom-api
+spec:
+  backend:
+    serviceName: ecom-api-nodeport
+    servicePort: ecom-https
+  tls:
+  - secretName: api-spycameracctv-com-tls
+  rules:
+  - host: api.spycameracctv.com
+    http:
+      paths:
+      - backend:
+          serviceName: ecom-api-nodeport
+          servicePort: ecom-https
+

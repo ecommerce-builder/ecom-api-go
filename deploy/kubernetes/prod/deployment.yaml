@@ -17,7 +17,18 @@ spec:
       containers:
       - name: ecom-api
         image: gcr.io/spycameracctv-d48ac/ecom-api-go:latest
+        env:
+        - name: ECOM_DSN
+          valueFrom:
+            secretKeyRef:
+              name: ecom-api-secrets
+              key: ECOM_DSN
+        - name: ECOM_CREDENTIALS_JSON
+          valueFrom:
+            secretKeyRef:
+              name: ecom-api-secrets
+              key: ECOM_CREDENTIALS_JSON
         ports:
-        - containerPort: 8080
+        - containerPort: 9000
 
 

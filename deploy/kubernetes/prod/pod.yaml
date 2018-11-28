@@ -3,13 +3,21 @@ kind: Pod
 metadata:
   name: ecom-api
   labels:
-    component: ecom-api
+    app: ecom-api
 spec:
   containers:
     - name: ecom-api
       image: gcr.io/spycameracctv-d48ac/ecom-api-go:latest
       env:
       - name: ECOM_DSN
-        value: "host=10.86.0.3 port=5432 user=postgres password=5oNnH50f1bz91pAF dbname=ecom_dev sslmode=verify-ca sslcert=/app/certs/pg/client-cert.pem sslrootcert=/app/certs/pg/server-ca.pem sslkey=/app/certs/pg/client-key.pem"
+        valueFrom:
+          secretKeyRef:
+            name: ecom-api-secrets
+            key: ECOM_DSN
+      - name: ECOM_CREDENTIALS_JSON
+        valueFrom:
+          secretKeyRef:
+            name: ecom-api-secrets
+            key: ECOM_CREDENTIALS_JSON
       ports:
-        - containerPort: 8080
+        - containerPort: 9000
