@@ -1,4 +1,11 @@
 # CHANGELOG
+## 0.6.0 (28 Nov 2018)
++ Fix CORS
++ Authentication moved to global scope
++ Application logging using Logrus
++ API listens on port 9000
++ Adds Kubernetes deployment files. NodePort with Ingress
+
 ## 0.5.1 (19 Nov 2018)
 + Include missing file from 0.5.0
 
