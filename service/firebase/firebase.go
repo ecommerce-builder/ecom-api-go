@@ -12,24 +12,20 @@ import (
 )
 
 type FirebaseService struct {
-	model model.EcomModel
-	fbApp *firebase.App
+	model        model.EcomModel
+	fbApp        *firebase.App
+	fbAuthClient *auth.Client
 }
 
-func New(model model.EcomModel, fbApp *firebase.App) (*FirebaseService, error) {
-	s := FirebaseService{model, fbApp}
+func New(model model.EcomModel, fbApp *firebase.App, fbAuthClient *auth.Client) (*FirebaseService, error) {
+	s := FirebaseService{model, fbApp, fbAuthClient}
 	return &s, nil
 }
 
 // Auth accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if
-func (s *FirebaseService) Authenticate(jwt string) (*auth.Token, error) {
-	ctx := context.Background()
-	authClient, err := s.fbApp.Auth(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (s *FirebaseService) Authenticate(ctx context.Context, jwt string) (*auth.Token, error) {
+	token, err := s.fbAuthClient.VerifyIDToken(ctx, jwt)
 
-	token, err := authClient.VerifyIDToken(ctx, jwt)
 	if err != nil {
 		return nil, err
 	}
@@ -38,12 +34,14 @@ func (s *FirebaseService) Authenticate(jwt string) (*auth.Token, error) {
 
 // CreateCart generates a new random UUID to be used for subseqent cart calls
 func (s *FirebaseService) CreateCart() (*string, error) {
+	log.Debug("s.CreateCart() started")
+
 	strptr, err := s.model.CreateCart()
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("s.CreateCart() returned %s", *strptr)
 
+	log.Debugf("s.CreateCart() returned %s", *strptr)
 	return strptr, nil
 }
 
