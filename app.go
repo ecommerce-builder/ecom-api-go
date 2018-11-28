@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -84,7 +85,7 @@ type CustomerService interface {
 }
 
 type AuthService interface {
-	Authenticate(jwt string) (*auth.Token, error)
+	Authenticate(ctx context.Context, jwt string) (*auth.Token, error)
 }
 
 func (c *CartItem) String() string {

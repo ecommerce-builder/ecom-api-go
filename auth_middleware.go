@@ -1,10 +1,11 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/context"
+	gctx "github.com/gorilla/context"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,6 +42,7 @@ func (a *App) AuthenticateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		jwt := pieces[1]
+		ctx := context.Background()
 		decodedToken, err := a.Service.Authenticate(ctx, jwt)
 		if err != nil {
 			log.Errorf("authenticating failure: jwt=%s", jwt)
@@ -50,7 +52,7 @@ func (a *App) AuthenticateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		log.Info("authentication success")
 
 		// store the decodedToken in the context
-		context.Set(r, "decodedToken", decodedToken)
+		gctx.Set(r, "decodedToken", decodedToken)
 
 		next(w, r)
 

@@ -1,4 +1,7 @@
 # CHANGELOG
+## 0.6.1 (28 Nov 2018)
++ Fix broken 0.6.0 build
+
 ## 0.6.0 (28 Nov 2018)
 + Fix CORS
 + Authentication moved to global scope
