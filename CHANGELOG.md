@@ -1,4 +1,8 @@
 # CHANGELOG
+## 0.7.2 (3 Dec 2018)
++ Fix CORS for HTTP GET requests
++ Extra debug on authz decorator middleware
+
 ## 0.7.1 (3 Dec 2018)
 + Adds missing authorization middleware
 + Adds missing changes to model interface
