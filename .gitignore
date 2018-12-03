@@ -2,6 +2,6 @@
 certs/
 main
 ecom-api-go
-ecom-api-go-alpine
+ecom-api-go-*
 ecom-test-*.json
 ssl-certs/

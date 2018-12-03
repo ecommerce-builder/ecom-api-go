@@ -40,6 +40,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		log.Debugf("role %s, op %s, JWT cuuid %s", role, op, cuuid)
+
 		// role is set to either "anon", "customer" or "admin"
 		switch op {
 		case "CreateCart", "AddItemToCart", "GetCartItems", "UpdateCartItem", "DeleteCartItem", "EmptyCartItems":
@@ -63,6 +65,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 
+			log.Debugf("URL cuuid %s", chi.URLParam(r, "cuuid"))
 			if subtle.ConstantTimeCompare([]byte(cuuid), []byte(chi.URLParam(r, "cuuid"))) == 1 {
 				next.ServeHTTP(w, r)
 				return
