@@ -68,6 +68,7 @@ type CustomerModel interface {
 type AddressModel interface {
 	CreateAddress(customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*Address, error)
 	GetAddressByUUID(addrUUID string) (*Address, error)
+	GetAddressOwnerByUUID(addrUUID string) (*string, error)
 	GetAddresses(customerID int) ([]*Address, error)
 	UpdateAddressByUUID(addrUUID string) (*Address, error)
 	DeleteAddressByUUID(addrUUID string) error

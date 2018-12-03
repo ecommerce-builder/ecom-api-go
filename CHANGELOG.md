@@ -1,4 +1,8 @@
 # CHANGELOG
+## 0.7.1 (3 Dec 2018)
++ Adds missing authorization middleware
++ Adds missing changes to model interface
+
 ## 0.7.0 (3 Dec 2018)
 + Chi router
 
