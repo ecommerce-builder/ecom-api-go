@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 // DeleteAddressController handler
 func (a *App) DeleteAddressController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+		auuid := chi.URLParam(r, "auuid")
 
-		err := a.Service.DeleteAddress(params["aid"])
+		err := a.Service.DeleteAddress(auuid)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service DeleteAddress(%s) error: %v", params["aid"], err)
+			fmt.Fprintf(os.Stderr, "service DeleteAddress(%s) error: %v", auuid, err)
 			return
 		}
 

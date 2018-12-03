@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 // UpdateCartItemController creates a hanlder that adds an item to a given cart
@@ -16,7 +16,8 @@ func (a *App) UpdateCartItemController() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+		ctid := chi.URLParam(r, "ctid")
+		sku := chi.URLParam(r, "sku")
 
 		o := qtyRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
@@ -25,9 +26,9 @@ func (a *App) UpdateCartItemController() http.HandlerFunc {
 			return
 		}
 
-		cart, err := a.Service.UpdateCartItem(params["ctid"], params["sku"], o.Qty)
+		cart, err := a.Service.UpdateCartItem(ctid, sku, o.Qty)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service UpdateCartItem(%s, %s, %d) error: %v", params["ctid"], params["sku"], o.Qty, err)
+			fmt.Fprintf(os.Stderr, "service UpdateCartItem(%s, %s, %d) error: %v", ctid, sku, o.Qty, err)
 			return
 		}
 

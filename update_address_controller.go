@@ -8,8 +8,6 @@ import (
 // UpdateAddressController handler
 func (a *App) UpdateAddressController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		//params := mux.Vars(r)
-
 		// a.Service.UpdateAddress()
 
 		w.Header().Set("Content-Type", "application/json")

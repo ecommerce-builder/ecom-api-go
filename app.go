@@ -79,7 +79,8 @@ type CustomerService interface {
 	CreateCustomer(email, password, firstname, lastname string) (*Customer, error)
 	GetCustomer(customerUUID string) (*Customer, error)
 	CreateAddress(customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
-	GetAddress(UID string, addressUUID string) (*Address, error)
+	GetAddress(addressUUID string) (*Address, error)
+	GetAddressOwner(addrUUID string) (*string, error)
 	GetAddresses(customerUUID string) ([]*Address, error)
 	DeleteAddress(addrUUID string) error
 }

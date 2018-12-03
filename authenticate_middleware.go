@@ -5,20 +5,18 @@ import (
 	"net/http"
 	"strings"
 
-	gctx "github.com/gorilla/context"
 	log "github.com/sirupsen/logrus"
 )
 
-// AuthenticateMiddleware provides authentication layer
-func (a *App) AuthenticateMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("%+v", r)
-		log.Debug("AuthenticateMiddleware started")
+type decodedTokenString string
 
+// AuthenticateMiddleware provides authentication layer
+func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		// missing Authorization header
 		token, ok := r.Header["Authorization"]
 		if !ok {
-			log.Debug("Authorization header missing")
+			log.Debug("authorization header missing")
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			return
@@ -42,7 +40,7 @@ func (a *App) AuthenticateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		jwt := pieces[1]
-		ctx := context.Background()
+		ctx := r.Context()
 		decodedToken, err := a.Service.Authenticate(ctx, jwt)
 		if err != nil {
 			log.Errorf("authenticating failure: jwt=%s", jwt)
@@ -52,10 +50,9 @@ func (a *App) AuthenticateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		log.Info("authentication success")
 
 		// store the decodedToken in the context
-		gctx.Set(r, "decodedToken", decodedToken)
-
-		next(w, r)
-
-		log.Debug("AuthenticateMiddleware ended")
+		ctx2 := context.WithValue(r.Context(), "ecomDecodedToken", decodedToken)
+		next.ServeHTTP(w, r.WithContext(ctx2))
 	}
+
+	return http.HandlerFunc(fn)
 }

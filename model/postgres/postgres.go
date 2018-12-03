@@ -216,6 +216,22 @@ func (m *PgModel) GetAddressByUUID(addrUUID string) (*model.Address, error) {
 	return &a, nil
 }
 
+// GetAddressOwnerByUUID returns a pointer to a string containing the customer UUID of the owner of this address record. If the address is not found the return value of will be nil.
+func (m *PgModel) GetAddressOwnerByUUID(addrUUID string) (*string, error) {
+	query := `
+		SELECT C.customer_uuid
+		FROM customers AS C, addresses AS A
+		WHERE A.customer_id = C.id AND A.addr_uuid = $1
+	`
+	var customerUUID string
+	err := m.db.QueryRow(query, addrUUID).Scan(&customerUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &customerUUID, nil
+}
+
 // GetCustomerIDByUUID converts between customer UUID and the underlying primary key
 func (m *PgModel) GetCustomerIDByUUID(customerUUID string) (int, error) {
 	var id int

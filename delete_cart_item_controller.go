@@ -3,15 +3,16 @@ package app
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 // DeleteCartItemController handler
 func (a *App) DeleteCartItemController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+		ctid := chi.URLParam(r, "ctid")
+		sku := chi.URLParam(r, "sku")
 
-		count, _ := a.Service.DeleteCartItem(params["ctid"], params["sku"])
+		count, _ := a.Service.DeleteCartItem(ctid, sku)
 		if count == 0 {
 			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 // CreateAddressController handler
@@ -28,7 +28,7 @@ func (a *App) CreateAddressController() http.HandlerFunc {
 			return
 		}
 
-		params := mux.Vars(r)
+		cuuid := chi.URLParam(r, "cuuid")
 
 		o := addressRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
@@ -37,9 +37,9 @@ func (a *App) CreateAddressController() http.HandlerFunc {
 			return
 		}
 
-		address, err := a.Service.CreateAddress(params["cid"], o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
+		address, err := a.Service.CreateAddress(cuuid, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", params["cid"], err)
+			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", cuuid, err)
 			return
 		}
 

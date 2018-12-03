@@ -11,7 +11,7 @@ import (
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"firebase.google.com/go"
 	"firebase.google.com/go/auth"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
@@ -19,22 +19,23 @@ import (
 	"google.golang.org/api/option"
 )
 
+var version string
+
 // dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
 var dsn = os.Getenv("ECOM_DSN")
 
 var credentialsJSON = os.Getenv("ECOM_CREDENTIALS_JSON")
 
 func initLogging() {
-	// Log as JSON instead of the default ASCII formatter.
+	// Output logs with colour
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors: true,
 	})
 
 	// Output to stdout instead of the default stderr
-	// Can be any io.Writer, see below for File example
 	log.SetOutput(os.Stdout)
 
-	// Only log the warning severity or above.
+	// Log debug level severity or above.
 	log.SetLevel(log.DebugLevel)
 }
 
@@ -43,6 +44,10 @@ func main() {
 
 	if dsn == "" {
 		log.Fatal("missing DSN. Use export ECOM_DSN")
+	}
+
+	if credentialsJSON == "" {
+		log.Fatal("missing service account credentials. Use export ECOM_CREDENTIALS_JSON")
 	}
 
 	db, err := sql.Open("postgres", dsn)
@@ -63,53 +68,22 @@ func main() {
 	// build a Google Firebase App
 	var fbApp *firebase.App
 	var fbAuthClient *auth.Client
-
-	if credentialsJSON != "" {
-		ctx := context.Background()
-		opt := option.WithCredentialsJSON([]byte(credentialsJSON))
-		fbApp, err = firebase.NewApp(ctx, nil, opt)
-		if err != nil {
-			log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
-		}
-
-		fbAuthClient, err = fbApp.Auth(ctx)
-	} else {
-		ctx := context.Background()
-		fbApp, err = firebase.NewApp(ctx, nil)
-		if err != nil {
-			log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
-		}
-
-		fbAuthClient, err = fbApp.Auth(ctx)
+	ctx := context.Background()
+	opt := option.WithCredentialsJSON([]byte(credentialsJSON))
+	fbApp, err = firebase.NewApp(ctx, nil, opt)
+	if err != nil {
+		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
 	}
+
+	fbAuthClient, err = fbApp.Auth(ctx)
 
 	// build a Firebase service injecting in the model and firebase app as dependencies
 	fbSrv, _ := service.New(pgModel, fbApp, fbAuthClient)
-
 	a := app.App{
 		Service: fbSrv,
 	}
 
-	r := mux.NewRouter()
-
-	r.HandleFunc("/", indexHandler).Methods("GET")
-	// Customer and address management API
-	r.HandleFunc("/customers", a.CreateCustomerController()).Methods("POST")
-	r.HandleFunc("/customers/{uid}", a.AuthenticateMiddleware(a.GetCustomerController())).Methods("GET")
-	r.HandleFunc("/customers/{cid}/addresses", a.AuthenticateMiddleware(a.CreateAddressController())).Methods("POST")
-
-	r.HandleFunc("/addresses/{aid}", a.AuthenticateMiddleware(a.GetAddressController())).Methods("GET")
-	r.HandleFunc("/customers/{cid}/addresses", a.AuthenticateMiddleware(a.ListAddressesController())).Methods("GET")
-	r.HandleFunc("/customers/{cid}/addresses/{aid}", a.AuthenticateMiddleware(a.UpdateAddressController())).Methods("PATCH")
-	r.HandleFunc("/addresses/{aid}", a.AuthenticateMiddleware(a.DeleteAddressController())).Methods("DELETE")
-
-	r.HandleFunc("/carts", a.AuthenticateMiddleware(a.CreateCartController())).Methods("POST")
-	r.HandleFunc("/carts/{ctid}/items", a.AuthenticateMiddleware(a.AddItemToCartController())).Methods("POST")
-	r.HandleFunc("/carts/{ctid}/items", a.AuthenticateMiddleware(a.GetCartItemsController())).Methods("GET")
-	r.HandleFunc("/carts/{ctid}/items/{sku}", a.AuthenticateMiddleware(a.UpdateCartItemController())).Methods("PATCH")
-	r.HandleFunc("/carts/{ctid}/items/{sku}", a.AuthenticateMiddleware(a.DeleteCartItemController())).Methods("DELETE")
-	r.HandleFunc("/carts/{ctid}/items", a.AuthenticateMiddleware(a.EmptyCartItemsController())).Methods("DELETE")
-
+	r := chi.NewRouter()
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
@@ -117,17 +91,39 @@ func main() {
 		AllowedMethods: []string{"POST", "PATCH", "DELETE"},
 		//AllowCredentials: true,
 		// Enable Debugging for testing, consider disabling in production
-		Debug: true,
+		Debug: false,
 	})
+	r.Use(c.Handler)
 
-	//c := cors.Default()
+	//r.Use(middleware.Logger)
+	r.Use(a.AuthenticateMiddleware)
 
-	handler := c.Handler(r)
-	log.Fatal(http.ListenAndServe(":9000", handler))
-	log.Info("Server started on port 9000")
+	// version info
+	r.Get("/info", infoHandler)
+
+	// Customer and address management API
+	r.Post("/customers", a.Authorization("CreateCustomer", a.CreateCustomerController()))
+	r.Get("/customers/{cuuid}", a.Authorization("GetCustomer", a.GetCustomerHandler()))
+	r.Post("/customers/{cuuid}/addresses", a.Authorization("CreateAddress", a.CreateAddressController()))
+
+	r.Get("/addresses/{auuid}", a.Authorization("GetAddress", a.GetAddressController()))
+	r.Get("/customers/{cuuid}/addresses", a.Authorization("GetCustomersAddresses", a.ListAddressesController()))
+	r.Patch("/customers/{cuuid}/addresses/{auuid}", a.Authorization("UpdateAddress", a.UpdateAddressController()))
+	r.Delete("/addresses/{auuid}", a.Authorization("DeleteAddress", a.DeleteAddressController()))
+
+	// carts API
+	r.Post("/carts", a.Authorization("CreateCart", a.CreateCartController()))
+	r.Post("/carts/{ctid}/items", a.Authorization("AddItemToCart", a.AddItemToCartController()))
+	r.Get("/carts/{ctid}/items", a.Authorization("GetCartItems", a.GetCartItemsController()))
+	r.Patch("/carts/{ctid}/items/{sku}", a.Authorization("UpdateCartItem", a.UpdateCartItemController()))
+	r.Delete("/carts/{ctid}/items/{sku}", a.Authorization("DeleteCartItem", a.DeleteCartItemController()))
+	r.Delete("/carts/{ctid}/items", a.Authorization("EmptyCartItems", a.EmptyCartItemsController()))
+
+	log.Info("Server starting on port 9000")
+	log.Fatal(http.ListenAndServe(":9000", r))
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	//w.WriteHeader(http.StatusOK) // 200 OK
+func infoHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK) // 200 OK
 	fmt.Fprintf(w, "Hello, world!\n")
 }

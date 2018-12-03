@@ -155,6 +155,7 @@ func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname st
 	// Set the custom claims for this user
 	err = authClient.SetCustomUserClaims(ctx, c.UID, map[string]interface{}{
 		"cuuid": c.CustomerUUID,
+		"role":  "customer",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to set custom claims for uid=%s customer_uuid=%s: %v", c.UID, c.CustomerUUID, err)
@@ -222,8 +223,7 @@ func (s *FirebaseService) CreateAddress(customerUUID, typ, contactName, addr1 st
 }
 
 // GetAddress gets an address by UUID
-func (s *FirebaseService) GetAddress(UID string, addressUUID string) (*app.Address, error) {
-	fmt.Printf("UID = %s\n", UID)
+func (s *FirebaseService) GetAddress(addressUUID string) (*app.Address, error) {
 	a, err := s.model.GetAddressByUUID(addressUUID)
 	if err != nil {
 		return nil, err
@@ -243,6 +243,15 @@ func (s *FirebaseService) GetAddress(UID string, addressUUID string) (*app.Addre
 		Modified:    a.Modified,
 	}
 	return &aa, nil
+}
+
+func (s *FirebaseService) GetAddressOwner(addrUUID string) (*string, error) {
+	customerUUID, err := s.model.GetAddressOwnerByUUID(addrUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return customerUUID, nil
 }
 
 // GetAddresses gets a slice of addresses for a given customer

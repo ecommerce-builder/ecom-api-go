@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
-// GetCustomerController handler
-func (a *App) GetCustomerController() http.HandlerFunc {
+// GetCustomerHandler
+func (a *App) GetCustomerHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		customer, err := a.Service.GetCustomer(params["uuid"])
+		cuuid := chi.URLParam(r, "cuuid")
+		customer, err := a.Service.GetCustomer(cuuid)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %v", params["uuid"], err)
+			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %v", cuuid, err)
 			return
 		}
 

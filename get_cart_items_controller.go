@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 // GetCartItemsController handler
 func (a *App) GetCartItemsController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+		ctid := chi.URLParam(r, "ctid")
 
-		cartItems, err := a.Service.GetCartItems(params["ctid"])
+		cartItems, err := a.Service.GetCartItems(ctid)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service GetCartItems(%s) error: %v", params["ctid"], err)
+			fmt.Fprintf(os.Stderr, "service GetCartItems(%s) error: %v", ctid, err)
 			return
 		}
 
