@@ -1,4 +1,9 @@
 # CHANGELOG
+## 0.7.0 (3 Dec 2018)
++ Chi router
+
++ Authorization decorator pattern
+
 ## 0.6.1 (28 Nov 2018)
 + Fix broken 0.6.0 build
 
