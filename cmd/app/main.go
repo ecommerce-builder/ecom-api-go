@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -9,13 +10,13 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go"
 	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	"github.com/go-chi/chi"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 )
 
@@ -23,8 +24,12 @@ var version string
 
 // dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
 var dsn = os.Getenv("ECOM_DSN")
-
 var credentialsJSON = os.Getenv("ECOM_CREDENTIALS_JSON")
+var projectID = os.Getenv("ECOM_PROJECT_ID")
+
+const (
+	pubsubTopic = "ecom-api"
+)
 
 func initLogging() {
 	// Output logs with colour
@@ -50,6 +55,11 @@ func main() {
 		log.Fatal("missing service account credentials. Use export ECOM_CREDENTIALS_JSON")
 	}
 
+	if projectID == "" {
+		log.Fatal("missing project ID. Use export ECOM_PROJECT_ID")
+	}
+
+	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
@@ -60,16 +70,36 @@ func main() {
 		log.Fatalf("failed to verify db connection: %v", err)
 	}
 
-	log.Infoln("established database connection")
+	log.Infoln("established postres database connection")
 
 	// build a Postgres model
 	pgModel, _ := model.New(db)
 
+	// PubSub
+	ctx := context.Background()
+	opt := option.WithCredentialsJSON([]byte(credentialsJSON))
+	log.Infof("initializing Google PubSub client for project %s", projectID)
+	psClient, err := pubsub.NewClient(ctx, projectID, opt)
+	defer psClient.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	topic := psClient.Topic(pubsubTopic)
+	defer topic.Stop()
+	log.Infof("created pubsub topic %v", topic.String())
+
+	pr := topic.Publish(ctx, &pubsub.Message{
+		Data: []byte("hello world"),
+	})
+
+	serverID, err := pr.Get(ctx)
+
+	fmt.Println(serverID, err)
+
 	// build a Google Firebase App
 	var fbApp *firebase.App
 	var fbAuthClient *auth.Client
-	ctx := context.Background()
-	opt := option.WithCredentialsJSON([]byte(credentialsJSON))
 	fbApp, err = firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
@@ -78,7 +108,7 @@ func main() {
 	fbAuthClient, err = fbApp.Auth(ctx)
 
 	// build a Firebase service injecting in the model and firebase app as dependencies
-	fbSrv, _ := service.New(pgModel, fbApp, fbAuthClient)
+	fbSrv, _ := service.New(pgModel, fbApp, fbAuthClient, psClient)
 	a := app.App{
 		Service: fbSrv,
 	}
@@ -99,7 +129,7 @@ func main() {
 	r.Use(a.AuthenticateMiddleware)
 
 	// version info
-	r.Get("/info", infoHandler)
+	r.Get("/", infoHandler)
 
 	// Customer and address management API
 	r.Post("/customers", a.Authorization("CreateCustomer", a.CreateCustomerController()))
@@ -125,5 +155,5 @@ func main() {
 
 func infoHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK) // 200 OK
-	fmt.Fprintf(w, "Hello, world!\n")
+	fmt.Fprintf(w, `{"status":"ok"}`)
 }

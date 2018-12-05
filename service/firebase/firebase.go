@@ -1,10 +1,12 @@
 package firebase
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
+	"cloud.google.com/go/pubsub"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	log "github.com/sirupsen/logrus"
@@ -15,10 +17,11 @@ type FirebaseService struct {
 	model        model.EcomModel
 	fbApp        *firebase.App
 	fbAuthClient *auth.Client
+	pubsubClient *pubsub.Client
 }
 
-func New(model model.EcomModel, fbApp *firebase.App, fbAuthClient *auth.Client) (*FirebaseService, error) {
-	s := FirebaseService{model, fbApp, fbAuthClient}
+func New(model model.EcomModel, fbApp *firebase.App, fbAuthClient *auth.Client, pubsubClient *pubsub.Client) (*FirebaseService, error) {
+	s := FirebaseService{model, fbApp, fbAuthClient, pubsubClient}
 	return &s, nil
 }
 
@@ -143,14 +146,41 @@ func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname st
 		return nil, err
 	}
 
-	log.Debugf("%+v", userRecord)
+	payload := struct {
+		UID               string `json:"uid"`
+		Email             string `json:"email"`
+		DisplayName       string `json:"display_name"`
+		CreationTimestamp int64  `json:"creation_timestamp"`
+	}{
+		UID:               userRecord.UID,
+		Email:             userRecord.Email,
+		DisplayName:       userRecord.DisplayName,
+		CreationTimestamp: userRecord.UserMetadata.CreationTimestamp,
+	}
+	b, err := json.Marshal(&payload)
+	if err != nil {
+		log.Errorf("json.Marshal failed: %v", err)
+	}
+	log.Debugf("payload marshalled to string %s", b)
+
+	msg := &pubsub.Message{
+		Data: b,
+		Attributes: map[string]string{
+			"eventName": string(app.OpCreateCustomer),
+		},
+	}
+
+	topic := s.pubsubClient.Topic("ecom-api")
+	defer topic.Stop()
+
+	if _, err := topic.Publish(ctx, msg).Get(ctx); err != nil {
+		return nil, fmt.Errorf("Could not publish message: %v", err)
+	}
 
 	c, err := s.model.CreateCustomer(userRecord.UID, email, firstname, lastname)
 	if err != nil {
 		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s) failed: %v", userRecord.UID, email, firstname, lastname, err)
 	}
-
-	log.Debugf("%+v", c)
 
 	// Set the custom claims for this user
 	err = authClient.SetCustomUserClaims(ctx, c.UID, map[string]interface{}{

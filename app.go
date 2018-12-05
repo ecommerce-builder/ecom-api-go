@@ -8,6 +8,12 @@ import (
 	"firebase.google.com/go/auth"
 )
 
+type Operation string
+
+const (
+	OpCreateCustomer Operation = "CreateCustomer"
+)
+
 type Serverable interface {
 	Controllerable
 	EcomService
