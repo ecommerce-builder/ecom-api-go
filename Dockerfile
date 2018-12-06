@@ -4,9 +4,6 @@ RUN apk add ca-certificates
 # Make an app directory for our API app
 RUN mkdir /app
 
-# Copy Postgres SSL certificate files (From Google Cloud Console)
-COPY ./certs/pg/ /app/certs/pg
-
 # Copy Ecom API app to the app directory
 COPY ./ecom-api-go-alpine /app
 

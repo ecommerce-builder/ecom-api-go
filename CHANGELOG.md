@@ -1,4 +1,12 @@
 # CHANGELOG
+## 0.9.3 (6 Dec 2018)
++ Remove COPY certificates from Dockerfile
++ Certs to be found on /etc/secret-volume mount point (not yet implemented for k8s)
++ `ECOM_CREDENTIALS_JSON` removed in place of `ECOM_CREDENTIALS_FILE`
++ `ECOM_TLS_MODE=enabled` to do SSL/TLS negociation at the go server level
++ `ECOM_TLS_CERT_FILE` and `ECOM_TLS_KEY_FILE` point to `cert.pem` and `key.pem` files
++ `ECOM_PORT` to override default 8080
+
 ## 0.7.2 (3 Dec 2018)
 + Fix CORS for HTTP GET requests
 + Extra debug on authz decorator middleware
