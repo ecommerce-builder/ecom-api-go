@@ -1,4 +1,6 @@
 # CHANGELOG
+## 0.10.1 (7 Dec 2018)
++ Swap `ECOM_GOOGLE_CREDENTIALS_FILE`, `ECOM_APP_TLS_CERT_FILE` and `ECOM_APP_TLS_KEY_FILE` for `ECOM_GOOGLE_CREDENTIALS`, `ECOM_APP_TLS_CERT` and `ECOM_APP_TLS_KEY` respectively
 ## 0.10.0 (7 Dec 2018)
 + Drops `ECOM_DSN` env var single line string to use `ECOM_PG_*`
 + Use 3 categories of env vars `ECOM_APP_*`, `ECOM_GOOGLE_*` and `ECOM_PG_*` for App, Google and PostgreSQL config

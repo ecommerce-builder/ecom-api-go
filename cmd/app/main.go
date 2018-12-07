@@ -96,15 +96,15 @@ var (
 	// Google settings
 	//
 	projectID       = os.Getenv("ECOM_GOOGLE_PROJECT_ID")
-	credentialsFile = os.Getenv("ECOM_GOOGLE_CREDENTIALS_FILE")
+	credentialsFile = os.Getenv("ECOM_GOOGLE_CREDENTIALS")
 
 	//
 	// Application settings
 	//
 	port        = os.Getenv("ECOM_APP_PORT")
 	tlsModeFlag = os.Getenv("ECOM_APP_TLS_MODE")
-	tlsCertFile = os.Getenv("ECOM_APP_TLS_CERT_FILE")
-	tlsKeyFile  = os.Getenv("ECOM_APP_TLS_KEY_FILE")
+	tlsCertFile = os.Getenv("ECOM_APP_TLS_CERT")
+	tlsKeyFile  = os.Getenv("ECOM_APP_TLS_KEY")
 )
 
 const (
@@ -236,7 +236,7 @@ func main() {
 
 	// 2. Service Account Credentials
 	if credentialsFile == "" {
-		log.Fatal("missing service account credentials file. Use export ECOM_CREDENTIALS_FILE=/path/to/your/service-account-file")
+		log.Fatal("missing service account credentials file. Use export ECOM_CREDENTIALS=/path/to/your/service-account-file")
 	}
 	// if the credentialsFile is a relative pathname, make it relative to the secretVolume/sacDir root
 	// i.e. /etc/secret-volume/service_account_credentials/<file>
@@ -282,7 +282,7 @@ func main() {
 
 		// Ensure the TLS Certificate and Key files exist
 		if tlsCertFile == "" {
-			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the cert file. Use export ECOM_APP_TLS_CERT_FILE=/path/to/your/cert.pem")
+			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the cert file. Use export ECOM_APP_TLS_CERT=/path/to/your/cert.pem")
 		}
 
 		// if the tlsCertFile is a relative pathname, make it relative to the secretVolume root
@@ -293,7 +293,7 @@ func main() {
 		mustHaveFile(tlsCertFile, "TLS Cert File")
 
 		if tlsKeyFile == "" {
-			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the key file. Use export ECOM_APP_TLS_KEY_FILE=/path/to/your/key.pem")
+			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the key file. Use export ECOM_APP_TLS_KEY=/path/to/your/key.pem")
 		}
 		if !filepath.IsAbs(tlsKeyFile) {
 			log.Debugf("tlsKeyFile is a relative pathname so building absolute pathname")
