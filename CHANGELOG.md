@@ -1,4 +1,7 @@
 # CHANGELOG
+## 0.10.2 (7 Dec 2018)
++ Remove all Kubernetes deploys and App Engine scripts
+
 ## 0.10.1 (7 Dec 2018)
 + Swap `ECOM_GOOGLE_CREDENTIALS_FILE`, `ECOM_APP_TLS_CERT_FILE` and `ECOM_APP_TLS_KEY_FILE` for `ECOM_GOOGLE_CREDENTIALS`, `ECOM_APP_TLS_CERT` and `ECOM_APP_TLS_KEY` respectively
 ## 0.10.0 (7 Dec 2018)
