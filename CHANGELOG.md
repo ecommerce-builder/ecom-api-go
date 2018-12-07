@@ -1,4 +1,8 @@
 # CHANGELOG
+## 0.10.0 (7 Dec 2018)
++ Drops `ECOM_DSN` env var single line string to use `ECOM_PG_*`
++ Use 3 categories of env vars `ECOM_APP_*`, `ECOM_GOOGLE_*` and `ECOM_PG_*` for App, Google and PostgreSQL config
+
 ## 0.9.3 (6 Dec 2018)
 + Remove COPY certificates from Dockerfile
 + Certs to be found on /etc/secret-volume mount point (not yet implemented for k8s)
