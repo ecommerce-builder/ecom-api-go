@@ -1,9 +1,9 @@
 #!/bin/bash
 
-VERSION=0.9.3
+VERSION=0.10.1
 
 env \
-VERSION=0.9.3 \
+VERSION=0.10.1 \
 GOOS=linux \
 GARCH=amd64 \
 CGO_ENABLED=0 \
