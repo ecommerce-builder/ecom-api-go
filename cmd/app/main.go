@@ -164,7 +164,7 @@ func mustHaveFile(path, title string) {
 func main() {
 	initLogging()
 
-	log.Infof("app started")
+	log.Infof("app version %s started", version)
 
 	// 1. Data Source Name
 	// dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.

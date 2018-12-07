@@ -1,4 +1,9 @@
 # CHANGELOG
+## 0.10.3 (7 Dec 2018)
++ Fix bug with deploy latest tag not being applied to current deploy
++ Build linux and Mac OS binaries at the same time as the rest of the deploy
++ Add version string to logging when app starts
+
 ## 0.10.2 (7 Dec 2018)
 + Remove all Kubernetes deploys and App Engine scripts
 
