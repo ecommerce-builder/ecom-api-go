@@ -236,7 +236,7 @@ func main() {
 
 	// 2. Service Account Credentials
 	if credentialsFile == "" {
-		log.Fatal("missing service account credentials file. Use export ECOM_CREDENTIALS=/path/to/your/service-account-file")
+		log.Fatal("missing service account credentials file. Use export ECOM_GOOGLE_CREDENTIALS=/path/to/your/service-account-file")
 	}
 	// if the credentialsFile is a relative pathname, make it relative to the secretVolume/sacDir root
 	// i.e. /etc/secret-volume/service_account_credentials/<file>

@@ -125,7 +125,7 @@ func (s *FirebaseService) EmptyCartItems(cartUUID string) (err error) {
 }
 
 // CreateCustomer creates a new customer
-func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname string) (*app.Customer, error) {
+func (s *FirebaseService) CreateCustomer(role, email, password, firstname, lastname string) (*app.Customer, error) {
 	log.Debugf("s.CreateCustomer(%s, %s, %s, %s) started", email, "*****", firstname, lastname)
 
 	ctx := context.Background()
@@ -185,7 +185,7 @@ func (s *FirebaseService) CreateCustomer(email, password, firstname, lastname st
 	// Set the custom claims for this user
 	err = authClient.SetCustomUserClaims(ctx, c.UID, map[string]interface{}{
 		"cuuid": c.CustomerUUID,
-		"role":  "customer",
+		"role":  role,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to set custom claims for uid=%s customer_uuid=%s: %v", c.UID, c.CustomerUUID, err)

@@ -1,7 +1,6 @@
 *_secret.yaml
 certs/
 main
-ecom-api-go
-ecom-api-go-*
+ecom-api-*
 ecom-test-*.json
 ssl-certs/
