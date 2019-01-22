@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.12.1 (22 Jan 2019)
++ Use v prefix (forgotton in last build)
+
 ## v0.12.0 (22 Jan 2019)
 + Prefix version tag with v from here on
 + `ECOM_PG_CONNECT_TIMEOUT` implemented and defaults to 10 seconds
