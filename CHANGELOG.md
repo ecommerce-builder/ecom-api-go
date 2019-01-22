@@ -1,4 +1,14 @@
 # CHANGELOG
+## v0.12.0 (22 Jan 2019)
++ Prefix version tag with v from here on
++ `ECOM_PG_CONNECT_TIMEOUT` implemented and defaults to 10 seconds
++ `ListCustomers` operation for admin role
++ uses `go mod` for module management of project
+
+## 0.11.0 (18 Dec 2018)
++ Git ignore all `ecom-api-*` executables and vendor/ dir
++ Add role param to CreateCustomer to create customers with admin roles
+
 ## 0.10.3 (7 Dec 2018)
 + Fix bug with deploy latest tag not being applied to current deploy
 + Build linux and Mac OS binaries at the same time as the rest of the deploy

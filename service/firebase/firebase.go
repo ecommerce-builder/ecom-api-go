@@ -205,6 +205,31 @@ func (s *FirebaseService) CreateCustomer(role, email, password, firstname, lastn
 	return &ac, nil
 }
 
+func (s *FirebaseService) GetCustomers(ctx context.Context, size int, startsAfter string) ([]*app.Customer, error) {
+	customers, err := s.model.GetCustomers(1, size, startsAfter)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]*app.Customer, 0, size)
+
+	for _, v := range customers {
+		c := app.Customer{
+
+			CustomerUUID: v.CustomerUUID,
+			UID:          v.UID,
+			Email:        v.Email,
+			Firstname:    v.Firstname,
+			Lastname:     v.Lastname,
+			Created:      v.Created,
+			Modified:     v.Modified,
+		}
+		results = append(results, &c)
+	}
+
+	return results, nil
+}
+
 // GetCustomer retrieves a customer by customer UUID
 func (s *FirebaseService) GetCustomer(customerUUID string) (*app.Customer, error) {
 	c, err := s.model.GetCustomerByUUID(customerUUID)

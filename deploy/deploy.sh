@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export VERSION=0.10.2
+export VERSION=0.12.0
 
 env GOOS=linux GARCH=amd64 CGO_ENABLED=0 \
 go build -ldflags "-X main.version=$VERSION" -o ecom-api-go-alpine cmd/app/main.go

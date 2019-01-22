@@ -9,10 +9,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// PgModel contains the database handle
 type PgModel struct {
 	db *sql.DB
 }
 
+// New creates a new PgModel instance
 func New(db *sql.DB) (*PgModel, error) {
 	pgModel := PgModel{db}
 	return &pgModel, nil
@@ -93,6 +95,10 @@ func (m *PgModel) GetCartItems(cartUUID string) ([]*model.CartItem, error) {
 		cartItems = append(cartItems, &c)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return cartItems, nil
 }
 
@@ -158,6 +164,42 @@ func (m *PgModel) CreateCustomer(UID, email, firstname, lastname string) (*model
 	}
 
 	return &c, nil
+}
+
+// GetCustomers gets the next size customers starting at page page
+func (m *PgModel) GetCustomers(page, size int, startsAfter string) ([]*model.Customer, error) {
+	customers := make([]*model.Customer, 0, size)
+
+	query := `
+		SELECT
+			id, customer_uuid, uid, email, firstname, lastname, created, modified
+		FROM customers
+		ORDER BY id ASC
+		OFFSET $1 LIMIT $2
+	`
+	offset := (page * size) - size
+	rows, err := m.db.Query(query, offset, size)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var c model.Customer
+
+		err = rows.Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+		if err != nil {
+			return nil, err
+		}
+
+		customers = append(customers, &c)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return customers, nil
 }
 
 // GetCustomerByUUID gets a customer by customer UUID
@@ -273,6 +315,10 @@ func (m *PgModel) GetAddresses(customerID int) ([]*model.Address, error) {
 		}
 
 		addresses = append(addresses, &a)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return addresses, nil

@@ -12,6 +12,7 @@ type Operation string
 
 const (
 	OpCreateCustomer Operation = "CreateCustomer"
+	OpListCustomers  Operation = "ListCustomers"
 )
 
 type Serverable interface {
@@ -83,6 +84,7 @@ type Address struct {
 
 type CustomerService interface {
 	CreateCustomer(role, email, password, firstname, lastname string) (*Customer, error)
+	GetCustomers(ctx context.Context, size int, startsAfter string) ([]*Customer, error)
 	GetCustomer(customerUUID string) (*Customer, error)
 	CreateAddress(customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
 	GetAddress(addressUUID string) (*Address, error)
@@ -93,8 +95,4 @@ type CustomerService interface {
 
 type AuthService interface {
 	Authenticate(ctx context.Context, jwt string) (*auth.Token, error)
-}
-
-func (c *CartItem) String() string {
-	return "test"
 }

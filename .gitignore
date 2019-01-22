@@ -4,3 +4,4 @@ main
 ecom-api-*
 ecom-test-*.json
 ssl-certs/
+vendor/

@@ -42,7 +42,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 		log.Debugf("role %s, op %s, JWT cuuid %s", role, op, cuuid)
 
-		// role is set to either "anon", "customer" or "admin"
+		// at this point the role is set to either "anon" or "customer"
 		switch op {
 		case "CreateCart", "AddItemToCart", "GetCartItems", "UpdateCartItem", "DeleteCartItem", "EmptyCartItems":
 			// Cart operations don't require any special authorization

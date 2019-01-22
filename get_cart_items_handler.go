@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// GetCartItemsController handler
-func (a *App) GetCartItemsController() http.HandlerFunc {
+// GetCartItemsHandler returns a list of all cart items
+func (a *App) GetCartItemsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctid := chi.URLParam(r, "ctid")
 

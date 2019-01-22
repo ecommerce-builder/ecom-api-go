@@ -61,6 +61,7 @@ type CartModel interface {
 
 type CustomerModel interface {
 	CreateCustomer(UID, email, firstname, lastname string) (*Customer, error)
+	GetCustomers(page, size int, startsAfter string) ([]*Customer, error)
 	GetCustomerByUUID(customerUUID string) (*Customer, error)
 	GetCustomerIDByUUID(customerUUID string) (int, error)
 }

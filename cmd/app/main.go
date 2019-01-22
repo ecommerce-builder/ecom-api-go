@@ -173,12 +173,12 @@ func main() {
 	}
 
 	if pgport == "" {
-		log.Info("using default port of 5432 for postgres because ECOM_PG_PORT is not set")
+		log.Info("using default port=5432 for postgres because ECOM_PG_PORT is not set")
 		pgport = "5432"
 	}
 
 	if pguser == "" {
-		log.Info("using default user postgres because ECOM_PG_USER is not set")
+		log.Info("using default user=postgres because ECOM_PG_USER is not set")
 		pguser = "postgres"
 	}
 
@@ -192,17 +192,22 @@ func main() {
 
 	if pgsslmode == "" {
 		if pgsslkey != "" || pgsslrootcert != "" || pgsslcert != "" {
-			log.Fatal("ECOM_PG_SSLMODE was not set, but one or more of ECOM_PG_SSLCERT, ECOM_PG_SSLKEY, ECOM_PG_SSLROOTCERT environment variables were set implying you intended to connect to postgres securely?")
+			log.Fatal("ECOM_PG_SSLMODE is not set, but one or more of ECOM_PG_SSLCERT, ECOM_PG_SSLKEY, ECOM_PG_SSLROOTCERT environment variables were set implying you intended to connect to postgres securely?")
 		}
-		log.Infof("using postgres sslmode=disable because ECOM_PG_SSLMODE was not set")
+		log.Infof("using postgres sslmode=disable because ECOM_PG_SSLMODE is not set")
 		pgsslmode = "disable"
+	}
+
+	if pgconnectTimeout == "" {
+		log.Infof("using postgres connect_timeout=10 because ECOM_PG_CONNECT_TIMEOUT is not set")
+		pgconnectTimeout = "10"
 	}
 
 	var dsn string
 	if pgsslmode == "disable" {
 		log.Infof("postgres running with sslmode=disable")
-		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode)
-		log.Infof("postgres dsn: host=%s port=%s user=%s password=**** dbname=%s sslmode=%s", pghost, pgport, pguser, pgdatabase)
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode, pgconnectTimeout)
+		log.Infof("postgres dsn: host=%s port=%s user=%s password=**** dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgconnectTimeout)
 	} else {
 		// Ensure that the ECOM_PG_SSLCERT, ECOM_PG_SSLROOTCERT and ECOM_PG_SSLKEY are all
 		// referenced using absolute paths.
@@ -230,8 +235,8 @@ func main() {
 		}
 		mustHaveFile(pgsslkey, "ssl key file")
 
-		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey)
-		log.Infof("postgres dsn: host=%s port=%s user=%s password=***** dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey)
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
+		log.Infof("postgres dsn: host=%s port=%s user=%s password=***** dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
 	}
 
 	// 2. Service Account Credentials
@@ -250,6 +255,7 @@ func main() {
 	if projectID == "" {
 		log.Fatal("missing project ID. Use export ECOM_GOOGLE_PROJECT_ID")
 	}
+	log.Infof("project ID set to %s", projectID)
 
 	// 4. Server Port
 	if port == "" {
@@ -271,6 +277,7 @@ func main() {
 	if !ex {
 		log.Fatalf("cannot find secret volume %s. Have you mounted it?", secretVolume)
 	}
+	log.Infof("found secret volume %s", secretVolume)
 
 	// TLS Mode defaults to false unless ECOM_APP_TLS_MODE is set to enable
 	// tlsMode will be used to determine whether to provide negociation for SSL
@@ -375,6 +382,7 @@ func main() {
 
 		// Customer and address management API
 		r.Route("/customers", func(r chi.Router) {
+			r.Get("/", a.Authorization("ListCustomers", a.ListCustomersHandler()))
 			r.Post("/", a.Authorization("CreateCustomer", a.CreateCustomerController()))
 			r.Get("/{cuuid}", a.Authorization("GetCustomer", a.GetCustomerHandler()))
 			r.Post("/{cuuid}/addresses", a.Authorization("CreateAddress", a.CreateAddressController()))
@@ -390,7 +398,7 @@ func main() {
 		r.Route("/carts", func(r chi.Router) {
 			r.Post("/", a.Authorization("CreateCart", a.CreateCartController()))
 			r.Post("/{ctid}/items", a.Authorization("AddItemToCart", a.AddItemToCartController()))
-			r.Get("/{ctid}/items", a.Authorization("GetCartItems", a.GetCartItemsController()))
+			r.Get("/{ctid}/items", a.Authorization("GetCartItems", a.GetCartItemsHandler()))
 			r.Patch("/{ctid}/items/{sku}", a.Authorization("UpdateCartItem", a.UpdateCartItemController()))
 			r.Delete("/{ctid}/items/{sku}", a.Authorization("DeleteCartItem", a.DeleteCartItemController()))
 			r.Delete("/{ctid}/items", a.Authorization("EmptyCartItems", a.EmptyCartItemsController()))
