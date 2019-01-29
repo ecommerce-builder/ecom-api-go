@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// AddItemToCartController creates a hanlder that adds an item to a given cart
-func (a *App) AddItemToCartController() http.HandlerFunc {
+// AddItemToCartHandler creates a handler to add an item to a given cart
+func (a *App) AddItemToCartHandler() http.HandlerFunc {
 	type itemRequestBody struct {
 		Sku string `json:"sku"`
 		Qty int    `json:"qty"`

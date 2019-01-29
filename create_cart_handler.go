@@ -9,10 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CreateCartController handler
-func (a *App) CreateCartController() http.HandlerFunc {
+// CreateCartHandler create a new shopping cart
+func (a *App) CreateCartHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Debug("CreateCartController started")
+		log.Debug("CreateCartHandler started")
 
 		var cart struct {
 			CartUUID string `json:"cart_uuid"`

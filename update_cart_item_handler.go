@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// UpdateCartItemController creates a hanlder that adds an item to a given cart
-func (a *App) UpdateCartItemController() http.HandlerFunc {
+// UpdateCartItemHandler creates a handler to add an item to a given cart
+func (a *App) UpdateCartItemHandler() http.HandlerFunc {
 	type qtyRequestBody struct {
 		Qty int `json:"qty"`
 	}
@@ -28,7 +28,7 @@ func (a *App) UpdateCartItemController() http.HandlerFunc {
 
 		cart, err := a.Service.UpdateCartItem(r.Context(), ctid, sku, o.Qty)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service UpdateCartItem(%s, %s, %d) error: %v", ctid, sku, o.Qty, err)
+			fmt.Fprintf(os.Stderr, "service UpdateCartItem(ctx, %s, %s, %d) error: %v", ctid, sku, o.Qty, err)
 			return
 		}
 

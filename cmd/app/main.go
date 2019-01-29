@@ -382,25 +382,25 @@ func main() {
 		// Customer and address management API
 		r.Route("/customers", func(r chi.Router) {
 			r.Get("/", a.Authorization("ListCustomers", a.ListCustomersHandler()))
-			r.Post("/", a.Authorization("CreateCustomer", a.CreateCustomerController()))
+			r.Post("/", a.Authorization("CreateCustomer", a.CreateCustomerHandler()))
 			r.Get("/{cuuid}", a.Authorization("GetCustomer", a.GetCustomerHandler()))
-			r.Post("/{cuuid}/addresses", a.Authorization("CreateAddress", a.CreateAddressController()))
-			r.Get("/{cuuid}/addresses", a.Authorization("GetCustomersAddresses", a.ListAddressesController()))
-			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization("UpdateAddress", a.UpdateAddressController()))
+			r.Post("/{cuuid}/addresses", a.Authorization("CreateAddress", a.CreateAddressHandler()))
+			r.Get("/{cuuid}/addresses", a.Authorization("GetCustomersAddresses", a.ListAddressesHandler()))
+			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization("UpdateAddress", a.UpdateAddressHandler()))
 		})
 
 		r.Route("/addresses", func(r chi.Router) {
-			r.Get("/{auuid}", a.Authorization("GetAddress", a.GetAddressController()))
-			r.Delete("/{auuid}", a.Authorization("DeleteAddress", a.DeleteAddressController()))
+			r.Get("/{auuid}", a.Authorization("GetAddress", a.GetAddressHandler()))
+			r.Delete("/{auuid}", a.Authorization("DeleteAddress", a.DeleteAddressHandler()))
 		})
 
 		r.Route("/carts", func(r chi.Router) {
-			r.Post("/", a.Authorization("CreateCart", a.CreateCartController()))
-			r.Post("/{ctid}/items", a.Authorization("AddItemToCart", a.AddItemToCartController()))
+			r.Post("/", a.Authorization("CreateCart", a.CreateCartHandler()))
+			r.Post("/{ctid}/items", a.Authorization("AddItemToCart", a.AddItemToCartHandler()))
 			r.Get("/{ctid}/items", a.Authorization("GetCartItems", a.GetCartItemsHandler()))
-			r.Patch("/{ctid}/items/{sku}", a.Authorization("UpdateCartItem", a.UpdateCartItemController()))
-			r.Delete("/{ctid}/items/{sku}", a.Authorization("DeleteCartItem", a.DeleteCartItemController()))
-			r.Delete("/{ctid}/items", a.Authorization("EmptyCartItems", a.EmptyCartItemsController()))
+			r.Patch("/{ctid}/items/{sku}", a.Authorization("UpdateCartItem", a.UpdateCartItemHandler()))
+			r.Delete("/{ctid}/items/{sku}", a.Authorization("DeleteCartItem", a.DeleteCartItemHandler()))
+			r.Delete("/{ctid}/items", a.Authorization("EmptyCartItems", a.EmptyCartItemsHandler()))
 		})
 	})
 

@@ -16,7 +16,7 @@ const (
 )
 
 type Serverable interface {
-	Controllerable
+	Handlerable
 	EcomService
 }
 
@@ -30,10 +30,10 @@ type App struct {
 	Service EcomService
 }
 
-type Controllerable interface {
-	CreateCartController() http.HandlerFunc
-	GetCartItemsController() http.HandlerFunc
-	CreateCustomerController() http.HandlerFunc
+type Handlerable interface {
+	CreateCartHandler() http.HandlerFunc
+	GetCartItemsHandler() http.HandlerFunc
+	CreateCustomerHandler() http.HandlerFunc
 	AuthenticateMiddleware(http.HandlerFunc) http.HandlerFunc
 }
 

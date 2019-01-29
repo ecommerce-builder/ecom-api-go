@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// ListAddressesController handler
-func (a *App) ListAddressesController() http.HandlerFunc {
+// ListAddressesHandler get a list of addresses
+func (a *App) ListAddressesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cuuid := chi.URLParam(r, "cuuid")
 		addresses, _ := a.Service.GetAddresses(r.Context(), cuuid)

@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// CreateAddressController handler
-func (a *App) CreateAddressController() http.HandlerFunc {
+// CreateAddressHandler
+func (a *App) CreateAddressHandler() http.HandlerFunc {
 	type addressRequestBody struct {
 		Typ         string  `json:"typ"`
 		ContactName string  `json:"contact_name"`

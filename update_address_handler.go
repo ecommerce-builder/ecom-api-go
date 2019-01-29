@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// UpdateAddressController handler
-func (a *App) UpdateAddressController() http.HandlerFunc {
+// UpdateAddressHanlder updates an address by addresss UUID
+func (a *App) UpdateAddressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// a.Service.UpdateAddress()
 

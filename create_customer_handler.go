@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-// CreateCustomer controller
-func (a *App) CreateCustomerController() http.HandlerFunc {
+// CreateCustomerHandler creates a new customer record
+func (a *App) CreateCustomerHandler() http.HandlerFunc {
 	type createCustomerRequestBody struct {
 		Email     string `json:"email"`
 		Password  string `json:"password"`
@@ -46,7 +46,7 @@ func (a *App) CreateCustomerController() http.HandlerFunc {
 
 		customer, err := a.Service.CreateCustomer(r.Context(), "customer", o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "CreateCustomerController: failed Service.CreateCustomer(%s, %s, %s, %s): %v\n", o.Email, "*****", o.Firstname, o.Lastname, err)
+			fmt.Fprintf(os.Stderr, "CreateCustomerHandler: failed Service.CreateCustomer(ctx, %s, %s, %s, %s): %v\n", o.Email, "*****", o.Firstname, o.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			json.NewEncoder(w).Encode(struct {
 				Code    int    `json:"code"`
