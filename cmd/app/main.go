@@ -68,7 +68,6 @@ var (
 	// 	verify-full
 	//		only try an SSL connection, verify that the server certificate is issued by
 	//		a trusted CA and that the server host name matches that in the certificate
-
 	pgsslmode = os.Getenv("ECOM_PG_SSLMODE")
 
 	// This parameter specifies the file name of the client SSL certificate, replacing the default
@@ -323,7 +322,7 @@ func main() {
 	log.Infoln("established database connection")
 
 	// build a Postgres model
-	pgModel, _ := model.New(db)
+	pgModel := model.NewPgModel(db)
 
 	// PubSub
 	ctx := context.Background()
@@ -415,8 +414,8 @@ func main() {
 		r.Get("/info", infoHandler)
 	})
 
-	// tlsMode determines whether to serve HTTPS traffic directly
-	// if tlsMode is false, you can provide HTTPS via GKE layer 7 load balancer
+	// tlsMode determines whether to serve HTTPS traffic directly.
+	// If tlsMode is false, you can enable HTTPS with a GKE Layer 7 load balancer
 	// using an Ingress.
 	if tlsMode {
 		log.Infof("server listening on HTTPS port %s", port)

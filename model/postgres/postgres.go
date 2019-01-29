@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strconv"
@@ -14,19 +15,20 @@ type PgModel struct {
 	db *sql.DB
 }
 
-// New creates a new PgModel instance
-func New(db *sql.DB) (*PgModel, error) {
-	pgModel := PgModel{db}
-	return &pgModel, nil
+// NewPgModel creates a new PgModel instance
+func NewPgModel(db *sql.DB) *PgModel {
+	return &PgModel{
+		db: db,
+	}
 }
 
 // CreateCart creates a new shopping cart
-func (m *PgModel) CreateCart() (*string, error) {
+func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 	log.Debug("m.CreateCart() started")
 
 	var cartUUID string
 	query := `SELECT UUID_GENERATE_V4() AS cart_uuid`
-	err := m.db.QueryRow(query).Scan(&cartUUID)
+	err := m.db.QueryRowContext(ctx, query).Scan(&cartUUID)
 	if err != nil {
 		log.Errorf("db.QueryRow(%s) %+v", query, err)
 		return nil, err
@@ -36,20 +38,20 @@ func (m *PgModel) CreateCart() (*string, error) {
 }
 
 // AddItemToCart adds a new item with sku, qty and unit price
-func (m *PgModel) AddItemToCart(cartUUID, tierRef, sku string, qty int) (*model.CartItem, error) {
+func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku string, qty int) (*model.CartItem, error) {
 	item := model.CartItem{}
 
 	// check if the item is alreadyd in the cart
 	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE cart_uuid=$1 AND sku=$2) AS exists;`
 	var exists bool
-	m.db.QueryRow(query, cartUUID, sku).Scan(&exists)
+	m.db.QueryRowContext(ctx, query, cartUUID, sku).Scan(&exists)
 	if exists == true {
-		return nil, fmt.Errorf("Cart item %s already exists", sku)
+		return nil, fmt.Errorf("cart item %s already exists", sku)
 	}
 
 	var unitPriceStr []byte
 	query = `SELECT unit_price FROM product_pricing WHERE tier_ref = $1 AND sku = $2`
-	err := m.db.QueryRow(query, tierRef, sku).Scan(&unitPriceStr)
+	err := m.db.QueryRowContext(ctx, query, tierRef, sku).Scan(&unitPriceStr)
 	if err != nil {
 		return &item, err
 	}
@@ -61,7 +63,7 @@ func (m *PgModel) AddItemToCart(cartUUID, tierRef, sku string, qty int) (*model.
 		RETURNING id, cart_uuid, sku, qty, unit_price, created, modified
 	`
 
-	err = m.db.QueryRow(query, cartUUID, sku, qty, unitPrice).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
+	err = m.db.QueryRowContext(ctx, query, cartUUID, sku, qty, unitPrice).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +72,7 @@ func (m *PgModel) AddItemToCart(cartUUID, tierRef, sku string, qty int) (*model.
 }
 
 // GetCartItems gets all items in the cart
-func (m *PgModel) GetCartItems(cartUUID string) ([]*model.CartItem, error) {
+func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*model.CartItem, error) {
 	cartItems := make([]*model.CartItem, 0, 20)
 
 	query := `
@@ -79,7 +81,7 @@ func (m *PgModel) GetCartItems(cartUUID string) ([]*model.CartItem, error) {
 		FROM carts
 		WHERE cart_uuid = $1
 	`
-	rows, err := m.db.Query(query, cartUUID)
+	rows, err := m.db.QueryContext(ctx, query, cartUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +105,7 @@ func (m *PgModel) GetCartItems(cartUUID string) ([]*model.CartItem, error) {
 }
 
 // UpdateItemByCartUUID updates the qty of a cart item of the given sku.
-func (m *PgModel) UpdateItemByCartUUID(cartUUID, sku string, qty int) (*model.CartItem, error) {
+func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*model.CartItem, error) {
 	query := `
 		UPDATE carts
 		SET qty = $1, modified = NOW()
@@ -112,7 +114,7 @@ func (m *PgModel) UpdateItemByCartUUID(cartUUID, sku string, qty int) (*model.Ca
 	`
 
 	item := model.CartItem{}
-	err := m.db.QueryRow(query, qty, cartUUID, sku).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
+	err := m.db.QueryRowContext(ctx, query, qty, cartUUID, sku).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -121,9 +123,9 @@ func (m *PgModel) UpdateItemByCartUUID(cartUUID, sku string, qty int) (*model.Ca
 }
 
 // DeleteCartItem deletes a single cart item.
-func (m *PgModel) DeleteCartItem(cartUUID, sku string) (count int64, err error) {
+func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, sku string) (count int64, err error) {
 	query := `DELETE FROM carts WHERE cart_uuid = $1 AND sku = $2`
-	res, err := m.db.Exec(query, cartUUID, sku)
+	res, err := m.db.ExecContext(ctx, query, cartUUID, sku)
 	if err != nil {
 		return -1, err
 	}
@@ -136,9 +138,9 @@ func (m *PgModel) DeleteCartItem(cartUUID, sku string) (count int64, err error) 
 }
 
 // EmptyCartItems empty the cart of all items. Does not affect coupons.
-func (m *PgModel) EmptyCartItems(cartUUID string) (err error) {
+func (m *PgModel) EmptyCartItems(ctx context.Context, cartUUID string) (err error) {
 	query := `DELETE FROM carts WHERE cart_uuid = $1`
-	_, err = m.db.Exec(query, cartUUID)
+	_, err = m.db.ExecContext(ctx, query, cartUUID)
 	if err != nil {
 		return err
 	}
@@ -147,7 +149,7 @@ func (m *PgModel) EmptyCartItems(cartUUID string) (err error) {
 }
 
 // CreateCustomer creates a new customer
-func (m *PgModel) CreateCustomer(UID, email, firstname, lastname string) (*model.Customer, error) {
+func (m *PgModel) CreateCustomer(ctx context.Context, UID, email, firstname, lastname string) (*model.Customer, error) {
 	c := model.Customer{}
 	query := `
 		INSERT INTO customers (
@@ -157,7 +159,7 @@ func (m *PgModel) CreateCustomer(UID, email, firstname, lastname string) (*model
 		)
 		RETURNING id, customer_uuid, uid, email, firstname, lastname, created, modified
 	`
-	err := m.db.QueryRow(query, UID, email, firstname, lastname).Scan(
+	err := m.db.QueryRowContext(ctx, query, UID, email, firstname, lastname).Scan(
 		&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, err
@@ -167,7 +169,7 @@ func (m *PgModel) CreateCustomer(UID, email, firstname, lastname string) (*model
 }
 
 // GetCustomers gets the next size customers starting at page page
-func (m *PgModel) GetCustomers(page, size int, startsAfter string) ([]*model.Customer, error) {
+func (m *PgModel) GetCustomers(ctx context.Context, page, size int, startsAfter string) ([]*model.Customer, error) {
 	customers := make([]*model.Customer, 0, size)
 
 	query := `
@@ -178,7 +180,7 @@ func (m *PgModel) GetCustomers(page, size int, startsAfter string) ([]*model.Cus
 		OFFSET $1 LIMIT $2
 	`
 	offset := (page * size) - size
-	rows, err := m.db.Query(query, offset, size)
+	rows, err := m.db.QueryContext(ctx, query, offset, size)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +205,7 @@ func (m *PgModel) GetCustomers(page, size int, startsAfter string) ([]*model.Cus
 }
 
 // GetCustomerByUUID gets a customer by customer UUID
-func (m *PgModel) GetCustomerByUUID(customerUUID string) (*model.Customer, error) {
+func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*model.Customer, error) {
 	c := model.Customer{}
 	query := `
 		SELECT
@@ -211,7 +213,7 @@ func (m *PgModel) GetCustomerByUUID(customerUUID string) (*model.Customer, error
 		FROM customers
 		WHERE customer_uuid = $1
 	`
-	err := m.db.QueryRow(query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +222,7 @@ func (m *PgModel) GetCustomerByUUID(customerUUID string) (*model.Customer, error
 }
 
 // CreateAddress creates a new billing or shipping address for a customer
-func (m *PgModel) CreateAddress(customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*model.Address, error) {
+func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*model.Address, error) {
 	a := model.Address{}
 	query := `
 		INSERT INTO addresses (
@@ -231,7 +233,7 @@ func (m *PgModel) CreateAddress(customerID int, typ, contactName, addr1 string, 
 			id, addr_uuid, customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country, created, modified
 	`
 
-	err := m.db.QueryRow(query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
+	err := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +242,7 @@ func (m *PgModel) CreateAddress(customerID int, typ, contactName, addr1 string, 
 }
 
 // GetAddressByUUID gets an address by UUID. Returns a pointer to an Address.
-func (m *PgModel) GetAddressByUUID(addrUUID string) (*model.Address, error) {
+func (m *PgModel) GetAddressByUUID(ctx context.Context, addrUUID string) (*model.Address, error) {
 	a := model.Address{}
 	query := `
 		SELECT
@@ -250,7 +252,7 @@ func (m *PgModel) GetAddressByUUID(addrUUID string) (*model.Address, error) {
 		WHERE addr_uuid = $1
 	`
 
-	err := m.db.QueryRow(query, addrUUID).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
+	err := m.db.QueryRowContext(ctx, query, addrUUID).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -259,14 +261,14 @@ func (m *PgModel) GetAddressByUUID(addrUUID string) (*model.Address, error) {
 }
 
 // GetAddressOwnerByUUID returns a pointer to a string containing the customer UUID of the owner of this address record. If the address is not found the return value of will be nil.
-func (m *PgModel) GetAddressOwnerByUUID(addrUUID string) (*string, error) {
+func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, addrUUID string) (*string, error) {
 	query := `
 		SELECT C.customer_uuid
 		FROM customers AS C, addresses AS A
 		WHERE A.customer_id = C.id AND A.addr_uuid = $1
 	`
 	var customerUUID string
-	err := m.db.QueryRow(query, addrUUID).Scan(&customerUUID)
+	err := m.db.QueryRowContext(ctx, query, addrUUID).Scan(&customerUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -275,11 +277,11 @@ func (m *PgModel) GetAddressOwnerByUUID(addrUUID string) (*string, error) {
 }
 
 // GetCustomerIDByUUID converts between customer UUID and the underlying primary key
-func (m *PgModel) GetCustomerIDByUUID(customerUUID string) (int, error) {
+func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error) {
 	var id int
 
 	query := `SELECT id FROM customers WHERE customer_uuid = $1`
-	row := m.db.QueryRow(query, customerUUID)
+	row := m.db.QueryRowContext(ctx, query, customerUUID)
 	err := row.Scan(&id)
 	if err != nil {
 		return -1, err
@@ -289,7 +291,7 @@ func (m *PgModel) GetCustomerIDByUUID(customerUUID string) (int, error) {
 }
 
 // GetAddresses retrieves a slice of pointers to Address for a given customer
-func (m *PgModel) GetAddresses(customerID int) ([]*model.Address, error) {
+func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*model.Address, error) {
 	addresses := make([]*model.Address, 0, 8)
 
 	query := `
@@ -300,7 +302,7 @@ func (m *PgModel) GetAddresses(customerID int) ([]*model.Address, error) {
 		WHERE customer_id = $1
 		ORDER BY created DESC
 	`
-	rows, err := m.db.Query(query, customerID)
+	rows, err := m.db.QueryContext(ctx, query, customerID)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +327,7 @@ func (m *PgModel) GetAddresses(customerID int) ([]*model.Address, error) {
 }
 
 // UpdateAddressByUUID updates an address for a given customer
-func (m *PgModel) UpdateAddressByUUID(addrUUID string) (*model.Address, error) {
+func (m *PgModel) UpdateAddressByUUID(ctx context.Context, addrUUID string) (*model.Address, error) {
 	// TO BE DONE
 	//
 	//query := `UPDATE addresses SET`
@@ -334,10 +336,10 @@ func (m *PgModel) UpdateAddressByUUID(addrUUID string) (*model.Address, error) {
 }
 
 // DeleteAddressByUUID deletes an address by uuid
-func (m *PgModel) DeleteAddressByUUID(addrUUID string) error {
+func (m *PgModel) DeleteAddressByUUID(ctx context.Context, addrUUID string) error {
 	query := `DELETE FROM addresses WHERE addr_uuid = $1`
 
-	_, err := m.db.Exec(query, addrUUID)
+	_, err := m.db.ExecContext(ctx, query, addrUUID)
 	if err != nil {
 		return err
 	}

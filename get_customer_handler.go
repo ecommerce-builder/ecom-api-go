@@ -13,7 +13,7 @@ import (
 func (a *App) GetCustomerHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cuuid := chi.URLParam(r, "cuuid")
-		customer, err := a.Service.GetCustomer(cuuid)
+		customer, err := a.Service.GetCustomer(r.Context(), cuuid)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %v", cuuid, err)
 			return

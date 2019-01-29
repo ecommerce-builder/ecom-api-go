@@ -1,6 +1,7 @@
 package firebase
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -10,7 +11,6 @@ import (
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 type FirebaseService struct {
@@ -36,10 +36,10 @@ func (s *FirebaseService) Authenticate(ctx context.Context, jwt string) (*auth.T
 }
 
 // CreateCart generates a new random UUID to be used for subseqent cart calls
-func (s *FirebaseService) CreateCart() (*string, error) {
+func (s *FirebaseService) CreateCart(ctx context.Context) (*string, error) {
 	log.Debug("s.CreateCart() started")
 
-	strptr, err := s.model.CreateCart()
+	strptr, err := s.model.CreateCart(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -49,10 +49,10 @@ func (s *FirebaseService) CreateCart() (*string, error) {
 }
 
 // AddItemToCart adds a single item to a given cart
-func (s *FirebaseService) AddItemToCart(cartUUID string, sku string, qty int) (*app.CartItem, error) {
+func (s *FirebaseService) AddItemToCart(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
 	log.Debugf("s.AddItemToCart(%s, %s, %d) started", cartUUID, sku, qty)
 
-	item, err := s.model.AddItemToCart(cartUUID, "default", sku, qty)
+	item, err := s.model.AddItemToCart(ctx, cartUUID, "default", sku, qty)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +71,8 @@ func (s *FirebaseService) AddItemToCart(cartUUID string, sku string, qty int) (*
 }
 
 // GetCartItems get all items in the given cart
-func (s *FirebaseService) GetCartItems(cartUUID string) ([]*app.CartItem, error) {
-	items, err := s.model.GetCartItems(cartUUID)
+func (s *FirebaseService) GetCartItems(ctx context.Context, cartUUID string) ([]*app.CartItem, error) {
+	items, err := s.model.GetCartItems(ctx, cartUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +93,8 @@ func (s *FirebaseService) GetCartItems(cartUUID string) ([]*app.CartItem, error)
 }
 
 // UpdateCartItem updates a single item's qty
-func (s *FirebaseService) UpdateCartItem(cartUUID string, sku string, qty int) (*app.CartItem, error) {
-	item, err := s.model.UpdateItemByCartUUID(cartUUID, sku, qty)
+func (s *FirebaseService) UpdateCartItem(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
+	item, err := s.model.UpdateItemByCartUUID(ctx, cartUUID, sku, qty)
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +111,8 @@ func (s *FirebaseService) UpdateCartItem(cartUUID string, sku string, qty int) (
 }
 
 // DeleteCartItem deletes a single cart item
-func (s *FirebaseService) DeleteCartItem(cartUUID string, sku string) (count int64, err error) {
-	count, err = s.model.DeleteCartItem(cartUUID, sku)
+func (s *FirebaseService) DeleteCartItem(ctx context.Context, cartUUID string, sku string) (count int64, err error) {
+	count, err = s.model.DeleteCartItem(ctx, cartUUID, sku)
 	if err != nil {
 		return -1, err
 	}
@@ -120,15 +120,14 @@ func (s *FirebaseService) DeleteCartItem(cartUUID string, sku string) (count int
 }
 
 // EmptyCartItems empties the cart of all items but not coupons
-func (s *FirebaseService) EmptyCartItems(cartUUID string) (err error) {
-	return s.model.EmptyCartItems(cartUUID)
+func (s *FirebaseService) EmptyCartItems(ctx context.Context, cartUUID string) (err error) {
+	return s.model.EmptyCartItems(ctx, cartUUID)
 }
 
 // CreateCustomer creates a new customer
-func (s *FirebaseService) CreateCustomer(role, email, password, firstname, lastname string) (*app.Customer, error) {
+func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*app.Customer, error) {
 	log.Debugf("s.CreateCustomer(%s, %s, %s, %s) started", email, "*****", firstname, lastname)
 
-	ctx := context.Background()
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return nil, err
@@ -177,7 +176,7 @@ func (s *FirebaseService) CreateCustomer(role, email, password, firstname, lastn
 		return nil, fmt.Errorf("Could not publish message: %v", err)
 	}
 
-	c, err := s.model.CreateCustomer(userRecord.UID, email, firstname, lastname)
+	c, err := s.model.CreateCustomer(ctx, userRecord.UID, email, firstname, lastname)
 	if err != nil {
 		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s) failed: %v", userRecord.UID, email, firstname, lastname, err)
 	}
@@ -206,7 +205,7 @@ func (s *FirebaseService) CreateCustomer(role, email, password, firstname, lastn
 }
 
 func (s *FirebaseService) GetCustomers(ctx context.Context, size int, startsAfter string) ([]*app.Customer, error) {
-	customers, err := s.model.GetCustomers(1, size, startsAfter)
+	customers, err := s.model.GetCustomers(ctx, 1, size, startsAfter)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +214,6 @@ func (s *FirebaseService) GetCustomers(ctx context.Context, size int, startsAfte
 
 	for _, v := range customers {
 		c := app.Customer{
-
 			CustomerUUID: v.CustomerUUID,
 			UID:          v.UID,
 			Email:        v.Email,
@@ -231,8 +229,8 @@ func (s *FirebaseService) GetCustomers(ctx context.Context, size int, startsAfte
 }
 
 // GetCustomer retrieves a customer by customer UUID
-func (s *FirebaseService) GetCustomer(customerUUID string) (*app.Customer, error) {
-	c, err := s.model.GetCustomerByUUID(customerUUID)
+func (s *FirebaseService) GetCustomer(ctx context.Context, customerUUID string) (*app.Customer, error) {
+	c, err := s.model.GetCustomerByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -250,13 +248,13 @@ func (s *FirebaseService) GetCustomer(customerUUID string) (*app.Customer, error
 }
 
 // CreateAddress creates a new address for a customer
-func (s *FirebaseService) CreateAddress(customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*app.Address, error) {
-	customerID, err := s.model.GetCustomerIDByUUID(customerUUID)
+func (s *FirebaseService) CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*app.Address, error) {
+	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	a, err := s.model.CreateAddress(customerID, typ, contactName, addr1, addr2, city, county, postcode, country)
+	a, err := s.model.CreateAddress(ctx, customerID, typ, contactName, addr1, addr2, city, county, postcode, country)
 	if err != nil {
 		return nil, err
 	}
@@ -278,8 +276,8 @@ func (s *FirebaseService) CreateAddress(customerUUID, typ, contactName, addr1 st
 }
 
 // GetAddress gets an address by UUID
-func (s *FirebaseService) GetAddress(addressUUID string) (*app.Address, error) {
-	a, err := s.model.GetAddressByUUID(addressUUID)
+func (s *FirebaseService) GetAddress(ctx context.Context, addressUUID string) (*app.Address, error) {
+	a, err := s.model.GetAddressByUUID(ctx, addressUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -300,8 +298,8 @@ func (s *FirebaseService) GetAddress(addressUUID string) (*app.Address, error) {
 	return &aa, nil
 }
 
-func (s *FirebaseService) GetAddressOwner(addrUUID string) (*string, error) {
-	customerUUID, err := s.model.GetAddressOwnerByUUID(addrUUID)
+func (s *FirebaseService) GetAddressOwner(ctx context.Context, addrUUID string) (*string, error) {
+	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, addrUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -310,13 +308,13 @@ func (s *FirebaseService) GetAddressOwner(addrUUID string) (*string, error) {
 }
 
 // GetAddresses gets a slice of addresses for a given customer
-func (s *FirebaseService) GetAddresses(customerUUID string) ([]*app.Address, error) {
-	customerID, err := s.model.GetCustomerIDByUUID(customerUUID)
+func (s *FirebaseService) GetAddresses(ctx context.Context, customerUUID string) ([]*app.Address, error) {
+	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	al, err := s.model.GetAddresses(customerID)
+	al, err := s.model.GetAddresses(ctx, customerID)
 	if err != nil {
 		return nil, err
 	}
@@ -343,8 +341,8 @@ func (s *FirebaseService) GetAddresses(customerUUID string) ([]*app.Address, err
 }
 
 // DeleteAddress deletes an address by uuid
-func (s *FirebaseService) DeleteAddress(addrUUID string) error {
-	err := s.model.DeleteAddressByUUID(addrUUID)
+func (s *FirebaseService) DeleteAddress(ctx context.Context, addrUUID string) error {
+	err := s.model.DeleteAddressByUUID(ctx, addrUUID)
 	if err != nil {
 		return err
 	}

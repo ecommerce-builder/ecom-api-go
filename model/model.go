@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"time"
 )
 
@@ -51,26 +52,26 @@ type EcomModel interface {
 }
 
 type CartModel interface {
-	CreateCart() (*string, error)
-	AddItemToCart(cartUUID, tierRef, sku string, qty int) (*CartItem, error)
-	GetCartItems(cartUUID string) ([]*CartItem, error)
-	UpdateItemByCartUUID(cartUUID, sku string, qty int) (*CartItem, error)
-	DeleteCartItem(cartUUID, sku string) (count int64, err error)
-	EmptyCartItems(cartUUID string) (err error)
+	CreateCart(ctx context.Context) (*string, error)
+	AddItemToCart(ctx context.Context, cartUUID, tierRef, sku string, qty int) (*CartItem, error)
+	GetCartItems(ctx context.Context, cartUUID string) ([]*CartItem, error)
+	UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*CartItem, error)
+	DeleteCartItem(ctx context.Context, cartUUID, sku string) (count int64, err error)
+	EmptyCartItems(ctx context.Context, cartUUID string) (err error)
 }
 
 type CustomerModel interface {
-	CreateCustomer(UID, email, firstname, lastname string) (*Customer, error)
-	GetCustomers(page, size int, startsAfter string) ([]*Customer, error)
-	GetCustomerByUUID(customerUUID string) (*Customer, error)
-	GetCustomerIDByUUID(customerUUID string) (int, error)
+	CreateCustomer(ctx context.Context, UID, email, firstname, lastname string) (*Customer, error)
+	GetCustomers(ctx context.Context, page, size int, startsAfter string) ([]*Customer, error)
+	GetCustomerByUUID(ctx context.Context, customerUUID string) (*Customer, error)
+	GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error)
 }
 
 type AddressModel interface {
-	CreateAddress(customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*Address, error)
-	GetAddressByUUID(addrUUID string) (*Address, error)
-	GetAddressOwnerByUUID(addrUUID string) (*string, error)
-	GetAddresses(customerID int) ([]*Address, error)
-	UpdateAddressByUUID(addrUUID string) (*Address, error)
-	DeleteAddressByUUID(addrUUID string) error
+	CreateAddress(ctx context.Context, customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*Address, error)
+	GetAddressByUUID(ctx context.Context, addrUUID string) (*Address, error)
+	GetAddressOwnerByUUID(ctx context.Context, addrUUID string) (*string, error)
+	GetAddresses(ctx context.Context, customerID int) ([]*Address, error)
+	UpdateAddressByUUID(ctx context.Context, addrUUID string) (*Address, error)
+	DeleteAddressByUUID(ctx context.Context, addrUUID string) error
 }

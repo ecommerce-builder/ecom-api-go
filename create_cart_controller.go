@@ -18,7 +18,7 @@ func (a *App) CreateCartController() http.HandlerFunc {
 			CartUUID string `json:"cart_uuid"`
 		}
 
-		uuid, err := a.Service.CreateCart()
+		uuid, err := a.Service.CreateCart(r.Context())
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to create cart: %v", err)
 			return

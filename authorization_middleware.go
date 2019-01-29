@@ -12,8 +12,9 @@ import (
 // AuthorizationMiddleware provides authorization layer
 func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		log.Debugf("AuthorizationMiddleware started for operation %s", op)
-		decodedToken := r.Context().Value("ecomDecodedToken").(*auth.Token)
+		decodedToken := ctx.Value("ecomDecodedToken").(*auth.Token)
 
 		// Get the customer UUID and customer role from the JWT
 		var cuuid, role string
@@ -81,7 +82,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			auuid := chi.URLParam(r, "auuid")
-			ocuuid, err := a.Service.GetAddressOwner(auuid)
+			ocuuid, err := a.Service.GetAddressOwner(ctx, auuid)
 			if err != nil {
 				log.Errorf("a.Service.GetAddressOwner(%s) error: %v", auuid, err)
 				return

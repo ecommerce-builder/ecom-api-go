@@ -48,12 +48,12 @@ type CartItem struct {
 }
 
 type CartService interface {
-	CreateCart() (*string, error)
-	AddItemToCart(cartUUID, sku string, qty int) (*CartItem, error)
-	GetCartItems(cartUUID string) ([]*CartItem, error)
-	UpdateCartItem(cartUUID string, sku string, qty int) (*CartItem, error)
-	DeleteCartItem(cartUUID string, sku string) (count int64, err error)
-	EmptyCartItems(cartUUID string) (err error)
+	CreateCart(ctx context.Context) (*string, error)
+	AddItemToCart(ctx context.Context, cartUUID, sku string, qty int) (*CartItem, error)
+	GetCartItems(ctx context.Context, cartUUID string) ([]*CartItem, error)
+	UpdateCartItem(ctx context.Context, cartUUID string, sku string, qty int) (*CartItem, error)
+	DeleteCartItem(ctx context.Context, cartUUID string, sku string) (count int64, err error)
+	EmptyCartItems(ctx context.Context, cartUUID string) (err error)
 }
 
 // Customer details
@@ -83,14 +83,14 @@ type Address struct {
 }
 
 type CustomerService interface {
-	CreateCustomer(role, email, password, firstname, lastname string) (*Customer, error)
+	CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error)
 	GetCustomers(ctx context.Context, size int, startsAfter string) ([]*Customer, error)
-	GetCustomer(customerUUID string) (*Customer, error)
-	CreateAddress(customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
-	GetAddress(addressUUID string) (*Address, error)
-	GetAddressOwner(addrUUID string) (*string, error)
-	GetAddresses(customerUUID string) ([]*Address, error)
-	DeleteAddress(addrUUID string) error
+	GetCustomer(ctx context.Context, customerUUID string) (*Customer, error)
+	CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
+	GetAddress(ctx context.Context, addressUUID string) (*Address, error)
+	GetAddressOwner(ctx context.Context, addrUUID string) (*string, error)
+	GetAddresses(ctx context.Context, customerUUID string) ([]*Address, error)
+	DeleteAddress(ctx context.Context, addrUUID string) error
 }
 
 type AuthService interface {

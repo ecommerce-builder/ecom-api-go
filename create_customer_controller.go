@@ -44,7 +44,7 @@ func (a *App) CreateCustomerController() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		customer, err := a.Service.CreateCustomer("customer", o.Email, o.Password, o.Firstname, o.Lastname)
+		customer, err := a.Service.CreateCustomer(r.Context(), "customer", o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "CreateCustomerController: failed Service.CreateCustomer(%s, %s, %s, %s): %v\n", o.Email, "*****", o.Firstname, o.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500

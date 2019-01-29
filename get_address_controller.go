@@ -14,7 +14,7 @@ func (a *App) GetAddressController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auuid := chi.URLParam(r, "auuid")
 
-		a, err := a.Service.GetAddress(auuid)
+		a, err := a.Service.GetAddress(r.Context(), auuid)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to get address: %v", err)
 		}

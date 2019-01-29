@@ -26,7 +26,7 @@ func (a *App) UpdateCartItemController() http.HandlerFunc {
 			return
 		}
 
-		cart, err := a.Service.UpdateCartItem(ctid, sku, o.Qty)
+		cart, err := a.Service.UpdateCartItem(r.Context(), ctid, sku, o.Qty)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service UpdateCartItem(%s, %s, %d) error: %v", ctid, sku, o.Qty, err)
 			return

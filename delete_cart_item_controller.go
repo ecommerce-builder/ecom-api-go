@@ -12,7 +12,7 @@ func (a *App) DeleteCartItemController() http.HandlerFunc {
 		ctid := chi.URLParam(r, "ctid")
 		sku := chi.URLParam(r, "sku")
 
-		count, _ := a.Service.DeleteCartItem(ctid, sku)
+		count, _ := a.Service.DeleteCartItem(r.Context(), ctid, sku)
 		if count == 0 {
 			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return

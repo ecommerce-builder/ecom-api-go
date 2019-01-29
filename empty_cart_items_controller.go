@@ -13,7 +13,7 @@ func (a *App) EmptyCartItemsController() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctid := chi.URLParam(r, "ctid")
 
-		err := a.Service.EmptyCartItems(ctid)
+		err := a.Service.EmptyCartItems(r.Context(), ctid)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service EmptyCartItems(%s) error: %v", ctid, err)
 		}

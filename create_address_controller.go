@@ -37,7 +37,7 @@ func (a *App) CreateAddressController() http.HandlerFunc {
 			return
 		}
 
-		address, err := a.Service.CreateAddress(cuuid, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
+		address, err := a.Service.CreateAddress(r.Context(), cuuid, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", cuuid, err)
 			return
