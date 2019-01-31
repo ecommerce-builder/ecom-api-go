@@ -52,7 +52,7 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 				Code    int    `json:"code"`
 				Message string `json:"message"`
 			}{
-				400,
+				500,
 				err.Error(),
 			})
 			return

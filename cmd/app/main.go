@@ -402,6 +402,10 @@ func main() {
 			r.Delete("/{ctid}/items/{sku}", a.Authorization("DeleteCartItem", a.DeleteCartItemHandler()))
 			r.Delete("/{ctid}/items", a.Authorization("EmptyCartItems", a.EmptyCartItemsHandler()))
 		})
+
+		r.Route("/catalog", func(r chi.Router) {
+			r.Get("/", a.Authorization("GetCatalog", a.GetCatalogHandler()))
+		})
 	})
 
 	// public routes including GET / for Google Kuberenetes default healthcheck

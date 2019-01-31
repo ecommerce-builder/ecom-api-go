@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	"firebase.google.com/go/auth"
 )
 
@@ -23,6 +24,7 @@ type Serverable interface {
 type EcomService interface {
 	CartService
 	CustomerService
+	CatalogAndProductService
 	AuthService
 }
 
@@ -95,4 +97,8 @@ type CustomerService interface {
 
 type AuthService interface {
 	Authenticate(ctx context.Context, jwt string) (*auth.Token, error)
+}
+
+type CatalogAndProductService interface {
+	GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error)
 }

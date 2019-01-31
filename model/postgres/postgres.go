@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -345,4 +346,35 @@ func (m *PgModel) DeleteAddressByUUID(ctx context.Context, addrUUID string) erro
 	}
 
 	return nil
+}
+
+// GetCatalogNestedSet returns a slice of NestedSetNode representing the catalog as a nested set.
+func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
+	nodes := make([]*nestedset.NestedSetNode, 0, 256)
+
+	query := `
+		SELECT id, parent, segment, path, name, lft, rgt, depth, created, modified
+		FROM catalog
+		ORDER BY lft ASC
+	`
+	rows, err := m.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var n nestedset.NestedSetNode
+		err = rows.Scan(&n.ID, &n.Parent, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified)
+		if err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, &n)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return nodes, nil
 }
