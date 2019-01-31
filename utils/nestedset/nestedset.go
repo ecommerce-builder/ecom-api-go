@@ -87,6 +87,9 @@ func BuildTree(nestedset []*NestedSetNode) *Node {
 }
 
 func moveContext(context *Node) *Node {
+	if context.parent == nil {
+		return context
+	}
 	prev := context
 	context = context.parent
 
@@ -101,13 +104,21 @@ func moveContext(context *Node) *Node {
 func (n *Node) GenerateNestedSet(lft, depth int, path string) int {
 	rgt := lft + 1
 	for _, i := range n.nodes {
-		rgt = i.GenerateNestedSet(rgt, depth+1, path+"/"+n.segment)
+		if path == "" {
+			rgt = i.GenerateNestedSet(rgt, depth+1, n.segment)
+		} else {
+			rgt = i.GenerateNestedSet(rgt, depth+1, path+"/"+n.segment)
+		}
 	}
 	n.lft = lft
 	n.rgt = rgt
 	n.depth = depth
-	n.path = path + "/" + n.segment
 
+	if path == "" {
+		n.path = n.segment
+	} else {
+		n.path = path + "/" + n.segment
+	}
 	return rgt + 1
 }
 
