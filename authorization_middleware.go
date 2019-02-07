@@ -45,8 +45,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 		// at this point the role is set to either "anon" or "customer"
 		switch op {
-		case "CreateCart", "AddItemToCart", "GetCartItems", "UpdateCartItem", "DeleteCartItem", "EmptyCartItems":
-			// Cart operations don't require any special authorization
+		case "CreateCart", "AddItemToCart", "GetCartItems", "UpdateCartItem", "DeleteCartItem", "EmptyCartItems", "GetCatalog":
+			// Cart and Catalog operations don't require any special authorization
 			next.ServeHTTP(w, r)
 			return
 		case "CreateCustomer":

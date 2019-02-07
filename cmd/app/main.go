@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go"
 	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -23,6 +24,8 @@ import (
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
 var version string
+
+const maxDbConnectAttempts = 3
 
 var (
 	//
@@ -314,9 +317,19 @@ func main() {
 		log.Fatalf("failed to open db: %v", err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("failed to verify db connection: %v", err)
+	attempt := 0
+	for attempt < maxDbConnectAttempts {
+		err = db.Ping()
+		if err != nil {
+			attempt++
+			if attempt >= maxDbConnectAttempts {
+				log.Fatalf("attempt %d/%d failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
+			}
+			log.Warnf("attempt %d/%d, failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	log.Infoln("established database connection")
@@ -402,6 +415,11 @@ func main() {
 			r.Delete("/{ctid}/items/{sku}", a.Authorization("DeleteCartItem", a.DeleteCartItemHandler()))
 			r.Delete("/{ctid}/items", a.Authorization("EmptyCartItems", a.EmptyCartItemsHandler()))
 		})
+
+		r.Route("/catalog", func(r chi.Router) {
+			r.Get("/", a.Authorization("GetCatalog", a.GetCatalogHandler()))
+		})
+		r.Get("/productassocs", a.GetCatalogProductAssocsHandler())
 	})
 
 	// public routes including GET / for Google Kuberenetes default healthcheck

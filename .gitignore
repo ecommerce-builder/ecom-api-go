@@ -1,5 +1,6 @@
 *_secret.yaml
 certs/
+data/init.sql
 main
 ecom-api-*
 ecom-test-*.json

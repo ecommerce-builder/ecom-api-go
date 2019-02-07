@@ -7,6 +7,7 @@ import (
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	"cloud.google.com/go/pubsub"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
@@ -348,4 +349,13 @@ func (s *FirebaseService) DeleteAddress(ctx context.Context, addrUUID string) er
 	}
 
 	return nil
+}
+
+// GetCatalog returns the catalog in nested set representation.
+func (s *FirebaseService) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
+	ns, err :=  s.model.GetCatalogNestedSet(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return ns, nil
 }

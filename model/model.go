@@ -3,6 +3,8 @@ package model
 import (
 	"context"
 	"time"
+
+	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 )
 
 // CartItem structure holds the details individual cart item
@@ -49,6 +51,7 @@ type EcomModel interface {
 	CartModel
 	CustomerModel
 	AddressModel
+	CatalogModel
 }
 
 type CartModel interface {
@@ -74,4 +77,9 @@ type AddressModel interface {
 	GetAddresses(ctx context.Context, customerID int) ([]*Address, error)
 	UpdateAddressByUUID(ctx context.Context, addrUUID string) (*Address, error)
 	DeleteAddressByUUID(ctx context.Context, addrUUID string) error
+}
+
+// CatalogModel interface
+type CatalogModel interface {
+	GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedSetNode, error)
 }
