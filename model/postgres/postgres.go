@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
@@ -350,8 +351,6 @@ func (m *PgModel) DeleteAddressByUUID(ctx context.Context, addrUUID string) erro
 
 // GetCatalogNestedSet returns a slice of NestedSetNode representing the catalog as a nested set.
 func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
-	nodes := make([]*nestedset.NestedSetNode, 0, 256)
-
 	query := `
 		SELECT id, parent, segment, path, name, lft, rgt, depth, created, modified
 		FROM catalog
@@ -363,6 +362,7 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 	}
 	defer rows.Close()
 
+	nodes := make([]*nestedset.NestedSetNode, 0, 256)
 	for rows.Next() {
 		var n nestedset.NestedSetNode
 		err = rows.Scan(&n.ID, &n.Parent, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified)
@@ -377,4 +377,41 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 	}
 
 	return nodes, nil
+}
+
+type CatalogProductAssoc struct {
+	ID        int
+	CatalogID int
+	ProductID int
+	Path      string
+	SKU       string
+	Pri       int
+	Created   time.Time
+	Modified  time.Time
+}
+
+func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
+	query := `
+		SELECT id, catalog_id, product_id, path, sku, pri
+		FROM catalog_products
+		ORDER BY pri
+	`
+	rows, err := m.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cpa := make([]*CatalogProductAssoc, 0, 256)
+	for rows.Next() {
+		var n CatalogProductAssoc
+		err = rows.Scan(&n.ID, &n.CatalogID, &n.ProductID, &n.Path, &n.SKU, &n.Pri, &n.Created, &n.Modified)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return cpa, nil
 }

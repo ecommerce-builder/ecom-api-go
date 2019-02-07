@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// GetCatalogHanlder creates a handler to return the entire catalog
+// GetCatalogHandler creates a handler to return the entire catalog
 func (app *App) GetCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		catalog, err := app.Service.GetCatalog(r.Context())
