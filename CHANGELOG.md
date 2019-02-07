@@ -1,4 +1,10 @@
 # CHANGELOG
+## v0.13.0 (7 Feb 2019)
++ main tries 3 times to connect to PG with 5 seconds backoff periods.
++ data directory with README.md with instructions on how to generate init.sql
++ Docker Compose config added
++ Catalog and Catalog product associations with handler for HTTP GET
+
 ## v0.12.1 (22 Jan 2019)
 + Use v prefix (forgotton in last build)
 
