@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
-	"cloud.google.com/go/pubsub"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	log "github.com/sirupsen/logrus"
@@ -18,11 +17,10 @@ type FirebaseService struct {
 	model        model.EcomModel
 	fbApp        *firebase.App
 	fbAuthClient *auth.Client
-	pubsubClient *pubsub.Client
 }
 
-func New(model model.EcomModel, fbApp *firebase.App, fbAuthClient *auth.Client, pubsubClient *pubsub.Client) (*FirebaseService, error) {
-	s := FirebaseService{model, fbApp, fbAuthClient, pubsubClient}
+func New(model model.EcomModel, fbApp *firebase.App, fbAuthClient *auth.Client) (*FirebaseService, error) {
+	s := FirebaseService{model, fbApp, fbAuthClient}
 	return &s, nil
 }
 
@@ -163,20 +161,6 @@ func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, passw
 	}
 	log.Debugf("payload marshalled to string %s", b)
 
-	msg := &pubsub.Message{
-		Data: b,
-		Attributes: map[string]string{
-			"eventName": string(app.OpCreateCustomer),
-		},
-	}
-
-	topic := s.pubsubClient.Topic("ecom-api")
-	defer topic.Stop()
-
-	if _, err := topic.Publish(ctx, msg).Get(ctx); err != nil {
-		return nil, fmt.Errorf("Could not publish message: %v", err)
-	}
-
 	c, err := s.model.CreateCustomer(ctx, userRecord.UID, email, firstname, lastname)
 	if err != nil {
 		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s) failed: %v", userRecord.UID, email, firstname, lastname, err)
@@ -205,15 +189,20 @@ func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, passw
 	return &ac, nil
 }
 
-func (s *FirebaseService) GetCustomers(ctx context.Context, size int, startsAfter string) ([]*app.Customer, error) {
-	customers, err := s.model.GetCustomers(ctx, 1, size, startsAfter)
+func (s *FirebaseService) GetCustomers(ctx context.Context, q *app.PaginationQuery) (*app.PaginationResultSet, error) {
+	mq := &model.PaginationQuery{
+		OrderBy:    q.OrderBy,
+		OrderDir:   q.OrderDir,
+		Limit:      q.Limit,
+		StartAfter: q.StartAfter,
+	}
+	prs, err := s.model.GetCustomers(ctx, mq)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]*app.Customer, 0, size)
-
-	for _, v := range customers {
+	results := make([]*app.Customer, 0)
+	for _, v := range prs.RSet.([]*model.Customer) {
 		c := app.Customer{
 			CustomerUUID: v.CustomerUUID,
 			UID:          v.UID,
@@ -226,7 +215,15 @@ func (s *FirebaseService) GetCustomers(ctx context.Context, size int, startsAfte
 		results = append(results, &c)
 	}
 
-	return results, nil
+	aprs := &app.PaginationResultSet{
+		RContext: app.PaginationContext{
+			Total:     prs.RContext.Total,
+			FirstUUID: prs.RContext.FirstUUID,
+			LastUUID:  prs.RContext.LastUUID,
+		},
+		RSet: results,
+	}
+	return aprs, nil
 }
 
 // GetCustomer retrieves a customer by customer UUID
@@ -353,7 +350,7 @@ func (s *FirebaseService) DeleteAddress(ctx context.Context, addrUUID string) er
 
 // GetCatalog returns the catalog in nested set representation.
 func (s *FirebaseService) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
-	ns, err :=  s.model.GetCatalogNestedSet(ctx)
+	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
 		return nil, err
 	}

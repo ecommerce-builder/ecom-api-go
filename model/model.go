@@ -30,6 +30,26 @@ type Customer struct {
 	Modified     time.Time
 }
 
+// PaginationResultSet contains both the underlying result set as well as
+// context about the data including Total; the total number of rows in
+// the table, First; set to true if this result set represents the first
+// page, Last; set to true if this result set represents the last page of
+// results.
+type PaginationResultSet struct {
+	RContext struct {
+		Total               int
+		FirstUUID, LastUUID string
+	}
+	RSet interface{}
+}
+
+type PaginationQuery struct {
+	OrderBy    string
+	OrderDir   string
+	Limit      int
+	StartAfter string
+}
+
 // Address contains address information for a Customer
 type Address struct {
 	ID          int
@@ -65,7 +85,7 @@ type CartModel interface {
 
 type CustomerModel interface {
 	CreateCustomer(ctx context.Context, UID, email, firstname, lastname string) (*Customer, error)
-	GetCustomers(ctx context.Context, page, size int, startsAfter string) ([]*Customer, error)
+	GetCustomers(ctx context.Context, q *PaginationQuery) (*PaginationResultSet, error)
 	GetCustomerByUUID(ctx context.Context, customerUUID string) (*Customer, error)
 	GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error)
 }

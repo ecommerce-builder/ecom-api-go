@@ -29,7 +29,7 @@ func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 	log.Debug("m.CreateCart() started")
 
 	var cartUUID string
-	query := `SELECT UUID_GENERATE_V4() AS cart_uuid`
+	query := `SELECT UUID_GENERATE_V4() AS uuid`
 	err := m.db.QueryRowContext(ctx, query).Scan(&cartUUID)
 	if err != nil {
 		log.Errorf("db.QueryRow(%s) %+v", query, err)
@@ -44,7 +44,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku stri
 	item := model.CartItem{}
 
 	// check if the item is alreadyd in the cart
-	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE cart_uuid=$1 AND sku=$2) AS exists;`
+	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE uuid=$1 AND sku=$2) AS exists;`
 	var exists bool
 	m.db.QueryRowContext(ctx, query, cartUUID, sku).Scan(&exists)
 	if exists == true {
@@ -60,9 +60,9 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku stri
 
 	unitPrice, _ := strconv.ParseFloat(string(unitPriceStr), 64)
 	query = `
-		INSERT INTO carts (cart_uuid, sku, qty, unit_price)
+		INSERT INTO carts (uuid, sku, qty, unit_price)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, cart_uuid, sku, qty, unit_price, created, modified
+		RETURNING id, uuid, sku, qty, unit_price, created, modified
 	`
 
 	err = m.db.QueryRowContext(ctx, query, cartUUID, sku, qty, unitPrice).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
@@ -79,9 +79,9 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*model.C
 
 	query := `
 		SELECT
-			id, cart_uuid, sku, qty, unit_price, created, modified
+			id, uuid, sku, qty, unit_price, created, modified
 		FROM carts
-		WHERE cart_uuid = $1
+		WHERE uuid = $1
 	`
 	rows, err := m.db.QueryContext(ctx, query, cartUUID)
 	if err != nil {
@@ -111,8 +111,8 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string
 	query := `
 		UPDATE carts
 		SET qty = $1, modified = NOW()
-		WHERE cart_uuid = $2 AND sku = $3
-		RETURNING id, cart_uuid, sku, qty, unit_price, created, modified
+		WHERE uuid = $2 AND sku = $3
+		RETURNING id, uuid, sku, qty, unit_price, created, modified
 	`
 
 	item := model.CartItem{}
@@ -126,7 +126,7 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string
 
 // DeleteCartItem deletes a single cart item.
 func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, sku string) (count int64, err error) {
-	query := `DELETE FROM carts WHERE cart_uuid = $1 AND sku = $2`
+	query := `DELETE FROM carts WHERE uuid = $1 AND sku = $2`
 	res, err := m.db.ExecContext(ctx, query, cartUUID, sku)
 	if err != nil {
 		return -1, err
@@ -141,7 +141,7 @@ func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, sku string) (cou
 
 // EmptyCartItems empty the cart of all items. Does not affect coupons.
 func (m *PgModel) EmptyCartItems(ctx context.Context, cartUUID string) (err error) {
-	query := `DELETE FROM carts WHERE cart_uuid = $1`
+	query := `DELETE FROM carts WHERE uuid = $1`
 	_, err = m.db.ExecContext(ctx, query, cartUUID)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (m *PgModel) CreateCustomer(ctx context.Context, UID, email, firstname, las
 		) VALUES (
 			$1, $2, $3, $4
 		)
-		RETURNING id, customer_uuid, uid, email, firstname, lastname, created, modified
+		RETURNING id, uuid, uid, email, firstname, lastname, created, modified
 	`
 	err := m.db.QueryRowContext(ctx, query, UID, email, firstname, lastname).Scan(
 		&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
@@ -171,23 +171,82 @@ func (m *PgModel) CreateCustomer(ctx context.Context, UID, email, firstname, las
 }
 
 // GetCustomers gets the next size customers starting at page page
-func (m *PgModel) GetCustomers(ctx context.Context, page, size int, startsAfter string) ([]*model.Customer, error) {
-	customers := make([]*model.Customer, 0, size)
+func (m *PgModel) GetCustomers(ctx context.Context, pq *model.PaginationQuery) (*model.PaginationResultSet, error) {
+	q := NewQuery("customers", map[string]bool{
+		"id":        true,
+		"uuid":      false,
+		"uid":       false,
+		"email":     true,
+		"firstname": true,
+		"lastname":  true,
+		"created":   true,
+		"modified":  true,
+	})
+	q = q.Select([]string{"id", "uuid", "uid", "email", "firstname", "lastname", "created", "modified"})
 
-	query := `
-		SELECT
-			id, customer_uuid, uid, email, firstname, lastname, created, modified
-		FROM customers
-		ORDER BY id ASC
-		OFFSET $1 LIMIT $2
+	// if not set, default Order By, Order Direction and Limit is "created DESC LIMIT 10"
+	if pq.OrderBy != "" {
+		q = q.OrderBy(pq.OrderBy)
+	} else {
+		q = q.OrderBy("created")
+	}
+	if pq.OrderDir != "" {
+		q = q.OrderDir(OrderDirection(pq.OrderDir))
+	} else {
+		q = q.OrderDir("DESC")
+	}
+	if pq.Limit > 0 {
+		q = q.Limit(pq.Limit)
+	} else {
+		q = q.Limit(10)
+	}
+	if pq.StartAfter != "" {
+		q = q.StartAfter(pq.StartAfter)
+	}
+
+	// calculate the total count, first and last items in the result set
+	pr := model.PaginationResultSet{}
+	sql := `
+		SELECT COUNT(*) AS count
+		FROM %s
 	`
-	offset := (page * size) - size
-	rows, err := m.db.QueryContext(ctx, query, offset, size)
+	sql = fmt.Sprintf(sql, q.table)
+	err := m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.Total)
+	if err != nil {
+		return nil, err
+	}
+
+	sql = `
+		SELECT uuid
+		FROM %s
+		ORDER BY %s %s, id %s
+		FETCH FIRST 1 ROW ONLY
+	`
+	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir), string(q.orderDir))
+	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.FirstUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	sql = `
+		SELECT uuid
+		FROM %s
+		ORDER BY %s %s, id %s
+		FETCH FIRST 1 ROW ONLY
+	`
+	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir.toggle()), string(q.orderDir.toggle()))
+	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.LastUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := m.QueryContextQ(ctx, q)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	customers := make([]*model.Customer, 0)
 	for rows.Next() {
 		var c model.Customer
 
@@ -198,12 +257,11 @@ func (m *PgModel) GetCustomers(ctx context.Context, page, size int, startsAfter 
 
 		customers = append(customers, &c)
 	}
-
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-
-	return customers, nil
+	pr.RSet = customers
+	return &pr, nil
 }
 
 // GetCustomerByUUID gets a customer by customer UUID
@@ -211,9 +269,9 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 	c := model.Customer{}
 	query := `
 		SELECT
-			id, customer_uuid, uid, email, firstname, lastname, created, modified
+			id, uuid, uid, email, firstname, lastname, created, modified
 		FROM customers
-		WHERE customer_uuid = $1
+		WHERE uuid = $1
 	`
 	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
@@ -232,7 +290,7 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) RETURNING
-			id, addr_uuid, customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country, created, modified
+			id, uuid, customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country, created, modified
 	`
 
 	err := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
@@ -248,10 +306,10 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, addrUUID string) (*model
 	a := model.Address{}
 	query := `
 		SELECT
-			id, addr_uuid, customer_id, typ, contact_name, addr1, addr2,
+			id, uuid, customer_id, typ, contact_name, addr1, addr2,
 			city, county, postcode, country, created, modified
 		FROM addresses
-		WHERE addr_uuid = $1
+		WHERE uuid = $1
 	`
 
 	err := m.db.QueryRowContext(ctx, query, addrUUID).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
@@ -265,9 +323,9 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, addrUUID string) (*model
 // GetAddressOwnerByUUID returns a pointer to a string containing the customer UUID of the owner of this address record. If the address is not found the return value of will be nil.
 func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, addrUUID string) (*string, error) {
 	query := `
-		SELECT C.customer_uuid
+		SELECT C.uuid
 		FROM customers AS C, addresses AS A
-		WHERE A.customer_id = C.id AND A.addr_uuid = $1
+		WHERE A.customer_id = C.id AND A.uuid = $1
 	`
 	var customerUUID string
 	err := m.db.QueryRowContext(ctx, query, addrUUID).Scan(&customerUUID)
@@ -282,7 +340,7 @@ func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, addrUUID string) (*
 func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error) {
 	var id int
 
-	query := `SELECT id FROM customers WHERE customer_uuid = $1`
+	query := `SELECT id FROM customers WHERE uuid = $1`
 	row := m.db.QueryRowContext(ctx, query, customerUUID)
 	err := row.Scan(&id)
 	if err != nil {
@@ -298,7 +356,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*model.Ad
 
 	query := `
 		SELECT
-			id, addr_uuid, customer_id, typ, contact_name, addr1,
+			id, uuid, customer_id, typ, contact_name, addr1,
 			addr2, city, county, postcode, country, created, modified
 		FROM addresses
 		WHERE customer_id = $1
@@ -339,7 +397,7 @@ func (m *PgModel) UpdateAddressByUUID(ctx context.Context, addrUUID string) (*mo
 
 // DeleteAddressByUUID deletes an address by uuid
 func (m *PgModel) DeleteAddressByUUID(ctx context.Context, addrUUID string) error {
-	query := `DELETE FROM addresses WHERE addr_uuid = $1`
+	query := `DELETE FROM addresses WHERE uuid = $1`
 
 	_, err := m.db.ExecContext(ctx, query, addrUUID)
 	if err != nil {
@@ -379,6 +437,7 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 	return nodes, nil
 }
 
+// CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
 type CatalogProductAssoc struct {
 	ID        int
 	CatalogID int
@@ -390,6 +449,7 @@ type CatalogProductAssoc struct {
 	Modified  time.Time
 }
 
+// GetCatalogProductAssocs returns an Slice of catalogue to product associations
 func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
 	query := `
 		SELECT id, catalog_id, product_id, path, sku, pri

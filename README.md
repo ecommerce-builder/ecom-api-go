@@ -3,29 +3,33 @@
 
 ## Architecture
 
-The project is divided into distict layers for controllers, services and
-models.
+The project is divided into distict layers; app, service and model.
 
-### models
+model/model.go   model package; defines the model structs and interfaces
+model/postgres   postgres package; is an implementation of the model
+
+app/service.go   app package; defines the service structs and interfaces
+service/firebase firebase package; is an implementation of the service
+
+### model
 
 The models is the bottom most layer and is responsible for calling the pg
 library with appropriate SQL queries.
 
 
-### services
+### service
 The services layer is an intermediary layer between the controllers and the
 models. It calls the models layer to perform work and uses Pub/Sub to
 communicate results to external systems.
 
 
-### controllers
+### app
 Each API endpoint exposes an Operation. Operations have a unique name
-identifying them, such as `CreateCustomer`, `CreateAddress`, `AddItemToCart`
-and so on.
+identifying them, such as `CreateCustomer`, `CreateAddress`, 
+`AddItemToCart`.
 
 
 ## API
-
 ### Carts
 
 #### CreateCart

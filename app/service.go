@@ -86,13 +86,28 @@ type Address struct {
 
 type CustomerService interface {
 	CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error)
-	GetCustomers(ctx context.Context, size int, startsAfter string) ([]*Customer, error)
+	GetCustomers(ctx context.Context, p *PaginationQuery) (*PaginationResultSet, error)
 	GetCustomer(ctx context.Context, customerUUID string) (*Customer, error)
 	CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
 	GetAddress(ctx context.Context, addressUUID string) (*Address, error)
 	GetAddressOwner(ctx context.Context, addrUUID string) (*string, error)
 	GetAddresses(ctx context.Context, customerUUID string) ([]*Address, error)
 	DeleteAddress(ctx context.Context, addrUUID string) error
+}
+
+type PaginationQuery struct {
+	OrderBy, OrderDir string
+	Limit             int
+	StartAfter        string
+}
+type PaginationContext struct {
+	Total     int    `json:"total"`
+	FirstUUID string `json:"first_uuid"`
+	LastUUID  string `json:"last_uuid"`
+}
+type PaginationResultSet struct {
+	RContext PaginationContext
+	RSet     interface{}
 }
 
 type AuthService interface {

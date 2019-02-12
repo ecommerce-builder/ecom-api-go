@@ -44,6 +44,8 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 		decodedToken, err := a.Service.Authenticate(ctx, jwt)
 		if err != nil {
 			log.Errorf("authenticating failure: jwt=%s", jwt)
+			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			w.Header().Set("WWW-Authenticate", "Bearer")
 			return
 		}
 

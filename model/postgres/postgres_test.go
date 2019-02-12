@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"testing"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,6 +38,26 @@ func setup(t *testing.T) (*PgModel, func()) {
 func isValidUUID(uuid string) bool {
 	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
 	return r.MatchString(uuid)
+}
+
+func TestGetCustomers(t *testing.T) {
+	m, teardown := setup(t)
+	defer teardown()
+
+	ctx := context.Background()
+
+	prs, err := m.GetCustomers(ctx, "firstname", "ASC", 2, "1bb7faa4-0435-4cf5-978d-3ee76327c32a")
+	if err != nil {
+		t.Fatalf("m.GetCustomers() :%v", err)
+	}
+	fmt.Println(prs.RContext)
+	if err != nil {
+		t.Errorf("model.GetCatalogNestedSet(ctx): %v", err)
+	}
+
+	for i, v := range prs.Rset.([]*model.Customer) {
+		fmt.Println(i, v)
+	}
 }
 
 func TestGetCatalogNestedSet(t *testing.T) {

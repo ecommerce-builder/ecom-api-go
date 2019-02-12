@@ -2,44 +2,38 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
 // ListCustomersHandler retrieves a list of customers with pagination
 func (a *App) ListCustomersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		startsAfter := chi.URLParam(r, "starts_after")
-		// sa, err := strconv.Atoi(startsAfter)
-		// if err != nil {
-		// 	log.Errorf("failed to convert starts_after string %s to integer: %v", startsAfter, err)
-		// 	w.Header().Set("Content-Type", "application/json")
-		// 	w.WriteHeader(http.StatusUnprocessableEntity)
-		// 	return
-		// }
-
-		size := chi.URLParam(r, "size")
-		s, err := strconv.Atoi(size)
+		limit := r.URL.Query().Get("limit")
+		l, err := strconv.Atoi(limit)
 		if err != nil {
-			log.Errorf("failed to convert size string %s to integer: %v", size, err)
+			log.Errorf("failed to convert limit string %q to integer: %v", limit, err)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
 
-		customers, err := a.Service.GetCustomers(r.Context(), s, startsAfter)
+		pagq := &PaginationQuery{
+			OrderBy:    r.URL.Query().Get("order_by"),
+			OrderDir:   r.URL.Query().Get("order_dir"),
+			Limit:      l,
+			StartAfter: r.URL.Query().Get("start_after"),
+		}
+		prs, err := a.Service.GetCustomers(r.Context(), pagq)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service GetCustomers(ctx, %d, %d) error: %v", size, startsAfter, err)
+			log.Errorf("service GetCustomers(ctx) error: %v", err)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(customers)
+		json.NewEncoder(w).Encode(*prs)
 	}
 }

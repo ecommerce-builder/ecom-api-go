@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.14.0 (Tue, 12 Feb 2019)
++ Remove Google Pub/Sub
++ Pagination Result Query and Set management for Postgres pagination
++ Changed all reference to `tablename_uuid` to use generic uuid column names
+
 ## v0.13.0 (7 Feb 2019)
 + main tries 3 times to connect to PG with 5 seconds backoff periods.
 + data directory with README.md with instructions on how to generate init.sql

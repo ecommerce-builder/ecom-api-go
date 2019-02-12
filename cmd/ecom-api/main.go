@@ -9,10 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
 	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
-	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	"github.com/go-chi/chi"
@@ -114,8 +113,7 @@ const (
 	secretVolume = "/etc/secret-volume"
 
 	// directory in the secret volume that holds all Service Account Credentials files
-	sacDir      = "service_account_credentials"
-	pubsubTopic = "ecom-api"
+	sacDir = "service_account_credentials"
 )
 
 func initLogging() {
@@ -337,32 +335,11 @@ func main() {
 	// build a Postgres model
 	pgModel := model.NewPgModel(db)
 
-	// PubSub
-	ctx := context.Background()
-	opt := option.WithCredentialsFile(credentialsFile)
-	log.Infof("initializing Google PubSub client for project %s", projectID)
-	psClient, err := pubsub.NewClient(ctx, projectID, opt)
-	defer psClient.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	topic := psClient.Topic(pubsubTopic)
-	defer topic.Stop()
-	log.Infof("created pubsub topic %v", topic.String())
-
-	// Broadcast startup message
-	pr := topic.Publish(ctx, &pubsub.Message{
-		Data: []byte("hello world"),
-	})
-
-	serverID, err := pr.Get(ctx)
-
-	fmt.Println(serverID, err)
-
 	// build a Google Firebase App
 	var fbApp *firebase.App
 	var fbAuthClient *auth.Client
+	ctx := context.Background()
+	opt := option.WithCredentialsFile(credentialsFile)
 	fbApp, err = firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
@@ -372,7 +349,7 @@ func main() {
 	log.Info("firebase auth initialised")
 
 	// build a Firebase service injecting in the model and firebase app as dependencies
-	fbSrv, _ := service.New(pgModel, fbApp, fbAuthClient, psClient)
+	fbSrv, _ := service.New(pgModel, fbApp, fbAuthClient)
 	a := app.App{
 		Service: fbSrv,
 	}

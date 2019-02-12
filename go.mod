@@ -1,7 +1,7 @@
 module bitbucket.org/andyfusniakteam/ecom-api-go
 
 require (
-	cloud.google.com/go v0.35.1
+	cloud.google.com/go v0.35.1 // indirect
 	firebase.google.com/go v3.6.0+incompatible
 	github.com/go-chi/chi v4.0.1+incompatible
 	github.com/lib/pq v1.0.0
