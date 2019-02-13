@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.15.0 (Wed, 13 Feb 2019)
++ Create root superuser at startup if not exists. Uses `ECOM_APP_ROOT_EMAIL`
+  and `ECOM_APP_ROOT_PASSWORD` environment variables. Mandatory.
+
 ## v0.14.0 (Tue, 12 Feb 2019)
 + Remove Google Pub/Sub
 + Pagination Result Query and Set management for Postgres pagination

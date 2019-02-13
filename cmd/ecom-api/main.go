@@ -102,10 +102,12 @@ var (
 	//
 	// Application settings
 	//
-	port        = os.Getenv("ECOM_APP_PORT")
-	tlsModeFlag = os.Getenv("ECOM_APP_TLS_MODE")
-	tlsCertFile = os.Getenv("ECOM_APP_TLS_CERT")
-	tlsKeyFile  = os.Getenv("ECOM_APP_TLS_KEY")
+	port         = os.Getenv("ECOM_APP_PORT")
+	tlsModeFlag  = os.Getenv("ECOM_APP_TLS_MODE")
+	tlsCertFile  = os.Getenv("ECOM_APP_TLS_CERT")
+	tlsKeyFile   = os.Getenv("ECOM_APP_TLS_KEY")
+	rootEmail    = os.Getenv("ECOM_APP_ROOT_EMAIL")
+	rootPassword = os.Getenv("ECOM_APP_ROOT_PASSWORD")
 )
 
 const (
@@ -309,6 +311,14 @@ func main() {
 		mustHaveFile(tlsKeyFile, "TLS Key File")
 	}
 
+	// 5. Root Credentials
+	if rootEmail == "" {
+		log.Fatal("app root email not set. Use ECOM_APP_ROOT_EMAIL")
+	}
+	if rootPassword == "" {
+		log.Fatal("app root password not set. Use ECOM_APP_ROOT_PASSWORD")
+	}
+
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -352,6 +362,12 @@ func main() {
 	fbSrv, _ := service.New(pgModel, fbApp, fbAuthClient)
 	a := app.App{
 		Service: fbSrv,
+	}
+
+	// ensure the root user has been created
+	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
+	if err != nil {
+		log.Fatalf("failed to create root credentials if not exists: %v", err)
 	}
 
 	r := chi.NewRouter()
