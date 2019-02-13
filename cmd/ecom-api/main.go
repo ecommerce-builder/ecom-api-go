@@ -385,6 +385,10 @@ func main() {
 		r.Use(c.Handler)
 		r.Use(a.AuthenticateMiddleware)
 
+		r.Route("/admins", func(r chi.Router) {
+			r.Post("/", a.Authorization("CreateAdmin", a.CreateAdminHandler()))
+		})
+
 		// Customer and address management API
 		r.Route("/customers", func(r chi.Router) {
 			r.Get("/", a.Authorization("ListCustomers", a.ListCustomersHandler()))

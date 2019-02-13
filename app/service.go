@@ -9,11 +9,33 @@ import (
 	"firebase.google.com/go/auth"
 )
 
-type Operation string
+const (
+	OpCreateAdmin    string = "CreateAdmin"
+	OpCreateCart     string = "CreateCart"
+	OpAddItemToCart  string = "AddItemToCart"
+	OpGetCartItems   string = "GetCartItems"
+	OpUpdateCartItem string = "UpdateCartItem"
+	OpDeleteCartItem string = "DeleteCartItem"
+	OpEmptyCartItems string = "EmptyCartItems"
+
+	OpCreateCustomer        string = "CreateCustomer"
+	OpGetCustomer           string = "GetCustomer"
+	OpListCustomers         string = "ListCustomers"
+	OpGetCustomersAddresses string = "GetCustomersAddresses"
+	OpUpdateAddress         string = "UpdateAddress"
+
+	OpCreateAddress string = "CreateAddress"
+	OpGetAddress    string = "GetAddress"
+	OpDeleteAddress string = "DeleteAddress"
+
+	OpGetCatalog string = "GetCatalog"
+)
 
 const (
-	OpCreateCustomer Operation = "CreateCustomer"
-	OpListCustomers  Operation = "ListCustomers"
+	RoleSuperUser string = "root"
+	RoleAdmin     string = "admin"
+	RoleCustomer  string = "customer"
+	RoleShopper   string = "anon"
 )
 
 type Serverable interface {
