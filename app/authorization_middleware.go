@@ -23,45 +23,46 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if role == "" {
-			role = "anon"
+			role = RoleShopper
 		} else {
 			if val, ok := decodedToken.Claims["cuuid"]; ok {
 				cuuid = val.(string)
 			}
 
-			if role != "customer" && role != "admin" {
+			if role != RoleCustomer && role != RoleAdmin && role != RoleSuperUser {
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
 		}
 
-		// admin has all privileges. The JWT containing the claims is cryptographically signed so we give admins evevated privileges
-		if role == "admin" {
+		// superuser has all privileges. The JWT containing the claims is cryptographically
+		// signed with a claim of "root" so we give maximum privilege.
+		if role == RoleSuperUser {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		log.Debugf("role %s, op %s, JWT cuuid %s", role, op, cuuid)
 
-		// at this point the role is set to either "anon" or "customer"
+		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
-		case "CreateCart", "AddItemToCart", "GetCartItems", "UpdateCartItem", "DeleteCartItem", "EmptyCartItems", "GetCatalog":
+		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog:
 			// Cart and Catalog operations don't require any special authorization
 			next.ServeHTTP(w, r)
 			return
-		case "CreateCustomer":
+		case OpCreateCustomer:
 			// Only anonymous users can create a new customer account
-			if role == "anon" || role == "customer" {
+			if role == RoleShopper {
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
-		case "CreateAddress", "GetCustomer", "GetCustomersAddresses", "UpdateAddress":
+		case OpCreateAddress, OpGetCustomer, OpGetCustomersAddresses, OpUpdateAddress:
 			// Check the JWT Claim's customer UUID and safely compare it to the customer UUID in the route
 			// Anonymous signin results in automatic rejection. These operations are reserved for customers.
-			if role == "anon" {
+			if role == RoleShopper {
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
@@ -74,9 +75,9 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
-		case "GetAddress", "DeleteAddress":
+		case OpGetAddress, OpDeleteAddress:
 			// The customer UUID is not in the route so we ask the service layer for the  resource owner's customer UUID
-			if role == "anon" {
+			if role == RoleShopper {
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}

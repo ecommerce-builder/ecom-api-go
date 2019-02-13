@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.16.0 (Wed, 13 Feb 2019)
++ CreateAdmin handler
++ `Op<X>` consts and `Role<X>` for compile-time checking
+
 ## v0.15.0 (Wed, 13 Feb 2019)
 + Create root superuser at startup if not exists. Uses `ECOM_APP_ROOT_EMAIL`
   and `ECOM_APP_ROOT_PASSWORD` environment variables. Mandatory.
