@@ -123,6 +123,45 @@ func (s *FirebaseService) EmptyCartItems(ctx context.Context, cartUUID string) (
 	return s.model.EmptyCartItems(ctx, cartUUID)
 }
 
+// CreateRoot create the root user
+func (s *FirebaseService) CreateRootIfNotExists(ctx context.Context, email, password string) error {
+	authClient, err := s.fbApp.Auth(ctx)
+	if err != nil {
+		return err
+	}
+
+	userRecord, err := authClient.GetUserByEmail(ctx, email)
+	if err != nil {
+		if auth.IsUserNotFound(err) {
+			user := (&auth.UserToCreate{}).
+				Email(email).
+				EmailVerified(false).
+				Password(password).
+				DisplayName("Root Superuser").
+				Disabled(false)
+			userRecord, err = authClient.CreateUser(ctx, user)
+			if err != nil {
+				return err
+			}
+			log.Infof("created root superuser email=%s", email)
+
+			// Set the custom claims for the root user
+			err = authClient.SetCustomUserClaims(ctx, userRecord.UID, map[string]interface{}{
+				"role": "root",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to set custom claims for root user: %v", err)
+			}
+			log.Info("set custom claims for root superuser role=root")
+			return nil
+		}
+		return err
+	}
+
+	log.Infof("root superuser email=%s already exists", email)
+	return nil
+}
+
 // CreateCustomer creates a new customer
 func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*app.Customer, error) {
 	log.Debugf("s.CreateCustomer(%s, %s, %s, %s) started", email, "*****", firstname, lastname)
