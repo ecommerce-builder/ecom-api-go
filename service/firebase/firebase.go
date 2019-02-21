@@ -14,20 +14,23 @@ import (
 )
 
 type FirebaseService struct {
-	model        model.EcomModel
-	fbApp        *firebase.App
-	fbAuthClient *auth.Client
+	model model.EcomModel
+	fbApp *firebase.App
 }
 
-func New(model model.EcomModel, fbApp *firebase.App, fbAuthClient *auth.Client) (*FirebaseService, error) {
-	s := FirebaseService{model, fbApp, fbAuthClient}
+func NewService(model model.EcomModel, fbApp *firebase.App) (*FirebaseService, error) {
+	s := FirebaseService{model, fbApp}
 	return &s, nil
 }
 
 // Auth accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if
 func (s *FirebaseService) Authenticate(ctx context.Context, jwt string) (*auth.Token, error) {
-	token, err := s.fbAuthClient.VerifyIDToken(ctx, jwt)
+	authClient, err := s.fbApp.Auth(ctx)
+	if err != nil {
+		return nil, err
+	}
 
+	token, err := authClient.VerifyIDToken(ctx, jwt)
 	if err != nil {
 		return nil, err
 	}
@@ -394,4 +397,22 @@ func (s *FirebaseService) GetCatalog(ctx context.Context) ([]*nestedset.NestedSe
 		return nil, err
 	}
 	return ns, nil
+}
+
+// GetCatalogProductAssocs returns the catalog product associations
+func (s *FirebaseService) GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error) {
+	cpo, err := s.model.GetCatalogProductAssocs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cpo, nil
+}
+
+// UpdateCatalogProductAssocs updates the catalog product associations
+func (s *FirebaseService) UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error {
+	err := s.model.UpdateCatalogProductAssocs(ctx, cpo)
+	if err != nil {
+		return err
+	}
+	return nil
 }

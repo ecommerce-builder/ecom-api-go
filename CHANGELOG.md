@@ -1,4 +1,10 @@
 # CHANGELOG
+## v0.17.0 (Thu, 21 Feb 2019)
++ Expanded Authorization
++ GetCatalogProduct and UpdateCatalogProductAssocs handlers
++ Option to PASS Google service account credentials as base64 string
++ SystemInfo handler
+
 ## v0.16.0 (Wed, 13 Feb 2019)
 + CreateAdmin handler
 + `Op<X>` consts and `Role<X>` for compile-time checking

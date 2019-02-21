@@ -62,17 +62,27 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		case OpCreateAddress, OpGetCustomer, OpGetCustomersAddresses, OpUpdateAddress:
 			// Check the JWT Claim's customer UUID and safely compare it to the customer UUID in the route
 			// Anonymous signin results in automatic rejection. These operations are reserved for customers.
-			if role == RoleShopper {
-				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
-				return
-			}
-
-			log.Debugf("URL cuuid %s", chi.URLParam(r, "cuuid"))
-			if subtle.ConstantTimeCompare([]byte(cuuid), []byte(chi.URLParam(r, "cuuid"))) == 1 {
+			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return
 			}
 
+			if role == RoleCustomer {
+				log.Debugf("URL cuuid %s", chi.URLParam(r, "cuuid"))
+				if subtle.ConstantTimeCompare([]byte(cuuid), []byte(chi.URLParam(r, "cuuid"))) == 1 {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			// RoleShopper
+			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			return
+		case OpSystemInfo:
+			if role == RoleAdmin {
+				next.ServeHTTP(w, r)
+				return
+			}
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
 		case OpGetAddress, OpDeleteAddress:

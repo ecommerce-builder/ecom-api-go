@@ -67,6 +67,18 @@ type Address struct {
 	Modified    time.Time
 }
 
+// CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
+type CatalogProductAssoc struct {
+	ID        int
+	CatalogID int
+	ProductID int
+	Path      string `json:"path"`
+	SKU       string `json:"sku"`
+	Pri       int    `json:"pri"`
+	Created   time.Time
+	Modified  time.Time
+}
+
 type EcomModel interface {
 	CartModel
 	CustomerModel
@@ -102,4 +114,44 @@ type AddressModel interface {
 // CatalogModel interface
 type CatalogModel interface {
 	GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedSetNode, error)
+	GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error)
+	UpdateCatalogProductAssocs(ctx context.Context, cpo []*CatalogProductAssoc) error
+}
+
+type CreateProductImage struct {
+	SKU   string
+	W     uint
+	H     uint
+	Path  string
+	Typ   string
+	Ori   bool
+	Pri   uint
+	Size  uint
+	Q     uint
+	GSURL string
+	Data  interface{}
+}
+type ProductImage struct {
+	ID        uint
+	ProductID uint
+	UUID      string
+	SKU       string
+	W         uint
+	H         uint
+	Path      string
+	Typ       string
+	Ori       bool
+	Up        bool
+	Pri       uint
+	Size      uint
+	Q         uint
+	GSURL     string
+	Data      interface{}
+	Created   time.Time
+	Modified  time.Time
+}
+
+type ProductImagesModel interface {
+	CreateImageEntry(ctx context.Context, p *CreateProductImage) (*ProductImage, error)
+	ConfirmImageUploaded(ctx context.Context, uuid string) (*ProductImage, error)
 }

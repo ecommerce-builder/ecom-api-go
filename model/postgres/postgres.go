@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strconv"
-	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
@@ -75,8 +75,6 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku stri
 
 // GetCartItems gets all items in the cart
 func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*model.CartItem, error) {
-	cartItems := make([]*model.CartItem, 0, 20)
-
 	query := `
 		SELECT
 			id, uuid, sku, qty, unit_price, created, modified
@@ -89,6 +87,7 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*model.C
 	}
 	defer rows.Close()
 
+	cartItems := make([]*model.CartItem, 0, 20)
 	for rows.Next() {
 		c := model.CartItem{}
 		err = rows.Scan(&c.ID, &c.CartUUID, &c.Sku, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified)
@@ -437,20 +436,8 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 	return nodes, nil
 }
 
-// CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
-type CatalogProductAssoc struct {
-	ID        int
-	CatalogID int
-	ProductID int
-	Path      string
-	SKU       string
-	Pri       int
-	Created   time.Time
-	Modified  time.Time
-}
-
 // GetCatalogProductAssocs returns an Slice of catalogue to product associations
-func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
+func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error) {
 	query := `
 		SELECT id, catalog_id, product_id, path, sku, pri
 		FROM catalog_products
@@ -462,9 +449,9 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 	}
 	defer rows.Close()
 
-	cpa := make([]*CatalogProductAssoc, 0, 256)
+	cpa := make([]*model.CatalogProductAssoc, 0, 256)
 	for rows.Next() {
-		var n CatalogProductAssoc
+		var n model.CatalogProductAssoc
 		err = rows.Scan(&n.ID, &n.CatalogID, &n.ProductID, &n.Path, &n.SKU, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, err
@@ -474,4 +461,138 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 		return nil, err
 	}
 	return cpa, nil
+}
+
+// UpdateCatalogProductAssocs update the catalog product associations
+func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error {
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare(`
+		INSERT INTO catalog_products
+			(catalog_id, product_id, path, sku, pri)
+		VALUES (
+			(SELECT id FROM catalog WHERE path = $1),
+			(SELECT id FROM products WHERE sku = $2),
+			$3,
+			$4,
+			$5
+		)
+	`)
+	if err != nil {
+		tx.Rollback()
+		fmt.Fprintf(os.Stderr, "%v", err)
+		return err
+	}
+	defer stmt.Close()
+
+	for _, c := range cpo {
+
+		if _, err := stmt.ExecContext(ctx, c.Path, c.SKU, c.Path, c.SKU, c.Pri); err != nil {
+			tx.Rollback()
+			fmt.Fprintf(os.Stderr, "%v", err)
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// CreateImageEntry writes a new image entry to the product_images table
+func (m *PgModel) CreateImageEntry(ctx context.Context, c *model.CreateProductImage) (*model.ProductImage, error) {
+	query := `
+		INSERT INTO product_images (
+			product_id, sku,
+			w, h, path, typ,
+			ori, up,
+			pri, size, q,
+			gsurl, created, modified
+		) VALUES (
+			(SELECT id FROM products WHERE sku = $1), $2,
+			$3, $4, $5, $6,
+			$7, false,
+			$8, $9, $10,
+			$11, NOW(), NOW()
+		) RETURNING
+			id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
+			gsurl, data, created, modified
+	`
+	p := model.ProductImage{}
+	err := m.db.QueryRowContext(ctx, query, c.SKU, c.SKU,
+		c.W, c.H, c.Path, c.Typ,
+		c.Ori,
+		c.Pri, c.Size, c.Q,
+		c.GSURL).Scan(&p.ID, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+	if err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
+// GetImageEntries returns a list of all images associated to a given product SKU.
+func (m *PgModel) GetImageEntries(ctx context.Context, sku string) ([]*model.ProductImage, error) {
+	query := `
+		SELECT id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
+		gsurl, data, created, modified
+		FROM product_images
+		WHERE sku = $1
+		ORDER BY pri ASC
+	`
+	rows, err := m.db.QueryContext(ctx, query, sku)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	images := make([]*model.ProductImage, 0, 16)
+	for rows.Next() {
+		p := model.ProductImage{}
+		err = rows.Scan(&p.ID, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		if err != nil {
+			return nil, err
+		}
+		images = append(images, &p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return images, nil
+}
+
+// ConfirmImageUploaded updates the `up` column to true to indicate the uploaded has taken place.
+func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*model.ProductImage, error) {
+	query := `
+		UPDATE product_images
+		SET up = 't', modified = NOW()
+		WHERE uuid = $1
+		RETURNING id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
+		gsurl, data, created, modified
+	`
+	p := model.ProductImage{}
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.ID, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+	if err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
+// DeleteImageEntry deletes an image entry row from the product_images table by UUID.
+func (m *PgModel) DeleteImageEntry(ctx context.Context, uuid string) (int64, error) {
+	query := `
+		DELETE FROM product_images
+		WHERE uuid = $1
+	`
+	res, err := m.db.ExecContext(ctx, query, uuid)
+	if err != nil {
+		return -1, err
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+	return count, nil
 }

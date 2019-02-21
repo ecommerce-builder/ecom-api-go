@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,7 +14,7 @@ import (
 	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"firebase.google.com/go"
-	"firebase.google.com/go/auth"
+	_ "firebase.google.com/go/auth"
 	"github.com/go-chi/chi"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
@@ -96,8 +97,8 @@ var (
 	//
 	// Google settings
 	//
-	projectID       = os.Getenv("ECOM_GOOGLE_PROJECT_ID")
-	credentialsFile = os.Getenv("ECOM_GOOGLE_CREDENTIALS")
+	projectID   = os.Getenv("ECOM_GOOGLE_PROJECT_ID")
+	credentials = os.Getenv("ECOM_GOOGLE_CREDENTIALS")
 
 	//
 	// Application settings
@@ -134,11 +135,6 @@ func initLogging() {
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("ok"))
-}
-
-func infoHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK) // 200 OK
-	fmt.Fprintf(w, fmt.Sprintf(`{"app_version":"%s"}`, version))
 }
 
 func exists(path string) (bool, error) {
@@ -242,16 +238,18 @@ func main() {
 	}
 
 	// 2. Service Account Credentials
-	if credentialsFile == "" {
-		log.Fatal("missing service account credentials file. Use export ECOM_GOOGLE_CREDENTIALS=/path/to/your/service-account-file")
+	if credentials == "" {
+		log.Fatal("missing service account credentials. Use export ECOM_GOOGLE_CREDENTIALS=/path/to/your/service-account-file or ECOM_GOOGLE_CREDENTIALS=<base64-json-file>")
 	}
-	// if the credentialsFile is a relative pathname, make it relative to the secretVolume/sacDir root
+	// if the credentials is a relative pathname, make it relative to the secretVolume/sacDir root
 	// i.e. /etc/secret-volume/service_account_credentials/<file>
-	if !filepath.IsAbs(credentialsFile) {
-		log.Debugf("credentialsFile is a relative pathname so building absolute pathname")
-		credentialsFile = filepath.Join(secretVolume, sacDir, credentialsFile)
+	if credentials[0] == '/' {
+		if !filepath.IsAbs(credentials) {
+			log.Debugf("credentials is a relative pathname so building absolute pathname")
+			credentials = filepath.Join(secretVolume, sacDir, credentials)
+		}
+		mustHaveFile(credentials, "service account credentials")
 	}
-	mustHaveFile(credentialsFile, "service account credentials file")
 
 	// 3. Google Project ID
 	if projectID == "" {
@@ -272,14 +270,16 @@ func main() {
 	// Google Compute Engine attaches a persistent disk containing the necessary assets
 	// Assets include PostgreSQL .pem files, Google Firebase service account keys and
 	// TLS/SSL certificate files for HTTPS termination (see ECOM_APP_TLS_MODE=enable).
-	ex, err := exists(secretVolume)
-	if err != nil {
-		log.Fatalf("failed to determine if secret volume %s exists: %v", secretVolume, err)
+	if credentials[0] == '/' {
+		ex, err := exists(secretVolume)
+		if err != nil {
+			log.Fatalf("failed to determine if secret volume %s exists: %v", secretVolume, err)
+		}
+		if !ex {
+			log.Fatalf("cannot find secret volume %s. Have you mounted it?", secretVolume)
+		}
+		log.Infof("found secret volume %s", secretVolume)
 	}
-	if !ex {
-		log.Fatalf("cannot find secret volume %s. Have you mounted it?", secretVolume)
-	}
-	log.Infof("found secret volume %s", secretVolume)
 
 	// TLS Mode defaults to false unless ECOM_APP_TLS_MODE is set to enable
 	// tlsMode will be used to determine whether to provide negociation for SSL
@@ -347,22 +347,24 @@ func main() {
 
 	// build a Google Firebase App
 	var fbApp *firebase.App
-	var fbAuthClient *auth.Client
 	ctx := context.Background()
-	opt := option.WithCredentialsFile(credentialsFile)
+	var opt option.ClientOption
+	if credentials[0] == '/' {
+		opt = option.WithCredentialsFile(credentials)
+	} else {
+		decoded, err := base64.StdEncoding.DecodeString(credentials)
+		if err != nil {
+			log.Fatalf("decode error: %v", err)
+		}
+		opt = option.WithCredentialsJSON(decoded)
+	}
 	fbApp, err = firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
 	}
 
-	fbAuthClient, err = fbApp.Auth(ctx)
-	log.Info("firebase auth initialised")
-
 	// build a Firebase service injecting in the model and firebase app as dependencies
-	fbSrv, _ := service.New(pgModel, fbApp, fbAuthClient)
-	a := app.App{
-		Service: fbSrv,
-	}
+	fbSrv, _ := service.NewService(pgModel, fbApp)
 
 	// ensure the root user has been created
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
@@ -370,53 +372,85 @@ func main() {
 		log.Fatalf("failed to create root credentials if not exists: %v", err)
 	}
 
+	a := app.App{
+		Service: fbSrv,
+	}
 	r := chi.NewRouter()
 
 	// protected routes
 	r.Group(func(r chi.Router) {
 		c := cors.New(cors.Options{
 			AllowedOrigins: []string{"*"},
-			AllowedHeaders: []string{"Authorization", "Content-Type"},
-			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE"},
-			//AllowCredentials: true,
+			AllowedHeaders: []string{"Authorization", "Content-Type", "Accept"},
+			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+			AllowCredentials: true,
 			// Enable Debugging for testing, consider disabling in production
-			Debug: false,
+			Debug: true,
 		})
 		r.Use(c.Handler)
 		r.Use(a.AuthenticateMiddleware)
 
+
 		r.Route("/admins", func(r chi.Router) {
-			r.Post("/", a.Authorization("CreateAdmin", a.CreateAdminHandler()))
+			r.Post("/", a.Authorization(app.OpCreateAdmin, a.CreateAdminHandler()))
 		})
 
 		// Customer and address management API
 		r.Route("/customers", func(r chi.Router) {
-			r.Get("/", a.Authorization("ListCustomers", a.ListCustomersHandler()))
-			r.Post("/", a.Authorization("CreateCustomer", a.CreateCustomerHandler()))
-			r.Get("/{cuuid}", a.Authorization("GetCustomer", a.GetCustomerHandler()))
-			r.Post("/{cuuid}/addresses", a.Authorization("CreateAddress", a.CreateAddressHandler()))
-			r.Get("/{cuuid}/addresses", a.Authorization("GetCustomersAddresses", a.ListAddressesHandler()))
-			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization("UpdateAddress", a.UpdateAddressHandler()))
+			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
+			r.Post("/", a.Authorization(app.OpCreateCustomer, a.CreateCustomerHandler()))
+			r.Get("/{cuuid}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
+			r.Post("/{cuuid}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
+			r.Get("/{cuuid}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
+			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
 		})
 
 		r.Route("/addresses", func(r chi.Router) {
-			r.Get("/{auuid}", a.Authorization("GetAddress", a.GetAddressHandler()))
-			r.Delete("/{auuid}", a.Authorization("DeleteAddress", a.DeleteAddressHandler()))
+			r.Get("/{auuid}", a.Authorization(app.OpGetAddress, a.GetAddressHandler()))
+			r.Delete("/{auuid}", a.Authorization(app.OpDeleteAddress, a.DeleteAddressHandler()))
 		})
 
 		r.Route("/carts", func(r chi.Router) {
-			r.Post("/", a.Authorization("CreateCart", a.CreateCartHandler()))
-			r.Post("/{ctid}/items", a.Authorization("AddItemToCart", a.AddItemToCartHandler()))
-			r.Get("/{ctid}/items", a.Authorization("GetCartItems", a.GetCartItemsHandler()))
-			r.Patch("/{ctid}/items/{sku}", a.Authorization("UpdateCartItem", a.UpdateCartItemHandler()))
-			r.Delete("/{ctid}/items/{sku}", a.Authorization("DeleteCartItem", a.DeleteCartItemHandler()))
-			r.Delete("/{ctid}/items", a.Authorization("EmptyCartItems", a.EmptyCartItemsHandler()))
+			r.Post("/", a.Authorization(app.OpCreateCart, a.CreateCartHandler()))
+			r.Post("/{ctid}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
+			r.Get("/{ctid}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
+			r.Patch("/{ctid}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
+			r.Delete("/{ctid}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
+			r.Delete("/{ctid}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
 		})
 
 		r.Route("/catalog", func(r chi.Router) {
-			r.Get("/", a.Authorization("GetCatalog", a.GetCatalogHandler()))
+			r.Get("/", a.Authorization(app.OpGetCatalog, a.GetCatalogHandler()))
 		})
-		r.Get("/productassocs", a.GetCatalogProductAssocsHandler())
+
+		r.Route("/productassocs", func(r chi.Router) {
+			r.Get("/", a.GetCatalogProductAssocsHandler())
+			r.Put("/", a.UpdateCatalogProductAssocsHandler())
+		})
+
+		// SystemInfo
+		si := app.SystemInfo{
+			Version: version,
+			Env: app.SystemEnv{
+				PG: app.PgSystemEnv{
+					PgHost:     pghost,
+					PgPort:     pgport,
+					PgDatabase: pgdatabase,
+					PgUser:     pguser,
+					PgSSLMode:  pgsslmode,
+				},
+				Goog: app.GoogSystemEnv{
+					GoogProjectID: projectID,
+				},
+				App: app.AppSystemEnv{
+					AppPort:      port,
+					AppRootEmail: rootEmail,
+				},
+			},
+		}
+		r.Route("/sysinfo", func(r chi.Router) {
+			r.Get("/", a.SystemInfoHandler(si))
+		})
 	})
 
 	// public routes including GET / for Google Kuberenetes default healthcheck
@@ -426,7 +460,6 @@ func main() {
 		// version info
 		r.Get("/", healthCheckHandler)
 		r.Get("/healthz", healthCheckHandler)
-		r.Get("/info", infoHandler)
 	})
 
 	// tlsMode determines whether to serve HTTPS traffic directly.

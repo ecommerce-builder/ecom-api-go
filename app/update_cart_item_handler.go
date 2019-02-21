@@ -10,7 +10,7 @@ import (
 )
 
 // UpdateCartItemHandler creates a handler to add an item to a given cart
-func (a *App) UpdateCartItemHandler() http.HandlerFunc {
+func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 	type qtyRequestBody struct {
 		Qty int `json:"qty"`
 	}
@@ -26,7 +26,7 @@ func (a *App) UpdateCartItemHandler() http.HandlerFunc {
 			return
 		}
 
-		cart, err := a.Service.UpdateCartItem(r.Context(), ctid, sku, o.Qty)
+		cart, err := app.Service.UpdateCartItem(r.Context(), ctid, sku, o.Qty)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service UpdateCartItem(ctx, %s, %s, %d) error: %v", ctid, sku, o.Qty, err)
 			return

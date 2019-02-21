@@ -5,30 +5,42 @@ import (
 	"net/http"
 	"time"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	"firebase.google.com/go/auth"
 )
 
 const (
-	OpCreateAdmin    string = "CreateAdmin"
+	OpCreateAdmin string = "CreateAdmin"
+)
+
+// Cart operation sentinel values.
+const (
 	OpCreateCart     string = "CreateCart"
 	OpAddItemToCart  string = "AddItemToCart"
 	OpGetCartItems   string = "GetCartItems"
 	OpUpdateCartItem string = "UpdateCartItem"
 	OpDeleteCartItem string = "DeleteCartItem"
 	OpEmptyCartItems string = "EmptyCartItems"
+)
 
+const (
 	OpCreateCustomer        string = "CreateCustomer"
 	OpGetCustomer           string = "GetCustomer"
 	OpListCustomers         string = "ListCustomers"
 	OpGetCustomersAddresses string = "GetCustomersAddresses"
 	OpUpdateAddress         string = "UpdateAddress"
+	OpCreateAddress         string = "CreateAddress"
+	OpGetAddress            string = "GetAddress"
+	OpDeleteAddress         string = "DeleteAddress"
+)
 
-	OpCreateAddress string = "CreateAddress"
-	OpGetAddress    string = "GetAddress"
-	OpDeleteAddress string = "DeleteAddress"
-
+const (
 	OpGetCatalog string = "GetCatalog"
+)
+
+const (
+	OpSystemInfo string = "SystemInfo"
 )
 
 const (
@@ -138,4 +150,6 @@ type AuthService interface {
 
 type CatalogAndProductService interface {
 	GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error)
+	GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error)
+	UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error
 }
