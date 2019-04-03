@@ -32,7 +32,6 @@ func (a *App) ListCustomersHandler() http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(*prs)
 	}

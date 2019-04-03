@@ -67,6 +67,17 @@ type Address struct {
 	Modified    time.Time
 }
 
+type CustomerDevKey struct {
+	ID           int       `json:"id"`
+	UUID         string    `json:"uuid"`
+	Key          string    `json:"key"`
+	Hash         string    `json:"hash"`
+	CustomerID   int       `json:"customer_id"`
+	CustomerUUID string    `json:"customer_uuid"`
+	Created      time.Time `json:"created"`
+	Modified     time.Time `json:"modified"`
+}
+
 // CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
 type CatalogProductAssoc struct {
 	ID        int
@@ -84,6 +95,7 @@ type EcomModel interface {
 	CustomerModel
 	AddressModel
 	CatalogModel
+	ErrorModel
 }
 
 type CartModel interface {
@@ -99,7 +111,12 @@ type CustomerModel interface {
 	CreateCustomer(ctx context.Context, UID, email, firstname, lastname string) (*Customer, error)
 	GetCustomers(ctx context.Context, q *PaginationQuery) (*PaginationResultSet, error)
 	GetCustomerByUUID(ctx context.Context, customerUUID string) (*Customer, error)
+	GetCustomerByID(ctx context.Context, customerID int) (*Customer, error)
 	GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error)
+	CreateCustomerDevKey(ctx context.Context, customerID int, apiKey string) (*CustomerDevKey, error)
+	GetCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error)
+	GetCustomerDevKeys(ctx context.Context, customerID int) ([]*CustomerDevKey, error)
+	GetCustomerDevKeyByDevKey(ctx context.Context, devKey string) (*CustomerDevKey, error)
 }
 
 type AddressModel interface {
@@ -154,4 +171,8 @@ type ProductImage struct {
 type ProductImagesModel interface {
 	CreateImageEntry(ctx context.Context, p *CreateProductImage) (*ProductImage, error)
 	ConfirmImageUploaded(ctx context.Context, uuid string) (*ProductImage, error)
+}
+
+type ErrorModel interface {
+	IsNotExist(err error) bool
 }

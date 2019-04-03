@@ -31,8 +31,6 @@ func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 			fmt.Fprintf(os.Stderr, "service UpdateCartItem(ctx, %s, %s, %d) error: %v", ctid, sku, o.Qty, err)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(*cart)
 	}

@@ -17,6 +17,7 @@ func (a *App) EmptyCartItemsHandler() http.HandlerFunc {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service EmptyCartItems(ctx, %s) error: %v", ctid, err)
 		}
+		w.Header().Del("Content-Type")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}
 }

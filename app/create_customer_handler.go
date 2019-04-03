@@ -57,8 +57,6 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 			})
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(*customer)
 	}

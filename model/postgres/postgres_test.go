@@ -60,6 +60,53 @@ func isValidUUID(uuid string) bool {
 // 	}
 // }
 
+func TestGetAddressByUUID(t *testing.T) {
+	m, teardown := setup(t)
+	defer teardown()
+
+	ctx := context.Background()
+
+	t.Run("get valid address", func(t *testing.T) {
+		addr, err := m.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed875")
+		if err != nil {
+			t.Fail()
+		}
+		t.Log(addr)
+	})
+
+	t.Run("get missing address", func(t *testing.T) {
+		addr, err := m.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed876")
+		if IsNotExist(err) {
+			if ne, ok := err.(*ResourceError); ok {
+				assert.Equal(t, "GetAddressByUUID", ne.Op)
+				assert.Equal(t, "address", ne.Resource)
+				assert.Equal(t, "f35f10c4-e9fe-4283-b2e6-8be1f9eed876", ne.UUID)
+				assert.Equal(t, ErrNotExist, ne.Err)
+				return
+			}
+		}
+		t.Log(addr)
+		t.Fail()
+	})
+
+	t.Run("get invalid format addresss", func(t *testing.T) {
+		addr, err := m.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed87x")
+		if err != nil {
+			if IsInvalidText(err) {
+				if ite, ok := err.(*ResourceError); ok {
+					assert.Equal(t, "GetAddressByUUID", ite.Op)
+					assert.Equal(t, "address", ite.Resource)
+					assert.Equal(t, "f35f10c4-e9fe-4283-b2e6-8be1f9eed87x", ite.UUID)
+					assert.Equal(t, ErrInvalidText, ite.Err)
+				}
+				return
+			}
+		}
+		t.Log(addr)
+		t.Fail()
+	})
+}
+
 func TestGetCatalogNestedSet(t *testing.T) {
 	model, teardown := setup(t)
 	defer teardown()

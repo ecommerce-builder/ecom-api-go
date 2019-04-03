@@ -42,8 +42,6 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", cuuid, err)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(*address)
 	}

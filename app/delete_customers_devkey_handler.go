@@ -6,10 +6,10 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// DeleteCartItemHandler creates a handler to delete an item from the cart with the given cart UUID.
-func (a *App) DeleteCartItemHandler() http.HandlerFunc {
+// DeleteCustomerDev deletes a customer Developer Key.
+func (a *App) DeleteCustomerDevKeyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctid := chi.URLParam(r, "ctid")
+		ctid := chi.URLParam(r, "ccuid")
 		sku := chi.URLParam(r, "sku")
 
 		count, _ := a.Service.DeleteCartItem(r.Context(), ctid, sku)

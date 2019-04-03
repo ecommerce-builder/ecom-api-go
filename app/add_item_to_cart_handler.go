@@ -30,8 +30,6 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service AddItemToCart(%s, %s, %d) error: %v", ctid, o.Sku, o.Qty, err)
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(item)
 	}

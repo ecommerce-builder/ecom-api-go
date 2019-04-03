@@ -23,8 +23,7 @@ func (app *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		}
 
 		app.Service.UpdateCatalogProductAssocs(r.Context(), cpo)
-
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Del("Content-Type")
 		w.WriteHeader(http.StatusNoContent) // 204 OK
 	}
 }

@@ -13,17 +13,17 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
 	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
-	"firebase.google.com/go"
+	firebase "firebase.google.com/go"
 	_ "firebase.google.com/go/auth"
 	"github.com/go-chi/chi"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
-	log "github.com/sirupsen/logrus"
+	lg "github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version string
+var version string = "v0.17.0-dev"
 
 const maxDbConnectAttempts = 3
 
@@ -103,7 +103,7 @@ var (
 	//
 	// Application settings
 	//
-	port         = os.Getenv("ECOM_APP_PORT")
+	port         = os.Getenv("PORT")
 	tlsModeFlag  = os.Getenv("ECOM_APP_TLS_MODE")
 	tlsCertFile  = os.Getenv("ECOM_APP_TLS_CERT")
 	tlsKeyFile   = os.Getenv("ECOM_APP_TLS_KEY")
@@ -121,15 +121,20 @@ const (
 
 func initLogging() {
 	// Output logs with colour
-	log.SetFormatter(&log.TextFormatter{
+	lg.SetFormatter(&lg.TextFormatter{
 		ForceColors: true,
 	})
 
+	//lg.SetFormatter(stackdriver.NewFormatter(
+	//	stackdriver.WithService("your-service"),
+	//	stackdriver.WithVersion("v0.1.0"),
+	//))
+
 	// Output to stdout instead of the default stderr
-	log.SetOutput(os.Stdout)
+	lg.SetOutput(os.Stdout)
 
 	// Log debug level severity or above.
-	log.SetLevel(log.DebugLevel)
+	lg.SetLevel(lg.DebugLevel)
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -151,101 +156,101 @@ func exists(path string) (bool, error) {
 func mustHaveFile(path, title string) {
 	ex, err := exists(path)
 	if err != nil {
-		log.Fatalf("failed to determine if %s %s exists: %v", title, path, err)
+		lg.Fatalf("failed to determine if %s %s exists: %v", title, path, err)
 	}
 	if !ex {
-		log.Fatalf("cannot find %s %s. Check permissions.", title, path)
+		lg.Fatalf("cannot find %s %s. Check permissions.", title, path)
 	}
-	log.Infof("%s: %s", title, path)
+	lg.Infof("%s: %s", title, path)
 }
 
 func main() {
 	initLogging()
 
-	log.Infof("app version %s started", version)
+	lg.Infof("app version %s started", version)
 
 	// 1. Data Source Name
 	// dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
 	if pghost == "" {
-		log.Fatal("postgres host not set. Use ECOM_PG_HOST")
+		lg.Fatal("postgres host not set. Use ECOM_PG_HOST")
 	}
 
 	if pgport == "" {
-		log.Info("using default port=5432 for postgres because ECOM_PG_PORT is not set")
+		lg.Info("using default port=5432 for postgres because ECOM_PG_PORT is not set")
 		pgport = "5432"
 	}
 
 	if pguser == "" {
-		log.Info("using default user=postgres because ECOM_PG_USER is not set")
+		lg.Info("using default user=postgres because ECOM_PG_USER is not set")
 		pguser = "postgres"
 	}
 
 	if pgdatabase == "" {
-		log.Fatal("ECOM_PG_DATABASE not set.")
+		lg.Fatal("ECOM_PG_DATABASE not set.")
 	}
 
 	if pgpassword == "" {
-		log.Fatal("ECOM_PG_PASSWORD not set. You must set a password")
+		lg.Fatal("ECOM_PG_PASSWORD not set. You must set a password")
 	}
 
 	if pgsslmode == "" {
 		if pgsslkey != "" || pgsslrootcert != "" || pgsslcert != "" {
-			log.Fatal("ECOM_PG_SSLMODE is not set, but one or more of ECOM_PG_SSLCERT, ECOM_PG_SSLKEY, ECOM_PG_SSLROOTCERT environment variables were set implying you intended to connect to postgres securely?")
+			lg.Fatal("ECOM_PG_SSLMODE is not set, but one or more of ECOM_PG_SSLCERT, ECOM_PG_SSLKEY, ECOM_PG_SSLROOTCERT environment variables were set implying you intended to connect to postgres securely?")
 		}
-		log.Infof("using postgres sslmode=disable because ECOM_PG_SSLMODE is not set")
+		lg.Infof("using postgres sslmode=disable because ECOM_PG_SSLMODE is not set")
 		pgsslmode = "disable"
 	}
 
 	if pgconnectTimeout == "" {
-		log.Infof("using postgres connect_timeout=10 because ECOM_PG_CONNECT_TIMEOUT is not set")
+		lg.Infof("using postgres connect_timeout=10 because ECOM_PG_CONNECT_TIMEOUT is not set")
 		pgconnectTimeout = "10"
 	}
 
 	var dsn string
 	if pgsslmode == "disable" {
-		log.Infof("postgres running with sslmode=disable")
+		lg.Infof("postgres running with sslmode=disable")
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode, pgconnectTimeout)
-		log.Infof("postgres dsn: host=%s port=%s user=%s password=**** dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgconnectTimeout)
+		lg.Infof("postgres dsn: host=%s port=%s user=%s password=**** dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgconnectTimeout)
 	} else {
 		// Ensure that the ECOM_PG_SSLCERT, ECOM_PG_SSLROOTCERT and ECOM_PG_SSLKEY are all
 		// referenced using absolute paths.
 		if pgsslcert == "" {
-			log.Fatal("missing PostgreSQL SSL certificate file. Use export ECOM_PG_SSLCERT")
+			lg.Fatal("missing PostgreSQL SSL certificate file. Use export ECOM_PG_SSLCERT")
 		}
 		if !filepath.IsAbs(pgsslcert) {
-			log.Fatalf("ECOM_PG_SSLCERT should use an absolute path to certificate file to avoid ambiguity")
+			lg.Fatalf("ECOM_PG_SSLCERT should use an absolute path to certificate file to avoid ambiguity")
 		}
 		mustHaveFile(pgsslcert, "client certificate file")
 
 		if pgsslrootcert == "" {
-			log.Fatal("missing PostgreSQL SSL root certificate file. Use export ECOM_PG_SSLROOTCERT")
+			lg.Fatal("missing PostgreSQL SSL root certificate file. Use export ECOM_PG_SSLROOTCERT")
 		}
 		if !filepath.IsAbs(pgsslrootcert) {
-			log.Fatalf("ECOM_PG_SSLROOTCERT should use an absolute path to root certificate file to avoid ambiguity")
+			lg.Fatalf("ECOM_PG_SSLROOTCERT should use an absolute path to root certificate file to avoid ambiguity")
 		}
 		mustHaveFile(pgsslrootcert, "ssl root certificate")
 
 		if pgsslkey == "" {
-			log.Fatal("missing PostgreSQL SSL key certificate file. Use export ECOM_PG_SSLKEY")
+			lg.Fatal("missing PostgreSQL SSL key certificate file. Use export ECOM_PG_SSLKEY")
 		}
 		if !filepath.IsAbs(pgsslkey) {
-			log.Fatalf("ECOM_PG_SSLKEY should use an absolute path to key certificate file to avoid ambiguity")
+			lg.Fatalf("ECOM_PG_SSLKEY should use an absolute path to key certificate file to avoid ambiguity")
 		}
 		mustHaveFile(pgsslkey, "ssl key file")
 
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
-		log.Infof("postgres dsn: host=%s port=%s user=%s password=***** dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
+		lg.Infof("postgres dsn: host=%s port=%s user=%s password=***** dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
 	}
 
 	// 2. Service Account Credentials
 	if credentials == "" {
-		log.Fatal("missing service account credentials. Use export ECOM_GOOGLE_CREDENTIALS=/path/to/your/service-account-file or ECOM_GOOGLE_CREDENTIALS=<base64-json-file>")
+		lg.Fatal("missing service account credentials. Use export ECOM_GOOGLE_CREDENTIALS=/path/to/your/service-account-file or ECOM_GOOGLE_CREDENTIALS=<base64-json-file>")
 	}
 	// if the credentials is a relative pathname, make it relative to the secretVolume/sacDir root
 	// i.e. /etc/secret-volume/service_account_credentials/<file>
 	if credentials[0] == '/' {
 		if !filepath.IsAbs(credentials) {
-			log.Debugf("credentials is a relative pathname so building absolute pathname")
+			lg.Debugf("credentials is a relative pathname so building absolute pathname")
 			credentials = filepath.Join(secretVolume, sacDir, credentials)
 		}
 		mustHaveFile(credentials, "service account credentials")
@@ -253,16 +258,16 @@ func main() {
 
 	// 3. Google Project ID
 	if projectID == "" {
-		log.Fatal("missing project ID. Use export ECOM_GOOGLE_PROJECT_ID")
+		lg.Fatal("missing project ID. Use export ECOM_GOOGLE_PROJECT_ID")
 	}
-	log.Infof("project ID set to %s", projectID)
+	lg.Infof("project ID set to %s", projectID)
 
 	// 4. Server Port
 	if port == "" {
 		port = "8080"
-		log.Infof("no application port specified using default port %s", port)
+		lg.Infof("no application port specified using default port %s", port)
 	} else {
-		log.Infof("environment variable ECOM_APP_PORT specifies port %s to be used", port)
+		lg.Infof("environment variable PORT specifies port %s to be used", port)
 	}
 
 	// ensure that we have access to the secret volume
@@ -273,12 +278,12 @@ func main() {
 	if credentials[0] == '/' {
 		ex, err := exists(secretVolume)
 		if err != nil {
-			log.Fatalf("failed to determine if secret volume %s exists: %v", secretVolume, err)
+			lg.Fatalf("failed to determine if secret volume %s exists: %v", secretVolume, err)
 		}
 		if !ex {
-			log.Fatalf("cannot find secret volume %s. Have you mounted it?", secretVolume)
+			lg.Fatalf("cannot find secret volume %s. Have you mounted it?", secretVolume)
 		}
-		log.Infof("found secret volume %s", secretVolume)
+		lg.Infof("found secret volume %s", secretVolume)
 	}
 
 	// TLS Mode defaults to false unless ECOM_APP_TLS_MODE is set to enable
@@ -287,25 +292,25 @@ func main() {
 	tlsMode := false
 	if tlsModeFlag == "enable" || tlsModeFlag == "enabled" {
 		tlsMode = true
-		log.Info("ECOM_APP_TLS_MODE enabled")
+		lg.Info("ECOM_APP_TLS_MODE enabled")
 
 		// Ensure the TLS Certificate and Key files exist
 		if tlsCertFile == "" {
-			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the cert file. Use export ECOM_APP_TLS_CERT=/path/to/your/cert.pem")
+			lg.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the cert file. Use export ECOM_APP_TLS_CERT=/path/to/your/cert.pem")
 		}
 
 		// if the tlsCertFile is a relative pathname, make it relative to the secretVolume root
 		if !filepath.IsAbs(tlsCertFile) {
-			log.Debugf("tlsCertFile is a relative pathname so building absolute pathname")
+			lg.Debugf("tlsCertFile is a relative pathname so building absolute pathname")
 			tlsCertFile = filepath.Join(secretVolume, tlsCertFile)
 		}
 		mustHaveFile(tlsCertFile, "TLS Cert File")
 
 		if tlsKeyFile == "" {
-			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the key file. Use export ECOM_APP_TLS_KEY=/path/to/your/key.pem")
+			lg.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the key file. Use export ECOM_APP_TLS_KEY=/path/to/your/key.pem")
 		}
 		if !filepath.IsAbs(tlsKeyFile) {
-			log.Debugf("tlsKeyFile is a relative pathname so building absolute pathname")
+			lg.Debugf("tlsKeyFile is a relative pathname so building absolute pathname")
 			tlsKeyFile = filepath.Join(secretVolume, tlsKeyFile)
 		}
 		mustHaveFile(tlsKeyFile, "TLS Key File")
@@ -313,16 +318,16 @@ func main() {
 
 	// 5. Root Credentials
 	if rootEmail == "" {
-		log.Fatal("app root email not set. Use ECOM_APP_ROOT_EMAIL")
+		lg.Fatal("app root email not set. Use ECOM_APP_ROOT_EMAIL")
 	}
 	if rootPassword == "" {
-		log.Fatal("app root password not set. Use ECOM_APP_ROOT_PASSWORD")
+		lg.Fatal("app root password not set. Use ECOM_APP_ROOT_PASSWORD")
 	}
 
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("failed to open db: %v", err)
+		lg.Fatalf("failed to open db: %v", err)
 	}
 
 	attempt := 0
@@ -331,16 +336,16 @@ func main() {
 		if err != nil {
 			attempt++
 			if attempt >= maxDbConnectAttempts {
-				log.Fatalf("attempt %d/%d failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
+				lg.Fatalf("attempt %d/%d failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
 			}
-			log.Warnf("attempt %d/%d, failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
+			lg.Warnf("attempt %d/%d, failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
 			time.Sleep(5 * time.Second)
 		} else {
 			break
 		}
 	}
 
-	log.Infoln("established database connection")
+	lg.Infoln("established database connection")
 
 	// build a Postgres model
 	pgModel := model.NewPgModel(db)
@@ -354,13 +359,13 @@ func main() {
 	} else {
 		decoded, err := base64.StdEncoding.DecodeString(credentials)
 		if err != nil {
-			log.Fatalf("decode error: %v", err)
+			lg.Fatalf("decode error: %v", err)
 		}
 		opt = option.WithCredentialsJSON(decoded)
 	}
 	fbApp, err = firebase.NewApp(ctx, nil, opt)
 	if err != nil {
-		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
+		lg.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
 	}
 
 	// build a Firebase service injecting in the model and firebase app as dependencies
@@ -369,7 +374,7 @@ func main() {
 	// ensure the root user has been created
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
 	if err != nil {
-		log.Fatalf("failed to create root credentials if not exists: %v", err)
+		lg.Fatalf("failed to create root credentials if not exists: %v", err)
 	}
 
 	a := app.App{
@@ -380,16 +385,15 @@ func main() {
 	// protected routes
 	r.Group(func(r chi.Router) {
 		c := cors.New(cors.Options{
-			AllowedOrigins: []string{"*"},
-			AllowedHeaders: []string{"Authorization", "Content-Type", "Accept"},
-			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+			AllowedOrigins:   []string{"*"},
+			AllowedHeaders:   []string{"Authorization", "Content-Type", "Accept"},
+			AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 			AllowCredentials: true,
 			// Enable Debugging for testing, consider disabling in production
 			Debug: true,
 		})
 		r.Use(c.Handler)
 		r.Use(a.AuthenticateMiddleware)
-
 
 		r.Route("/admins", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateAdmin, a.CreateAdminHandler()))
@@ -400,14 +404,20 @@ func main() {
 			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
 			r.Post("/", a.Authorization(app.OpCreateCustomer, a.CreateCustomerHandler()))
 			r.Get("/{cuuid}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
+			r.Get("/{uuid}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
+			r.Post("/{uuid}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
 			r.Post("/{cuuid}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
 			r.Get("/{cuuid}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
 			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
 		})
 
+		r.Route("/devkeys", func(r chi.Router) {
+			r.Delete("/{uuid}", a.Authorization(app.OpDeleteCustomerDevKey, a.DeleteCustomerDevKeyHandler()))
+		})
+
 		r.Route("/addresses", func(r chi.Router) {
-			r.Get("/{auuid}", a.Authorization(app.OpGetAddress, a.GetAddressHandler()))
-			r.Delete("/{auuid}", a.Authorization(app.OpDeleteAddress, a.DeleteAddressHandler()))
+			r.Get("/{uuid}", a.Authorization(app.OpGetAddress, a.GetAddressHandler()))
+			r.Delete("/{uuid}", a.Authorization(app.OpDeleteAddress, a.DeleteAddressHandler()))
 		})
 
 		r.Route("/carts", func(r chi.Router) {
@@ -460,16 +470,21 @@ func main() {
 		// version info
 		r.Get("/", healthCheckHandler)
 		r.Get("/healthz", healthCheckHandler)
+
+	})
+
+	r.Route("/signin-with-devkey", func(r chi.Router) {
+		r.Post("/", a.SignInWithDevKeyHandler())
 	})
 
 	// tlsMode determines whether to serve HTTPS traffic directly.
 	// If tlsMode is false, you can enable HTTPS with a GKE Layer 7 load balancer
 	// using an Ingress.
 	if tlsMode {
-		log.Infof("server listening on HTTPS port %s", port)
-		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%s", port), tlsCertFile, tlsKeyFile, r))
+		lg.Infof("server listening on HTTPS port %s", port)
+		lg.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%s", port), tlsCertFile, tlsKeyFile, r))
 	} else {
-		log.Infof("server listening on HTTP port %s", port)
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
+		lg.Infof("server listening on HTTP port %s", port)
+		lg.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
 	}
 }

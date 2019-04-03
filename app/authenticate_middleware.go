@@ -53,6 +53,7 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 
 		// store the decodedToken in the context
 		ctx2 := context.WithValue(r.Context(), "ecomDecodedToken", decodedToken)
+		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r.WithContext(ctx2))
 	}
 

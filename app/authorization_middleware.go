@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/subtle"
+	"fmt"
 	"net/http"
 
 	"firebase.google.com/go/auth"
@@ -46,9 +47,16 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
-		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog:
-			// Cart and Catalog operations don't require any special authorization
+		// Operations that don't require any special authorization
+		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey:
 			next.ServeHTTP(w, r)
+			return
+		case OpListCustomers:
+			if role == RoleAdmin {
+				next.ServeHTTP(w, r)
+				return
+			}
+			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
 		case OpCreateCustomer:
 			// Only anonymous users can create a new customer account
@@ -59,7 +67,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
-		case OpCreateAddress, OpGetCustomer, OpGetCustomersAddresses, OpUpdateAddress:
+		case OpCreateAddress, OpGetCustomer, OpGetCustomersAddresses, OpUpdateAddress, OpGenerateCustomerDevKey, OpListCustomersDevKeys:
 			// Check the JWT Claim's customer UUID and safely compare it to the customer UUID in the route
 			// Anonymous signin results in automatic rejection. These operations are reserved for customers.
 			if role == RoleAdmin {
@@ -82,6 +90,13 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return
+			}
+			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			return
+		case OpDeleteCustomerDevKey:
+			if role == RoleAdmin {
+				uuid := chi.URLParam(r, "uuid")
+				fmt.Println(uuid)
 			}
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
@@ -111,7 +126,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
 		default:
-			log.Infof("authorization declined for operation %s", op)
+			log.Infof("(default) authorization declined for operation %s", op)
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			return
 		}

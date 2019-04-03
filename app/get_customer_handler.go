@@ -18,8 +18,6 @@ func (a *App) GetCustomerHandler() http.HandlerFunc {
 			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %v", cuuid, err)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(*customer)
 	}

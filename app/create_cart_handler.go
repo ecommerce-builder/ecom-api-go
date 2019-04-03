@@ -26,8 +26,6 @@ func (a *App) CreateCartHandler() http.HandlerFunc {
 
 		log.Debugf("a.Service.CreateCart() returned %s", *uuid)
 		cart.CartUUID = *uuid
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(cart)
 	}

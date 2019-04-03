@@ -2,6 +2,8 @@ package firebase
 
 import (
 	"context"
+	"crypto/rand"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -10,7 +12,10 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type FirebaseService struct {
@@ -287,6 +292,117 @@ func (s *FirebaseService) GetCustomer(ctx context.Context, customerUUID string) 
 	return &ac, nil
 }
 
+func (s *FirebaseService) GetCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
+	ak, err := s.model.GetCustomerDevKey(ctx, uuid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+		}
+	}
+
+	return &app.CustomerDevKey{
+		UUID:         ak.UUID,
+		Key:          ak.Key,
+		CustomerUUID: ak.CustomerUUID,
+		Created:      ak.Created,
+		Modified:     ak.Modified,
+	}, nil
+}
+
+// SignInWithDevKey checks the apiKey hash using bcrypt.
+func (s *FirebaseService) SignInWithDevKey(ctx context.Context, key string) (string, error) {
+	ak, err := s.model.GetCustomerDevKeyByDevKey(ctx, key)
+	if err != nil {
+		fmt.Println(err)
+		if err == sql.ErrNoRows {
+			// if no key matches create a dummy apiKey struct
+			// to ensure the compare hash happens. This mitigates against
+			// timing attacks.
+			ak = &model.CustomerDevKey{
+				Key:  "none",
+				Hash: "$2a$14$dRgjB9nBHoCs5txdVgN2EeVopE8rfZ7gLJNpLxw9GYq.u53FD00ny", // "nomatch"
+			}
+		} else {
+			fmt.Println("here 2")
+			return "", errors.Wrap(err, "s.model.GetCustomerDevKeyByDevKey(ctx, key)")
+		}
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(ak.Hash), []byte(ak.Key))
+	if err != nil {
+		return "", errors.Wrap(err, "bcrypt.CompareHashAndPassword([]byte(ak.Hash), []byte(ak.Key))")
+	}
+
+	customer, err := s.model.GetCustomerByID(ctx, ak.CustomerID)
+	if err != nil {
+		return "", errors.Wrapf(err, "s.model.GetCustomerByID(ctx, customerID=%q)", ak.CustomerID)
+	}
+
+	authClient, err := s.fbApp.Auth(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "s.fbApp.Auth(ctx)")
+	}
+
+	userRecord, err := authClient.GetUserByEmail(ctx, customer.Email)
+	if err != nil {
+		return "", errors.Wrapf(err, "authClient.GetUserByEmail(ctx, email=%q)", customer.Email)
+	}
+
+	token, err := authClient.CustomToken(ctx, userRecord.UID)
+	if err != nil {
+		return "", errors.Wrapf(err, "authClient.CustomToken(ctx, uid=%q)", userRecord.UID)
+	}
+	return token, nil
+}
+
+// ListCustomersDevAPIKeys gets all API Keys for a customer.
+func (s *FirebaseService) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*app.CustomerDevKey, error) {
+	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	apks, err := s.model.GetCustomerDevKeys(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+	apiKeys := make([]*app.CustomerDevKey, 0, len(apks))
+	for _, ak := range apks {
+		c := app.CustomerDevKey{
+			UUID:         ak.UUID,
+			Key:          ak.Key,
+			CustomerUUID: uuid,
+			Created:      ak.Created,
+			Modified:     ak.Modified,
+		}
+		apiKeys = append(apiKeys, &c)
+	}
+	return apiKeys, nil
+}
+
+// GenerateCustomerAPIKey creates a new API Key for a customer
+func (s *FirebaseService) GenerateCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
+	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
+	if err != nil {
+		return nil, errors.Wrapf(err, "s.model.GetCustomerIDByUUID(ctx, %q)", uuid)
+	}
+	data := make([]byte, 32)
+	_, err = rand.Read(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "rand.Read(data)")
+	}
+
+	ak, err := s.model.CreateCustomerDevKey(ctx, customerID, base58.Encode(data))
+	if err != nil {
+		return nil, errors.Wrapf(err, "s.model.CreateCustomerDevKey(ctx, customerID=%q, ...)", customerID)
+	}
+
+	return &app.CustomerDevKey{
+		Key:      ak.Key,
+		Created:  ak.Created,
+		Modified: ak.Modified,
+	}, nil
+}
+
 // CreateAddress creates a new address for a customer
 func (s *FirebaseService) CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*app.Address, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
@@ -316,24 +432,34 @@ func (s *FirebaseService) CreateAddress(ctx context.Context, customerUUID, typ, 
 }
 
 // GetAddress gets an address by UUID
-func (s *FirebaseService) GetAddress(ctx context.Context, addressUUID string) (*app.Address, error) {
-	a, err := s.model.GetAddressByUUID(ctx, addressUUID)
+func (s *FirebaseService) GetAddress(ctx context.Context, uuid string) (*app.Address, error) {
+	addr, err := s.model.GetAddressByUUID(ctx, uuid)
 	if err != nil {
+		if s.model.IsNotExist(err) {
+			if ne, ok := err.(*ResourceError); ok {
+				return nil, &ResourceError{
+					Op:       "GetAddress",
+					Resource: "address",
+					UUID:     uuid,
+					Err:      ne.Err,
+				}
+			}
+		}
 		return nil, err
 	}
 
 	aa := app.Address{
-		AddrUUID:    a.AddrUUID,
-		Typ:         a.Typ,
-		ContactName: a.ContactName,
-		Addr1:       a.Addr1,
-		Addr2:       a.Addr2,
-		City:        a.City,
-		County:      a.County,
-		Postcode:    a.Postcode,
-		Country:     a.Country,
-		Created:     a.Created,
-		Modified:    a.Modified,
+		AddrUUID:    addr.AddrUUID,
+		Typ:         addr.Typ,
+		ContactName: addr.ContactName,
+		Addr1:       addr.Addr1,
+		Addr2:       addr.Addr2,
+		City:        addr.City,
+		County:      addr.County,
+		Postcode:    addr.Postcode,
+		Country:     addr.Country,
+		Created:     addr.Created,
+		Modified:    addr.Modified,
 	}
 	return &aa, nil
 }

@@ -19,8 +19,6 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 			fmt.Fprintf(os.Stderr, "service GetCartItems(%s) error: %v", ctid, err)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(cartItems)
 	}

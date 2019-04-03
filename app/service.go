@@ -36,6 +36,13 @@ const (
 )
 
 const (
+	OpGenerateCustomerDevKey string = "GenerateCustomerDevKey"
+	OpListCustomersDevKeys   string = "ListCustomersDevKeys"
+	OpDeleteCustomerDevKey   string = "DeleteCustomerDevKey"
+	OpSignInWithDevKey       string = "SignInWithDevKey"
+)
+
+const (
 	OpGetCatalog string = "GetCatalog"
 )
 
@@ -60,6 +67,7 @@ type EcomService interface {
 	CustomerService
 	CatalogAndProductService
 	AuthService
+	ErrorService
 }
 
 type App struct {
@@ -103,6 +111,15 @@ type Customer struct {
 	Modified     time.Time `json:"modified"`
 }
 
+// CustomerDevKey struct holding the details of a customer Developer Key including its bcrypt hash.
+type CustomerDevKey struct {
+	UUID         string    `json:"uuid"`
+	Key          string    `json:"key"`
+	CustomerUUID string    `json:"customer_uuid"`
+	Created      time.Time `json:"created"`
+	Modified     time.Time `json:"modified"`
+}
+
 // Address contains address information for a Customer
 type Address struct {
 	AddrUUID    string    `json:"addr_uuid"`
@@ -123,10 +140,13 @@ type CustomerService interface {
 	GetCustomers(ctx context.Context, p *PaginationQuery) (*PaginationResultSet, error)
 	GetCustomer(ctx context.Context, customerUUID string) (*Customer, error)
 	CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
-	GetAddress(ctx context.Context, addressUUID string) (*Address, error)
+	GetAddress(ctx context.Context, uuid string) (*Address, error)
 	GetAddressOwner(ctx context.Context, addrUUID string) (*string, error)
 	GetAddresses(ctx context.Context, customerUUID string) ([]*Address, error)
 	DeleteAddress(ctx context.Context, addrUUID string) error
+	ListCustomersDevKeys(ctx context.Context, uuid string) ([]*CustomerDevKey, error)
+	GenerateCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error)
+	SignInWithDevKey(ctx context.Context, key string) (string, error)
 }
 
 type PaginationQuery struct {
@@ -152,4 +172,8 @@ type CatalogAndProductService interface {
 	GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error)
 	GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error)
 	UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error
+}
+
+type ErrorService interface {
+	IsNotExist(err error) bool
 }

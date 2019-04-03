@@ -9,7 +9,10 @@ import (
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
+	"github.com/lib/pq"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // PgModel contains the database handle
@@ -32,10 +35,8 @@ func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 	query := `SELECT UUID_GENERATE_V4() AS uuid`
 	err := m.db.QueryRowContext(ctx, query).Scan(&cartUUID)
 	if err != nil {
-		log.Errorf("db.QueryRow(%s) %+v", query, err)
-		return nil, err
+		return nil, errors.Wrapf(err, "db.QueryRow(%s) %+v", query)
 	}
-
 	return &cartUUID, nil
 }
 
@@ -280,6 +281,22 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 	return &c, nil
 }
 
+// GetCustomerByID gets a customer by customer ID
+func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*model.Customer, error) {
+	query := `
+		SELECT
+			id, uuid, uid, email, firstname, lastname, created, modified
+		FROM customers
+		WHERE id = $1
+	`
+	c := model.Customer{}
+	err := m.db.QueryRowContext(ctx, query, customerID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 // CreateAddress creates a new billing or shipping address for a customer
 func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*model.Address, error) {
 	a := model.Address{}
@@ -291,7 +308,6 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 		) RETURNING
 			id, uuid, customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country, created, modified
 	`
-
 	err := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 	if err != nil {
 		return nil, err
@@ -300,8 +316,90 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 	return &a, nil
 }
 
+// CreateCustomerDevKey
+func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key string) (*model.CustomerDevKey, error) {
+	query := `
+		INSERT INTO customers_devkeys (
+			key, hash, customer_id, created, modified
+		) VALUES (
+			$1, $2, $3, NOW(), NOW()
+		) RETURNING
+			id, key, hash, customer_id, created, modified
+	`
+	cak := model.CustomerDevKey{}
+	hash, err := bcrypt.GenerateFromPassword([]byte(key), 14)
+	err = m.db.QueryRowContext(ctx, query, key, string(hash), customerID).Scan(&cak.ID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.Created, &cak.Modified)
+	if err != nil {
+		return nil, err
+	}
+	return &cak, nil
+}
+
+// GetCustomerDevKeys
+func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*model.CustomerDevKey, error) {
+	query := `
+		SELECT id, uuid, key, hash, customer_id, created, modified
+		FROM customers_devkeys
+		WHERE customer_id = $1
+	`
+	rows, err := m.db.QueryContext(ctx, query, customerID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, $d)", query, customerID)
+	}
+	defer rows.Close()
+
+	apiKeys := make([]*model.CustomerDevKey, 0, 8)
+	for rows.Next() {
+		var c model.CustomerDevKey
+		err = rows.Scan(&c.ID, &c.UUID, &c.Key, &c.Hash, &c.CustomerID, &c.Created, &c.Modified)
+		if err != nil {
+			return nil, errors.Wrap(err, "Scan failed")
+		}
+		apiKeys = append(apiKeys, &c)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows.Err()")
+	}
+	return apiKeys, nil
+}
+
+// GetCustomerDevKey
+func (m *PgModel) GetCustomerDevKey(ctx context.Context, uuid string) (*model.CustomerDevKey, error) {
+	query := `
+		SELECT A.id, A.uuid, key, hash, customer_id, C.uuid, A.created, A.modified
+		FROM customers_devkeys AS A
+		INNER JOIN customers AS C ON A.customer_id = C.id
+		WHERE
+			  A.uuid = $1
+	`
+	cak := model.CustomerDevKey{}
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&cak.ID, &cak.UUID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.CustomerUUID, &cak.Created, &cak.Modified)
+	if err != nil {
+		return nil, errors.Wrapf(err, " m.db.QueryRowContext(ctx, %q, %q).Scan(...)", query, uuid)
+	}
+	return &cak, nil
+}
+
+// GetCustomerDevKeyByDevKey retrieves a given Developer Key record.
+func (m *PgModel) GetCustomerDevKeyByDevKey(ctx context.Context, key string) (*model.CustomerDevKey, error) {
+	query := `
+		SELECT id, uuid, key, hash, customer_id, created, modified
+		FROM customers_devkeys
+		WHERE key = $1
+	`
+	cak := model.CustomerDevKey{}
+	err := m.db.QueryRowContext(ctx, query, key).Scan(&cak.ID, &cak.UUID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.Created, &cak.Modified)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, errors.Wrapf(err, "m.db.QueryRowContext(ctx, %q, %q).Scan(...)", query, key)
+	}
+	return &cak, nil
+}
+
 // GetAddressByUUID gets an address by UUID. Returns a pointer to an Address.
-func (m *PgModel) GetAddressByUUID(ctx context.Context, addrUUID string) (*model.Address, error) {
+func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*model.Address, error) {
 	a := model.Address{}
 	query := `
 		SELECT
@@ -310,9 +408,29 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, addrUUID string) (*model
 		FROM addresses
 		WHERE uuid = $1
 	`
-
-	err := m.db.QueryRowContext(ctx, query, addrUUID).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, &ResourceError{
+				Op:       "GetAddressByUUID",
+				Resource: "address",
+				UUID:     uuid,
+				Err:      ErrNotExist,
+			}
+		}
+		if pge, ok := err.(*pq.Error); ok {
+			switch pge.Code.Name() {
+			case "invalid_text_representation":
+				return nil, &ResourceError{
+					Op:       "GetAddressByUUID",
+					Resource: "address",
+					UUID:     uuid,
+					Err:      ErrInvalidText,
+				}
+			default:
+				return nil, pge
+			}
+		}
 		return nil, err
 	}
 
