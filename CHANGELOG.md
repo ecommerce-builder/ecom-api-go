@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.18.0 (Wed, 3 Apr 2019)
++ Developer keys
+
 ## v0.17.0 (Thu, 21 Feb 2019)
 + Expanded Authorization
 + GetCatalogProduct and UpdateCatalogProductAssocs handlers
