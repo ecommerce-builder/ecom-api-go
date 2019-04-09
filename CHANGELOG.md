@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.19.0 (Tue, 9 Apr 2019)
++ Add role field to customers
+
 ## v0.18.0 (Wed, 3 Apr 2019)
 + Developer keys
 

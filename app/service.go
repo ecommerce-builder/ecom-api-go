@@ -104,6 +104,7 @@ type CartService interface {
 type Customer struct {
 	CustomerUUID string    `json:"customer_uuid"`
 	UID          string    `json:"uid"`
+	Role         string    `json:"role"`
 	Email        string    `json:"email"`
 	Firstname    string    `json:"firstname"`
 	Lastname     string    `json:"lastname"`

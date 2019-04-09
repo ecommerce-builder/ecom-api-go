@@ -23,6 +23,7 @@ type Customer struct {
 	ID           int
 	CustomerUUID string
 	UID          string
+	Role         string
 	Email        string
 	Firstname    string
 	Lastname     string
@@ -108,7 +109,7 @@ type CartModel interface {
 }
 
 type CustomerModel interface {
-	CreateCustomer(ctx context.Context, UID, email, firstname, lastname string) (*Customer, error)
+	CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*Customer, error)
 	GetCustomers(ctx context.Context, q *PaginationQuery) (*PaginationResultSet, error)
 	GetCustomerByUUID(ctx context.Context, customerUUID string) (*Customer, error)
 	GetCustomerByID(ctx context.Context, customerID int) (*Customer, error)

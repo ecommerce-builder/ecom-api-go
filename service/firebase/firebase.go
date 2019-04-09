@@ -172,7 +172,7 @@ func (s *FirebaseService) CreateRootIfNotExists(ctx context.Context, email, pass
 
 // CreateCustomer creates a new customer
 func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*app.Customer, error) {
-	log.Debugf("s.CreateCustomer(%s, %s, %s, %s) started", email, "*****", firstname, lastname)
+	log.Debugf("s.CreateCustomer(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
 
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
@@ -193,11 +193,13 @@ func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, passw
 
 	payload := struct {
 		UID               string `json:"uid"`
+		Role              string `json:"role"`
 		Email             string `json:"email"`
 		DisplayName       string `json:"display_name"`
 		CreationTimestamp int64  `json:"creation_timestamp"`
 	}{
 		UID:               userRecord.UID,
+		Role:              role,
 		Email:             userRecord.Email,
 		DisplayName:       userRecord.DisplayName,
 		CreationTimestamp: userRecord.UserMetadata.CreationTimestamp,
@@ -208,9 +210,9 @@ func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, passw
 	}
 	log.Debugf("payload marshalled to string %s", b)
 
-	c, err := s.model.CreateCustomer(ctx, userRecord.UID, email, firstname, lastname)
+	c, err := s.model.CreateCustomer(ctx, userRecord.UID, role, email, firstname, lastname)
 	if err != nil {
-		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s) failed: %v", userRecord.UID, email, firstname, lastname, err)
+		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s, %s) failed: %v", userRecord.UID, role, email, firstname, lastname, err)
 	}
 
 	// Set the custom claims for this user
@@ -219,12 +221,13 @@ func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, passw
 		"role":  role,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to set custom claims for uid=%s customer_uuid=%s: %v", c.UID, c.CustomerUUID, err)
+		return nil, fmt.Errorf("set custom claims for uid=%s customer_uuid=%s role=%s failed: %v", c.UID, c.CustomerUUID, role, err)
 	}
 
 	ac := app.Customer{
 		CustomerUUID: c.CustomerUUID,
 		UID:          c.UID,
+		Role:         c.Role,
 		Email:        c.Email,
 		Firstname:    c.Firstname,
 		Lastname:     c.Lastname,

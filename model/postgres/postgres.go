@@ -151,22 +151,21 @@ func (m *PgModel) EmptyCartItems(ctx context.Context, cartUUID string) (err erro
 }
 
 // CreateCustomer creates a new customer
-func (m *PgModel) CreateCustomer(ctx context.Context, UID, email, firstname, lastname string) (*model.Customer, error) {
-	c := model.Customer{}
+func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*model.Customer, error) {
 	query := `
 		INSERT INTO customers (
-			uid, email, firstname, lastname
+			uid, role, email, firstname, lastname
 		) VALUES (
-			$1, $2, $3, $4
+			$1, $2, $3, $4, $5
 		)
-		RETURNING id, uuid, uid, email, firstname, lastname, created, modified
+		RETURNING id, uuid, uid, role, email, firstname, lastname, created, modified
 	`
-	err := m.db.QueryRowContext(ctx, query, UID, email, firstname, lastname).Scan(
-		&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	c := model.Customer{}
+	err := m.db.QueryRowContext(ctx, query, uid, role, email, firstname, lastname).Scan(
+		&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, err
 	}
-
 	return &c, nil
 }
 
@@ -266,18 +265,17 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *model.PaginationQuery) (
 
 // GetCustomerByUUID gets a customer by customer UUID
 func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*model.Customer, error) {
-	c := model.Customer{}
 	query := `
 		SELECT
-			id, uuid, uid, email, firstname, lastname, created, modified
+			id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
 		WHERE uuid = $1
 	`
-	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	c := model.Customer{}
+	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, err
 	}
-
 	return &c, nil
 }
 
@@ -285,12 +283,12 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*model.Customer, error) {
 	query := `
 		SELECT
-			id, uuid, uid, email, firstname, lastname, created, modified
+			id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
 		WHERE id = $1
 	`
 	c := model.Customer{}
-	err := m.db.QueryRowContext(ctx, query, customerID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	err := m.db.QueryRowContext(ctx, query, customerID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -326,13 +324,13 @@ func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key 
 		) RETURNING
 			id, key, hash, customer_id, created, modified
 	`
-	cak := model.CustomerDevKey{}
+	cdk := model.CustomerDevKey{}
 	hash, err := bcrypt.GenerateFromPassword([]byte(key), 14)
-	err = m.db.QueryRowContext(ctx, query, key, string(hash), customerID).Scan(&cak.ID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.Created, &cak.Modified)
+	err = m.db.QueryRowContext(ctx, query, key, string(hash), customerID).Scan(&cdk.ID, &cdk.Key, &cdk.Hash, &cdk.CustomerID, &cdk.Created, &cdk.Modified)
 	if err != nil {
 		return nil, err
 	}
-	return &cak, nil
+	return &cdk, nil
 }
 
 // GetCustomerDevKeys
