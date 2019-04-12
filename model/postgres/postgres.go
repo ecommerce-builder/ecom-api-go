@@ -314,6 +314,67 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 	return &a, nil
 }
 
+// CreateProduct creates a new product with the given SKU.
+func (m *PgModel) CreateProduct(ctx context.Context, sku string) (*model.Product, error) {
+	query := `
+		INSERT INTO products (
+			sku, created, modified
+		) VALUES (
+			$1, NOW(), NOW()
+		) RETURNING
+			id, uuid, sku, created, modified
+	`
+	p := model.Product{}
+	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.Created, &p.Modified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
+	}
+	return &p, nil
+}
+
+// GetProduct returns the product by SKU.
+func (m *PgModel) GetProduct(ctx context.Context, sku string) (*model.Product, error) {
+	query := `
+		SELECT id, uuid, sku, created, modified
+		FROM products
+		WHERE sku = $1
+	`
+	p := model.Product{}
+	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.Created, &p.Modified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
+	}
+	return &p, nil
+}
+
+// UpdateProduct updates the details of a product with the given SKU.
+func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *model.ProductUpdate) (*model.Product, error) {
+	query := `
+		UPDATE products
+		SET ean = $1, modified = NOW()
+		WHERE sku = $2
+	`
+	p := model.Product{}
+	err := m.db.QueryRowContext(ctx, query, pu.EAN, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Created, p.Modified)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DeleteProduct delete the product with the given SKU returning the nu
+func (m *PgModel) DeleteProduct(ctx context.Context, sku string) error {
+	query := `
+		DELETE FROM products
+		WHERE sku = $1
+	`
+	_, err := m.db.ExecContext(ctx, query, sku)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // CreateCustomerDevKey
 func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key string) (*model.CustomerDevKey, error) {
 	query := `

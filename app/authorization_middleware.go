@@ -48,10 +48,10 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
 		// Operations that don't require any special authorization
-		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey:
+		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey, OpGetProduct:
 			next.ServeHTTP(w, r)
 			return
-		case OpListCustomers:
+		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return

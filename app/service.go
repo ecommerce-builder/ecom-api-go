@@ -10,21 +10,20 @@ import (
 	"firebase.google.com/go/auth"
 )
 
-const (
-	OpCreateAdmin string = "CreateAdmin"
-)
-
 // Cart operation sentinel values.
 const (
+	// Admin
+	OpCreateAdmin string = "CreateAdmin"
+
+	// Cart
 	OpCreateCart     string = "CreateCart"
 	OpAddItemToCart  string = "AddItemToCart"
 	OpGetCartItems   string = "GetCartItems"
 	OpUpdateCartItem string = "UpdateCartItem"
 	OpDeleteCartItem string = "DeleteCartItem"
 	OpEmptyCartItems string = "EmptyCartItems"
-)
 
-const (
+	// Customers
 	OpCreateCustomer        string = "CreateCustomer"
 	OpGetCustomer           string = "GetCustomer"
 	OpListCustomers         string = "ListCustomers"
@@ -33,20 +32,24 @@ const (
 	OpCreateAddress         string = "CreateAddress"
 	OpGetAddress            string = "GetAddress"
 	OpDeleteAddress         string = "DeleteAddress"
-)
 
-const (
+	// Products
+	OpCreateProduct string = "CreateProduct"
+	OpGetProduct    string = "GetProduct"
+	OpProductExists string = "ProductExists"
+	OpUpdateProduct string = "UpdateProduct"
+	OpDeleteProduct string = "DeleteProduct"
+
+	// Developer Keys
 	OpGenerateCustomerDevKey string = "GenerateCustomerDevKey"
 	OpListCustomersDevKeys   string = "ListCustomersDevKeys"
 	OpDeleteCustomerDevKey   string = "DeleteCustomerDevKey"
 	OpSignInWithDevKey       string = "SignInWithDevKey"
-)
 
-const (
+	// Catalog
 	OpGetCatalog string = "GetCatalog"
-)
 
-const (
+	// System
 	OpSystemInfo string = "SystemInfo"
 )
 
@@ -65,6 +68,7 @@ type Serverable interface {
 type EcomService interface {
 	CartService
 	CustomerService
+	ProductService
 	CatalogAndProductService
 	AuthService
 	ErrorService
@@ -99,6 +103,39 @@ type CartService interface {
 	DeleteCartItem(ctx context.Context, cartUUID string, sku string) (count int64, err error)
 	EmptyCartItems(ctx context.Context, cartUUID string) (err error)
 }
+
+// ProductService interface
+type ProductService interface {
+	CreateProduct(ctx context.Context, p *ProductCreate) (*Product, error)
+	GetProduct(ctx context.Context, sku string) (*Product, error)
+	UpdateProduct(ctx context.Context, sku string, p *ProductUpdate) (*Product, error)
+	DeleteProduct(ctx context.Context, sku string) error
+}
+
+type (
+	ProductUpdate struct {
+		EAN  string `json:"ean" yaml:"ean"`
+		URL  string `json:"url" yaml:"url"`
+		Name string `json:"name" yaml:"name"`
+	}
+
+	ProductCreate struct {
+		SKU  string `json:"sku" yaml:"sku"`
+		EAN  string `json:"ean" yaml:"ean"`
+		URL  string `json:"url" yaml:"url"`
+		Name string `json:"name" yaml:"name"`
+	}
+
+	// Product contains all the fields that comprise a product in the catalog.
+	Product struct {
+		SKU      string    `json:"sku" yaml:"sku"`
+		EAN      string    `json:"ean" yaml:"ean"`
+		URL      string    `json:"url" yaml:"url"`
+		Name     string    `json:"name" yaml:"name"`
+		Created  time.Time `json:"created"`
+		Modified time.Time `json:"updated"`
+	}
+)
 
 // Customer details
 type Customer struct {
