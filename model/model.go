@@ -79,6 +79,25 @@ type CustomerDevKey struct {
 	Modified     time.Time `json:"modified"`
 }
 
+type (
+	ProductUpdate struct {
+		EAN  string `json:"ean"`
+		URL  string `json:"url"`
+		Name string `json:"name"`
+	}
+
+	Product struct {
+		ID       int       `json:"id"`
+		UUID     string    `json:"uuid"`
+		SKU      string    `json:"sku"`
+		EAN      string    `json:"ean"`
+		URL      string    `json:"url"`
+		Name     string    `json:"name"`
+		Created  time.Time `json:"created"`
+		Modified time.Time `json"modified"`
+	}
+)
+
 // CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
 type CatalogProductAssoc struct {
 	ID        int
@@ -95,6 +114,7 @@ type EcomModel interface {
 	CartModel
 	CustomerModel
 	AddressModel
+	ProductModel
 	CatalogModel
 	ErrorModel
 }
@@ -127,6 +147,13 @@ type AddressModel interface {
 	GetAddresses(ctx context.Context, customerID int) ([]*Address, error)
 	UpdateAddressByUUID(ctx context.Context, addrUUID string) (*Address, error)
 	DeleteAddressByUUID(ctx context.Context, addrUUID string) error
+}
+
+type ProductModel interface {
+	CreateProduct(ctx context.Context, sku string) (*Product, error)
+	GetProduct(ctx context.Context, sku string) (*Product, error)
+	UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error)
+	DeleteProduct(ctx context.Context, sku string) error
 }
 
 // CatalogModel interface

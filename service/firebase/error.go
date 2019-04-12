@@ -51,7 +51,7 @@ func IsPermission(err error) bool {
 	return ok && ip.Permission()
 }
 
-func (s *FirebaseService) IsNotExist(err error) bool {
+func (s *Service) IsNotExist(err error) bool {
 	ne, ok := err.(notExists)
 	return ok && ne.NotExists()
 }

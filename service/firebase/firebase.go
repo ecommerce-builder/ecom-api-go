@@ -18,18 +18,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type FirebaseService struct {
+// Service firebase implementation
+type Service struct {
 	model model.EcomModel
 	fbApp *firebase.App
 }
 
-func NewService(model model.EcomModel, fbApp *firebase.App) (*FirebaseService, error) {
-	s := FirebaseService{model, fbApp}
+func NewService(model model.EcomModel, fbApp *firebase.App) (*Service, error) {
+	s := Service{model, fbApp}
 	return &s, nil
 }
 
 // Auth accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if
-func (s *FirebaseService) Authenticate(ctx context.Context, jwt string) (*auth.Token, error) {
+func (s *Service) Authenticate(ctx context.Context, jwt string) (*auth.Token, error) {
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return nil, err
@@ -43,7 +44,7 @@ func (s *FirebaseService) Authenticate(ctx context.Context, jwt string) (*auth.T
 }
 
 // CreateCart generates a new random UUID to be used for subseqent cart calls
-func (s *FirebaseService) CreateCart(ctx context.Context) (*string, error) {
+func (s *Service) CreateCart(ctx context.Context) (*string, error) {
 	log.Debug("s.CreateCart() started")
 
 	strptr, err := s.model.CreateCart(ctx)
@@ -56,7 +57,7 @@ func (s *FirebaseService) CreateCart(ctx context.Context) (*string, error) {
 }
 
 // AddItemToCart adds a single item to a given cart
-func (s *FirebaseService) AddItemToCart(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
+func (s *Service) AddItemToCart(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
 	log.Debugf("s.AddItemToCart(%s, %s, %d) started", cartUUID, sku, qty)
 
 	item, err := s.model.AddItemToCart(ctx, cartUUID, "default", sku, qty)
@@ -78,7 +79,7 @@ func (s *FirebaseService) AddItemToCart(ctx context.Context, cartUUID string, sk
 }
 
 // GetCartItems get all items in the given cart
-func (s *FirebaseService) GetCartItems(ctx context.Context, cartUUID string) ([]*app.CartItem, error) {
+func (s *Service) GetCartItems(ctx context.Context, cartUUID string) ([]*app.CartItem, error) {
 	items, err := s.model.GetCartItems(ctx, cartUUID)
 	if err != nil {
 		return nil, err
@@ -100,7 +101,7 @@ func (s *FirebaseService) GetCartItems(ctx context.Context, cartUUID string) ([]
 }
 
 // UpdateCartItem updates a single item's qty
-func (s *FirebaseService) UpdateCartItem(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
+func (s *Service) UpdateCartItem(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
 	item, err := s.model.UpdateItemByCartUUID(ctx, cartUUID, sku, qty)
 	if err != nil {
 		return nil, err
@@ -118,7 +119,7 @@ func (s *FirebaseService) UpdateCartItem(ctx context.Context, cartUUID string, s
 }
 
 // DeleteCartItem deletes a single cart item
-func (s *FirebaseService) DeleteCartItem(ctx context.Context, cartUUID string, sku string) (count int64, err error) {
+func (s *Service) DeleteCartItem(ctx context.Context, cartUUID string, sku string) (count int64, err error) {
 	count, err = s.model.DeleteCartItem(ctx, cartUUID, sku)
 	if err != nil {
 		return -1, err
@@ -127,12 +128,12 @@ func (s *FirebaseService) DeleteCartItem(ctx context.Context, cartUUID string, s
 }
 
 // EmptyCartItems empties the cart of all items but not coupons
-func (s *FirebaseService) EmptyCartItems(ctx context.Context, cartUUID string) (err error) {
+func (s *Service) EmptyCartItems(ctx context.Context, cartUUID string) (err error) {
 	return s.model.EmptyCartItems(ctx, cartUUID)
 }
 
-// CreateRoot create the root user
-func (s *FirebaseService) CreateRootIfNotExists(ctx context.Context, email, password string) error {
+// CreateRootIfNotExists create the root user if the root super admin does not exit.
+func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password string) error {
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return err
@@ -171,7 +172,7 @@ func (s *FirebaseService) CreateRootIfNotExists(ctx context.Context, email, pass
 }
 
 // CreateCustomer creates a new customer
-func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*app.Customer, error) {
+func (s *Service) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*app.Customer, error) {
 	log.Debugf("s.CreateCustomer(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
 
 	authClient, err := s.fbApp.Auth(ctx)
@@ -239,7 +240,8 @@ func (s *FirebaseService) CreateCustomer(ctx context.Context, role, email, passw
 	return &ac, nil
 }
 
-func (s *FirebaseService) GetCustomers(ctx context.Context, q *app.PaginationQuery) (*app.PaginationResultSet, error) {
+// GetCustomers gets customers with pagination.
+func (s *Service) GetCustomers(ctx context.Context, q *app.PaginationQuery) (*app.PaginationResultSet, error) {
 	mq := &model.PaginationQuery{
 		OrderBy:    q.OrderBy,
 		OrderDir:   q.OrderDir,
@@ -277,7 +279,7 @@ func (s *FirebaseService) GetCustomers(ctx context.Context, q *app.PaginationQue
 }
 
 // GetCustomer retrieves a customer by customer UUID
-func (s *FirebaseService) GetCustomer(ctx context.Context, customerUUID string) (*app.Customer, error) {
+func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*app.Customer, error) {
 	c, err := s.model.GetCustomerByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
@@ -295,7 +297,7 @@ func (s *FirebaseService) GetCustomer(ctx context.Context, customerUUID string) 
 	return &ac, nil
 }
 
-func (s *FirebaseService) GetCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
+func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
 	ak, err := s.model.GetCustomerDevKey(ctx, uuid)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -311,8 +313,74 @@ func (s *FirebaseService) GetCustomerDevKey(ctx context.Context, uuid string) (*
 	}, nil
 }
 
+// CreateProduct create a new product if the product SKU does not already exist.
+func (s *Service) CreateProduct(ctx context.Context, pc *app.ProductCreate) (*app.Product, error) {
+	p, err := s.model.CreateProduct(ctx, pc.SKU)
+	if err != nil {
+		return nil, errors.Wrapf(err, "create product %q failed", pc.SKU)
+	}
+	return &app.Product{
+		SKU:      p.SKU,
+		EAN:      p.EAN,
+		URL:      p.URL,
+		Name:     p.Name,
+		Created:  p.Created,
+		Modified: p.Modified,
+	}, nil
+}
+
+// GetProduct gets a product given the SKU.
+func (s *Service) GetProduct(ctx context.Context, sku string) (*app.Product, error) {
+	p, err := s.model.GetProduct(ctx, sku)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get product %q failed", sku)
+	}
+	return &app.Product{
+		SKU:      p.SKU,
+		EAN:      p.EAN,
+		URL:      p.URL,
+		Name:     p.Name,
+		Created:  p.Created,
+		Modified: p.Modified,
+	}, nil
+}
+
+func marshalProduct(a *app.Product, m *model.Product) {
+	a.SKU = m.SKU
+	a.EAN = m.EAN
+	a.URL = m.URL
+	a.Name = m.Name
+	a.Created = m.Created
+	a.Modified = m.Modified
+	return
+}
+
+// UpdateProduct updates a product by SKU.
+func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *app.ProductUpdate) (*app.Product, error) {
+	update := &model.ProductUpdate{
+		EAN:  pu.EAN,
+		URL:  pu.URL,
+		Name: pu.Name,
+	}
+	p, err := s.model.UpdateProduct(ctx, sku, update)
+	if err != nil {
+		return nil, errors.Wrapf(err, "update product sku=%q failed", sku)
+	}
+	ap := &app.Product{}
+	marshalProduct(ap, p)
+	return ap, nil
+}
+
+func (s *Service) DeleteProduct(ctx context.Context, sku string) error {
+	err := s.model.DeleteProduct(ctx, sku)
+	if err != nil {
+		return errors.Wrapf(err, "delete product sku=%q failed", sku)
+	}
+	return nil
+}
+
 // SignInWithDevKey checks the apiKey hash using bcrypt.
-func (s *FirebaseService) SignInWithDevKey(ctx context.Context, key string) (string, error) {
+func (s *Service) SignInWithDevKey(ctx context.Context, key string) (string, error) {
 	ak, err := s.model.GetCustomerDevKeyByDevKey(ctx, key)
 	if err != nil {
 		fmt.Println(err)
@@ -358,7 +426,7 @@ func (s *FirebaseService) SignInWithDevKey(ctx context.Context, key string) (str
 }
 
 // ListCustomersDevAPIKeys gets all API Keys for a customer.
-func (s *FirebaseService) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*app.CustomerDevKey, error) {
+func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*app.CustomerDevKey, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
 	if err != nil {
 		return nil, err
@@ -383,7 +451,7 @@ func (s *FirebaseService) ListCustomersDevKeys(ctx context.Context, uuid string)
 }
 
 // GenerateCustomerAPIKey creates a new API Key for a customer
-func (s *FirebaseService) GenerateCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
+func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "s.model.GetCustomerIDByUUID(ctx, %q)", uuid)
@@ -407,7 +475,7 @@ func (s *FirebaseService) GenerateCustomerDevKey(ctx context.Context, uuid strin
 }
 
 // CreateAddress creates a new address for a customer
-func (s *FirebaseService) CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*app.Address, error) {
+func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*app.Address, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
@@ -435,7 +503,7 @@ func (s *FirebaseService) CreateAddress(ctx context.Context, customerUUID, typ, 
 }
 
 // GetAddress gets an address by UUID
-func (s *FirebaseService) GetAddress(ctx context.Context, uuid string) (*app.Address, error) {
+func (s *Service) GetAddress(ctx context.Context, uuid string) (*app.Address, error) {
 	addr, err := s.model.GetAddressByUUID(ctx, uuid)
 	if err != nil {
 		if s.model.IsNotExist(err) {
@@ -467,7 +535,7 @@ func (s *FirebaseService) GetAddress(ctx context.Context, uuid string) (*app.Add
 	return &aa, nil
 }
 
-func (s *FirebaseService) GetAddressOwner(ctx context.Context, addrUUID string) (*string, error) {
+func (s *Service) GetAddressOwner(ctx context.Context, addrUUID string) (*string, error) {
 	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, addrUUID)
 	if err != nil {
 		return nil, err
@@ -477,7 +545,7 @@ func (s *FirebaseService) GetAddressOwner(ctx context.Context, addrUUID string) 
 }
 
 // GetAddresses gets a slice of addresses for a given customer
-func (s *FirebaseService) GetAddresses(ctx context.Context, customerUUID string) ([]*app.Address, error) {
+func (s *Service) GetAddresses(ctx context.Context, customerUUID string) ([]*app.Address, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
@@ -510,7 +578,7 @@ func (s *FirebaseService) GetAddresses(ctx context.Context, customerUUID string)
 }
 
 // DeleteAddress deletes an address by uuid
-func (s *FirebaseService) DeleteAddress(ctx context.Context, addrUUID string) error {
+func (s *Service) DeleteAddress(ctx context.Context, addrUUID string) error {
 	err := s.model.DeleteAddressByUUID(ctx, addrUUID)
 	if err != nil {
 		return err
@@ -520,7 +588,7 @@ func (s *FirebaseService) DeleteAddress(ctx context.Context, addrUUID string) er
 }
 
 // GetCatalog returns the catalog in nested set representation.
-func (s *FirebaseService) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
+func (s *Service) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
 	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
 		return nil, err
@@ -529,7 +597,7 @@ func (s *FirebaseService) GetCatalog(ctx context.Context) ([]*nestedset.NestedSe
 }
 
 // GetCatalogProductAssocs returns the catalog product associations
-func (s *FirebaseService) GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error) {
+func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error) {
 	cpo, err := s.model.GetCatalogProductAssocs(ctx)
 	if err != nil {
 		return nil, err
@@ -538,7 +606,7 @@ func (s *FirebaseService) GetCatalogProductAssocs(ctx context.Context) ([]*model
 }
 
 // UpdateCatalogProductAssocs updates the catalog product associations
-func (s *FirebaseService) UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error {
+func (s *Service) UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error {
 	err := s.model.UpdateCatalogProductAssocs(ctx, cpo)
 	if err != nil {
 		return err
