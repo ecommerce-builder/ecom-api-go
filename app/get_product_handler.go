@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,6 +16,10 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 		sku := chi.URLParam(r, "sku")
 		product, err := a.Service.GetProduct(r.Context(), sku)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 			fmt.Fprintf(os.Stderr, "service GetProduct(ctx, %s) error: %v", sku, err)
 			return
 		}

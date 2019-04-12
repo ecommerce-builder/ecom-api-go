@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.21.0 (Fri, 12 Apr 2019)
++ OpProductExists implemented using HTTP HEAD on `/products/:sku`
+
 ## v0.20.0 (Fri, 12 Apr 2019)
 + Product API features
 + Interface pattern removed from the model layer

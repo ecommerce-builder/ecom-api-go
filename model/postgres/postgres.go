@@ -341,9 +341,27 @@ func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) 
 	p := Product{}
 	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.Created, &p.Modified)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
 		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
 	}
 	return &p, nil
+}
+
+// ProductExists return true if there is a row in the products table with
+// the given SKU.
+func (m *PgModel) ProductExists(ctx context.Context, sku string) (bool, error) {
+	query := `SELECT id FROM products WHERE sku = $1`
+	var id int
+	err := m.db.QueryRowContext(ctx, query, sku).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "query row context failed for sku=%q", sku)
+	}
+	return true, nil
 }
 
 // UpdateProduct updates the details of a product with the given SKU.

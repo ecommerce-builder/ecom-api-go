@@ -333,6 +333,9 @@ func (s *Service) CreateProduct(ctx context.Context, pc *app.ProductCreate) (*ap
 func (s *Service) GetProduct(ctx context.Context, sku string) (*app.Product, error) {
 	p, err := s.model.GetProduct(ctx, sku)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
 		return nil, errors.Wrapf(err, "get product %q failed", sku)
 	}
 	return &app.Product{
@@ -353,6 +356,15 @@ func marshalProduct(a *app.Product, m *postgres.Product) {
 	a.Created = m.Created
 	a.Modified = m.Modified
 	return
+}
+
+// ProductExists return true if the given product exists.
+func (s *Service) ProductExists(ctx context.Context, sku string) (bool, error) {
+	exists, err := s.model.ProductExists(ctx, sku)
+	if err != nil {
+		return false, errors.Wrapf(err, "ProductExists(ctx, %q) failed", sku)
+	}
+	return exists, nil
 }
 
 // UpdateProduct updates a product by SKU.

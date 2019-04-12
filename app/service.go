@@ -105,6 +105,7 @@ type CartService interface {
 type ProductService interface {
 	CreateProduct(ctx context.Context, p *ProductCreate) (*Product, error)
 	GetProduct(ctx context.Context, sku string) (*Product, error)
+	ProductExists(ctx context.Context, sku string) (bool, error)
 	UpdateProduct(ctx context.Context, sku string, p *ProductUpdate) (*Product, error)
 	DeleteProduct(ctx context.Context, sku string) error
 }
@@ -162,7 +163,7 @@ type (
 		URL      string    `json:"url" yaml:"url"`
 		Name     string    `json:"name" yaml:"name"`
 		Created  time.Time `json:"created"`
-		Modified time.Time `json:"updated"`
+		Modified time.Time `json:"modified"`
 	}
 )
 

@@ -414,7 +414,7 @@ func main() {
 		r.Route("/products", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateProduct, a.CreateProductHandler()))
 			r.Get("/{sku}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
-			//r.Head("/{sku}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
+			r.Head("/{sku}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
 			r.Put("/{sku}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
 			r.Delete("/{sku}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 		})

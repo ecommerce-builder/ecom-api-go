@@ -10,6 +10,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func unauthorized(w http.ResponseWriter) {
+	// w.Header().Set("Content-Length", "0")
+	w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+}
+
 // AuthorizationMiddleware provides authorization layer
 func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +36,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if role != RoleCustomer && role != RoleAdmin && role != RoleSuperUser {
-				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+				unauthorized(w)
 				return
 			}
 		}
@@ -48,7 +53,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
 		// Operations that don't require any special authorization
-		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey, OpGetProduct:
+		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey, OpProductExists, OpGetProduct:
 			next.ServeHTTP(w, r)
 			return
 		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct:
@@ -56,7 +61,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				next.ServeHTTP(w, r)
 				return
 			}
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			unauthorized(w)
 			return
 		case OpCreateCustomer:
 			// Only anonymous users can create a new customer account
@@ -64,8 +69,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				next.ServeHTTP(w, r)
 				return
 			}
-
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			unauthorized(w)
 			return
 		case OpCreateAddress, OpGetCustomer, OpGetCustomersAddresses, OpUpdateAddress, OpGenerateCustomerDevKey, OpListCustomersDevKeys:
 			// Check the JWT Claim's customer UUID and safely compare it to the customer UUID in the route
@@ -84,26 +88,26 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			// RoleShopper
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			unauthorized(w)
 			return
 		case OpSystemInfo:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return
 			}
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			unauthorized(w)
 			return
 		case OpDeleteCustomerDevKey:
 			if role == RoleAdmin {
 				uuid := chi.URLParam(r, "uuid")
 				fmt.Println(uuid)
 			}
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			unauthorized(w)
 			return
 		case OpGetAddress, OpDeleteAddress:
 			// The customer UUID is not in the route so we ask the service layer for the  resource owner's customer UUID
 			if role == RoleShopper {
-				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+				unauthorized(w)
 				return
 			}
 
@@ -123,11 +127,11 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				next.ServeHTTP(w, r)
 				return
 			}
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			unauthorized(w)
 			return
 		default:
 			log.Infof("(default) authorization declined for operation %s", op)
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			unauthorized(w)
 			return
 		}
 	}
