@@ -2,10 +2,8 @@ package app
 
 import (
 	"context"
-	"net/http"
 	"time"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	"firebase.google.com/go/auth"
 )
@@ -51,19 +49,13 @@ const (
 
 	// System
 	OpSystemInfo string = "SystemInfo"
-)
 
-const (
+	// Roles
 	RoleSuperUser string = "root"
 	RoleAdmin     string = "admin"
 	RoleCustomer  string = "customer"
 	RoleShopper   string = "anon"
 )
-
-type Serverable interface {
-	Handlerable
-	EcomService
-}
 
 type EcomService interface {
 	CartService
@@ -78,13 +70,6 @@ type App struct {
 	Service EcomService
 }
 
-type Handlerable interface {
-	CreateCartHandler() http.HandlerFunc
-	GetCartItemsHandler() http.HandlerFunc
-	CreateCustomerHandler() http.HandlerFunc
-	AuthenticateMiddleware(http.HandlerFunc) http.HandlerFunc
-}
-
 // CartItem structure holds the details individual cart item
 type CartItem struct {
 	CartUUID  string    `json:"cart_uuid"`
@@ -95,6 +80,18 @@ type CartItem struct {
 	Modified  time.Time `json:"modified"`
 }
 
+// CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
+type CatalogProductAssoc struct {
+	CatalogID int
+	ProductID int
+	Path      string `json:"path"`
+	SKU       string `json:"sku"`
+	Pri       int    `json:"pri"`
+	Created   time.Time
+	Modified  time.Time
+}
+
+// CartService interface
 type CartService interface {
 	CreateCart(ctx context.Context) (*string, error)
 	AddItemToCart(ctx context.Context, cartUUID, sku string, qty int) (*CartItem, error)
@@ -110,6 +107,38 @@ type ProductService interface {
 	GetProduct(ctx context.Context, sku string) (*Product, error)
 	UpdateProduct(ctx context.Context, sku string, p *ProductUpdate) (*Product, error)
 	DeleteProduct(ctx context.Context, sku string) error
+}
+
+// CustomerService interface
+type CustomerService interface {
+	CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error)
+	GetCustomers(ctx context.Context, p *PaginationQuery) (*PaginationResultSet, error)
+	GetCustomer(ctx context.Context, customerUUID string) (*Customer, error)
+	CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
+	GetAddress(ctx context.Context, uuid string) (*Address, error)
+	GetAddressOwner(ctx context.Context, addrUUID string) (*string, error)
+	GetAddresses(ctx context.Context, customerUUID string) ([]*Address, error)
+	DeleteAddress(ctx context.Context, addrUUID string) error
+	ListCustomersDevKeys(ctx context.Context, uuid string) ([]*CustomerDevKey, error)
+	GenerateCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error)
+	SignInWithDevKey(ctx context.Context, key string) (string, error)
+}
+
+// AuthService interface
+type AuthService interface {
+	Authenticate(ctx context.Context, jwt string) (*auth.Token, error)
+}
+
+// CatalogAndProductService interface
+type CatalogAndProductService interface {
+	GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error)
+	GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error)
+	//UpdateCatalogProductAssocs(ctx context.Context, cpo []*CatalogProductAssoc) error
+}
+
+// ErrorService interface
+type ErrorService interface {
+	IsNotExist(err error) bool
 }
 
 type (
@@ -173,45 +202,19 @@ type Address struct {
 	Modified    time.Time `json:"modified"`
 }
 
-type CustomerService interface {
-	CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error)
-	GetCustomers(ctx context.Context, p *PaginationQuery) (*PaginationResultSet, error)
-	GetCustomer(ctx context.Context, customerUUID string) (*Customer, error)
-	CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error)
-	GetAddress(ctx context.Context, uuid string) (*Address, error)
-	GetAddressOwner(ctx context.Context, addrUUID string) (*string, error)
-	GetAddresses(ctx context.Context, customerUUID string) ([]*Address, error)
-	DeleteAddress(ctx context.Context, addrUUID string) error
-	ListCustomersDevKeys(ctx context.Context, uuid string) ([]*CustomerDevKey, error)
-	GenerateCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error)
-	SignInWithDevKey(ctx context.Context, key string) (string, error)
-}
-
 type PaginationQuery struct {
 	OrderBy, OrderDir string
 	Limit             int
 	StartAfter        string
 }
+
 type PaginationContext struct {
 	Total     int    `json:"total"`
 	FirstUUID string `json:"first_uuid"`
 	LastUUID  string `json:"last_uuid"`
 }
+
 type PaginationResultSet struct {
 	RContext PaginationContext
 	RSet     interface{}
-}
-
-type AuthService interface {
-	Authenticate(ctx context.Context, jwt string) (*auth.Token, error)
-}
-
-type CatalogAndProductService interface {
-	GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error)
-	GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error)
-	UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error
-}
-
-type ErrorService interface {
-	IsNotExist(err error) bool
 }
