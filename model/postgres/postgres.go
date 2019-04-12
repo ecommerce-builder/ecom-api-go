@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -41,8 +40,8 @@ func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 }
 
 // AddItemToCart adds a new item with sku, qty and unit price
-func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku string, qty int) (*model.CartItem, error) {
-	item := model.CartItem{}
+func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku string, qty int) (*CartItem, error) {
+	item := CartItem{}
 
 	// check if the item is alreadyd in the cart
 	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE uuid=$1 AND sku=$2) AS exists;`
@@ -75,7 +74,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku stri
 }
 
 // GetCartItems gets all items in the cart
-func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*model.CartItem, error) {
+func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartItem, error) {
 	query := `
 		SELECT
 			id, uuid, sku, qty, unit_price, created, modified
@@ -88,9 +87,9 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*model.C
 	}
 	defer rows.Close()
 
-	cartItems := make([]*model.CartItem, 0, 20)
+	cartItems := make([]*CartItem, 0, 20)
 	for rows.Next() {
-		c := model.CartItem{}
+		c := CartItem{}
 		err = rows.Scan(&c.ID, &c.CartUUID, &c.Sku, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified)
 		if err != nil {
 			return nil, err
@@ -107,7 +106,7 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*model.C
 }
 
 // UpdateItemByCartUUID updates the qty of a cart item of the given sku.
-func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*model.CartItem, error) {
+func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*CartItem, error) {
 	query := `
 		UPDATE carts
 		SET qty = $1, modified = NOW()
@@ -115,7 +114,7 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string
 		RETURNING id, uuid, sku, qty, unit_price, created, modified
 	`
 
-	item := model.CartItem{}
+	item := CartItem{}
 	err := m.db.QueryRowContext(ctx, query, qty, cartUUID, sku).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
 	if err != nil {
 		return nil, err
@@ -151,7 +150,7 @@ func (m *PgModel) EmptyCartItems(ctx context.Context, cartUUID string) (err erro
 }
 
 // CreateCustomer creates a new customer
-func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*model.Customer, error) {
+func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*Customer, error) {
 	query := `
 		INSERT INTO customers (
 			uid, role, email, firstname, lastname
@@ -160,7 +159,7 @@ func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstnam
 		)
 		RETURNING id, uuid, uid, role, email, firstname, lastname, created, modified
 	`
-	c := model.Customer{}
+	c := Customer{}
 	err := m.db.QueryRowContext(ctx, query, uid, role, email, firstname, lastname).Scan(
 		&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
@@ -170,7 +169,7 @@ func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstnam
 }
 
 // GetCustomers gets the next size customers starting at page page
-func (m *PgModel) GetCustomers(ctx context.Context, pq *model.PaginationQuery) (*model.PaginationResultSet, error) {
+func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
 	q := NewQuery("customers", map[string]bool{
 		"id":        true,
 		"uuid":      false,
@@ -204,7 +203,7 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *model.PaginationQuery) (
 	}
 
 	// calculate the total count, first and last items in the result set
-	pr := model.PaginationResultSet{}
+	pr := PaginationResultSet{}
 	sql := `
 		SELECT COUNT(*) AS count
 		FROM %s
@@ -245,9 +244,9 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *model.PaginationQuery) (
 	}
 	defer rows.Close()
 
-	customers := make([]*model.Customer, 0)
+	customers := make([]*Customer, 0)
 	for rows.Next() {
-		var c model.Customer
+		var c Customer
 
 		err = rows.Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 		if err != nil {
@@ -264,14 +263,14 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *model.PaginationQuery) (
 }
 
 // GetCustomerByUUID gets a customer by customer UUID
-func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*model.Customer, error) {
+func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*Customer, error) {
 	query := `
 		SELECT
 			id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
 		WHERE uuid = $1
 	`
-	c := model.Customer{}
+	c := Customer{}
 	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, err
@@ -280,14 +279,14 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 }
 
 // GetCustomerByID gets a customer by customer ID
-func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*model.Customer, error) {
+func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*Customer, error) {
 	query := `
 		SELECT
 			id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
 		WHERE id = $1
 	`
-	c := model.Customer{}
+	c := Customer{}
 	err := m.db.QueryRowContext(ctx, query, customerID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, err
@@ -296,8 +295,8 @@ func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*model.C
 }
 
 // CreateAddress creates a new billing or shipping address for a customer
-func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*model.Address, error) {
-	a := model.Address{}
+func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*Address, error) {
+	a := Address{}
 	query := `
 		INSERT INTO addresses (
 			customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country
@@ -315,7 +314,7 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 }
 
 // CreateProduct creates a new product with the given SKU.
-func (m *PgModel) CreateProduct(ctx context.Context, sku string) (*model.Product, error) {
+func (m *PgModel) CreateProduct(ctx context.Context, sku string) (*Product, error) {
 	query := `
 		INSERT INTO products (
 			sku, created, modified
@@ -324,7 +323,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku string) (*model.Product
 		) RETURNING
 			id, uuid, sku, created, modified
 	`
-	p := model.Product{}
+	p := Product{}
 	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
@@ -333,13 +332,13 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku string) (*model.Product
 }
 
 // GetProduct returns the product by SKU.
-func (m *PgModel) GetProduct(ctx context.Context, sku string) (*model.Product, error) {
+func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) {
 	query := `
 		SELECT id, uuid, sku, created, modified
 		FROM products
 		WHERE sku = $1
 	`
-	p := model.Product{}
+	p := Product{}
 	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
@@ -348,13 +347,13 @@ func (m *PgModel) GetProduct(ctx context.Context, sku string) (*model.Product, e
 }
 
 // UpdateProduct updates the details of a product with the given SKU.
-func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *model.ProductUpdate) (*model.Product, error) {
+func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	query := `
 		UPDATE products
 		SET ean = $1, modified = NOW()
 		WHERE sku = $2
 	`
-	p := model.Product{}
+	p := Product{}
 	err := m.db.QueryRowContext(ctx, query, pu.EAN, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Created, p.Modified)
 	if err != nil {
 		return nil, err
@@ -376,7 +375,7 @@ func (m *PgModel) DeleteProduct(ctx context.Context, sku string) error {
 }
 
 // CreateCustomerDevKey
-func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key string) (*model.CustomerDevKey, error) {
+func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key string) (*CustomerDevKey, error) {
 	query := `
 		INSERT INTO customers_devkeys (
 			key, hash, customer_id, created, modified
@@ -385,7 +384,7 @@ func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key 
 		) RETURNING
 			id, key, hash, customer_id, created, modified
 	`
-	cdk := model.CustomerDevKey{}
+	cdk := CustomerDevKey{}
 	hash, err := bcrypt.GenerateFromPassword([]byte(key), 14)
 	err = m.db.QueryRowContext(ctx, query, key, string(hash), customerID).Scan(&cdk.ID, &cdk.Key, &cdk.Hash, &cdk.CustomerID, &cdk.Created, &cdk.Modified)
 	if err != nil {
@@ -395,7 +394,7 @@ func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key 
 }
 
 // GetCustomerDevKeys
-func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*model.CustomerDevKey, error) {
+func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*CustomerDevKey, error) {
 	query := `
 		SELECT id, uuid, key, hash, customer_id, created, modified
 		FROM customers_devkeys
@@ -407,9 +406,9 @@ func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*mo
 	}
 	defer rows.Close()
 
-	apiKeys := make([]*model.CustomerDevKey, 0, 8)
+	apiKeys := make([]*CustomerDevKey, 0, 8)
 	for rows.Next() {
-		var c model.CustomerDevKey
+		var c CustomerDevKey
 		err = rows.Scan(&c.ID, &c.UUID, &c.Key, &c.Hash, &c.CustomerID, &c.Created, &c.Modified)
 		if err != nil {
 			return nil, errors.Wrap(err, "Scan failed")
@@ -423,7 +422,7 @@ func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*mo
 }
 
 // GetCustomerDevKey
-func (m *PgModel) GetCustomerDevKey(ctx context.Context, uuid string) (*model.CustomerDevKey, error) {
+func (m *PgModel) GetCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error) {
 	query := `
 		SELECT A.id, A.uuid, key, hash, customer_id, C.uuid, A.created, A.modified
 		FROM customers_devkeys AS A
@@ -431,7 +430,7 @@ func (m *PgModel) GetCustomerDevKey(ctx context.Context, uuid string) (*model.Cu
 		WHERE
 			  A.uuid = $1
 	`
-	cak := model.CustomerDevKey{}
+	cak := CustomerDevKey{}
 	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&cak.ID, &cak.UUID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.CustomerUUID, &cak.Created, &cak.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, " m.db.QueryRowContext(ctx, %q, %q).Scan(...)", query, uuid)
@@ -440,13 +439,13 @@ func (m *PgModel) GetCustomerDevKey(ctx context.Context, uuid string) (*model.Cu
 }
 
 // GetCustomerDevKeyByDevKey retrieves a given Developer Key record.
-func (m *PgModel) GetCustomerDevKeyByDevKey(ctx context.Context, key string) (*model.CustomerDevKey, error) {
+func (m *PgModel) GetCustomerDevKeyByDevKey(ctx context.Context, key string) (*CustomerDevKey, error) {
 	query := `
 		SELECT id, uuid, key, hash, customer_id, created, modified
 		FROM customers_devkeys
 		WHERE key = $1
 	`
-	cak := model.CustomerDevKey{}
+	cak := CustomerDevKey{}
 	err := m.db.QueryRowContext(ctx, query, key).Scan(&cak.ID, &cak.UUID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.Created, &cak.Modified)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -458,8 +457,8 @@ func (m *PgModel) GetCustomerDevKeyByDevKey(ctx context.Context, key string) (*m
 }
 
 // GetAddressByUUID gets an address by UUID. Returns a pointer to an Address.
-func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*model.Address, error) {
-	a := model.Address{}
+func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, error) {
+	a := Address{}
 	query := `
 		SELECT
 			id, uuid, customer_id, typ, contact_name, addr1, addr2,
@@ -497,14 +496,14 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*model.Add
 }
 
 // GetAddressOwnerByUUID returns a pointer to a string containing the customer UUID of the owner of this address record. If the address is not found the return value of will be nil.
-func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, addrUUID string) (*string, error) {
+func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, uuid string) (*string, error) {
 	query := `
 		SELECT C.uuid
 		FROM customers AS C, addresses AS A
 		WHERE A.customer_id = C.id AND A.uuid = $1
 	`
 	var customerUUID string
-	err := m.db.QueryRowContext(ctx, query, addrUUID).Scan(&customerUUID)
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&customerUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -527,8 +526,8 @@ func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) 
 }
 
 // GetAddresses retrieves a slice of pointers to Address for a given customer
-func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*model.Address, error) {
-	addresses := make([]*model.Address, 0, 8)
+func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address, error) {
+	addresses := make([]*Address, 0, 8)
 
 	query := `
 		SELECT
@@ -545,7 +544,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*model.Ad
 	defer rows.Close()
 
 	for rows.Next() {
-		var a model.Address
+		var a Address
 
 		err = rows.Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 		if err != nil {
@@ -563,11 +562,11 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*model.Ad
 }
 
 // UpdateAddressByUUID updates an address for a given customer
-func (m *PgModel) UpdateAddressByUUID(ctx context.Context, addrUUID string) (*model.Address, error) {
+func (m *PgModel) UpdateAddressByUUID(ctx context.Context, addrUUID string) (*Address, error) {
 	// TO BE DONE
 	//
 	//query := `UPDATE addresses SET`
-	addr := model.Address{}
+	addr := Address{}
 	return &addr, nil
 }
 
@@ -614,7 +613,7 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 }
 
 // GetCatalogProductAssocs returns an Slice of catalogue to product associations
-func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error) {
+func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
 	query := `
 		SELECT id, catalog_id, product_id, path, sku, pri
 		FROM catalog_products
@@ -626,9 +625,9 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*model.Catalog
 	}
 	defer rows.Close()
 
-	cpa := make([]*model.CatalogProductAssoc, 0, 256)
+	cpa := make([]*CatalogProductAssoc, 0, 256)
 	for rows.Next() {
-		var n model.CatalogProductAssoc
+		var n CatalogProductAssoc
 		err = rows.Scan(&n.ID, &n.CatalogID, &n.ProductID, &n.Path, &n.SKU, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, err
@@ -641,7 +640,7 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*model.Catalog
 }
 
 // UpdateCatalogProductAssocs update the catalog product associations
-func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error {
+func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*CatalogProductAssoc) error {
 	tx, err := m.db.Begin()
 	if err != nil {
 		return err
@@ -677,7 +676,7 @@ func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.C
 }
 
 // CreateImageEntry writes a new image entry to the product_images table
-func (m *PgModel) CreateImageEntry(ctx context.Context, c *model.CreateProductImage) (*model.ProductImage, error) {
+func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateProductImage) (*ProductImage, error) {
 	query := `
 		INSERT INTO product_images (
 			product_id, sku,
@@ -695,7 +694,7 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, c *model.CreateProductIm
 			id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 			gsurl, data, created, modified
 	`
-	p := model.ProductImage{}
+	p := ProductImage{}
 	err := m.db.QueryRowContext(ctx, query, c.SKU, c.SKU,
 		c.W, c.H, c.Path, c.Typ,
 		c.Ori,
@@ -709,7 +708,7 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, c *model.CreateProductIm
 }
 
 // GetImageEntries returns a list of all images associated to a given product SKU.
-func (m *PgModel) GetImageEntries(ctx context.Context, sku string) ([]*model.ProductImage, error) {
+func (m *PgModel) GetImageEntries(ctx context.Context, sku string) ([]*ProductImage, error) {
 	query := `
 		SELECT id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 		gsurl, data, created, modified
@@ -723,9 +722,9 @@ func (m *PgModel) GetImageEntries(ctx context.Context, sku string) ([]*model.Pro
 	}
 	defer rows.Close()
 
-	images := make([]*model.ProductImage, 0, 16)
+	images := make([]*ProductImage, 0, 16)
 	for rows.Next() {
-		p := model.ProductImage{}
+		p := ProductImage{}
 		err = rows.Scan(&p.ID, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 		if err != nil {
 			return nil, err
@@ -740,7 +739,7 @@ func (m *PgModel) GetImageEntries(ctx context.Context, sku string) ([]*model.Pro
 }
 
 // ConfirmImageUploaded updates the `up` column to true to indicate the uploaded has taken place.
-func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*model.ProductImage, error) {
+func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*ProductImage, error) {
 	query := `
 		UPDATE product_images
 		SET up = 't', modified = NOW()
@@ -748,7 +747,7 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*model
 		RETURNING id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 		gsurl, data, created, modified
 	`
-	p := model.ProductImage{}
+	p := ProductImage{}
 	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.ID, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, err

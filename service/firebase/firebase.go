@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
-	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
@@ -20,11 +20,11 @@ import (
 
 // Service firebase implementation
 type Service struct {
-	model model.EcomModel
+	model *postgres.PgModel
 	fbApp *firebase.App
 }
 
-func NewService(model model.EcomModel, fbApp *firebase.App) (*Service, error) {
+func NewService(model *postgres.PgModel, fbApp *firebase.App) (*Service, error) {
 	s := Service{model, fbApp}
 	return &s, nil
 }
@@ -242,7 +242,7 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 
 // GetCustomers gets customers with pagination.
 func (s *Service) GetCustomers(ctx context.Context, q *app.PaginationQuery) (*app.PaginationResultSet, error) {
-	mq := &model.PaginationQuery{
+	mq := &postgres.PaginationQuery{
 		OrderBy:    q.OrderBy,
 		OrderDir:   q.OrderDir,
 		Limit:      q.Limit,
@@ -254,7 +254,7 @@ func (s *Service) GetCustomers(ctx context.Context, q *app.PaginationQuery) (*ap
 	}
 
 	results := make([]*app.Customer, 0)
-	for _, v := range prs.RSet.([]*model.Customer) {
+	for _, v := range prs.RSet.([]*postgres.Customer) {
 		c := app.Customer{
 			CustomerUUID: v.CustomerUUID,
 			UID:          v.UID,
@@ -345,7 +345,7 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*app.Product, err
 	}, nil
 }
 
-func marshalProduct(a *app.Product, m *model.Product) {
+func marshalProduct(a *app.Product, m *postgres.Product) {
 	a.SKU = m.SKU
 	a.EAN = m.EAN
 	a.URL = m.URL
@@ -357,7 +357,7 @@ func marshalProduct(a *app.Product, m *model.Product) {
 
 // UpdateProduct updates a product by SKU.
 func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *app.ProductUpdate) (*app.Product, error) {
-	update := &model.ProductUpdate{
+	update := &postgres.ProductUpdate{
 		EAN:  pu.EAN,
 		URL:  pu.URL,
 		Name: pu.Name,
@@ -388,7 +388,7 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (string, err
 			// if no key matches create a dummy apiKey struct
 			// to ensure the compare hash happens. This mitigates against
 			// timing attacks.
-			ak = &model.CustomerDevKey{
+			ak = &postgres.CustomerDevKey{
 				Key:  "none",
 				Hash: "$2a$14$dRgjB9nBHoCs5txdVgN2EeVopE8rfZ7gLJNpLxw9GYq.u53FD00ny", // "nomatch"
 			}
@@ -535,12 +535,11 @@ func (s *Service) GetAddress(ctx context.Context, uuid string) (*app.Address, er
 	return &aa, nil
 }
 
-func (s *Service) GetAddressOwner(ctx context.Context, addrUUID string) (*string, error) {
-	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, addrUUID)
+func (s *Service) GetAddressOwner(ctx context.Context, uuid string) (*string, error) {
+	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, uuid)
 	if err != nil {
 		return nil, err
 	}
-
 	return customerUUID, nil
 }
 
@@ -597,16 +596,30 @@ func (s *Service) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, e
 }
 
 // GetCatalogProductAssocs returns the catalog product associations
-func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*model.CatalogProductAssoc, error) {
+func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*app.CatalogProductAssoc, error) {
 	cpo, err := s.model.GetCatalogProductAssocs(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return cpo, nil
+
+	results := make([]*app.CatalogProductAssoc, 0, 32)
+	for _, v := range cpo {
+		i := app.CatalogProductAssoc{
+			CatalogID: v.CatalogID,
+			ProductID: v.ProductID,
+			Path:      v.Path,
+			SKU:       v.SKU,
+			Pri:       v.Pri,
+			Created:   v.Created,
+			Modified:  v.Modified,
+		}
+		results = append(results, &i)
+	}
+	return results, nil
 }
 
 // UpdateCatalogProductAssocs updates the catalog product associations
-func (s *Service) UpdateCatalogProductAssocs(ctx context.Context, cpo []*model.CatalogProductAssoc) error {
+func (s *Service) UpdateCatalogProductAssocs(ctx context.Context, cpo []*postgres.CatalogProductAssoc) error {
 	err := s.model.UpdateCatalogProductAssocs(ctx, cpo)
 	if err != nil {
 		return err
