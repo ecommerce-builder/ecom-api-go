@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.20.0 (Fri, 12 Apr 2019)
++ Product API features
++ Interface pattern removed from the model layer
+
 ## v0.19.0 (Tue, 9 Apr 2019)
 + Add role field to customers
 
