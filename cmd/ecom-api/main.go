@@ -23,7 +23,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version string = "v0.21.0"
+var version string = "v0.22.0"
 
 const maxDbConnectAttempts = 3
 
@@ -390,7 +390,7 @@ func main() {
 			AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 			AllowCredentials: true,
 			// Enable Debugging for testing, consider disabling in production
-			Debug: true,
+			Debug: false,
 		})
 		r.Use(c.Handler)
 		r.Use(a.AuthenticateMiddleware)

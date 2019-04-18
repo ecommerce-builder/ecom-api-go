@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.22.0 (Thu, 18 Apr 2019)
++ Product storing uses Postgres JSONB column (required scheme 0.7.0 and above)
+
 ## v0.21.0 (Fri, 12 Apr 2019)
 + OpProductExists implemented using HTTP HEAD on `/products/:sku`
 

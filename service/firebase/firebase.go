@@ -315,7 +315,17 @@ func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*app.Cust
 
 // CreateProduct create a new product if the product SKU does not already exist.
 func (s *Service) CreateProduct(ctx context.Context, pc *app.ProductCreate) (*app.Product, error) {
-	p, err := s.model.CreateProduct(ctx, pc.SKU)
+	pu := &postgres.ProductUpdate{
+		EAN:  pc.EAN,
+		URL:  pc.URL,
+		Name: pc.Name,
+		Data: postgres.ProductData{
+			Summary: pc.Data.Summary,
+			Desc: pc.Data.Desc,
+			Spec: pc.Data.Spec,
+		},
+	}
+	p, err := s.model.CreateProduct(ctx, pc.SKU, pu)
 	if err != nil {
 		return nil, errors.Wrapf(err, "create product %q failed", pc.SKU)
 	}
@@ -324,6 +334,11 @@ func (s *Service) CreateProduct(ctx context.Context, pc *app.ProductCreate) (*ap
 		EAN:      p.EAN,
 		URL:      p.URL,
 		Name:     p.Name,
+		Data: app.ProductData{
+			Summary: p.Data.Summary,
+			Desc: p.Data.Desc,
+			Spec: p.Data.Spec,
+		},
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
@@ -343,6 +358,11 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*app.Product, err
 		EAN:      p.EAN,
 		URL:      p.URL,
 		Name:     p.Name,
+		Data: app.ProductData{
+			Summary: p.Data.Summary,
+			Desc: p.Data.Desc,
+			Spec: p.Data.Spec,
+		},
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
@@ -353,6 +373,9 @@ func marshalProduct(a *app.Product, m *postgres.Product) {
 	a.EAN = m.EAN
 	a.URL = m.URL
 	a.Name = m.Name
+	a.Data.Summary = m.Data.Summary
+	a.Data.Desc = m.Data.Desc
+	a.Data.Spec = m.Data.Spec
 	a.Created = m.Created
 	a.Modified = m.Modified
 	return
@@ -373,6 +396,11 @@ func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *app.Product
 		EAN:  pu.EAN,
 		URL:  pu.URL,
 		Name: pu.Name,
+		Data: postgres.ProductData{
+			Summary: pu.Data.Summary,
+			Desc: pu.Data.Desc,
+			Spec: pu.Data.Spec,
+		},
 	}
 	p, err := s.model.UpdateProduct(ctx, sku, update)
 	if err != nil {
@@ -395,7 +423,6 @@ func (s *Service) DeleteProduct(ctx context.Context, sku string) error {
 func (s *Service) SignInWithDevKey(ctx context.Context, key string) (string, error) {
 	ak, err := s.model.GetCustomerDevKeyByDevKey(ctx, key)
 	if err != nil {
-		fmt.Println(err)
 		if err == sql.ErrNoRows {
 			// if no key matches create a dummy apiKey struct
 			// to ensure the compare hash happens. This mitigates against
@@ -405,7 +432,6 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (string, err
 				Hash: "$2a$14$dRgjB9nBHoCs5txdVgN2EeVopE8rfZ7gLJNpLxw9GYq.u53FD00ny", // "nomatch"
 			}
 		} else {
-			fmt.Println("here 2")
 			return "", errors.Wrap(err, "s.model.GetCustomerDevKeyByDevKey(ctx, key)")
 		}
 	}

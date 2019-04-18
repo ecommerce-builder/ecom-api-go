@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"testing"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/model"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
@@ -40,15 +39,38 @@ func isValidUUID(uuid string) bool {
 	return r.MatchString(uuid)
 }
 
+func TestUpdateProduct(t *testing.T) {
+	model, teardown := setup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	pu := &ProductUpdate{
+		EAN: "Updated EAN",
+		URL: "updated-url",
+		Name: "Updated Name",
+		Data: ProductData{
+			Summary: "Updated Summary",
+			Desc: "Updated Description",
+			Spec: "Updated Specification",
+		},
+	}
+	pr, err := model.UpdateProduct(ctx, "DESK-SKU", pu)
+	if err != nil {
+		t.Fatalf("model.UpdateProduct(): %v", err)
+	}
+	t.Log(pr)
+
+}
+
 // func TestGetCustomers(t *testing.T) {
-// 	m, teardown := setup(t)
+// 	model, teardown := setup(t)
 // 	defer teardown()
 
 // 	ctx := context.Background()
 
-// 	prs, err := m.GetCustomers(ctx, "firstname", "ASC", 2, "1bb7faa4-0435-4cf5-978d-3ee76327c32a")
+// 	prs, err := model.GetCustomers(ctx, "firstname", "ASC", 2, "1bb7faa4-0435-4cf5-978d-3ee76327c32a")
 // 	if err != nil {
-// 		t.Fatalf("m.GetCustomers() :%v", err)
+// 		t.Fatalf("model.GetCustomers(): %v", err)
 // 	}
 // 	fmt.Println(prs.RContext)
 // 	if err != nil {
@@ -61,13 +83,13 @@ func isValidUUID(uuid string) bool {
 // }
 
 func TestGetAddressByUUID(t *testing.T) {
-	m, teardown := setup(t)
+	model, teardown := setup(t)
 	defer teardown()
 
 	ctx := context.Background()
 
 	t.Run("get valid address", func(t *testing.T) {
-		addr, err := m.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed875")
+		addr, err := model.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed875")
 		if err != nil {
 			t.Fail()
 		}
@@ -75,8 +97,8 @@ func TestGetAddressByUUID(t *testing.T) {
 	})
 
 	t.Run("get missing address", func(t *testing.T) {
-		addr, err := m.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed876")
-		if IsNotExist(err) {
+		addr, err := model.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed876")
+		if model.IsNotExist(err) {
 			if ne, ok := err.(*ResourceError); ok {
 				assert.Equal(t, "GetAddressByUUID", ne.Op)
 				assert.Equal(t, "address", ne.Resource)
@@ -90,7 +112,7 @@ func TestGetAddressByUUID(t *testing.T) {
 	})
 
 	t.Run("get invalid format addresss", func(t *testing.T) {
-		addr, err := m.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed87x")
+		addr, err := model.GetAddressByUUID(ctx, "f35f10c4-e9fe-4283-b2e6-8be1f9eed87x")
 		if err != nil {
 			if IsInvalidText(err) {
 				if ite, ok := err.(*ResourceError); ok {
@@ -174,11 +196,11 @@ func TestCart(t *testing.T) {
 }
 
 func TestCreateImageEntry(t *testing.T) {
-	m, teardown := setup(t)
+	model, teardown := setup(t)
 	defer teardown()
 
 	ctx := context.Background()
-	cpis := []model.CreateProductImage{
+	cpis := []CreateProductImage{
 		{ // 0
 			SKU:   "WATER",
 			W:     800,
@@ -219,11 +241,11 @@ func TestCreateImageEntry(t *testing.T) {
 			Data:  nil,
 		},
 	}
-	pis := make([]*model.ProductImage, 3)
+	pis := make([]*ProductImage, 3)
 	t.Run("CreateProductImages", func(t *testing.T) {
 		var err error
 		for i, c := range cpis {
-			pis[i], err = m.CreateImageEntry(ctx, &c)
+			pis[i], err = model.CreateImageEntry(ctx, &c)
 			if err != nil {
 				t.Fatalf("CreateImageEntry(ctx, %v): %s", c, err)
 			}
@@ -242,7 +264,7 @@ func TestCreateImageEntry(t *testing.T) {
 	})
 
 	t.Run("ConfirmImageUpload", func(t *testing.T) {
-		cp, err := m.ConfirmImageUploaded(ctx, pis[0].UUID)
+		cp, err := model.ConfirmImageUploaded(ctx, pis[0].UUID)
 		if err != nil {
 			t.Fatalf("ConfirmImageUploaded(ctx): %s", err)
 		}
@@ -261,7 +283,7 @@ func TestCreateImageEntry(t *testing.T) {
 	})
 
 	t.Run("GetImageEntries", func(t *testing.T) {
-		images, err := m.GetImageEntries(ctx, "TV")
+		images, err := model.GetImageEntries(ctx, "TV")
 		if err != nil {
 			t.Fatalf("GetImageEntries(ctx, %q): %s", "TV", err)
 		}
@@ -284,7 +306,7 @@ func TestCreateImageEntry(t *testing.T) {
 
 	t.Run("DeleteImageEntry", func(t *testing.T) {
 		for _, p := range pis {
-			count, err := m.DeleteImageEntry(ctx, p.UUID)
+			count, err := model.DeleteImageEntry(ctx, p.UUID)
 			if err != nil {
 				t.Fatalf("DeleteImageEntry(ctx, %v): %s", p.UUID, err)
 			}

@@ -20,7 +20,7 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 
 		product, err := a.Service.CreateProduct(r.Context(), &pc)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "create product failed: %v", err)
+			fmt.Fprintf(os.Stderr, "create product failed: %+v", err)
 			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created

@@ -74,25 +74,6 @@ type CustomerDevKey struct {
 	Modified     time.Time `json:"modified"`
 }
 
-type (
-	ProductUpdate struct {
-		EAN  string `json:"ean"`
-		URL  string `json:"url"`
-		Name string `json:"name"`
-	}
-
-	Product struct {
-		ID       int       `json:"id"`
-		UUID     string    `json:"uuid"`
-		SKU      string    `json:"sku"`
-		EAN      string    `json:"ean"`
-		URL      string    `json:"url"`
-		Name     string    `json:"name"`
-		Created  time.Time `json:"created"`
-		Modified time.Time `json"modified"`
-	}
-)
-
 // CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
 type CatalogProductAssoc struct {
 	ID        int

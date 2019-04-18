@@ -144,26 +144,35 @@ type ErrorService interface {
 
 type (
 	ProductUpdate struct {
-		EAN  string `json:"ean" yaml:"ean"`
-		URL  string `json:"url" yaml:"url"`
-		Name string `json:"name" yaml:"name"`
+		EAN  string      `json:"ean" yaml:"ean"`
+		URL  string      `json:"url" yaml:"url"`
+		Name string      `json:"name" yaml:"name"`
+		Data ProductData `json:"data" yaml:"data"`
 	}
 
 	ProductCreate struct {
-		SKU  string `json:"sku" yaml:"sku"`
-		EAN  string `json:"ean" yaml:"ean"`
-		URL  string `json:"url" yaml:"url"`
-		Name string `json:"name" yaml:"name"`
+		SKU  string      `json:"sku" yaml:"sku"`
+		EAN  string      `json:"ean" yaml:"ean"`
+		URL  string      `json:"url" yaml:"url"`
+		Name string      `json:"name" yaml:"name"`
+		Data ProductData `json:"data" yaml:"data"`
+	}
+
+	ProductData struct {
+		Summary     string `json:"summary" yaml:"summary"`
+		Desc        string `json:"description" yaml:"description"`
+		Spec        string `json:"specification" yaml:"specification"`
 	}
 
 	// Product contains all the fields that comprise a product in the catalog.
 	Product struct {
-		SKU      string    `json:"sku" yaml:"sku"`
-		EAN      string    `json:"ean" yaml:"ean"`
-		URL      string    `json:"url" yaml:"url"`
-		Name     string    `json:"name" yaml:"name"`
-		Created  time.Time `json:"created"`
-		Modified time.Time `json:"modified"`
+		SKU      string      `json:"sku" yaml:"sku,omitempty"`
+		EAN      string      `json:"ean" yaml:"ean"`
+		URL      string      `json:"url" yaml:"url"`
+		Name     string      `json:"name" yaml:"name"`
+		Data     ProductData `json:"data" yaml:"data"`
+		Created  time.Time   `json:"created,omitempty"`
+		Modified time.Time   `json:"modified,omitempty"`
 	}
 )
 

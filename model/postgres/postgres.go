@@ -3,20 +3,74 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // PgModel contains the database handle
 type PgModel struct {
 	db *sql.DB
+}
+
+type Product struct {
+	ID       int         `json:"id"`
+	UUID     string      `json:"uuid"`
+	SKU      string      `json:"sku"`
+	EAN      string      `json:"ean"`
+	URL      string      `json:"url"`
+	Name     string      `json:"name"`
+	Data     ProductData `json:"data"`
+	Created  time.Time   `json:"created"`
+	Modified time.Time   `json"modified"`
+}
+
+type ProductUpdate struct {
+	EAN  string      `json:"ean"`
+	URL  string      `json:"url"`
+	Name string      `json:"name"`
+	Data ProductData `json:"data"`
+}
+
+
+type ProductData struct {
+	Summary string `json:"summary"`
+	Desc    string `json:"description"`
+	Spec    string `json:"specification"`
+}
+
+func (pd ProductData) Value() (driver.Value, error) {
+	bs, err := json.Marshal(pd)
+	if err != nil {
+		return nil, errors.Wrap(err, "json marshal failed")
+	}
+	return string(bs), nil
+}
+
+
+func (pd *ProductData) Scan(value interface{}) error {
+	sv, err := driver.String.ConvertValue(value)
+        if err != nil {
+                return err
+        }
+	if v, ok := sv.([]byte); ok {
+		var pdu ProductData
+		err := json.Unmarshal(v, &pdu)
+		if err != nil {
+			return errors.Wrap(err, "json unmarshal failed")
+		}
+		*pd = pdu
+		return nil
+	}
+	return fmt.Errorf("scan value failed")
 }
 
 // NewPgModel creates a new PgModel instance
@@ -28,13 +82,11 @@ func NewPgModel(db *sql.DB) *PgModel {
 
 // CreateCart creates a new shopping cart
 func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
-	log.Debug("m.CreateCart() started")
-
 	var cartUUID string
 	query := `SELECT UUID_GENERATE_V4() AS uuid`
 	err := m.db.QueryRowContext(ctx, query).Scan(&cartUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "db.QueryRow(%s) %+v", query)
+		return nil, errors.Wrapf(err, "db.QueryRow(ctx, %s)", query)
 	}
 	return &cartUUID, nil
 }
@@ -314,17 +366,17 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 }
 
 // CreateProduct creates a new product with the given SKU.
-func (m *PgModel) CreateProduct(ctx context.Context, sku string) (*Product, error) {
+func (m *PgModel) CreateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	query := `
 		INSERT INTO products (
-			sku, created, modified
+			sku, ean, url, name, data, created, modified
 		) VALUES (
-			$1, NOW(), NOW()
+			$1, $2, $3, $4, $5, NOW(), NOW()
 		) RETURNING
-			id, uuid, sku, created, modified
+			id, uuid, sku, ean, url, name, data, created, modified
 	`
 	p := Product{}
-	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.Created, &p.Modified)
+	err := m.db.QueryRowContext(ctx, query, sku, pu.EAN, pu.URL, pu.Name, pu.Data).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
 	}
@@ -334,12 +386,12 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku string) (*Product, erro
 // GetProduct returns the product by SKU.
 func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) {
 	query := `
-		SELECT id, uuid, sku, created, modified
+		SELECT id, uuid, sku, ean, url, name, data, created, modified
 		FROM products
 		WHERE sku = $1
 	`
 	p := Product{}
-	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.Created, &p.Modified)
+	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err
@@ -368,11 +420,14 @@ func (m *PgModel) ProductExists(ctx context.Context, sku string) (bool, error) {
 func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	query := `
 		UPDATE products
-		SET ean = $1, modified = NOW()
-		WHERE sku = $2
+		SET ean = $1, url = $2, name = $3, data = $4, modified = NOW()
+		WHERE sku = $5
+		RETURNING
+			id, uuid, sku, ean, url, name, data, created, modified
 	`
 	p := Product{}
-	err := m.db.QueryRowContext(ctx, query, pu.EAN, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Created, p.Modified)
+	err := m.db.QueryRowContext(ctx, query, pu.EAN, pu.URL, pu.Name, pu.Data, sku).Scan(
+		&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +475,7 @@ func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*Cu
 	`
 	rows, err := m.db.QueryContext(ctx, query, customerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, $d)", query, customerID)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, %d)", query, customerID)
 	}
 	defer rows.Close()
 
@@ -770,7 +825,6 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Produ
 	if err != nil {
 		return nil, err
 	}
-
 	return &p, nil
 }
 
