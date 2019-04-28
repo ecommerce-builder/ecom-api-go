@@ -23,7 +23,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version string = "v0.22.0"
+var version = "v0.23.0"
 
 const maxDbConnectAttempts = 3
 
@@ -369,7 +369,7 @@ func main() {
 	}
 
 	// build a Firebase service injecting in the model and firebase app as dependencies
-	fbSrv, _ := service.NewService(pgModel, fbApp)
+	fbSrv := service.NewService(pgModel, fbApp)
 
 	// ensure the root user has been created
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)

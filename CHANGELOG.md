@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.23.0 (Sun, 28 Apr 2019)
++ Improve error handling for model
++ Remove convoluted interface layer from app
++ Remove error return for service.NewService
+
 ## v0.22.0 (Thu, 18 Apr 2019)
 + Product storing uses Postgres JSONB column (required scheme 0.7.0 and above)
 

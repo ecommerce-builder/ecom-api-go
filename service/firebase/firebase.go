@@ -132,9 +132,8 @@ type Product struct {
 	Modified time.Time   `json:"modified,omitempty"`
 }
 
-func NewService(model *postgres.PgModel, fbApp *firebase.App) (*Service, error) {
-	s := Service{model, fbApp}
-	return &s, nil
+func NewService(model *postgres.PgModel, fbApp *firebase.App) *Service {
+	return &Service{model, fbApp}
 }
 
 // Auth accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if

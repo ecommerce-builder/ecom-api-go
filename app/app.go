@@ -53,6 +53,7 @@ const (
 	RoleShopper   string = "anon"
 )
 
+// App defines the API application
 type App struct {
 	Service *firebase.Service
 }

@@ -15,7 +15,7 @@ func unauthorized(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 }
 
-// AuthorizationMiddleware provides authorization layer
+// Authorization provides authorization middleware
 func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
