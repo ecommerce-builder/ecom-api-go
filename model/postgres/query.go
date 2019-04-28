@@ -117,6 +117,8 @@ func (q *Query) StartAfter(s string) *Query {
 // QueryContextQ builds an SQL statement based on the given Query q and
 // returns make a call to sql.QueryContext returning a *sql.Rows.
 func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error) {
+	fmt.Printf("%#v\n", q)
+	fmt.Printf("%#v\n", q)
 	for _, v := range q.sel {
 		_, ok := q.sfields[v]
 		if !ok {
@@ -136,14 +138,30 @@ func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error
 		q.sel = append(q.sel, "*")
 	}
 
+
+	if q.startAfter == "" {
+		var sql string
+		sel := `SELECT %s FROM %s ORDER BY %s %s, id %s`
+		sel = fmt.Sprintf(sel, strings.Join(q.sel, ", "), q.table, q.orderBy, q.orderDir, q.orderDir)
+		if q.limit > 0 {
+			lmt := fmt.Sprintf(" FETCH FIRST %d ROWS ONLY", q.limit)
+			sql = sel + lmt
+		}
+
+		fmt.Printf("no startAfter set sql=XXXX%sXXXX\n", sql)
+		rows, err := m.db.QueryContext(ctx, sql)
+		if err != nil {
+			return nil, fmt.Errorf("QueryContext with %q: %v", sql, err)
+		}
+		return rows, err
+	}
+
 	// Assume startAfter only
 	var comparitor string
-	if q.startAfter != "" {
-		if q.orderDir == "ASC" {
-			comparitor = ">"
-		} else {
-			comparitor = "<"
-		}
+	if q.orderDir == "ASC" {
+		comparitor = ">"
+	} else {
+		comparitor = "<"
 	}
 
 	sql := `

@@ -1,3 +1,4 @@
+.vscode
 *_secret.yaml
 certs/
 data/init.sql

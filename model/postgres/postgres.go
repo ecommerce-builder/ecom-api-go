@@ -40,7 +40,6 @@ type ProductUpdate struct {
 	Data ProductData `json:"data"`
 }
 
-
 type ProductData struct {
 	Summary string `json:"summary"`
 	Desc    string `json:"description"`
@@ -55,12 +54,11 @@ func (pd ProductData) Value() (driver.Value, error) {
 	return string(bs), nil
 }
 
-
 func (pd *ProductData) Scan(value interface{}) error {
 	sv, err := driver.String.ConvertValue(value)
-        if err != nil {
-                return err
-        }
+	if err != nil {
+		return err
+	}
 	if v, ok := sv.([]byte); ok {
 		var pdu ProductData
 		err := json.Unmarshal(v, &pdu)
@@ -222,17 +220,20 @@ func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstnam
 
 // GetCustomers gets the next size customers starting at page page
 func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
+	fmt.Printf("GetCustomers pg=%v\n", pq)
+
 	q := NewQuery("customers", map[string]bool{
 		"id":        true,
 		"uuid":      false,
 		"uid":       false,
+		"role":      true,
 		"email":     true,
 		"firstname": true,
 		"lastname":  true,
 		"created":   true,
 		"modified":  true,
 	})
-	q = q.Select([]string{"id", "uuid", "uid", "email", "firstname", "lastname", "created", "modified"})
+	q = q.Select([]string{"id", "uuid", "uid", "role", "email", "firstname", "lastname", "created", "modified"})
 
 	// if not set, default Order By, Order Direction and Limit is "created DESC LIMIT 10"
 	if pq.OrderBy != "" {
@@ -266,6 +267,7 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 		return nil, err
 	}
 
+	// book mark either end of the result set
 	sql = `
 		SELECT uuid
 		FROM %s
@@ -277,7 +279,6 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	if err != nil {
 		return nil, err
 	}
-
 	sql = `
 		SELECT uuid
 		FROM %s
@@ -299,14 +300,15 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	customers := make([]*Customer, 0)
 	for rows.Next() {
 		var c Customer
-
-		err = rows.Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+		err = rows.Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 		if err != nil {
 			return nil, err
 		}
 
 		customers = append(customers, &c)
+		fmt.Println(c)
 	}
+
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}

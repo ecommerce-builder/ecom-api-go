@@ -213,9 +213,10 @@ type Address struct {
 }
 
 type PaginationQuery struct {
-	OrderBy, OrderDir string
-	Limit             int
-	StartAfter        string
+	OrderBy    string
+	OrderDir   string
+	Limit      int
+	StartAfter string
 }
 
 type PaginationContext struct {

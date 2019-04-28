@@ -241,23 +241,28 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 }
 
 // GetCustomers gets customers with pagination.
-func (s *Service) GetCustomers(ctx context.Context, q *app.PaginationQuery) (*app.PaginationResultSet, error) {
-	mq := &postgres.PaginationQuery{
-		OrderBy:    q.OrderBy,
-		OrderDir:   q.OrderDir,
-		Limit:      q.Limit,
-		StartAfter: q.StartAfter,
+func (s *Service) GetCustomers(ctx context.Context, pq *app.PaginationQuery) (*app.PaginationResultSet, error) {
+	fmt.Printf("Service... GetCustomers q=%v\n", pq)
+	q := &postgres.PaginationQuery{
+		OrderBy:    pq.OrderBy,
+		OrderDir:   pq.OrderDir,
+		Limit:      pq.Limit,
+		StartAfter: pq.StartAfter,
 	}
-	prs, err := s.model.GetCustomers(ctx, mq)
+	prs, err := s.model.GetCustomers(ctx, q)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("pagination result set")
+	fmt.Println(prs)
 
 	results := make([]*app.Customer, 0)
 	for _, v := range prs.RSet.([]*postgres.Customer) {
 		c := app.Customer{
 			CustomerUUID: v.CustomerUUID,
 			UID:          v.UID,
+			Role:         v.Role,
 			Email:        v.Email,
 			Firstname:    v.Firstname,
 			Lastname:     v.Lastname,
