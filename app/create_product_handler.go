@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
 // CreateProductHandler create a new product. A separate call must be made
 // to associate the product to the catalog hierarchy.
 func (a *App) CreateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		pc := ProductCreate{}
+		pc := firebase.ProductCreate{}
 		err := json.NewDecoder(r.Body).Decode(&pc)
 		if err != nil {
 			http.Error(w, err.Error(), 400)

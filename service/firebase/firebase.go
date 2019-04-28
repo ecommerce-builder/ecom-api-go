@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	firebase "firebase.google.com/go"
@@ -22,6 +22,114 @@ import (
 type Service struct {
 	model *postgres.PgModel
 	fbApp *firebase.App
+}
+
+// CartItem structure holds the details individual cart item
+type CartItem struct {
+	CartUUID  string    `json:"cart_uuid"`
+	Sku       string    `json:"sku"`
+	Qty       int       `json:"qty"`
+	UnitPrice float64   `json:"unit_price"`
+	Created   time.Time `json:"created"`
+	Modified  time.Time `json:"modified"`
+}
+
+// Customer details
+type Customer struct {
+	CustomerUUID string    `json:"customer_uuid"`
+	UID          string    `json:"uid"`
+	Role         string    `json:"role"`
+	Email        string    `json:"email"`
+	Firstname    string    `json:"firstname"`
+	Lastname     string    `json:"lastname"`
+	Created      time.Time `json:"created"`
+	Modified     time.Time `json:"modified"`
+}
+
+type PaginationQuery struct {
+	OrderBy    string
+	OrderDir   string
+	Limit      int
+	StartAfter string
+}
+
+type PaginationContext struct {
+	Total     int    `json:"total"`
+	FirstUUID string `json:"first_uuid"`
+	LastUUID  string `json:"last_uuid"`
+}
+
+type PaginationResultSet struct {
+	RContext PaginationContext
+	RSet     interface{}
+}
+
+// CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
+type CatalogProductAssoc struct {
+	CatalogID int
+	ProductID int
+	Path      string `json:"path"`
+	SKU       string `json:"sku"`
+	Pri       int    `json:"pri"`
+	Created   time.Time
+	Modified  time.Time
+}
+
+
+// CustomerDevKey struct holding the details of a customer Developer Key including its bcrypt hash.
+type CustomerDevKey struct {
+	UUID         string    `json:"uuid"`
+	Key          string    `json:"key"`
+	CustomerUUID string    `json:"customer_uuid"`
+	Created      time.Time `json:"created"`
+	Modified     time.Time `json:"modified"`
+}
+
+// Address contains address information for a Customer
+type Address struct {
+	AddrUUID    string    `json:"addr_uuid"`
+	Typ         string    `json:"typ"`
+	ContactName string    `json:"contact_name"`
+	Addr1       string    `json:"addr1"`
+	Addr2       *string   `json:"addr2,omitempty"`
+	City        string    `json:"city"`
+	County      *string   `json:"county,omitempty"`
+	Postcode    string    `json:"postcode"`
+	Country     string    `json:"country"`
+	Created     time.Time `json:"created"`
+	Modified    time.Time `json:"modified"`
+}
+
+type ProductUpdate struct {
+	EAN  string      `json:"ean" yaml:"ean"`
+	URL  string      `json:"url" yaml:"url"`
+	Name string      `json:"name" yaml:"name"`
+	Data ProductData `json:"data" yaml:"data"`
+}
+
+type ProductCreate struct {
+	SKU  string      `json:"sku" yaml:"sku"`
+	EAN  string      `json:"ean" yaml:"ean"`
+	URL  string      `json:"url" yaml:"url"`
+	Name string      `json:"name" yaml:"name"`
+	Data ProductData `json:"data" yaml:"data"`
+}
+
+type ProductData struct {
+	Summary     string `json:"summary" yaml:"summary"`
+	Desc        string `json:"description" yaml:"description"`
+	Spec        string `json:"specification" yaml:"specification"`
+}
+
+// Product contains all the fields that comprise a product in the catalog.
+type Product struct {
+	SKU      string      `json:"sku" yaml:"sku,omitempty"`
+	EAN      string      `json:"ean" yaml:"ean"`
+	URL      string      `json:"url" yaml:"url"`
+	Name     string      `json:"name" yaml:"name"`
+	Data     ProductData `json:"data" yaml:"data"`
+	Created  time.Time   `json:"created,omitempty"`
+	Modified time.Time   `json:"modified,omitempty"`
 }
 
 func NewService(model *postgres.PgModel, fbApp *firebase.App) (*Service, error) {
@@ -57,7 +165,7 @@ func (s *Service) CreateCart(ctx context.Context) (*string, error) {
 }
 
 // AddItemToCart adds a single item to a given cart
-func (s *Service) AddItemToCart(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
+func (s *Service) AddItemToCart(ctx context.Context, cartUUID string, sku string, qty int) (*CartItem, error) {
 	log.Debugf("s.AddItemToCart(%s, %s, %d) started", cartUUID, sku, qty)
 
 	item, err := s.model.AddItemToCart(ctx, cartUUID, "default", sku, qty)
@@ -67,7 +175,7 @@ func (s *Service) AddItemToCart(ctx context.Context, cartUUID string, sku string
 
 	log.Debug(item)
 
-	sitem := app.CartItem{
+	sitem := CartItem{
 		CartUUID:  item.CartUUID,
 		Sku:       item.Sku,
 		Qty:       item.Qty,
@@ -79,15 +187,15 @@ func (s *Service) AddItemToCart(ctx context.Context, cartUUID string, sku string
 }
 
 // GetCartItems get all items in the given cart
-func (s *Service) GetCartItems(ctx context.Context, cartUUID string) ([]*app.CartItem, error) {
+func (s *Service) GetCartItems(ctx context.Context, cartUUID string) ([]*CartItem, error) {
 	items, err := s.model.GetCartItems(ctx, cartUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]*app.CartItem, 0, 32)
+	results := make([]*CartItem, 0, 32)
 	for _, v := range items {
-		i := app.CartItem{
+		i := CartItem{
 			CartUUID:  v.CartUUID,
 			Sku:       v.Sku,
 			Qty:       v.Qty,
@@ -101,13 +209,13 @@ func (s *Service) GetCartItems(ctx context.Context, cartUUID string) ([]*app.Car
 }
 
 // UpdateCartItem updates a single item's qty
-func (s *Service) UpdateCartItem(ctx context.Context, cartUUID string, sku string, qty int) (*app.CartItem, error) {
+func (s *Service) UpdateCartItem(ctx context.Context, cartUUID string, sku string, qty int) (*CartItem, error) {
 	item, err := s.model.UpdateItemByCartUUID(ctx, cartUUID, sku, qty)
 	if err != nil {
 		return nil, err
 	}
 
-	sitem := app.CartItem{
+	sitem := CartItem{
 		CartUUID:  item.CartUUID,
 		Sku:       item.Sku,
 		Qty:       item.Qty,
@@ -172,7 +280,7 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 }
 
 // CreateCustomer creates a new customer
-func (s *Service) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*app.Customer, error) {
+func (s *Service) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error) {
 	log.Debugf("s.CreateCustomer(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
 
 	authClient, err := s.fbApp.Auth(ctx)
@@ -225,7 +333,7 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 		return nil, fmt.Errorf("set custom claims for uid=%s customer_uuid=%s role=%s failed: %v", c.UID, c.CustomerUUID, role, err)
 	}
 
-	ac := app.Customer{
+	ac := Customer{
 		CustomerUUID: c.CustomerUUID,
 		UID:          c.UID,
 		Role:         c.Role,
@@ -241,7 +349,7 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 }
 
 // GetCustomers gets customers with pagination.
-func (s *Service) GetCustomers(ctx context.Context, pq *app.PaginationQuery) (*app.PaginationResultSet, error) {
+func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
 	fmt.Printf("Service... GetCustomers q=%v\n", pq)
 	q := &postgres.PaginationQuery{
 		OrderBy:    pq.OrderBy,
@@ -257,9 +365,9 @@ func (s *Service) GetCustomers(ctx context.Context, pq *app.PaginationQuery) (*a
 	fmt.Println("pagination result set")
 	fmt.Println(prs)
 
-	results := make([]*app.Customer, 0)
+	results := make([]*Customer, 0)
 	for _, v := range prs.RSet.([]*postgres.Customer) {
-		c := app.Customer{
+		c := Customer{
 			CustomerUUID: v.CustomerUUID,
 			UID:          v.UID,
 			Role:         v.Role,
@@ -272,8 +380,8 @@ func (s *Service) GetCustomers(ctx context.Context, pq *app.PaginationQuery) (*a
 		results = append(results, &c)
 	}
 
-	aprs := &app.PaginationResultSet{
-		RContext: app.PaginationContext{
+	aprs := &PaginationResultSet{
+		RContext: PaginationContext{
 			Total:     prs.RContext.Total,
 			FirstUUID: prs.RContext.FirstUUID,
 			LastUUID:  prs.RContext.LastUUID,
@@ -284,13 +392,13 @@ func (s *Service) GetCustomers(ctx context.Context, pq *app.PaginationQuery) (*a
 }
 
 // GetCustomer retrieves a customer by customer UUID
-func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*app.Customer, error) {
+func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*Customer, error) {
 	c, err := s.model.GetCustomerByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	ac := app.Customer{
+	ac := Customer{
 		CustomerUUID: c.CustomerUUID,
 		UID:          c.UID,
 		Email:        c.Email,
@@ -302,14 +410,14 @@ func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*app.Cu
 	return &ac, nil
 }
 
-func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
+func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error) {
 	ak, err := s.model.GetCustomerDevKey(ctx, uuid)
 	if err != nil {
 		if err == sql.ErrNoRows {
 		}
 	}
 
-	return &app.CustomerDevKey{
+	return &CustomerDevKey{
 		UUID:         ak.UUID,
 		Key:          ak.Key,
 		CustomerUUID: ak.CustomerUUID,
@@ -319,7 +427,7 @@ func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*app.Cust
 }
 
 // CreateProduct create a new product if the product SKU does not already exist.
-func (s *Service) CreateProduct(ctx context.Context, pc *app.ProductCreate) (*app.Product, error) {
+func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Product, error) {
 	pu := &postgres.ProductUpdate{
 		EAN:  pc.EAN,
 		URL:  pc.URL,
@@ -334,12 +442,12 @@ func (s *Service) CreateProduct(ctx context.Context, pc *app.ProductCreate) (*ap
 	if err != nil {
 		return nil, errors.Wrapf(err, "create product %q failed", pc.SKU)
 	}
-	return &app.Product{
+	return &Product{
 		SKU:      p.SKU,
 		EAN:      p.EAN,
 		URL:      p.URL,
 		Name:     p.Name,
-		Data: app.ProductData{
+		Data: ProductData{
 			Summary: p.Data.Summary,
 			Desc: p.Data.Desc,
 			Spec: p.Data.Spec,
@@ -350,7 +458,7 @@ func (s *Service) CreateProduct(ctx context.Context, pc *app.ProductCreate) (*ap
 }
 
 // GetProduct gets a product given the SKU.
-func (s *Service) GetProduct(ctx context.Context, sku string) (*app.Product, error) {
+func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) {
 	p, err := s.model.GetProduct(ctx, sku)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -358,12 +466,12 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*app.Product, err
 		}
 		return nil, errors.Wrapf(err, "get product %q failed", sku)
 	}
-	return &app.Product{
+	return &Product{
 		SKU:      p.SKU,
 		EAN:      p.EAN,
 		URL:      p.URL,
 		Name:     p.Name,
-		Data: app.ProductData{
+		Data: ProductData{
 			Summary: p.Data.Summary,
 			Desc: p.Data.Desc,
 			Spec: p.Data.Spec,
@@ -373,7 +481,7 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*app.Product, err
 	}, nil
 }
 
-func marshalProduct(a *app.Product, m *postgres.Product) {
+func marshalProduct(a *Product, m *postgres.Product) {
 	a.SKU = m.SKU
 	a.EAN = m.EAN
 	a.URL = m.URL
@@ -396,7 +504,7 @@ func (s *Service) ProductExists(ctx context.Context, sku string) (bool, error) {
 }
 
 // UpdateProduct updates a product by SKU.
-func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *app.ProductUpdate) (*app.Product, error) {
+func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	update := &postgres.ProductUpdate{
 		EAN:  pu.EAN,
 		URL:  pu.URL,
@@ -411,7 +519,7 @@ func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *app.Product
 	if err != nil {
 		return nil, errors.Wrapf(err, "update product sku=%q failed", sku)
 	}
-	ap := &app.Product{}
+	ap := &Product{}
 	marshalProduct(ap, p)
 	return ap, nil
 }
@@ -469,7 +577,7 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (string, err
 }
 
 // ListCustomersDevAPIKeys gets all API Keys for a customer.
-func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*app.CustomerDevKey, error) {
+func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*CustomerDevKey, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
 	if err != nil {
 		return nil, err
@@ -479,9 +587,9 @@ func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*app
 	if err != nil {
 		return nil, err
 	}
-	apiKeys := make([]*app.CustomerDevKey, 0, len(apks))
+	apiKeys := make([]*CustomerDevKey, 0, len(apks))
 	for _, ak := range apks {
-		c := app.CustomerDevKey{
+		c := CustomerDevKey{
 			UUID:         ak.UUID,
 			Key:          ak.Key,
 			CustomerUUID: uuid,
@@ -494,7 +602,7 @@ func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*app
 }
 
 // GenerateCustomerAPIKey creates a new API Key for a customer
-func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*app.CustomerDevKey, error) {
+func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "s.model.GetCustomerIDByUUID(ctx, %q)", uuid)
@@ -510,7 +618,7 @@ func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*app
 		return nil, errors.Wrapf(err, "s.model.CreateCustomerDevKey(ctx, customerID=%q, ...)", customerID)
 	}
 
-	return &app.CustomerDevKey{
+	return &CustomerDevKey{
 		Key:      ak.Key,
 		Created:  ak.Created,
 		Modified: ak.Modified,
@@ -518,7 +626,7 @@ func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*app
 }
 
 // CreateAddress creates a new address for a customer
-func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*app.Address, error) {
+func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
@@ -529,7 +637,7 @@ func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactN
 		return nil, err
 	}
 
-	aa := app.Address{
+	aa := Address{
 		AddrUUID:    a.AddrUUID,
 		Typ:         a.Typ,
 		ContactName: a.ContactName,
@@ -546,7 +654,7 @@ func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactN
 }
 
 // GetAddress gets an address by UUID
-func (s *Service) GetAddress(ctx context.Context, uuid string) (*app.Address, error) {
+func (s *Service) GetAddress(ctx context.Context, uuid string) (*Address, error) {
 	addr, err := s.model.GetAddressByUUID(ctx, uuid)
 	if err != nil {
 		if s.model.IsNotExist(err) {
@@ -562,7 +670,7 @@ func (s *Service) GetAddress(ctx context.Context, uuid string) (*app.Address, er
 		return nil, err
 	}
 
-	aa := app.Address{
+	aa := Address{
 		AddrUUID:    addr.AddrUUID,
 		Typ:         addr.Typ,
 		ContactName: addr.ContactName,
@@ -587,7 +695,7 @@ func (s *Service) GetAddressOwner(ctx context.Context, uuid string) (*string, er
 }
 
 // GetAddresses gets a slice of addresses for a given customer
-func (s *Service) GetAddresses(ctx context.Context, customerUUID string) ([]*app.Address, error) {
+func (s *Service) GetAddresses(ctx context.Context, customerUUID string) ([]*Address, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
 	if err != nil {
 		return nil, err
@@ -598,9 +706,9 @@ func (s *Service) GetAddresses(ctx context.Context, customerUUID string) ([]*app
 		return nil, err
 	}
 
-	results := make([]*app.Address, 0, 32)
+	results := make([]*Address, 0, 32)
 	for _, v := range al {
-		i := app.Address{
+		i := Address{
 			AddrUUID:    v.AddrUUID,
 			Typ:         v.Typ,
 			ContactName: v.ContactName,
@@ -639,15 +747,15 @@ func (s *Service) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, e
 }
 
 // GetCatalogProductAssocs returns the catalog product associations
-func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*app.CatalogProductAssoc, error) {
+func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
 	cpo, err := s.model.GetCatalogProductAssocs(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]*app.CatalogProductAssoc, 0, 32)
+	results := make([]*CatalogProductAssoc, 0, 32)
 	for _, v := range cpo {
-		i := app.CatalogProductAssoc{
+		i := CatalogProductAssoc{
 			CatalogID: v.CatalogID,
 			ProductID: v.ProductID,
 			Path:      v.Path,

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
 )
 
@@ -13,7 +14,7 @@ import (
 func (a *App) UpdateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sku := chi.URLParam(r, "sku")
-		pu := ProductUpdate{}
+		pu := service.ProductUpdate{}
 		err := json.NewDecoder(r.Body).Decode(&pu)
 		if err != nil {
 			http.Error(w, err.Error(), 400)

@@ -7,11 +7,12 @@ import (
 	"net/url"
 	"strconv"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-func paginationQueryFromQueryParams(v url.Values) (*PaginationQuery, error) {
+func paginationQueryFromQueryParams(v url.Values) (*service.PaginationQuery, error) {
 	var limit int
 	var err error
 	if v.Get("limit") != "" {
@@ -22,7 +23,7 @@ func paginationQueryFromQueryParams(v url.Values) (*PaginationQuery, error) {
 	} else {
 		limit = 0 // unlimited
 	}
-	pq := &PaginationQuery{
+	pq := &service.PaginationQuery{
 		OrderBy:  v.Get("order_by"),
 		OrderDir: v.Get("order_dir"),
 		Limit: limit,
