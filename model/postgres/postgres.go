@@ -30,7 +30,7 @@ type Product struct {
 	Name     string      `json:"name"`
 	Data     ProductData `json:"data"`
 	Created  time.Time   `json:"created"`
-	Modified time.Time   `json"modified"`
+	Modified time.Time   `json:"modified"`
 }
 
 type ProductUpdate struct {
@@ -57,7 +57,7 @@ func (pd ProductData) Value() (driver.Value, error) {
 func (pd *ProductData) Scan(value interface{}) error {
 	sv, err := driver.String.ConvertValue(value)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "convert value failed")
 	}
 	if v, ok := sv.([]byte); ok {
 		var pdu ProductData
@@ -105,7 +105,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku stri
 	query = `SELECT unit_price FROM product_pricing WHERE tier_ref = $1 AND sku = $2`
 	err := m.db.QueryRowContext(ctx, query, tierRef, sku).Scan(&unitPriceStr)
 	if err != nil {
-		return &item, err
+		return &item, errors.Wrapf(err, "query scan failed query=%q", query)
 	}
 
 	unitPrice, _ := strconv.ParseFloat(string(unitPriceStr), 64)
@@ -117,9 +117,8 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku stri
 
 	err = m.db.QueryRowContext(ctx, query, cartUUID, sku, qty, unitPrice).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query scan failed query=%q", query)
 	}
-
 	return &item, nil
 }
 
@@ -142,16 +141,14 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartIte
 		c := CartItem{}
 		err = rows.Scan(&c.ID, &c.CartUUID, &c.Sku, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "scan cart item %v", c)
 		}
-
 		cartItems = append(cartItems, &c)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "rows err")
 	}
-
 	return cartItems, nil
 }
 
@@ -167,9 +164,8 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string
 	item := CartItem{}
 	err := m.db.QueryRowContext(ctx, query, qty, cartUUID, sku).Scan(&item.ID, &item.CartUUID, &item.Sku, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row scan query=%q", query)
 	}
-
 	return &item, nil
 }
 
@@ -178,13 +174,12 @@ func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, sku string) (cou
 	query := `DELETE FROM carts WHERE uuid = $1 AND sku = $2`
 	res, err := m.db.ExecContext(ctx, query, cartUUID, sku)
 	if err != nil {
-		return -1, err
+		return -1, errors.Wrapf(err, "exec context query=%q", query)
 	}
 	count, err = res.RowsAffected()
 	if err != nil {
-		return -1, err
+		return -1, errors.Wrap(err, "rows affected")
 	}
-
 	return count, nil
 }
 
@@ -193,9 +188,8 @@ func (m *PgModel) EmptyCartItems(ctx context.Context, cartUUID string) (err erro
 	query := `DELETE FROM carts WHERE uuid = $1`
 	_, err = m.db.ExecContext(ctx, query, cartUUID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "exec context query=%q", query) 
 	}
-
 	return nil
 }
 
@@ -213,15 +207,13 @@ func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstnam
 	err := m.db.QueryRowContext(ctx, query, uid, role, email, firstname, lastname).Scan(
 		&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context Customer=%v", c) 
 	}
 	return &c, nil
 }
 
 // GetCustomers gets the next size customers starting at page page
 func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
-	fmt.Printf("GetCustomers pg=%v\n", pq)
-
 	q := NewQuery("customers", map[string]bool{
 		"id":        true,
 		"uuid":      false,
@@ -264,7 +256,7 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	sql = fmt.Sprintf(sql, q.table)
 	err := m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.Total)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context scan query=%q", sql)
 	}
 
 	// book mark either end of the result set
@@ -277,7 +269,7 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir), string(q.orderDir))
 	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.FirstUUID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context query=%q", sql)
 	}
 	sql = `
 		SELECT uuid
@@ -288,12 +280,12 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir.toggle()), string(q.orderDir.toggle()))
 	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.LastUUID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context query=%q", sql)
 	}
 
 	rows, err := m.QueryContextQ(ctx, q)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "model query context q=%v", q)
 	}
 	defer rows.Close()
 
@@ -302,15 +294,13 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 		var c Customer
 		err = rows.Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "rows scan Customer=%v", c)
 		}
-
 		customers = append(customers, &c)
-		fmt.Println(c)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "rows err")
 	}
 	pr.RSet = customers
 	return &pr, nil
@@ -327,7 +317,7 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 	c := Customer{}
 	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}
 	return &c, nil
 }
@@ -343,7 +333,7 @@ func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*Custome
 	c := Customer{}
 	err := m.db.QueryRowContext(ctx, query, customerID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}
 	return &c, nil
 }
@@ -361,9 +351,8 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 	`
 	err := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context scan query=%q", query)
 	}
-
 	return &a, nil
 }
 
@@ -380,7 +369,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku string, pu *ProductUpda
 	p := Product{}
 	err := m.db.QueryRowContext(ctx, query, sku, pu.EAN, pu.URL, pu.Name, pu.Data).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
-		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
+		return nil, errors.Wrapf(err, "query scan context sku=%q, query=%q", sku, query)
 	}
 	return &p, nil
 }
@@ -398,7 +387,7 @@ func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) 
 		if err == sql.ErrNoRows {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "query scan failed for sku=%q, query=%q", sku, query)
+		return nil, errors.Wrapf(err, "query scan context sku=%q query=%q", sku, query)
 	}
 	return &p, nil
 }
@@ -413,7 +402,7 @@ func (m *PgModel) ProductExists(ctx context.Context, sku string) (bool, error) {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "query row context failed for sku=%q", sku)
+		return false, errors.Wrapf(err, "query row context sku=%q query=%q", sku, query)
 	}
 	return true, nil
 }
@@ -431,7 +420,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductUpda
 	err := m.db.QueryRowContext(ctx, query, pu.EAN, pu.URL, pu.Name, pu.Data, sku).Scan(
 		&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context query=%q", query)
 	}
 	return &p, nil
 }
@@ -444,7 +433,7 @@ func (m *PgModel) DeleteProduct(ctx context.Context, sku string) error {
 	`
 	_, err := m.db.ExecContext(ctx, query, sku)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "exec context query=%q", query)
 	}
 	return nil
 }
@@ -463,7 +452,7 @@ func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key 
 	hash, err := bcrypt.GenerateFromPassword([]byte(key), 14)
 	err = m.db.QueryRowContext(ctx, query, key, string(hash), customerID).Scan(&cdk.ID, &cdk.Key, &cdk.Hash, &cdk.CustomerID, &cdk.Created, &cdk.Modified)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context scan query=%q", query)
 	}
 	return &cdk, nil
 }
@@ -564,9 +553,8 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 				return nil, pge
 			}
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context scan query=%q", query)
 	}
-
 	return &a, nil
 }
 
@@ -580,30 +568,26 @@ func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, uuid string) (*stri
 	var customerUUID string
 	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&customerUUID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query row context query=%q", query)
 	}
-
 	return &customerUUID, nil
 }
 
 // GetCustomerIDByUUID converts between customer UUID and the underlying primary key
 func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error) {
 	var id int
-
 	query := `SELECT id FROM customers WHERE uuid = $1`
 	row := m.db.QueryRowContext(ctx, query, customerUUID)
 	err := row.Scan(&id)
 	if err != nil {
-		return -1, err
+		return -1, errors.Wrapf(err, "query row context query=%q", query)
 	}
-
 	return id, nil
 }
 
 // GetAddresses retrieves a slice of pointers to Address for a given customer
 func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address, error) {
 	addresses := make([]*Address, 0, 8)
-
 	query := `
 		SELECT
 			id, uuid, customer_id, typ, contact_name, addr1,
@@ -614,25 +598,22 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address,
 	`
 	rows, err := m.db.QueryContext(ctx, query, customerID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "db query context query=%q", query)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var a Address
-
 		err = rows.Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "rows scan query=%q", query)
 		}
-
 		addresses = append(addresses, &a)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "rows err")
 	}
-
 	return addresses, nil
 }
 
@@ -648,12 +629,10 @@ func (m *PgModel) UpdateAddressByUUID(ctx context.Context, addrUUID string) (*Ad
 // DeleteAddressByUUID deletes an address by uuid
 func (m *PgModel) DeleteAddressByUUID(ctx context.Context, addrUUID string) error {
 	query := `DELETE FROM addresses WHERE uuid = $1`
-
 	_, err := m.db.ExecContext(ctx, query, addrUUID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "exec context query=%q", query)
 	}
-
 	return nil
 }
 
@@ -666,7 +645,7 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 	`
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "query context query=%q", query)
 	}
 	defer rows.Close()
 
@@ -681,9 +660,8 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "rows err")
 	}
-
 	return nodes, nil
 }
 
