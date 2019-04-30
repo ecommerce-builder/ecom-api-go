@@ -1,0 +1,32 @@
+[
+  {
+    "url": "pinhole-cameras/tiny-pinhole",
+    "products": [
+      { "sku": "PH701" },
+      { "sku": "GTIP2PHWFGB" },
+      { "sku": "GTTV505MBGB" }
+    ]
+  },
+  {
+    "url": "pinhole-cameras/wireless",
+    "products": [
+            {
+               "sku": "GTIP2PHWFGB"
+            },
+            {
+               "sku": "PH701"
+            },
+            {
+               "sku": "PHC701"
+            }
+         ]
+      }
+]
+
+{
+    "a/c/f/i": [
+        "WATER-SKU"
+    ],
+    "a/c/f/j/m": [
+    ],
+}

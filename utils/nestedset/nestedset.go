@@ -5,6 +5,7 @@ import (
 	"io"
 	"text/tabwriter"
 	"time"
+	"strings"
 )
 
 type NestedSetNode struct {
@@ -84,6 +85,45 @@ func BuildTree(nestedset []*NestedSetNode) *Node {
 	}
 
 	return context
+}
+
+
+// FindNodeByPath traverses the tree looking for a Node with a matching path.
+func (n *Node) FindNodeByPath(path string) *Node {
+	// example without leading forwardslash 'a/c/f/j/n'
+	segments := strings.Split(path, "/")
+	if len(segments) == 0 {
+		return nil
+	}
+	if segments[0] != n.segment {
+		return nil
+	}
+	context := n
+	for i := 1; i < len(segments); i++ {
+		context = context.findNode(segments[i])
+		if context == nil {
+			return nil
+		}
+	}
+	return context
+}
+
+func (n *Node) hasChildren() bool {
+    return len(n.nodes) > 0;
+}
+
+// findCategory Looks through the child nodes for a matching segment.
+// Runs in O(n) time. Example segment 'shoes', 'widgets' etc.
+func (n *Node) findNode(segment string) *Node {
+	if !n.hasChildren() {
+		return nil
+	}
+	for _, node := range n.nodes {
+		if node.segment == segment {
+			return node
+		}
+	}
+	return nil
 }
 
 func moveContext(context *Node) *Node {

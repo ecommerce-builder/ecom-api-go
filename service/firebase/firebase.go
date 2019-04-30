@@ -66,13 +66,11 @@ type PaginationResultSet struct {
 
 // CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
 type CatalogProductAssoc struct {
-	CatalogID int
-	ProductID int
-	Path      string `json:"path"`
-	SKU       string `json:"sku"`
-	Pri       int    `json:"pri"`
-	Created   time.Time
-	Modified  time.Time
+	Path      string    `json:"path"`
+	SKU       string    `json:"sku"`
+	Pri       int       `json:"pri"`
+	Created   time.Time `json:"created"`
+	Modified  time.Time `json:"modified"`
 }
 
 
@@ -745,18 +743,32 @@ func (s *Service) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, e
 	return ns, nil
 }
 
+
+// CreateCatalogProductAssocs associates an existing product to a catalog entry.
+func (s *Service) CreateCatalogProductAssocs(ctx context.Context, path, sku string) (*CatalogProductAssoc, error) {
+	cpa, err := s.model.CreateCatalogProductAssoc(ctx, path, sku)
+	if err != nil {
+		return nil, errors.Wrapf(err, "service: create catalog product assoc sku=%q", sku)
+	}
+	scpa := CatalogProductAssoc{
+		Path: cpa.Path,
+		SKU: cpa.SKU,
+		Pri: cpa.Pri,
+		Created: cpa.Created,
+		Modified: cpa.Modified,
+	}
+	return &scpa, nil
+}
+
 // GetCatalogProductAssocs returns the catalog product associations
 func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
 	cpo, err := s.model.GetCatalogProductAssocs(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	results := make([]*CatalogProductAssoc, 0, 32)
 	for _, v := range cpo {
 		i := CatalogProductAssoc{
-			CatalogID: v.CatalogID,
-			ProductID: v.ProductID,
 			Path:      v.Path,
 			SKU:       v.SKU,
 			Pri:       v.Pri,
@@ -775,4 +787,13 @@ func (s *Service) UpdateCatalogProductAssocs(ctx context.Context, cpo []*postgre
 		return err
 	}
 	return nil
+}
+
+// DeleteCatalogProductAssocs delete all catalog product associations.
+func (s *Service) DeleteCatalogProductAssocs(ctx context.Context) (affected int64, err error) {
+	n, err := s.model.DeleteCatalogProductAssocs(ctx)
+	if err != nil {
+		return 0, errors.Wrapf(err, "delete catalog product assocs")
+	}
+	return n, nil
 }

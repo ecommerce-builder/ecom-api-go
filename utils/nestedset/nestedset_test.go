@@ -152,3 +152,35 @@ func TestBuildTree(t *testing.T) {
 	root.PreorderTraversalPrint(buf)
 	t.Logf("\n%s\n", buf.String())
 }
+
+func TestFindNodeByPath(t *testing.T) {
+	nodes := []*NestedSetNode{
+		{Segment: "a", Path: "a", Name: "Category A", Lft: 1, Rgt: 28, Depth: 0},
+		{Segment: "b", Path: "a/b", Name: "Category B", Lft: 2, Rgt: 5, Depth: 1},
+		{Segment: "e", Path: "a/b/e", Name: "Category E", Lft: 3, Rgt: 4, Depth: 2},
+		{Segment: "c", Path: "a/c", Name: "Category C", Lft: 6, Rgt: 19, Depth: 1},
+		{Segment: "f", Path: "a/c/f", Name: "Category F", Lft: 7, Rgt: 16, Depth: 2},
+		{Segment: "i", Path: "a/c/f/i", Name: "Category I", Lft: 8, Rgt: 9, Depth: 3},
+		{Segment: "j", Path: "a/c/f/j", Name: "Category J", Lft: 10, Rgt: 15, Depth: 3},
+		{Segment: "m", Path: "a/c/f/j/m", Name: "Category M", Lft: 11, Rgt: 12, Depth: 4},
+		{Segment: "n", Path: "a/c/f/j/n", Name: "Category N", Lft: 13, Rgt: 14, Depth: 4},
+		{Segment: "g", Path: "a/c/g", Name: "Category G", Lft: 17, Rgt: 18, Depth: 2},
+		{Segment: "d", Path: "a/d", Name: "Category D", Lft: 20, Rgt: 27, Depth: 1},
+		{Segment: "h", Path: "a/d/h", Name: "Category H", Lft: 21, Rgt: 26, Depth: 2},
+		{Segment: "k", Path: "a/d/h/k", Name: "Category K", Lft: 22, Rgt: 23, Depth: 3},
+		{Segment: "l", Path: "a/d/h/l", Name: "Category L", Lft: 24, Rgt: 25, Depth: 3},
+	}
+	root := BuildTree(nodes)
+
+	n := root.FindNodeByPath("not-there")
+	assert.Nil(t, n)
+
+	n = root.FindNodeByPath("a/c/f")
+	assert.Equal(t, false, n.IsLeaf(), fmt.Sprintf("Node %q IsLeaf() should be %t; got %t", "a/c/f", false, n.IsLeaf()))
+
+	n = root.FindNodeByPath("a/c/f/i")
+	assert.Equal(t, true, n.IsLeaf(), fmt.Sprintf("Node %q IsLeaf() should be %t; got %t", "a/c/f/i", true, n.IsLeaf()))
+
+
+}
+

@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.24.0 (Tue, 30 Apr 2019)
++ Catalog Product Associations model and test code
+
 ## v0.23.0 (Sun, 28 Apr 2019)
 + Improve error handling for model
 + Remove convoluted interface layer from app

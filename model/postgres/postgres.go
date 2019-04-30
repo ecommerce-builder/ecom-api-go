@@ -46,6 +46,17 @@ type ProductData struct {
 	Spec    string `json:"specification"`
 }
 
+type CatalogProduct struct {
+	ID        int
+	CatalogID int
+	ProductID int
+	Path      string
+	SKU       string
+	Pri       int
+	Created   time.Time
+	Modified  time.Time
+}
+
 func (pd ProductData) Value() (driver.Value, error) {
 	bs, err := json.Marshal(pd)
 	if err != nil {
@@ -636,6 +647,20 @@ func (m *PgModel) DeleteAddressByUUID(ctx context.Context, addrUUID string) erro
 	return nil
 }
 
+func (m *PgModel) GetCatalogByPath(ctx context.Context, path string) (ns *nestedset.NestedSetNode, err error) {
+	query := `
+		SELECT id, parent, segment, path, name, lft, rgt, depth, created, modified
+		FROM catalog
+		WHERE path = $1
+	`
+	var n nestedset.NestedSetNode
+	err = m.db.QueryRowContext(ctx, query, path).Scan(&n.ID, &n.Parent, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "service: query row ctx scan query=%q", query)
+	}
+	return &n, nil
+}
+
 // GetCatalogNestedSet returns a slice of NestedSetNode representing the catalog as a nested set.
 func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
 	query := `
@@ -663,6 +688,53 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 		return nil, errors.Wrap(err, "rows err")
 	}
 	return nodes, nil
+}
+
+// CreateCatalogProductAssoc links an existing product identified by sku
+// to an existing leaf node of the catalog denoted by path.
+func (m *PgModel) CreateCatalogProductAssoc(ctx context.Context, path, sku string) (*CatalogProduct, error) {
+	query := `
+		INSERT INTO catalog_products
+			(catalog_id, product_id, path, sku, pri)
+		VALUES (
+			(SELECT id FROM catalog WHERE path = $1),
+			(SELECT id FROM products WHERE sku = $2),
+			$3,
+			$4,
+			(
+				SELECT
+					CASE WHEN COUNT(1) > 0
+					THEN MAX(pri)+10
+					ELSE 10
+				END
+				AS pri
+				FROM catalog_products
+				WHERE path=$5
+			)
+		)
+		RETURNING
+			id, catalog_id, product_id, path, sku, pri, created, modified
+	`
+	cp := CatalogProduct{}
+	err := m.db.QueryRowContext(ctx, query, path, sku, path, sku, path).Scan(&cp.ID, &cp.CatalogID, &cp.ProductID, &cp.Path, &cp.SKU, &cp.Pri, &cp.Created, &cp.Modified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "model: query row context scan query=%q", query)
+	}
+	return &cp, nil
+}
+
+
+// DeleteCatalogProductAssoc delete an existing catalog product association.
+func (m *PgModel) DeleteCatalogProductAssoc(ctx context.Context, path, sku string) error {
+	query := `
+		DELETE FROM catalog_products
+		WHERE path = $1 AND sku = $2
+	`
+	_, err := m.db.ExecContext(ctx, query, path, sku)
+	if err != nil {
+		return errors.Wrapf(err, "service: delete catalog product assoc path=%q sku=%q", path, sku)
+	}
+	return  nil
 }
 
 // GetCatalogProductAssocs returns an Slice of catalogue to product associations
@@ -726,6 +798,20 @@ func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*Catalog
 		}
 	}
 	return tx.Commit()
+}
+
+
+// DeleteCatalogProductAssocs delete all catalog product associations.
+func (m *PgModel) DeleteCatalogProductAssocs(ctx context.Context) (affected int64, err error) {
+	res, err := m.db.ExecContext(ctx, "DELETE FROM catalog_product")
+	if err != nil {
+		return -1, errors.Wrap(err, "service: delete catalog product assocs")
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		return -1, errors.Wrap(err, "service: rows affected")
+	}
+	return count, nil
 }
 
 // CreateImageEntry writes a new image entry to the product_images table

@@ -23,7 +23,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.23.0"
+var version = "v0.24.0"
 
 const maxDbConnectAttempts = 3
 
@@ -441,9 +441,11 @@ func main() {
 			r.Get("/", a.Authorization(app.OpGetCatalog, a.GetCatalogHandler()))
 		})
 
-		r.Route("/productassocs", func(r chi.Router) {
+		r.Route("/catalogassocs", func(r chi.Router) {
+			r.Post("/", a.CreateCatalogAssocsHandler())
 			r.Get("/", a.GetCatalogProductAssocsHandler())
 			r.Put("/", a.UpdateCatalogProductAssocsHandler())
+			r.Delete("/", a.DeleteCatalogProductAssocsHandler())
 		})
 
 		// SystemInfo

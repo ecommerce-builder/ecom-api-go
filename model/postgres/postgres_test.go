@@ -129,6 +129,42 @@ func TestGetAddressByUUID(t *testing.T) {
 	})
 }
 
+func TestCreateCatalogProductAssoc(t *testing.T) {
+	model, teardown := setup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	cp, err := model.CreateCatalogProductAssoc(ctx, "a/c/f/j/m", "WATER-SKU")
+	if err != nil {
+		t.Errorf("create catalog product assoc: %v", err)
+	}
+	t.Log(cp)
+}
+
+func TestDeleteCatalogProductAssoc(t *testing.T) {
+	model, teardown := setup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	err := model.DeleteCatalogProductAssoc(ctx, "a/c/f/j/m", "WATER-SKU")
+	if err != nil {
+		t.Errorf("delete catalog product assoc: %v", err)
+	}
+
+}
+
+func TestGetCatalogByPath(t *testing.T) {
+	model, teardown := setup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	ns, err := model.GetCatalogByPath(ctx, "a/c/f/j")
+	if err != nil {
+		t.Errorf("get catalog by path: %v", err)
+	}
+	t.Log(ns)
+}
+
 func TestGetCatalogNestedSet(t *testing.T) {
 	model, teardown := setup(t)
 	defer teardown()
