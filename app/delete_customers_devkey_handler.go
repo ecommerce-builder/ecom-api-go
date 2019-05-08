@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// DeleteCustomerDev deletes a customer Developer Key.
+// DeleteCustomerDevKeyHandler deletes a customer Developer Key.
 func (a *App) DeleteCustomerDevKeyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctid := chi.URLParam(r, "ccuid")

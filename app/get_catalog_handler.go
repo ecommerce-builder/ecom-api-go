@@ -10,7 +10,7 @@ import (
 // GetCatalogHandler creates a handler to return the entire catalog
 func (app *App) GetCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		catalog, err := app.Service.GetCatalog(r.Context())
+		tree, err := app.Service.GetCatalog(r.Context())
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service GetCatalog(ctx) error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
@@ -24,6 +24,9 @@ func (app *App) GetCatalogHandler() http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(catalog)
+		err = json.NewEncoder(w).Encode(tree)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", err)
+		}
 	}
 }

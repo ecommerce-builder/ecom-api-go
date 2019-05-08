@@ -7,7 +7,7 @@ import (
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
-// UpdateAddressHanlder updates an address by addresss UUID
+// UpdateAddressHandler updates an address by addresss UUID
 func (a *App) UpdateAddressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// a.Service.UpdateAddress()

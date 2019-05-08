@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.25.0 (Wed, 8 May 2019)
++ Catalog API now uses JSON hierarchical structure, not nested set
++ OpPurgeCatalog deletes entire catalog
++ OpReplaceCatalog to load new catalog
+
 ## v0.24.0 (Tue, 30 Apr 2019)
 + Catalog Product Associations model and test code
 

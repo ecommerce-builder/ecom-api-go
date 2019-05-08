@@ -3,72 +3,69 @@ package nestedset
 import (
 	"fmt"
 	"io"
+	"strings"
 	"text/tabwriter"
 	"time"
-	"strings"
 )
 
+// A NestedSetNode represents a single node in the nested set.
 type NestedSetNode struct {
-	ID       int       `json:"id"`
-	Parent   *int      `json:"parent"`
-	Segment  string    `json:"segment"`
-	Path     string    `json:"path"`
-	Name     string    `json:"name"`
-	Lft      int       `json:"lft"`
-	Rgt      int       `json:"rgt"`
-	Depth    int       `json:"depth"`
-	Created  time.Time `json:"created"`
-	Modified time.Time `json:"modified"`
+	ID       int
+	Segment  string
+	Path     string
+	Name     string
+	Lft      int
+	Rgt      int
+	Depth    int
+	Created  time.Time
+	Modified time.Time
 }
 
+// A Node represents a hierarchical tree structure.
 type Node struct {
-	segment string
+	Segment string `json:"segment"`
 	path    string
-	name    string
+	Name    string `json:"name"`
 	lft     int
 	rgt     int
 	depth   int
 	parent  *Node
-	nodes   []*Node
+	Nodes   []*Node `json:"categories"`
 }
 
+// NewNode creates a new Node.
 func NewNode(segment, name string) *Node {
 	return &Node{
-		segment: segment,
+		Segment: segment,
 		path:    "",
-		name:    name,
+		Name:    name,
 		lft:     -1,
 		rgt:     -1,
 		depth:   -1,
 		parent:  nil,
-		nodes:   make([]*Node, 0),
+		Nodes:   make([]*Node, 0),
 	}
-}
-
-func GetNestedSet() []*NestedSetNode {
-	return nil
 }
 
 // BuildTree builds a Tree hierarchy from a Nested Set.
 func BuildTree(nestedset []*NestedSetNode) *Node {
 	context := &Node{
 		parent:  nil,
-		segment: nestedset[0].Segment,
+		Segment: nestedset[0].Segment,
 		path:    nestedset[0].Path,
-		name:    nestedset[0].Name,
-		nodes:   make([]*Node, 0),
+		Name:    nestedset[0].Name,
+		Nodes:   make([]*Node, 0),
 		lft:     nestedset[0].Lft,
 		rgt:     nestedset[0].Rgt,
 	}
-
 	for i := 1; i < len(nestedset); i++ {
 		cur := nestedset[i]
 		n := &Node{
 			parent:  context,
-			segment: cur.Segment,
+			Segment: cur.Segment,
 			path:    cur.Path,
-			name:    cur.Name,
-			nodes:   make([]*Node, 0),
+			Name:    cur.Name,
+			Nodes:   make([]*Node, 0),
 			lft:     cur.Lft,
 			rgt:     cur.Rgt,
 		}
@@ -83,10 +80,8 @@ func BuildTree(nestedset []*NestedSetNode) *Node {
 			context = n
 		}
 	}
-
 	return context
 }
-
 
 // FindNodeByPath traverses the tree looking for a Node with a matching path.
 func (n *Node) FindNodeByPath(path string) *Node {
@@ -95,7 +90,7 @@ func (n *Node) FindNodeByPath(path string) *Node {
 	if len(segments) == 0 {
 		return nil
 	}
-	if segments[0] != n.segment {
+	if segments[0] != n.Segment {
 		return nil
 	}
 	context := n
@@ -109,7 +104,7 @@ func (n *Node) FindNodeByPath(path string) *Node {
 }
 
 func (n *Node) hasChildren() bool {
-    return len(n.nodes) > 0;
+	return len(n.Nodes) > 0
 }
 
 // findCategory Looks through the child nodes for a matching segment.
@@ -118,8 +113,8 @@ func (n *Node) findNode(segment string) *Node {
 	if !n.hasChildren() {
 		return nil
 	}
-	for _, node := range n.nodes {
-		if node.segment == segment {
+	for _, node := range n.Nodes {
+		if node.Segment == segment {
 			return node
 		}
 	}
@@ -140,14 +135,14 @@ func moveContext(context *Node) *Node {
 	return context
 }
 
-// Walk traverses a tree depth-first,
+// GenerateNestedSet performs a pre-order tree traversal wiring the tree.
 func (n *Node) GenerateNestedSet(lft, depth int, path string) int {
 	rgt := lft + 1
-	for _, i := range n.nodes {
+	for _, i := range n.Nodes {
 		if path == "" {
-			rgt = i.GenerateNestedSet(rgt, depth+1, n.segment)
+			rgt = i.GenerateNestedSet(rgt, depth+1, n.Segment)
 		} else {
-			rgt = i.GenerateNestedSet(rgt, depth+1, path+"/"+n.segment)
+			rgt = i.GenerateNestedSet(rgt, depth+1, path+"/"+n.Segment)
 		}
 	}
 	n.lft = lft
@@ -155,13 +150,15 @@ func (n *Node) GenerateNestedSet(lft, depth int, path string) int {
 	n.depth = depth
 
 	if path == "" {
-		n.path = n.segment
+		n.path = n.Segment
 	} else {
-		n.path = path + "/" + n.segment
+		n.path = path + "/" + n.Segment
 	}
 	return rgt + 1
 }
 
+// PreorderTraversalPrint provides a depth first search printout of each node
+// in the hierarchy.
 func (n *Node) PreorderTraversalPrint(w io.Writer) {
 	tw := new(tabwriter.Writer).Init(w, 0, 8, 2, ' ', 0)
 	n.preorderTraversalWrite(tw)
@@ -169,22 +166,46 @@ func (n *Node) PreorderTraversalPrint(w io.Writer) {
 }
 
 func (n *Node) preorderTraversalWrite(w io.Writer) {
-	fmt.Fprintf(w, "segment: %s\t path: %q\tname: %q\tlft: %d\t rgt: %d\t depth %d\n", n.segment, n.path, n.name, n.lft, n.rgt, n.depth)
+	fmt.Fprintf(w, "segment: %s\t path: %q\tname: %q\tlft: %d\t rgt: %d\t depth %d\n", n.Segment, n.path, n.Name, n.lft, n.rgt, n.depth)
 
-	for _, i := range n.nodes {
+	for _, i := range n.Nodes {
 		i.preorderTraversalWrite(w)
 	}
 }
 
-func (n *Node) AddChild(c *Node) {
-	c.parent = n
-	n.nodes = append(n.nodes, c)
+// NestedSet uses preorder traversal of the tree to return a
+// slice of NestedSetNodes.
+func (n *Node) NestedSet(ns *[]*NestedSetNode) {
+	n.preorderTraversalNS(ns)
 }
 
+func (n *Node) preorderTraversalNS(ns *[]*NestedSetNode) {
+	nsn := &NestedSetNode{
+		Segment: n.Segment,
+		Path:    n.path,
+		Name:    n.Name,
+		Lft:     n.lft,
+		Rgt:     n.rgt,
+		Depth:   n.depth,
+	}
+	*ns = append(*ns, nsn)
+	for _, i := range n.Nodes {
+		i.preorderTraversalNS(ns)
+	}
+}
+
+// AddChild attaches a node to its parent node.
+func (n *Node) AddChild(c *Node) {
+	c.parent = n
+	n.Nodes = append(n.Nodes, c)
+}
+
+// IsRoot returns true for the root node only.
 func (n *Node) IsRoot() bool {
 	return n.parent == nil
 }
 
+// IsLeaf return true if the node is a leaf node.
 func (n *Node) IsLeaf() bool {
-	return len(n.nodes) == 0
+	return len(n.Nodes) == 0
 }

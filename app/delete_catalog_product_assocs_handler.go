@@ -15,6 +15,6 @@ func (a *App) DeleteCatalogProductAssocsHandler() http.HandlerFunc {
 			return
 		}
 		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}
 }

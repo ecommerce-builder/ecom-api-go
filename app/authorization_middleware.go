@@ -90,7 +90,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			// RoleShopper
 			unauthorized(w)
 			return
-		case OpSystemInfo:
+		case OpSystemInfo, OpReplaceCatalog, OpPurgeCatalog:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return

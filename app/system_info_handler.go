@@ -5,17 +5,20 @@ import (
 	"net/http"
 )
 
+// SystemInfo contains the system version string and system environment data.
 type SystemInfo struct {
 	Version string    `json:"api_version"`
 	Env     SystemEnv `json:"env"`
 }
 
+// SystemEnv contains the Postgres database, Google Firebase and Application data.
 type SystemEnv struct {
 	PG   PgSystemEnv   `json:"pg"`
 	Goog GoogSystemEnv `json:"google"`
 	App  AppSystemEnv  `json:"app"`
 }
 
+// PgSystemEnv contains the environment settings for the Postgres database.
 type PgSystemEnv struct {
 	PgHost     string `json:"ECOM_PG_HOST"`
 	PgPort     string `json:"ECOM_PG_PORT"`
@@ -24,10 +27,12 @@ type PgSystemEnv struct {
 	PgSSLMode  string `json:"ECOM_PG_SSLMODE"`
 }
 
+// GoogSystemEnv contains the Google Firebase environment variables.
 type GoogSystemEnv struct {
 	GoogProjectID string `json:"ECOM_GOOGLE_PROJECT_ID"`
 }
 
+// AppSystemEnv contains the application port and root email address.
 type AppSystemEnv struct {
 	AppPort      string `json:"PORT"`
 	AppRootEmail string `json:"ECOM_APP_ROOT_EMAIL"`

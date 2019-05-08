@@ -66,13 +66,12 @@ type PaginationResultSet struct {
 
 // CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
 type CatalogProductAssoc struct {
-	Path      string    `json:"path"`
-	SKU       string    `json:"sku"`
-	Pri       int       `json:"pri"`
-	Created   time.Time `json:"created"`
-	Modified  time.Time `json:"modified"`
+	Path     string    `json:"path"`
+	SKU      string    `json:"sku"`
+	Pri      int       `json:"pri"`
+	Created  time.Time `json:"created"`
+	Modified time.Time `json:"modified"`
 }
-
 
 // CustomerDevKey struct holding the details of a customer Developer Key including its bcrypt hash.
 type CustomerDevKey struct {
@@ -114,9 +113,9 @@ type ProductCreate struct {
 }
 
 type ProductData struct {
-	Summary     string `json:"summary" yaml:"summary"`
-	Desc        string `json:"description" yaml:"description"`
-	Spec        string `json:"specification" yaml:"specification"`
+	Summary string `json:"summary" yaml:"summary"`
+	Desc    string `json:"description" yaml:"description"`
+	Spec    string `json:"specification" yaml:"specification"`
 }
 
 // Product contains all the fields that comprise a product in the catalog.
@@ -431,8 +430,8 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Produc
 		Name: pc.Name,
 		Data: postgres.ProductData{
 			Summary: pc.Data.Summary,
-			Desc: pc.Data.Desc,
-			Spec: pc.Data.Spec,
+			Desc:    pc.Data.Desc,
+			Spec:    pc.Data.Spec,
 		},
 	}
 	p, err := s.model.CreateProduct(ctx, pc.SKU, pu)
@@ -440,14 +439,14 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Produc
 		return nil, errors.Wrapf(err, "create product %q failed", pc.SKU)
 	}
 	return &Product{
-		SKU:      p.SKU,
-		EAN:      p.EAN,
-		URL:      p.URL,
-		Name:     p.Name,
+		SKU:  p.SKU,
+		EAN:  p.EAN,
+		URL:  p.URL,
+		Name: p.Name,
 		Data: ProductData{
 			Summary: p.Data.Summary,
-			Desc: p.Data.Desc,
-			Spec: p.Data.Spec,
+			Desc:    p.Data.Desc,
+			Spec:    p.Data.Spec,
 		},
 		Created:  p.Created,
 		Modified: p.Modified,
@@ -464,14 +463,14 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 		return nil, errors.Wrapf(err, "get product %q failed", sku)
 	}
 	return &Product{
-		SKU:      p.SKU,
-		EAN:      p.EAN,
-		URL:      p.URL,
-		Name:     p.Name,
+		SKU:  p.SKU,
+		EAN:  p.EAN,
+		URL:  p.URL,
+		Name: p.Name,
 		Data: ProductData{
 			Summary: p.Data.Summary,
-			Desc: p.Data.Desc,
-			Spec: p.Data.Spec,
+			Desc:    p.Data.Desc,
+			Spec:    p.Data.Spec,
 		},
 		Created:  p.Created,
 		Modified: p.Modified,
@@ -508,8 +507,8 @@ func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *ProductUpda
 		Name: pu.Name,
 		Data: postgres.ProductData{
 			Summary: pu.Data.Summary,
-			Desc: pu.Data.Desc,
-			Spec: pu.Data.Spec,
+			Desc:    pu.Data.Desc,
+			Spec:    pu.Data.Spec,
 		},
 	}
 	p, err := s.model.UpdateProduct(ctx, sku, update)
@@ -734,15 +733,42 @@ func (s *Service) DeleteAddress(ctx context.Context, addrUUID string) error {
 	return nil
 }
 
-// GetCatalog returns the catalog in nested set representation.
-func (s *Service) GetCatalog(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
+// ReplaceCatalog takes a root tree Node and converts it to a nested set
+// representation before calling the model to persist the replacement
+// catalog.
+func (s *Service) ReplaceCatalog(ctx context.Context, root *nestedset.Node) error {
+	root.GenerateNestedSet(1, 0, "")
+	ns := make([]*nestedset.NestedSetNode, 0, 128)
+	root.NestedSet(&ns)
+	fmt.Println("nested set")
+	for _, n := range ns {
+		fmt.Printf("%+v\n", n)
+	}
+	err := s.model.BatchCreateNestedSet(ctx, ns)
+	if err != nil {
+		return errors.Wrap(err, "service: replace catalog")
+	}
+	return nil
+}
+
+// GetCatalog returns the catalog as a hierarchy of nodes.
+func (s *Service) GetCatalog(ctx context.Context) (*nestedset.Node, error) {
 	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return ns, nil
+	tree := nestedset.BuildTree(ns)
+	return tree, nil
 }
 
+// DeleteCatalog purges the entire catalog hierarchy.
+func (s *Service) DeleteCatalog(ctx context.Context) error {
+	err := s.model.DeleteCatalogNestedSet(ctx)
+	if err != nil {
+		return errors.Wrap(err, "delete catalog nested set")
+	}
+	return nil
+}
 
 // CreateCatalogProductAssocs associates an existing product to a catalog entry.
 func (s *Service) CreateCatalogProductAssocs(ctx context.Context, path, sku string) (*CatalogProductAssoc, error) {
@@ -751,10 +777,10 @@ func (s *Service) CreateCatalogProductAssocs(ctx context.Context, path, sku stri
 		return nil, errors.Wrapf(err, "service: create catalog product assoc sku=%q", sku)
 	}
 	scpa := CatalogProductAssoc{
-		Path: cpa.Path,
-		SKU: cpa.SKU,
-		Pri: cpa.Pri,
-		Created: cpa.Created,
+		Path:     cpa.Path,
+		SKU:      cpa.SKU,
+		Pri:      cpa.Pri,
+		Created:  cpa.Created,
 		Modified: cpa.Modified,
 	}
 	return &scpa, nil
@@ -769,11 +795,11 @@ func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 	results := make([]*CatalogProductAssoc, 0, 32)
 	for _, v := range cpo {
 		i := CatalogProductAssoc{
-			Path:      v.Path,
-			SKU:       v.SKU,
-			Pri:       v.Pri,
-			Created:   v.Created,
-			Modified:  v.Modified,
+			Path:     v.Path,
+			SKU:      v.SKU,
+			Pri:      v.Pri,
+			Created:  v.Created,
+			Modified: v.Modified,
 		}
 		results = append(results, &i)
 	}

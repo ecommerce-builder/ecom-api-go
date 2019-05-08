@@ -41,7 +41,9 @@ const (
 	OpSignInWithDevKey       string = "SignInWithDevKey"
 
 	// Catalog
-	OpGetCatalog string = "GetCatalog"
+	OpReplaceCatalog string = "ReplaceCatalog"
+	OpGetCatalog     string = "GetCatalog"
+	OpPurgeCatalog   string = "PurgeCatalog"
 
 	// System
 	OpSystemInfo string = "SystemInfo"

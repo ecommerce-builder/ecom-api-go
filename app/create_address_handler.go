@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// CreateAddressHandler
+// CreateAddressHandler creates an HTTP handler that creates a new customer address record.
 func (a *App) CreateAddressHandler() http.HandlerFunc {
 	type addressRequestBody struct {
 		Typ         string  `json:"typ"`
