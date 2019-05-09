@@ -40,10 +40,11 @@ const (
 	OpDeleteCustomerDevKey   string = "DeleteCustomerDevKey"
 	OpSignInWithDevKey       string = "SignInWithDevKey"
 
-	// Catalog
-	OpReplaceCatalog string = "ReplaceCatalog"
-	OpGetCatalog     string = "GetCatalog"
-	OpPurgeCatalog   string = "PurgeCatalog"
+	// Catalog and assocations
+	OpReplaceCatalog            string = "ReplaceCatalog"
+	OpGetCatalog                string = "GetCatalog"
+	OpPurgeCatalog              string = "PurgeCatalog"
+	OpPurgeCatalogProductAssocs string = "PurgeCatalogProductAssocs"
 
 	// System
 	OpSystemInfo string = "SystemInfo"

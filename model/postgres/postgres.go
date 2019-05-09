@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
@@ -408,11 +409,12 @@ func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) 
 func (m *PgModel) ProductsExist(ctx context.Context, skus []string) ([]string, error) {
 	query := `
 		SELECT sku FROM products
-		WHERE sku IN ($1)
+		WHERE sku = ANY($1::varchar[])
 	`
-	rows, err := m.db.QueryContext(ctx, query, skus)
+	// TODO: sanitise skus
+	rows, err := m.db.QueryContext(ctx, query, "{"+strings.Join(skus, ",")+"}")
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %v)", query, skus)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx,..) query=%q, skus=%v", query, skus)
 	}
 	defer rows.Close()
 
@@ -421,7 +423,7 @@ func (m *PgModel) ProductsExist(ctx context.Context, skus []string) ([]string, e
 		var s string
 		err = rows.Scan(&s)
 		if err != nil {
-			return nil, errors.Wrap(err, "Scan failed")
+			return nil, errors.Wrap(err, "scan failed")
 		}
 		found = append(found, s)
 	}
@@ -477,7 +479,7 @@ func (m *PgModel) DeleteProduct(ctx context.Context, sku string) error {
 	return nil
 }
 
-// CreateCustomerDevKey
+// CreateCustomerDevKey generates a customer developer key using bcrypt.
 func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key string) (*CustomerDevKey, error) {
 	query := `
 		INSERT INTO customers_devkeys (
@@ -496,7 +498,7 @@ func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key 
 	return &cdk, nil
 }
 
-// GetCustomerDevKeys
+// GetCustomerDevKeys returns a slice of CustomerDevKeys by customer primary key.
 func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*CustomerDevKey, error) {
 	query := `
 		SELECT id, uuid, key, hash, customer_id, created, modified
@@ -597,7 +599,9 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 	return &a, nil
 }
 
-// GetAddressOwnerByUUID returns a pointer to a string containing the customer UUID of the owner of this address record. If the address is not found the return value of will be nil.
+// GetAddressOwnerByUUID returns a pointer to a string containing the
+// customer UUID of the owner of this address record. If the address is not
+// found the return value of will be nil.
 func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, uuid string) (*string, error) {
 	query := `
 		SELECT C.uuid
@@ -612,7 +616,8 @@ func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, uuid string) (*stri
 	return &customerUUID, nil
 }
 
-// GetCustomerIDByUUID converts between customer UUID and the underlying primary key
+// GetCustomerIDByUUID converts between customer UUID and the underlying
+// primary key.
 func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error) {
 	var id int
 	query := `SELECT id FROM customers WHERE uuid = $1`
@@ -624,7 +629,8 @@ func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) 
 	return id, nil
 }
 
-// GetAddresses retrieves a slice of pointers to Address for a given customer
+// GetAddresses retrieves a slice of pointers to Address for a given
+// customer.
 func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address, error) {
 	addresses := make([]*Address, 0, 8)
 	query := `
@@ -798,6 +804,65 @@ func (m *PgModel) CreateCatalogProductAssoc(ctx context.Context, path, sku strin
 	return &cp, nil
 }
 
+// BatchCreateCatalogProductAssocs inserts multiple catalog product
+// associations using a transaction.
+func (m *PgModel) BatchCreateCatalogProductAssocs(ctx context.Context, cpas map[string][]string) error {
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	query := "SELECT COUNT(*) AS count FROM catalog_products"
+	var count int
+	err = tx.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "query row context scan query=%q", query)
+	}
+	if count > 0 {
+		tx.Rollback()
+		return fmt.Errorf("catalog products already exist")
+	}
+
+	query = `
+		INSERT INTO catalog_products
+			(catalog_id, product_id, path, sku, pri)
+		VALUES (
+			(SELECT id FROM catalog WHERE path = $1),
+			(SELECT id FROM products WHERE sku = $2),
+			$3,
+			$4,
+			(
+				SELECT
+					CASE WHEN COUNT(1) > 0
+					THEN MAX(pri)+10
+					ELSE 10
+				END
+				AS pri
+				FROM catalog_products
+				WHERE path=$5
+			)
+		)
+	`
+	stmt, err := tx.PrepareContext(ctx, query)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "tx prepare for query=%q", query)
+	}
+	defer stmt.Close()
+
+	for path, skus := range cpas {
+		for _, sku := range skus {
+			if _, err := stmt.ExecContext(ctx, path, sku, path, sku, path); err != nil {
+				tx.Rollback()
+				fmt.Fprintf(os.Stderr, "%+v", err)
+				return errors.Wrap(err, "stmt exec context")
+			}
+		}
+	}
+	return tx.Commit()
+}
+
 // DeleteCatalogProductAssoc delete an existing catalog product association.
 func (m *PgModel) DeleteCatalogProductAssoc(ctx context.Context, path, sku string) error {
 	query := `
@@ -811,7 +876,23 @@ func (m *PgModel) DeleteCatalogProductAssoc(ctx context.Context, path, sku strin
 	return nil
 }
 
-// GetCatalogProductAssocs returns an Slice of catalogue to product associations
+// HasCatalogProductAssocs returns true if any catalog product associations
+// exist.
+func (m *PgModel) HasCatalogProductAssocs(ctx context.Context) (bool, error) {
+	query := "SELECT COUNT(*) AS count FROM catalog_products"
+	var count int
+	err := m.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return false, errors.Wrapf(err, "query row context scan query=%q", query)
+	}
+	if count == 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
+// GetCatalogProductAssocs returns an Slice of catalogue to product
+// associations.
 func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
 	query := `
 		SELECT id, catalog_id, product_id, path, sku, pri
@@ -838,7 +919,7 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 	return cpa, nil
 }
 
-// UpdateCatalogProductAssocs update the catalog product associations
+// UpdateCatalogProductAssocs update the catalog product associations.
 func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*CatalogProductAssoc) error {
 	tx, err := m.db.Begin()
 	if err != nil {
@@ -875,7 +956,7 @@ func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*Catalog
 
 // DeleteCatalogProductAssocs delete all catalog product associations.
 func (m *PgModel) DeleteCatalogProductAssocs(ctx context.Context) (affected int64, err error) {
-	res, err := m.db.ExecContext(ctx, "DELETE FROM catalog_product")
+	res, err := m.db.ExecContext(ctx, "DELETE FROM catalog_products")
 	if err != nil {
 		return -1, errors.Wrap(err, "service: delete catalog product assocs")
 	}
@@ -886,7 +967,7 @@ func (m *PgModel) DeleteCatalogProductAssocs(ctx context.Context) (affected int6
 	return count, nil
 }
 
-// CreateImageEntry writes a new image entry to the product_images table
+// CreateImageEntry writes a new image entry to the product_images table.
 func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateProductImage) (*ProductImage, error) {
 	query := `
 		INSERT INTO product_images (
@@ -949,7 +1030,8 @@ func (m *PgModel) GetImageEntries(ctx context.Context, sku string) ([]*ProductIm
 	return images, nil
 }
 
-// ConfirmImageUploaded updates the `up` column to true to indicate the uploaded has taken place.
+// ConfirmImageUploaded updates the `up` column to true to indicate the
+// uploaded has taken place.
 func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*ProductImage, error) {
 	query := `
 		UPDATE product_images
@@ -966,7 +1048,8 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Produ
 	return &p, nil
 }
 
-// DeleteImageEntry deletes an image entry row from the product_images table by UUID.
+// DeleteImageEntry deletes an image entry row from the product_images
+// table by UUID.
 func (m *PgModel) DeleteImageEntry(ctx context.Context, uuid string) (int64, error) {
 	query := `
 		DELETE FROM product_images

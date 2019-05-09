@@ -346,7 +346,6 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 
 // GetCustomers gets customers with pagination.
 func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
-	fmt.Printf("Service... GetCustomers q=%v\n", pq)
 	q := &postgres.PaginationQuery{
 		OrderBy:    pq.OrderBy,
 		OrderDir:   pq.OrderDir,
@@ -357,9 +356,6 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("pagination result set")
-	fmt.Println(prs)
 
 	results := make([]*Customer, 0)
 	for _, v := range prs.RSet.([]*postgres.Customer) {
@@ -451,6 +447,33 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Produc
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
+}
+
+// difference returns the elements in `a` that aren't in `b`.
+func difference(a, b []string) []string {
+	mb := map[string]bool{}
+	for _, x := range b {
+		mb[x] = true
+	}
+	var ab []string
+	for _, x := range a {
+		if _, ok := mb[x]; !ok {
+			ab = append(ab, x)
+		}
+	}
+	return ab
+}
+
+// ProductsExist accepts a slice of product SKUs and divides them into
+// two lists of those that can exist in the system and those that are
+// missing.
+func (s *Service) ProductsExist(ctx context.Context, skus []string) (exists, missing []string, err error) {
+	exists, err = s.model.ProductsExist(ctx, skus)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "service: ProductsExist")
+	}
+	missing = difference(skus, exists)
+	return exists, missing, nil
 }
 
 // GetProduct gets a product given the SKU.
@@ -740,10 +763,6 @@ func (s *Service) ReplaceCatalog(ctx context.Context, root *nestedset.Node) erro
 	root.GenerateNestedSet(1, 0, "")
 	ns := make([]*nestedset.NestedSetNode, 0, 128)
 	root.NestedSet(&ns)
-	fmt.Println("nested set")
-	for _, n := range ns {
-		fmt.Printf("%+v\n", n)
-	}
 	err := s.model.BatchCreateNestedSet(ctx, ns)
 	if err != nil {
 		return errors.Wrap(err, "service: replace catalog")
@@ -770,6 +789,17 @@ func (s *Service) DeleteCatalog(ctx context.Context) error {
 	return nil
 }
 
+// BatchCreateCatalogProductAssocs creates a set of catalog product
+// associations either completing with all or failing with none
+// being added.
+func (s *Service) BatchCreateCatalogProductAssocs(ctx context.Context, cpas map[string][]string) error {
+	err := s.model.BatchCreateCatalogProductAssocs(ctx, cpas)
+	if err != nil {
+		return errors.Wrap(err, "service: BatchCreateCatalogProductAssocs")
+	}
+	return nil
+}
+
 // CreateCatalogProductAssocs associates an existing product to a catalog entry.
 func (s *Service) CreateCatalogProductAssocs(ctx context.Context, path, sku string) (*CatalogProductAssoc, error) {
 	cpa, err := s.model.CreateCatalogProductAssoc(ctx, path, sku)
@@ -784,6 +814,16 @@ func (s *Service) CreateCatalogProductAssocs(ctx context.Context, path, sku stri
 		Modified: cpa.Modified,
 	}
 	return &scpa, nil
+}
+
+// HasCatalogProductAssocs returns true if any catalog product associations
+// exist.
+func (s *Service) HasCatalogProductAssocs(ctx context.Context) (bool, error) {
+	has, err := s.model.HasCatalogProductAssocs(ctx)
+	if err != nil {
+		return false, errors.Wrap(err, "service: has catalog product assocs")
+	}
+	return has, nil
 }
 
 // GetCatalogProductAssocs returns the catalog product associations

@@ -447,7 +447,7 @@ func main() {
 			r.Post("/", a.CreateCatalogAssocsHandler())
 			r.Get("/", a.GetCatalogProductAssocsHandler())
 			r.Put("/", a.UpdateCatalogProductAssocsHandler())
-			r.Delete("/", a.DeleteCatalogProductAssocsHandler())
+			r.Delete("/", a.Authorization(app.OpPurgeCatalogProductAssocs, a.PurgeCatalogProductAssocsHandler()))
 		})
 
 		// SystemInfo

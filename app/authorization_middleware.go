@@ -56,7 +56,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey, OpProductExists, OpGetProduct:
 			next.ServeHTTP(w, r)
 			return
-		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct:
+		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct, OpPurgeCatalogProductAssocs:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return

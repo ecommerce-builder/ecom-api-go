@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
+	"github.com/pkg/errors"
 )
 
 type catalogProduct struct {
@@ -22,6 +24,7 @@ type catalogAssocs []catalogAssoc
 // CreateCatalogAssocsHandler creates a handler function that creates a new catalog association.
 func (a *App) CreateCatalogAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		if r.Body == nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
@@ -34,8 +37,27 @@ func (a *App) CreateCatalogAssocsHandler() http.HandlerFunc {
 			return
 		}
 
+		// Catalog product assoications may only be written if none exist.
+		has, err := a.Service.HasCatalogProductAssocs(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if has {
+			w.WriteHeader(http.StatusConflict) // 409 Conflict
+			json.NewEncoder(w).Encode(struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			}{
+				400,
+				"Catalog product assoications already exist. Call OpPurgeCatalogAssocs first.",
+			})
+			return
+		}
+
 		cas := catalogAssocs{}
-		err := json.NewDecoder(r.Body).Decode(&cas)
+		err = json.NewDecoder(r.Body).Decode(&cas)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
@@ -49,20 +71,55 @@ func (a *App) CreateCatalogAssocsHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		tree, _ := a.Service.GetCatalog(r.Context()) // ([]*nestedset.NestedSetNode, error)
-		fmt.Printf("%#v\n", tree)
-
+		tree, _ := a.Service.GetCatalog(ctx)
 		skus, missingPaths, nonLeafs := validateCatalogAssocs(cas, tree)
-		if skus != nil || missingPaths != nil || nonLeafs != nil {
-			fmt.Printf("SKUs in payload: %v\n", skus)
-			fmt.Printf("Missing paths: %v\n", missingPaths)
-			fmt.Printf("Non-leaf paths: %v\n", nonLeafs)
-		} else {
-			fmt.Println("all is well")
+		_, missingSKUs, err := a.Service.ProductsExist(ctx, skus)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if missingPaths != nil || nonLeafs != nil || missingSKUs != nil {
+			w.WriteHeader(http.StatusConflict) // 409 Conflict
+			json.NewEncoder(w).Encode(struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+				Data    struct {
+					MissingPaths []string `json:"missing_paths"`
+					NonLeafPaths []string `json:"non_leaf_paths"`
+					MissingSKUs  []string `json:"missing_skus"`
+				} `json:"data"`
+			}{
+				409,
+				fmt.Sprintf("Missing paths: %v Non-leaf paths: %v Missing SKUs: %v", missingPaths, nonLeafs, missingSKUs),
+				struct {
+					MissingPaths []string `json:"missing_paths"`
+					NonLeafPaths []string `json:"non_leaf_paths"`
+					MissingSKUs  []string `json:"missing_skus"`
+				}{
+					MissingPaths: missingPaths,
+					NonLeafPaths: nonLeafs,
+					MissingSKUs:  missingSKUs,
+				},
+			})
+			return
 		}
 
-		w.WriteHeader(http.StatusCreated) // 201 Created
-		//json.NewEncoder(w).Encode(*cpas)
+		cpas := map[string][]string{}
+		for _, a := range cas {
+			skus := make([]string, 0, 32)
+			for _, cp := range a.Products {
+				skus = append(skus, cp.SKU)
+			}
+			cpas[a.Path] = skus
+		}
+		err = a.Service.BatchCreateCatalogProductAssocs(ctx, cpas)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}
 }
 
@@ -77,7 +134,7 @@ func validateCatalogAssocs(cas catalogAssocs, tree *nestedset.Node) (skus, missi
 		n := tree.FindNodeByPath(ca.Path)
 		if n == nil {
 			missingPaths = append(missingPaths, ca.Path)
-		} else if n.IsLeaf() {
+		} else if !n.IsLeaf() {
 			nonLeafs = append(nonLeafs, ca.Path)
 		}
 	}

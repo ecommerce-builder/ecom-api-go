@@ -6,12 +6,13 @@ import (
 	"os"
 )
 
-// DeleteCatalogProductAssocsHandler deletes all catalog product associations.
-func (a *App) DeleteCatalogProductAssocsHandler() http.HandlerFunc {
+// PurgeCatalogProductAssocsHandler deletes all catalog product associations.
+func (a *App) PurgeCatalogProductAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := a.Service.DeleteCatalogProductAssocs(r.Context())
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service DeleteCatalogProductAssocs(ctx) error: %v", err)
+			fmt.Fprintf(os.Stderr, "service DeleteCatalogProductAssocs(ctx) error: %+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.Header().Del("Content-Type")

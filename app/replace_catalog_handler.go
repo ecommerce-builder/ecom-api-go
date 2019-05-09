@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
@@ -25,10 +24,7 @@ func (a *App) ReplaceCatalogHandler() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		fmt.Printf("%+v\n", catalog)
-
 		a.Service.ReplaceCatalog(r.Context(), &catalog)
-
 		w.Header().Del("Content-Type")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}

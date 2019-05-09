@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.26.0 (Thu, 9 May 2019)
++ OpPurgeCatalogProductAssocs
+
 ## v0.25.0 (Wed, 8 May 2019)
 + Catalog API now uses JSON hierarchical structure, not nested set
 + OpPurgeCatalog deletes entire catalog
