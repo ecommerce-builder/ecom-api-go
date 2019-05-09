@@ -847,13 +847,13 @@ func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 }
 
 // UpdateCatalogProductAssocs updates the catalog product associations
-func (s *Service) UpdateCatalogProductAssocs(ctx context.Context, cpo []*postgres.CatalogProductAssoc) error {
-	err := s.model.UpdateCatalogProductAssocs(ctx, cpo)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func (s *Service) UpdateCatalogProductAssocs(ctx context.Context, cpo []*postgres.catalogProductAssoc) error {
+// 	err := s.model.UpdateCatalogProductAssocs(ctx, cpo)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 // DeleteCatalogProductAssocs delete all catalog product associations.
 func (s *Service) DeleteCatalogProductAssocs(ctx context.Context) (affected int64, err error) {

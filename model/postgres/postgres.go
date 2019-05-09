@@ -22,6 +22,42 @@ type PgModel struct {
 	db *sql.DB
 }
 
+// CartItem structure holds the details individual cart item.
+type CartItem struct {
+	ID        int
+	CartUUID  string
+	Sku       string
+	Qty       int
+	UnitPrice float64
+	Created   time.Time
+	Modified  time.Time
+}
+
+// Customer details.
+type Customer struct {
+	ID           int
+	CustomerUUID string
+	UID          string
+	Role         string
+	Email        string
+	Firstname    string
+	Lastname     string
+	Created      time.Time
+	Modified     time.Time
+}
+
+// CustomerDevKey customer developer keys.
+type CustomerDevKey struct {
+	ID           int       `json:"id"`
+	UUID         string    `json:"uuid"`
+	Key          string    `json:"key"`
+	Hash         string    `json:"hash"`
+	CustomerID   int       `json:"customer_id"`
+	CustomerUUID string    `json:"customer_uuid"`
+	Created      time.Time `json:"created"`
+	Modified     time.Time `json:"modified"`
+}
+
 type Product struct {
 	ID       int         `json:"id"`
 	UUID     string      `json:"uuid"`
@@ -47,10 +83,93 @@ type ProductData struct {
 	Spec    string `json:"specification"`
 }
 
+type ProductImage struct {
+	ID        uint
+	ProductID uint
+	UUID      string
+	SKU       string
+	W         uint
+	H         uint
+	Path      string
+	Typ       string
+	Ori       bool
+	Up        bool
+	Pri       uint
+	Size      uint
+	Q         uint
+	GSURL     string
+	Data      interface{}
+	Created   time.Time
+	Modified  time.Time
+}
+
+type CreateProductImage struct {
+	SKU   string
+	W     uint
+	H     uint
+	Path  string
+	Typ   string
+	Ori   bool
+	Pri   uint
+	Size  uint
+	Q     uint
+	GSURL string
+	Data  interface{}
+}
+
 type CatalogProduct struct {
 	ID        int
 	CatalogID int
 	ProductID int
+	Path      string
+	SKU       string
+	Pri       int
+	Created   time.Time
+	Modified  time.Time
+}
+
+// Address contains address information for a Customer
+type Address struct {
+	ID          int
+	AddrUUID    string
+	CustomerID  int
+	Typ         string
+	ContactName string
+	Addr1       string
+	Addr2       *string
+	City        string
+	County      *string
+	Postcode    string
+	Country     string
+	Created     time.Time
+	Modified    time.Time
+}
+
+// PaginationResultSet contains both the underlying result set as well as
+// context about the data including Total; the total number of rows in
+// the table, First; set to true if this result set represents the first
+// page, Last; set to true if this result set represents the last page of
+// results.
+type PaginationResultSet struct {
+	RContext struct {
+		Total               int
+		FirstUUID, LastUUID string
+	}
+	RSet interface{}
+}
+
+type PaginationQuery struct {
+	OrderBy    string
+	OrderDir   string
+	Limit      int
+	StartAfter string
+}
+
+// catalogProductAssoc maps products to leaf nodes in the catalogue hierarchy.
+type catalogProductAssoc struct {
+	id        int
+	catalogID int
+	productID int
 	Path      string
 	SKU       string
 	Pri       int
@@ -893,7 +1012,7 @@ func (m *PgModel) HasCatalogProductAssocs(ctx context.Context) (bool, error) {
 
 // GetCatalogProductAssocs returns an Slice of catalogue to product
 // associations.
-func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
+func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*catalogProductAssoc, error) {
 	query := `
 		SELECT id, catalog_id, product_id, path, sku, pri
 		FROM catalog_products
@@ -905,10 +1024,10 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 	}
 	defer rows.Close()
 
-	cpa := make([]*CatalogProductAssoc, 0, 256)
+	cpa := make([]*catalogProductAssoc, 0, 256)
 	for rows.Next() {
-		var n CatalogProductAssoc
-		err = rows.Scan(&n.ID, &n.CatalogID, &n.ProductID, &n.Path, &n.SKU, &n.Pri, &n.Created, &n.Modified)
+		var n catalogProductAssoc
+		err = rows.Scan(&n.id, &n.catalogID, &n.productID, &n.Path, &n.SKU, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, err
 		}
@@ -920,7 +1039,7 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 }
 
 // UpdateCatalogProductAssocs update the catalog product associations.
-func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*CatalogProductAssoc) error {
+func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*catalogProductAssoc) error {
 	tx, err := m.db.Begin()
 	if err != nil {
 		return err
