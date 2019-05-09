@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.27.0 (Thu, 9 May 2019)
++ OpGetCatalog returns list of product SKUs for each leaf node.
+
 ## v0.26.0 (Thu, 9 May 2019)
 + OpPurgeCatalogProductAssocs
 

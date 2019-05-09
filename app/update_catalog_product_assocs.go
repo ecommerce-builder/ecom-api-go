@@ -4,26 +4,146 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
-	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	"github.com/pkg/errors"
 )
 
-// UpdateCatalogProductAssocsHandler creates a handler to return the entire catalog
-func (app *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
+type catalogProduct struct {
+	SKU string `json:"sku"`
+}
+
+type catalogAssoc struct {
+	Path     string           `json:"path"`
+	Products []catalogProduct `json:"products"`
+}
+
+type catalogAssocs []catalogAssoc
+
+// UpdateCatalogProductAssocsHandler creates a handler function that overwrites
+// a new catalog association.
+func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cpo := []*service.CatalogProductAssoc{}
-		err := json.NewDecoder(r.Body).Decode(&cpo)
-		if err != nil {
-			http.Error(w, err.Error(), 400)
+		ctx := r.Context()
+		if r.Body == nil {
+			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
+			json.NewEncoder(w).Encode(struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			}{
+				400,
+				"Please send a request body",
+			})
 			return
 		}
 
-		for _, i := range cpo {
-			fmt.Printf("%v\n", *i)
+		// Catalog product assoications may only be written if none exist.
+		has, err := a.Service.HasCatalogProductAssocs(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if has {
+			w.WriteHeader(http.StatusConflict) // 409 Conflict
+			json.NewEncoder(w).Encode(struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			}{
+				400,
+				"Catalog product assoications already exist. Call OpPurgeCatalogAssocs first.",
+			})
+			return
 		}
 
-		//app.Service.UpdateCatalogProductAssocs(r.Context(), cpo)
-		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusNoContent) // 204 OK
+		cas := catalogAssocs{}
+		err = json.NewDecoder(r.Body).Decode(&cas)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
+			json.NewEncoder(w).Encode(struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			}{
+				400,
+				err.Error(),
+			})
+			return
+		}
+		defer r.Body.Close()
+
+		tree, _ := a.Service.GetCatalog(ctx)
+		skus, missingPaths, nonLeafs := validateCatalogAssocs(cas, tree)
+		_, missingSKUs, err := a.Service.ProductsExist(ctx, skus)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if missingPaths != nil || nonLeafs != nil || missingSKUs != nil {
+			w.WriteHeader(http.StatusConflict) // 409 Conflict
+			json.NewEncoder(w).Encode(struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+				Data    struct {
+					MissingPaths []string `json:"missing_paths"`
+					NonLeafPaths []string `json:"non_leaf_paths"`
+					MissingSKUs  []string `json:"missing_skus"`
+				} `json:"data"`
+			}{
+				409,
+				fmt.Sprintf("Missing paths: %v Non-leaf paths: %v Missing SKUs: %v", missingPaths, nonLeafs, missingSKUs),
+				struct {
+					MissingPaths []string `json:"missing_paths"`
+					NonLeafPaths []string `json:"non_leaf_paths"`
+					MissingSKUs  []string `json:"missing_skus"`
+				}{
+					MissingPaths: missingPaths,
+					NonLeafPaths: nonLeafs,
+					MissingSKUs:  missingSKUs,
+				},
+			})
+			return
+		}
+
+		cpas := map[string][]string{}
+		for _, a := range cas {
+			skus := make([]string, 0, 32)
+			for _, cp := range a.Products {
+				skus = append(skus, cp.SKU)
+			}
+			cpas[a.Path] = skus
+		}
+		err = a.Service.BatchCreateCatalogProductAssocs(ctx, cpas)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}
+}
+
+func validateCatalogAssocs(cas catalogAssocs, tree *firebase.Category) (skus, missingPaths, nonLeafs []string) {
+	skumap := make(map[string]bool)
+	for _, ca := range cas {
+		for _, cp := range ca.Products {
+			if _, ok := skumap[cp.SKU]; !ok {
+				skumap[cp.SKU] = true
+			}
+		}
+		n := tree.FindNodeByPath(ca.Path)
+		if n == nil {
+			missingPaths = append(missingPaths, ca.Path)
+		} else if !n.IsLeaf() {
+			nonLeafs = append(nonLeafs, ca.Path)
+		}
+	}
+
+	// convert map keys to slice
+	skus = make([]string, 0, 128)
+	for k := range skumap {
+		skus = append(skus, k)
+	}
+	return skus, missingPaths, nonLeafs
 }

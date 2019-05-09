@@ -48,26 +48,26 @@ type Customer struct {
 
 // CustomerDevKey customer developer keys.
 type CustomerDevKey struct {
-	ID           int       `json:"id"`
-	UUID         string    `json:"uuid"`
-	Key          string    `json:"key"`
-	Hash         string    `json:"hash"`
-	CustomerID   int       `json:"customer_id"`
-	CustomerUUID string    `json:"customer_uuid"`
-	Created      time.Time `json:"created"`
-	Modified     time.Time `json:"modified"`
+	ID           int
+	UUID         string
+	Key          string
+	Hash         string
+	CustomerID   int
+	CustomerUUID string
+	Created      time.Time
+	Modified     time.Time
 }
 
 type Product struct {
-	ID       int         `json:"id"`
-	UUID     string      `json:"uuid"`
-	SKU      string      `json:"sku"`
-	EAN      string      `json:"ean"`
-	URL      string      `json:"url"`
-	Name     string      `json:"name"`
-	Data     ProductData `json:"data"`
-	Created  time.Time   `json:"created"`
-	Modified time.Time   `json:"modified"`
+	ID       int
+	UUID     string
+	SKU      string
+	EAN      string
+	URL      string
+	Name     string
+	Data     ProductData
+	Created  time.Time
+	Modified time.Time
 }
 
 type ProductUpdate struct {
@@ -165,8 +165,8 @@ type PaginationQuery struct {
 	StartAfter string
 }
 
-// catalogProductAssoc maps products to leaf nodes in the catalogue hierarchy.
-type catalogProductAssoc struct {
+// CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy.
+type CatalogProductAssoc struct {
 	id        int
 	catalogID int
 	productID int
@@ -1012,34 +1012,35 @@ func (m *PgModel) HasCatalogProductAssocs(ctx context.Context) (bool, error) {
 
 // GetCatalogProductAssocs returns an Slice of catalogue to product
 // associations.
-func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*catalogProductAssoc, error) {
+func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
 	query := `
-		SELECT id, catalog_id, product_id, path, sku, pri
+		SELECT id, catalog_id, product_id, path, sku, pri, created, modified
 		FROM catalog_products
-		ORDER BY pri
+		ORDER BY path, pri ASC
 	`
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "model: query context query=%q", query)
 	}
 	defer rows.Close()
 
-	cpa := make([]*catalogProductAssoc, 0, 256)
+	cpas := make([]*CatalogProductAssoc, 0, 256)
 	for rows.Next() {
-		var n catalogProductAssoc
+		var n CatalogProductAssoc
 		err = rows.Scan(&n.id, &n.catalogID, &n.productID, &n.Path, &n.SKU, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "model: scan failed")
 		}
+		cpas = append(cpas, &n)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "model: rows.Err()")
 	}
-	return cpa, nil
+	return cpas, nil
 }
 
 // UpdateCatalogProductAssocs update the catalog product associations.
-func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*catalogProductAssoc) error {
+func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*CatalogProductAssoc) error {
 	tx, err := m.db.Begin()
 	if err != nil {
 		return err
