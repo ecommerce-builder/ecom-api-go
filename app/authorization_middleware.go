@@ -2,7 +2,6 @@ package app
 
 import (
 	"crypto/subtle"
-	"fmt"
 	"net/http"
 
 	"firebase.google.com/go/auth"
@@ -92,7 +91,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		case OpDeleteCustomerDevKey:
 			if role == RoleAdmin {
-				uuid := chi.URLParam(r, "uuid")
+				// uuid := chi.URLParam(r, "uuid")
 			}
 			unauthorized(w)
 			return

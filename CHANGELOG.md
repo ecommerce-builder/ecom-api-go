@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.28.2 (Fri 10 May 2019)
++ Replaces broken build `v0.28.1` fixing non-used fmt import.
+
 ## v0.28.1 (Fri 10 May 2019)
 + OpUpdateCatalogProductAssocs deletes existing associations at start of tx.
 + OpGetCatalog returns an empty JSON object {} if the catalog is empty.
