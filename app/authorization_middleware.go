@@ -93,7 +93,6 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		case OpDeleteCustomerDevKey:
 			if role == RoleAdmin {
 				uuid := chi.URLParam(r, "uuid")
-				fmt.Println(uuid)
 			}
 			unauthorized(w)
 			return

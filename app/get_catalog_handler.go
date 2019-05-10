@@ -13,6 +13,12 @@ import (
 func (app *App) GetCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tree, err := app.Service.GetCatalog(r.Context())
+		if tree == nil {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("{}"))
+			return
+		}
+
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service GetCatalog(ctx) error: %+v", errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500

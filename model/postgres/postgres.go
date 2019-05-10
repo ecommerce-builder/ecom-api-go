@@ -945,16 +945,11 @@ func (m *PgModel) BatchCreateCatalogProductAssocs(ctx context.Context, cpas map[
 		return err
 	}
 
-	query := "SELECT COUNT(*) AS count FROM catalog_products"
-	var count int
-	err = tx.QueryRowContext(ctx, query).Scan(&count)
+	query := "DELETE FROM catalog_products"
+	_, err = tx.ExecContext(ctx, query)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "query row context scan query=%q", query)
-	}
-	if count > 0 {
-		tx.Rollback()
-		return fmt.Errorf("catalog products already exist")
+		return errors.Wrapf(err, "model: delete catalog products query=%q", query)
 	}
 
 	query = `

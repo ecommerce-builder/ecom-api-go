@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.28.1 (Fri 10 May 2019)
++ OpUpdateCatalogProductAssocs deletes existing associations at start of tx.
++ OpGetCatalog returns an empty JSON object {} if the catalog is empty.
++ Remove spurious fmt.Print
+
 ## v0.28.0 (Fri 10 May 2019)
 + Prevent adding catalog product assocs if catalog is empty.
 + Prevent purging catalog if catalog product assocs exist.

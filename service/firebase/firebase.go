@@ -908,10 +908,13 @@ func (s *Service) HasCatalog(ctx context.Context) (bool, error) {
 
 // GetCatalog returns the catalog as a hierarchy of nodes.
 func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
-	fmt.Println("GetCatalog")
 	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(ns) == 0 {
+		return nil, nil
 	}
 
 	cpas, err := s.model.GetCatalogProductAssocs(ctx)
