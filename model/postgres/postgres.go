@@ -851,6 +851,20 @@ func (m *PgModel) GetCatalogByPath(ctx context.Context, path string) (*nestedset
 	return &n, nil
 }
 
+// HasCatalog returns true if any rows exist in the catalog table.
+func (m *PgModel) HasCatalog(ctx context.Context) (bool, error) {
+	query := "SELECT COUNT(*) AS count FROM catalog"
+	var count int
+	err := m.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return false, errors.Wrapf(err, "query row context scan query=%q", query)
+	}
+	if count == 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
 // GetCatalogNestedSet returns a slice of NestedSetNode representing the catalog as a nested set.
 func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
 	query := `

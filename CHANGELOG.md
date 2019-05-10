@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.28.0 (Fri 10 May 2019)
++ Prevent adding catalog product assocs if catalog is empty.
++ Prevent purging catalog if catalog product assocs exist.
++ Rename operations to use the word Update in place of Replace.
+
 ## v0.27.0 (Thu, 9 May 2019)
 + OpGetCatalog returns list of product SKUs for each leaf node.
 

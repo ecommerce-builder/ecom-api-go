@@ -38,21 +38,21 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 			return
 		}
 
-		// Catalog product assoications may only be written if none exist.
-		has, err := a.Service.HasCatalogProductAssocs(ctx)
+		// Catalog product associations may only be written if a catalog exists.
+		has, err := a.Service.HasCatalog(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if has {
+		if !has {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			json.NewEncoder(w).Encode(struct {
 				Code    int    `json:"code"`
 				Message string `json:"message"`
 			}{
-				400,
-				"Catalog product assoications already exist. Call OpPurgeCatalogAssocs first.",
+				http.StatusConflict,
+				"Catalog product associations can only be updated if a catalog first exists.",
 			})
 			return
 		}

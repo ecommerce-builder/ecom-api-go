@@ -757,10 +757,10 @@ func (s *Service) DeleteAddress(ctx context.Context, addrUUID string) error {
 	return nil
 }
 
-// ReplaceCatalog takes a root tree Node and converts it to a nested set
+// UpdateCatalog takes a root tree Node and converts it to a nested set
 // representation before calling the model to persist the replacement
 // catalog.
-func (s *Service) ReplaceCatalog(ctx context.Context, root *nestedset.Node) error {
+func (s *Service) UpdateCatalog(ctx context.Context, root *nestedset.Node) error {
 	root.GenerateNestedSet(1, 0, "")
 	ns := make([]*nestedset.NestedSetNode, 0, 128)
 	root.NestedSet(&ns)
@@ -895,6 +895,15 @@ func buildCategoryTree(nestedset []*nestedset.NestedSetNode, cmap map[string][]s
 		}
 	}
 	return context
+}
+
+// HasCatalog returns true if the catalog exists.
+func (s *Service) HasCatalog(ctx context.Context) (bool, error) {
+	has, err := s.model.HasCatalog(ctx)
+	if err != nil {
+		return false, errors.Wrap(err, "service: has catalog")
+	}
+	return has, nil
 }
 
 // GetCatalog returns the catalog as a hierarchy of nodes.

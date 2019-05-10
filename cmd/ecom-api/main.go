@@ -438,7 +438,7 @@ func main() {
 		})
 
 		r.Route("/catalog", func(r chi.Router) {
-			r.Put("/", a.Authorization(app.OpReplaceCatalog, a.ReplaceCatalogHandler()))
+			r.Put("/", a.Authorization(app.OpUpdateCatalog, a.UpdateCatalogHandler()))
 			r.Get("/", a.Authorization(app.OpGetCatalog, a.GetCatalogHandler()))
 			r.Delete("/", a.Authorization(app.OpPurgeCatalog, a.PurgeCatalogHandler()))
 		})
