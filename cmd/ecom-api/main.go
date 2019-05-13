@@ -445,8 +445,8 @@ func main() {
 
 		r.Route("/assocs", func(r chi.Router) {
 			r.Put("/", a.UpdateCatalogProductAssocsHandler())
-			r.Get("/", a.GetCatalogProductAssocsHandler())
-			r.Delete("/", a.Authorization(app.OpPurgeCatalogProductAssocs, a.PurgeCatalogProductAssocsHandler()))
+			r.Get("/", a.Authorization(app.OpGetCatalogAssocs, a.GetCatalogAssocsHandler()))
+			r.Delete("/", a.Authorization(app.OpPurgeCatalogAssocs, a.PurgeCatalogAssocsHandler()))
 		})
 
 		// SystemInfo

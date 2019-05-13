@@ -41,11 +41,12 @@ const (
 	OpSignInWithDevKey       string = "SignInWithDevKey"
 
 	// Catalog and assocations
-	OpUpdateCatalog              string = "UpdateCatalog"
-	OpGetCatalog                 string = "GetCatalog"
-	OpPurgeCatalog               string = "PurgeCatalog"
-	OpUpdateCatalogProductAssocs string = "UpdateCatalogProductAssocs"
-	OpPurgeCatalogProductAssocs  string = "PurgeCatalogProductAssocs"
+	OpUpdateCatalog       string = "UpdateCatalog"
+	OpGetCatalog          string = "GetCatalog"
+	OpPurgeCatalog        string = "PurgeCatalog"
+	OpGetCatalogAssocs    string = "GetCatalogAssocs"
+	OpUpdateCatalogAssocs string = "UpdateCatalogAssocs"
+	OpPurgeCatalogAssocs  string = "PurgeCatalogAssocs"
 
 	// System
 	OpSystemInfo string = "SystemInfo"

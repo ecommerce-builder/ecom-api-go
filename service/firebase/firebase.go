@@ -992,13 +992,14 @@ type AssocProduct struct {
 	Modified time.Time `json:"modified"`
 }
 
+// Assoc details a catalog association including products.
 type Assoc struct {
 	Path     string         `json:"path"`
 	Products []AssocProduct `json:"products"`
 }
 
-// GetCatalogProductAssocs returns the catalog product associations
-func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*Assoc, error) {
+// GetCatalogAssocs returns the catalog product associations
+func (s *Service) GetCatalogAssocs(ctx context.Context) (map[string]*Assoc, error) {
 	cpo, err := s.model.GetCatalogProductAssocs(ctx)
 	if err != nil {
 		return nil, err
@@ -1018,12 +1019,7 @@ func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*Assoc, error)
 		}
 		assocs[v.Path].Products = append(assocs[v.Path].Products, p)
 	}
-
-	as := make([]*Assoc, 0)
-	for _, v := range assocs {
-		as = append(as, v)
-	}
-	return as, nil
+	return assocs, nil
 }
 
 // UpdateCatalogProductAssocs updates the catalog product associations
@@ -1035,11 +1031,11 @@ func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*Assoc, error)
 // 	return nil
 // }
 
-// DeleteCatalogProductAssocs delete all catalog product associations.
-func (s *Service) DeleteCatalogProductAssocs(ctx context.Context) (affected int64, err error) {
+// DeleteCatalogAssocs delete all catalog product associations.
+func (s *Service) DeleteCatalogAssocs(ctx context.Context) (affected int64, err error) {
 	n, err := s.model.DeleteCatalogProductAssocs(ctx)
 	if err != nil {
-		return 0, errors.Wrapf(err, "delete catalog product assocs")
+		return 0, errors.Wrapf(err, "service: delete catalog assocs")
 	}
 	return n, nil
 }

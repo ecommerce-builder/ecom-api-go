@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.28.5 (Mon 13 May 2019)
++ Service layer returns `map[string]*Assoc` and controller converts to slice.
+
 ## v0.28.4 (Mon 13 May 2019)
 + Match version string to tag.
 
