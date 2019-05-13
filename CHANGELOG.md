@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.28.3 (Mon 13 May 2019)
++ OpGetCatalogProductAssocs group by path.
+
 ## v0.28.2 (Fri 10 May 2019)
 + Replaces broken build `v0.28.1` fixing non-used fmt import.
 
