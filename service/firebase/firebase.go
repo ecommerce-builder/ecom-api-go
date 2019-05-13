@@ -931,9 +931,7 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 		} else {
 			cmap[cp.Path] = []string{cp.SKU}
 		}
-		fmt.Printf("path=%s sku=%s\n", cp.Path, cp.SKU)
 	}
-
 	tree := buildCategoryTree(ns, cmap)
 	return tree, nil
 }
@@ -984,24 +982,48 @@ func (s *Service) HasCatalogProductAssocs(ctx context.Context) (bool, error) {
 	return has, nil
 }
 
+// A SKU handles unique product SKUs.
+type SKU string
+
+// An AssocProduct holds details of a product in the context of an AssocSet.
+type AssocProduct struct {
+	SKU      string    `json:"sku"`
+	Created  time.Time `json:"created"`
+	Modified time.Time `json:"modified"`
+}
+
+type Assoc struct {
+	Path     string         `json:"path"`
+	Products []AssocProduct `json:"products"`
+}
+
 // GetCatalogProductAssocs returns the catalog product associations
-func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProductAssoc, error) {
+func (s *Service) GetCatalogProductAssocs(ctx context.Context) ([]*Assoc, error) {
 	cpo, err := s.model.GetCatalogProductAssocs(ctx)
 	if err != nil {
 		return nil, err
 	}
-	results := make([]*CatalogProductAssoc, 0, 32)
+	assocs := make(map[string]*Assoc)
 	for _, v := range cpo {
-		i := CatalogProductAssoc{
-			Path:     v.Path,
+		if _, ok := assocs[v.Path]; !ok {
+			assocs[v.Path] = &Assoc{
+				Path:     v.Path,
+				Products: make([]AssocProduct, 0),
+			}
+		}
+		p := AssocProduct{
 			SKU:      v.SKU,
-			Pri:      v.Pri,
 			Created:  v.Created,
 			Modified: v.Modified,
 		}
-		results = append(results, &i)
+		assocs[v.Path].Products = append(assocs[v.Path].Products, p)
 	}
-	return results, nil
+
+	as := make([]*Assoc, 0)
+	for _, v := range assocs {
+		as = append(as, v)
+	}
+	return as, nil
 }
 
 // UpdateCatalogProductAssocs updates the catalog product associations
