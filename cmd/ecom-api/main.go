@@ -443,7 +443,7 @@ func main() {
 			r.Delete("/", a.Authorization(app.OpPurgeCatalog, a.PurgeCatalogHandler()))
 		})
 
-		r.Route("/catalogassocs", func(r chi.Router) {
+		r.Route("/assocs", func(r chi.Router) {
 			r.Put("/", a.UpdateCatalogProductAssocsHandler())
 			r.Get("/", a.GetCatalogProductAssocsHandler())
 			r.Delete("/", a.Authorization(app.OpPurgeCatalogProductAssocs, a.PurgeCatalogProductAssocsHandler()))
