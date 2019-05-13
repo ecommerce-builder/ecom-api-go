@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.28.4 (Mon 13 May 2019)
++ Match version string to tag.
+
 ## v0.28.3 (Mon 13 May 2019)
 + OpGetCatalogProductAssocs group by path.
 
