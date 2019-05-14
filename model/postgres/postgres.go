@@ -523,6 +523,33 @@ func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) 
 	return &p, nil
 }
 
+// GetProducts returns a list of all products in the products table.
+func (m *PgModel) GetProducts(ctx context.Context) ([]*Product, error) {
+	query := `
+		SELECT id, uuid, sku, ean, url, name, data, created, modified
+		FROM products
+	`
+	rows, err := m.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx) query=%q", query)
+	}
+	defer rows.Close()
+
+	products := make([]*Product, 0, 256)
+	for rows.Next() {
+		var p Product
+		err := rows.Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
+		if err != nil {
+			return nil, errors.Wrap(err, "scan failed")
+		}
+		products = append(products, &p)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows.Err()")
+	}
+	return products, nil
+}
+
 // ProductsExist accepts a slice of product SKU strings and returns only
 // those that can be found in the products table.
 func (m *PgModel) ProductsExist(ctx context.Context, skus []string) ([]string, error) {

@@ -30,6 +30,7 @@ const (
 	// Products
 	OpCreateProduct string = "CreateProduct"
 	OpGetProduct    string = "GetProduct"
+	OpListProducts  string = "ListProducts"
 	OpProductExists string = "ProductExists"
 	OpUpdateProduct string = "UpdateProduct"
 	OpDeleteProduct string = "DeleteProduct"

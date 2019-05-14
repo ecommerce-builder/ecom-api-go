@@ -53,8 +53,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		switch op {
 		// Operations that don't require any special authorization
 		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems,
-			OpGetCatalog, OpSignInWithDevKey, OpProductExists, OpGetProduct,
-			OpGetCatalogAssocs:
+			OpGetCatalog, OpSignInWithDevKey, OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs:
 			next.ServeHTTP(w, r)
 			return
 		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct, OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo, OpUpdateCatalog, OpPurgeCatalog:
