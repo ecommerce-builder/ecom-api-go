@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.29.0 (Tue 14 May 2019)
++ OpListProducts returns a list of all product SKUs.
+
 ## v0.28.5 (Mon 13 May 2019)
 + Service layer returns `map[string]*Assoc` and controller converts to slice.
 

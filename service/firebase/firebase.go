@@ -501,6 +501,19 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 	}, nil
 }
 
+// ListProducts returns a slice of all product SKUS.
+func (s *Service) ListProducts(ctx context.Context) ([]string, error) {
+	products, err := s.model.GetProducts(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "service: GetProduct")
+	}
+	skus := make([]string, 0, 256)
+	for _, p := range products {
+		skus = append(skus, p.SKU)
+	}
+	return skus, nil
+}
+
 func marshalProduct(a *Product, m *postgres.Product) {
 	a.SKU = m.SKU
 	a.EAN = m.EAN
