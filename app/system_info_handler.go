@@ -30,6 +30,7 @@ type PgSystemEnv struct {
 // GoogSystemEnv contains the Google Firebase environment variables.
 type GoogSystemEnv struct {
 	GoogProjectID string `json:"ECOM_GOOGLE_PROJECT_ID"`
+	WebAPIKey     string `json:"ECOM_GOOGLE_WEB_API_KEY"`
 }
 
 // AppSystemEnv contains the application port and root email address.

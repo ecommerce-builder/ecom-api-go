@@ -1,4 +1,10 @@
 # CHANGELOG
+## v0.30.0 (Fri 17 May 2019)
++ OpSysConfig (HTTP GET /config) implemented returns Google API Key.
++ Modified OpSystemInfo handler to include Google API Key.
++ `ECOM_GOOGLE_WEB_API_KEY` mandatory env var.
++ Uses no-cache middleware for non-protected routes.
+
 ## v0.29.0 (Tue 14 May 2019)
 + OpListProducts returns a list of all product SKUs.
 

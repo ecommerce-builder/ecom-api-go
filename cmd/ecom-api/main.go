@@ -16,6 +16,7 @@ import (
 	firebase "firebase.google.com/go"
 	_ "firebase.google.com/go/auth"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 	lg "github.com/sirupsen/logrus"
@@ -23,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.29.0"
+var version = "v0.30.0"
 
 const maxDbConnectAttempts = 3
 
@@ -98,6 +99,7 @@ var (
 	// Google settings
 	//
 	projectID   = os.Getenv("ECOM_GOOGLE_PROJECT_ID")
+	webAPIKey   = os.Getenv("ECOM_GOOGLE_WEB_API_KEY")
 	credentials = os.Getenv("ECOM_GOOGLE_CREDENTIALS")
 
 	//
@@ -256,11 +258,15 @@ func main() {
 		mustHaveFile(credentials, "service account credentials")
 	}
 
-	// 3. Google Project ID
+	// 3. Google Project ID and Web API Key
 	if projectID == "" {
 		lg.Fatal("missing project ID. Use export ECOM_GOOGLE_PROJECT_ID")
 	}
 	lg.Infof("project ID set to %s", projectID)
+	if webAPIKey == "" {
+		lg.Fatal("missing Web API Key. Use export ECOM_GOOGLE_WEB_API_KEY")
+	}
+	lg.Infof("Web API Key set to %s", webAPIKey)
 
 	// 4. Server Port
 	if port == "" {
@@ -352,6 +358,7 @@ func main() {
 
 	// build a Google Firebase App
 	var fbApp *firebase.App
+
 	ctx := context.Background()
 	var opt option.ClientOption
 	if credentials[0] == '/' {
@@ -375,6 +382,28 @@ func main() {
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
 	if err != nil {
 		lg.Fatalf("failed to create root credentials if not exists: %v", err)
+	}
+
+	// SystemInfo
+	si := app.SystemInfo{
+		Version: version,
+		Env: app.SystemEnv{
+			PG: app.PgSystemEnv{
+				PgHost:     pghost,
+				PgPort:     pgport,
+				PgDatabase: pgdatabase,
+				PgUser:     pguser,
+				PgSSLMode:  pgsslmode,
+			},
+			Goog: app.GoogSystemEnv{
+				GoogProjectID: projectID,
+				WebAPIKey:     webAPIKey,
+			},
+			App: app.AppSystemEnv{
+				AppPort:      port,
+				AppRootEmail: rootEmail,
+			},
+		},
 	}
 
 	a := app.App{
@@ -450,26 +479,6 @@ func main() {
 			r.Delete("/", a.Authorization(app.OpPurgeCatalogAssocs, a.PurgeCatalogAssocsHandler()))
 		})
 
-		// SystemInfo
-		si := app.SystemInfo{
-			Version: version,
-			Env: app.SystemEnv{
-				PG: app.PgSystemEnv{
-					PgHost:     pghost,
-					PgPort:     pgport,
-					PgDatabase: pgdatabase,
-					PgUser:     pguser,
-					PgSSLMode:  pgsslmode,
-				},
-				Goog: app.GoogSystemEnv{
-					GoogProjectID: projectID,
-				},
-				App: app.AppSystemEnv{
-					AppPort:      port,
-					AppRootEmail: rootEmail,
-				},
-			},
-		}
 		r.Route("/sysinfo", func(r chi.Router) {
 			r.Get("/", a.SystemInfoHandler(si))
 		})
@@ -477,12 +486,12 @@ func main() {
 
 	// public routes including GET / for Google Kuberenetes default healthcheck
 	r.Group(func(r chi.Router) {
-		// r.Use(middleware.NoCache)
+		r.Use(middleware.NoCache)
 
 		// version info
 		r.Get("/", healthCheckHandler)
 		r.Get("/healthz", healthCheckHandler)
-
+		r.Get("/config", a.ConfigHandler(si.Env.Goog))
 	})
 
 	r.Route("/signin-with-devkey", func(r chi.Router) {
