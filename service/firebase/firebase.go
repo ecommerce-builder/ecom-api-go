@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -37,7 +36,7 @@ type CartItem struct {
 
 // Customer details
 type Customer struct {
-	CustomerUUID string    `json:"customer_uuid"`
+	UUID         string    `json:"customer_uuid"`
 	UID          string    `json:"uid"`
 	Role         string    `json:"role"`
 	Email        string    `json:"email"`
@@ -241,37 +240,23 @@ func (s *Service) EmptyCartItems(ctx context.Context, cartUUID string) (err erro
 func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password string) error {
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "create root if not exists")
 	}
-
-	userRecord, err := authClient.GetUserByEmail(ctx, email)
+	_, err = authClient.GetUserByEmail(ctx, email)
 	if err != nil {
 		if auth.IsUserNotFound(err) {
-			user := (&auth.UserToCreate{}).
-				Email(email).
-				EmailVerified(false).
-				Password(password).
-				DisplayName("Root Superuser").
-				Disabled(false)
-			userRecord, err = authClient.CreateUser(ctx, user)
+			customer, err := s.CreateCustomer(ctx, "root", email, password, "Super", "User")
 			if err != nil {
-				return err
+				return errors.Wrap(err, "create customer for root user failed")
 			}
-			log.Infof("created root superuser email=%s", email)
-
-			// Set the custom claims for the root user
-			err = authClient.SetCustomUserClaims(ctx, userRecord.UID, map[string]interface{}{
-				"role": "root",
-			})
+			_, err = s.GenerateCustomerDevKey(ctx, customer.UUID) 
 			if err != nil {
-				return fmt.Errorf("failed to set custom claims for root user: %v", err)
+				return errors.Wrap(err, "generate customer devkey failed")
 			}
-			log.Info("set custom claims for root superuser role=root")
 			return nil
 		}
 		return err
 	}
-
 	log.Infof("root superuser email=%s already exists", email)
 	return nil
 }
@@ -279,42 +264,20 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 // CreateCustomer creates a new customer
 func (s *Service) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error) {
 	log.Debugf("s.CreateCustomer(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
-
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	user := (&auth.UserToCreate{}).
 		Email(email).
 		EmailVerified(false).
 		Password(password).
 		DisplayName(fmt.Sprintf("%s %s", firstname, lastname)).
 		Disabled(false)
-
 	userRecord, err := authClient.CreateUser(ctx, user)
 	if err != nil {
 		return nil, err
 	}
-
-	payload := struct {
-		UID               string `json:"uid"`
-		Role              string `json:"role"`
-		Email             string `json:"email"`
-		DisplayName       string `json:"display_name"`
-		CreationTimestamp int64  `json:"creation_timestamp"`
-	}{
-		UID:               userRecord.UID,
-		Role:              role,
-		Email:             userRecord.Email,
-		DisplayName:       userRecord.DisplayName,
-		CreationTimestamp: userRecord.UserMetadata.CreationTimestamp,
-	}
-	b, err := json.Marshal(&payload)
-	if err != nil {
-		log.Errorf("json.Marshal failed: %v", err)
-	}
-	log.Debugf("payload marshalled to string %s", b)
 
 	c, err := s.model.CreateCustomer(ctx, userRecord.UID, role, email, firstname, lastname)
 	if err != nil {
@@ -323,15 +286,15 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 
 	// Set the custom claims for this user
 	err = authClient.SetCustomUserClaims(ctx, c.UID, map[string]interface{}{
-		"cuuid": c.CustomerUUID,
+		"cuuid": c.UUID,
 		"role":  role,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("set custom claims for uid=%s customer_uuid=%s role=%s failed: %v", c.UID, c.CustomerUUID, role, err)
+		return nil, fmt.Errorf("set custom claims for uid=%s customer_uuid=%s role=%s failed: %v", c.UID, c.UUID, role, err)
 	}
 
 	ac := Customer{
-		CustomerUUID: c.CustomerUUID,
+		UUID:         c.UUID,
 		UID:          c.UID,
 		Role:         c.Role,
 		Email:        c.Email,
@@ -361,7 +324,7 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	results := make([]*Customer, 0)
 	for _, v := range prs.RSet.([]*postgres.Customer) {
 		c := Customer{
-			CustomerUUID: v.CustomerUUID,
+			UUID:         v.UUID,
 			UID:          v.UID,
 			Role:         v.Role,
 			Email:        v.Email,
@@ -392,7 +355,7 @@ func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*Custom
 	}
 
 	ac := Customer{
-		CustomerUUID: c.CustomerUUID,
+		UUID:         c.UUID,
 		UID:          c.UID,
 		Email:        c.Email,
 		Firstname:    c.Firstname,

@@ -36,7 +36,7 @@ type CartItem struct {
 // Customer details.
 type Customer struct {
 	ID           int
-	CustomerUUID string
+	UUID         string
 	UID          string
 	Role         string
 	Email        string
@@ -336,7 +336,7 @@ func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstnam
 	`
 	c := Customer{}
 	err := m.db.QueryRowContext(ctx, query, uid, role, email, firstname, lastname).Scan(
-		&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+		&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query row context Customer=%v", c)
 	}
@@ -423,7 +423,7 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	customers := make([]*Customer, 0)
 	for rows.Next() {
 		var c Customer
-		err = rows.Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+		err = rows.Scan(&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 		if err != nil {
 			return nil, errors.Wrapf(err, "rows scan Customer=%v", c)
 		}
@@ -446,7 +446,7 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 		WHERE uuid = $1
 	`
 	c := Customer{}
-	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	err := m.db.QueryRowContext(ctx, query, customerUUID).Scan(&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}
@@ -462,7 +462,7 @@ func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*Custome
 		WHERE id = $1
 	`
 	c := Customer{}
-	err := m.db.QueryRowContext(ctx, query, customerID).Scan(&c.ID, &c.CustomerUUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	err := m.db.QueryRowContext(ctx, query, customerID).Scan(&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}

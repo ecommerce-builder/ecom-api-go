@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.31.0 (Sun 19 May 2019)
++ Generate root account includes local `customers` and `customer_devkey` tables.
++ Renamed CustomerUUID field to UUID to match database column.
+
 ## v0.30.0 (Fri 17 May 2019)
 + OpSysConfig (HTTP GET /config) implemented returns Google API Key.
 + Modified OpSystemInfo handler to include Google API Key.
