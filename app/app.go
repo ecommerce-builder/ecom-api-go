@@ -8,6 +8,7 @@ import (
 const (
 	// Admin
 	OpCreateAdmin string = "CreateAdmin"
+	OpListAdmins  string = "ListAdmins"
 
 	// Cart
 	OpCreateCart     string = "CreateCart"

@@ -209,6 +209,35 @@ func NewPgModel(db *sql.DB) *PgModel {
 	}
 }
 
+// GetAllAdmins returns a slice of Customers who are all of role admin
+func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*Customer, error) {
+	query := `
+		SELECT id, uuid, uid, role, email, firstname, lastname, created, modified
+		FROM customers
+		WHERE role = 'admin'
+		ORDER by created DESC
+	`
+	rows, err := m.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx) query=%q", query)
+	}
+	defer rows.Close()
+
+	admins := make([]*Customer, 0, 8)
+	for rows.Next() {
+		var c Customer
+		err := rows.Scan(&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+		if err != nil {
+			return nil, errors.Wrap(err, "scan failed")
+		}
+		admins = append(admins, &c)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows.Err()")
+	}
+	return admins, nil
+}
+
 // CreateCart creates a new shopping cart
 func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 	var cartUUID string

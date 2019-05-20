@@ -147,16 +147,35 @@ func (s *Service) Authenticate(ctx context.Context, jwt string) (*auth.Token, er
 	return token, nil
 }
 
+// GetAdmins returns a list of administrators
+func (s *Service) ListAdmins(ctx context.Context) ([]*Customer, error) {
+	admins, err := s.model.GetAllAdmins(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetAllAdmins(ctx) failed")
+	}
+	adms := make([]*Customer, 0, 8)
+	for _, c := range admins {
+		customer := &Customer{
+			UUID:      c.UUID,
+			UID:       c.UID,
+			Role:      c.Role,
+			Email:     c.Email,
+			Firstname: c.Firstname,
+			Lastname:  c.Lastname,
+			Created:   c.Created,
+			Modified:  c.Modified,
+		}
+		adms = append(adms, customer)
+	}
+	return adms, nil
+}
+
 // CreateCart generates a new random UUID to be used for subseqent cart calls
 func (s *Service) CreateCart(ctx context.Context) (*string, error) {
-	log.Debug("s.CreateCart() started")
-
 	strptr, err := s.model.CreateCart(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debugf("s.CreateCart() returned %s", *strptr)
 	return strptr, nil
 }
 

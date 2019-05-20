@@ -24,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.32.1"
+var version = "v0.33.0"
 
 const maxDbConnectAttempts = 3
 
@@ -426,6 +426,7 @@ func main() {
 
 		r.Route("/admins", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateAdmin, a.CreateAdminHandler()))
+			r.Get("/", a.ListAdminsHandler())
 		})
 
 		// Customer and address management API
