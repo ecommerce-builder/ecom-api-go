@@ -572,6 +572,7 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 	customer = &Customer{
 		UUID:      cust.UUID,
 		UID:       cust.UID,
+		Role:      cust.Role,
 		Email:     cust.Email,
 		Firstname: cust.Firstname,
 		Lastname:  cust.Lastname,

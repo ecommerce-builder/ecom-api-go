@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.31.1 (Mon 20 May 2019)
++ Fix missing role from signin-with-dev-key response.
+
 ## v0.32.0 (Mon 20 May 2019)
 + Remove table name prefixes from UUIDs.
 + Fixes missing CustomerUUID using a SQL join in GetCustomerDevKeyByDevKey.
