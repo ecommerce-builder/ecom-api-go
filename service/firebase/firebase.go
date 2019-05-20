@@ -170,6 +170,28 @@ func (s *Service) ListAdmins(ctx context.Context) ([]*Customer, error) {
 	return adms, nil
 }
 
+// DeleteAdmin deletes an administrator.
+func (s *Service) DeleteAdmin(ctx context.Context, uuid string) error {
+	authClient, err := s.fbApp.Auth(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to firebase auth client")
+	}
+	admin, err := s.model.GetAdmin(ctx, uuid)
+	if err != nil {
+		return errors.Wrapf(err, "get admin failed for uuid=%q", uuid)
+	}
+	if admin.Role != "admin" {
+		return errors.Errorf("customer record with uuid=%q does not have role admin or could not be found", uuid)
+	}
+	if err = s.model.DeleteAdminByUUID(ctx, uuid); err != nil {
+		return errors.Wrapf(err, "delete customer by uuid for uuid=%q failed", uuid)
+	}
+	if err = authClient.DeleteUser(ctx, admin.UID); err != nil {
+		return errors.Wrapf(err, "firebase auth delete user failed for uid=%q", admin.UID)
+	}
+	return nil
+}
+
 // CreateCart generates a new random UUID to be used for subseqent cart calls
 func (s *Service) CreateCart(ctx context.Context) (*string, error) {
 	strptr, err := s.model.CreateCart(ctx)

@@ -9,6 +9,7 @@ const (
 	// Admin
 	OpCreateAdmin string = "CreateAdmin"
 	OpListAdmins  string = "ListAdmins"
+	OpDeleteAdmin string = "DeleteAdmin"
 
 	// Cart
 	OpCreateCart     string = "CreateCart"

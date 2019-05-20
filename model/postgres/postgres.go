@@ -209,6 +209,33 @@ func NewPgModel(db *sql.DB) *PgModel {
 	}
 }
 
+// IsAdmin returns true is the given customer UUID has a role of admin.
+func (m *PgModel) IsAdmin(ctx context.Context, uuid string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM customers WHERE uuid=$1 AND role='admin') AS exists`
+	var exists bool
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&exists)
+	if err != nil {
+		return false, errors.Wrapf(err, "db.QueryRow(ctx, %s)", query)
+	}
+	return exists, nil
+}
+
+// GetAdmin returns a Customer of role admin for the given UUID.
+func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*Customer, error) {
+	query := `
+		SELECT
+			id, uuid, uid, role, email, firstname, lastname, created, modified
+		FROM customers
+		WHERE uuid = $1 AND role='admin'
+	`
+	c := Customer{}
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
+	}
+	return &c, nil
+}
+
 // GetAllAdmins returns a slice of Customers who are all of role admin
 func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*Customer, error) {
 	query := `
@@ -238,6 +265,18 @@ func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*Customer, error) {
 	return admins, nil
 }
 
+
+// DeleteAdminByUUID deletes the administrator from the customers table
+// with the given UUID.
+func (m *PgModel) DeleteAdminByUUID(ctx context.Context, uuid string) error {
+	query := `DELETE FROM customers WHERE uuid = $1 AND role = 'admin'`
+	_, err := m.db.ExecContext(ctx, query, uuid)
+	if err != nil {
+		return errors.Wrapf(err, "exec context query=%q", query)
+	}
+	return nil
+}
+
 // CreateCart creates a new shopping cart
 func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 	var cartUUID string
@@ -253,7 +292,7 @@ func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku string, qty int) (*CartItem, error) {
 	item := CartItem{}
 
-	// check if the item is alreadyd in the cart
+	// check if the item is already in the cart
 	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE uuid=$1 AND sku=$2) AS exists;`
 	var exists bool
 	m.db.QueryRowContext(ctx, query, cartUUID, sku).Scan(&exists)

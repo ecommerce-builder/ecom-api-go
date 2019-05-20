@@ -1,5 +1,8 @@
 # CHANGELOG
-## v0.31.1 (Mon 20 May 2019)
+## v0.34.0 (Mon 20 May 2019)
++ OpDeleteAdmin to remove an administrator from the DB and Firebase.
+
+## v0.33.1 (Mon 20 May 2019)
 + Fix missing role from signin-with-dev-key response.
 
 ## v0.32.0 (Mon 20 May 2019)
