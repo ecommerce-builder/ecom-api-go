@@ -25,7 +25,7 @@ communicate results to external systems.
 
 ### app
 Each API endpoint exposes an Operation. Operations have a unique name
-identifying them, such as `CreateCustomer`, `CreateAddress`, 
+identifying them, such as `CreateCustomer`, `CreateAddress`,
 `AddItemToCart`.
 
 
@@ -43,7 +43,7 @@ POST /carts
 #### AddItemToCart
 Add a single item to a given cart.
 ```
-POST /carts/{cart_uuid}/items
+POST /carts/{uuid}/items
 {
   "sku": "drill",
   "qty": 2
@@ -56,7 +56,7 @@ Update an individual item in a given cart.
 
 ##### Request
 ```
-POST /carts/{cart_uuid}/items/{sku}
+POST /carts/{uuid}/items/{sku}
 {
   "qty": 3
 }
@@ -70,7 +70,7 @@ Delete an individual item from a given cart.
 
 ##### Request
 ```
-DELETE /carts/{cart_uuid}/items/{sku}
+DELETE /carts/{uuid}/items/{sku}
 ```
 ##### Response
 Returns `204 No Content` if succesfully deleted, or `404 Not Found` if the
@@ -80,7 +80,7 @@ item is not in the cart.
 Empties the entire shopping cart of all items.
 ##### Request
 ```
-DELETE /carts/{cart_uuid}/items
+DELETE /carts/{uuid}/items
 ```
 ##### Response
 Returns `204 No Content` if the cart is successfully emptied.
@@ -91,22 +91,22 @@ Returns `204 No Content` if the cart is successfully emptied.
 POST /customers
 
 #### GetCustomer
-GET /customers/{customer_uuid}
+GET /customers/{uuid}
 
 ### Addresses
 
 #### CreateAddress
-POST /customers/{customer_uuid}/addresses
+POST /customers/{uuid}/addresses
 
 #### GetAddress
-GET /addresses/{addr_uuid}
+GET /addresses/{uuid}
 
 #### ListAddresses
-GET /customers/{customer_uuid}/addresses
+GET /customers/{uuid}/addresses
 
 #### UpdateAddress
-PATCH /addresses/{addr_uuid}
+PATCH /addresses/{uuid}
 
 #### DeleteAddress
-DELETE /addresses/{addr_uuid}
+DELETE /addresses/{uuid}
 

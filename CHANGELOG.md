@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.32.0 (Mon 20 May 2019)
++ Remove table name prefixes from UUIDs.
++ Fixes missing CustomerUUID using a SQL join in GetCustomerDevKeyByDevKey.
++ OpSignInWithDevKey now returns both token and customer record.
+
 ## v0.31.0 (Sun 19 May 2019)
 + Generate root account includes local `customers` and `customer_devkey` tables.
 + Renamed CustomerUUID field to UUID to match database column.

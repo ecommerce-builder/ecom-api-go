@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,7 +17,8 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 	}
 
 	type signInResponseBody struct {
-		CustomToken string `json:"custom_token"`
+		CustomToken string             `json:"custom_token"`
+		Customer    *firebase.Customer `json:"customer"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +34,7 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 			return
 		}
 
-		customToken, err := a.Service.SignInWithDevKey(r.Context(), o.Key)
+		customToken, customer, err := a.Service.SignInWithDevKey(r.Context(), o.Key)
 		if err != nil {
 			if err == bcrypt.ErrMismatchedHashAndPassword {
 				w.WriteHeader(http.StatusUnauthorized)
@@ -45,6 +47,7 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 
 		ctRes := signInResponseBody{
 			CustomToken: customToken,
+			Customer:    customer,
 		}
 		w.WriteHeader(http.StatusOK) // 200 Ok
 		json.NewEncoder(w).Encode(ctRes)

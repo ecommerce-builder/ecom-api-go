@@ -35,15 +35,15 @@ type CartItem struct {
 
 // Customer details.
 type Customer struct {
-	ID           int
-	UUID         string
-	UID          string
-	Role         string
-	Email        string
-	Firstname    string
-	Lastname     string
-	Created      time.Time
-	Modified     time.Time
+	ID        int
+	UUID      string
+	UID       string
+	Role      string
+	Email     string
+	Firstname string
+	Lastname  string
+	Created   time.Time
+	Modified  time.Time
 }
 
 // CustomerDevKey customer developer keys.
@@ -692,12 +692,15 @@ func (m *PgModel) GetCustomerDevKey(ctx context.Context, uuid string) (*Customer
 // GetCustomerDevKeyByDevKey retrieves a given Developer Key record.
 func (m *PgModel) GetCustomerDevKeyByDevKey(ctx context.Context, key string) (*CustomerDevKey, error) {
 	query := `
-		SELECT id, uuid, key, hash, customer_id, created, modified
-		FROM customers_devkeys
+		SELECT
+			A.id as id, A.uuid as uuid, key, hash, customer_id,
+			C.uuid as customer_uuid, A.created as created, A.modified as modified
+		FROM customers_devkeys AS A
+		INNER JOIN customers AS C ON A.customer_id = C.id
 		WHERE key = $1
 	`
 	cak := CustomerDevKey{}
-	err := m.db.QueryRowContext(ctx, query, key).Scan(&cak.ID, &cak.UUID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.Created, &cak.Modified)
+	err := m.db.QueryRowContext(ctx, query, key).Scan(&cak.ID, &cak.UUID, &cak.Key, &cak.Hash, &cak.CustomerID, &cak.CustomerUUID, &cak.Created, &cak.Modified)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err

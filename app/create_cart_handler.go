@@ -15,7 +15,7 @@ func (a *App) CreateCartHandler() http.HandlerFunc {
 		log.Debug("CreateCartHandler started")
 
 		var cart struct {
-			CartUUID string `json:"cart_uuid"`
+			UUID string `json:"uuid"`
 		}
 
 		uuid, err := a.Service.CreateCart(r.Context())
@@ -25,7 +25,7 @@ func (a *App) CreateCartHandler() http.HandlerFunc {
 		}
 
 		log.Debugf("a.Service.CreateCart() returned %s", *uuid)
-		cart.CartUUID = *uuid
+		cart.UUID = *uuid
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(cart)
 	}
