@@ -32,9 +32,9 @@ func (app *App) GetCatalogHandler() http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		err = json.NewEncoder(w).Encode(tree)
-		if err != nil {
+		if err = json.NewEncoder(w).Encode(tree); err != nil {
 			fmt.Fprintf(os.Stderr, "%+v", err)
+			return
 		}
 	}
 }

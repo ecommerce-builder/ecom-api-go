@@ -24,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.34.0"
+var version = "v0.34.1"
 
 const maxDbConnectAttempts = 3
 

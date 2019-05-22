@@ -265,7 +265,6 @@ func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*Customer, error) {
 	return admins, nil
 }
 
-
 // DeleteAdminByUUID deletes the administrator from the customers table
 // with the given UUID.
 func (m *PgModel) DeleteAdminByUUID(ctx context.Context, uuid string) error {
@@ -905,8 +904,12 @@ func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*nestedset.Nest
 	if err != nil {
 		return errors.Wrap(err, "db.BeginTx")
 	}
-
-	query := `
+	query := "DELETE FROM catalog"
+	if _, err = tx.ExecContext(ctx, query); err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "model: delete catalog query=%q", query)
+	}
+	query = `
 		INSERT INTO catalog (
 			segment, path, name, lft, rgt, depth, created, modified
 		) VALUES (
@@ -919,16 +922,13 @@ func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*nestedset.Nest
 		return errors.Wrapf(err, "tx prepare for query=%q", query)
 	}
 	defer stmt.Close()
-
 	for _, n := range ns {
 		if _, err := stmt.ExecContext(ctx, n.Segment, n.Path, n.Name, n.Lft, n.Rgt, n.Depth); err != nil {
 			tx.Rollback() // return an error too, we may want to wrap them
 			return errors.Wrapf(err, "stmt exec segment=%q path=%q name=%q lft=%d rgt=%d depth=%d", n.Segment, n.Path, n.Name, n.Lft, n.Rgt, n.Depth)
 		}
 	}
-
-	err = tx.Commit()
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		return errors.Wrap(err, "tx.Commit")
 	}
 	return nil
@@ -1038,7 +1038,7 @@ func (m *PgModel) CreateCatalogProductAssoc(ctx context.Context, path, sku strin
 // BatchCreateCatalogProductAssocs inserts multiple catalog product
 // associations using a transaction.
 func (m *PgModel) BatchCreateCatalogProductAssocs(ctx context.Context, cpas map[string][]string) error {
-	tx, err := m.db.Begin()
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -1047,7 +1047,7 @@ func (m *PgModel) BatchCreateCatalogProductAssocs(ctx context.Context, cpas map[
 	_, err = tx.ExecContext(ctx, query)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "model: delete catalog products query=%q", query)
+		return errors.Wrapf(err, "model: delete catalog_products query=%q", query)
 	}
 
 	query = `

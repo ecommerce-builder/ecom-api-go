@@ -791,8 +791,7 @@ func (s *Service) UpdateCatalog(ctx context.Context, root *nestedset.Node) error
 	root.GenerateNestedSet(1, 0, "")
 	ns := make([]*nestedset.NestedSetNode, 0, 128)
 	root.NestedSet(&ns)
-	err := s.model.BatchCreateNestedSet(ctx, ns)
-	if err != nil {
+	if err := s.model.BatchCreateNestedSet(ctx, ns); err != nil {
 		return errors.Wrap(err, "service: replace catalog")
 	}
 	return nil

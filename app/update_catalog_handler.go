@@ -10,9 +10,8 @@ import (
 // UpdateCatalogHandler creates an HTTP handler that updates the catalog.
 func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		catalog := nestedset.Node{}
-		err := json.NewDecoder(r.Body).Decode(&catalog)
-		if err != nil {
+		cats := nestedset.Node{}
+		if err := json.NewDecoder(r.Body).Decode(&cats); err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
 				Code    int    `json:"code"`
@@ -24,7 +23,10 @@ func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		a.Service.UpdateCatalog(r.Context(), &catalog)
+		if err := a.Service.UpdateCatalog(r.Context(), &cats); err != nil {
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
+		}
 		w.Header().Del("Content-Type")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}

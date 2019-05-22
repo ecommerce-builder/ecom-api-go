@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.34.1 (Wed 22 May 2019)
++ Fixes OpUpdateCatalog to batch update the catalog table.
++ Code style tidy.
+
 ## v0.34.0 (Mon 20 May 2019)
 + OpDeleteAdmin to remove an administrator from the DB and Firebase.
 
