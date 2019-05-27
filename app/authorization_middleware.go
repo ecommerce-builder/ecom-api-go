@@ -52,16 +52,20 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
 		// Operations that don't require any special authorization
-		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem, OpDeleteCartItem, OpEmptyCartItems,
-			OpGetCatalog, OpSignInWithDevKey, OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs:
+		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem,
+			OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey,
+			OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs,
+			OpGetTierPricing, OpListPricingBySKU, OpListPricingByTier:
 			next.ServeHTTP(w, r)
 			return
-		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct, OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo, OpUpdateCatalog, OpPurgeCatalog:
+		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
+			OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo,
+			OpUpdateCatalog, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return
 			}
-			unauthorized(w)
+			w.WriteHeader(http.StatusForbidden) // 403 Forbidden
 			return
 		case OpCreateCustomer:
 			// Only anonymous users can create a new customer account

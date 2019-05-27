@@ -1,4 +1,13 @@
 # CHANGELOG
+## v0.35.0 (Mon 27 May 2019)
++ Operation constants all prefixed with `Op`.
++ `OpGetTierPricing` GET /products/:sku/tiers/:ref/pricing
++ `OpListPricingBySKU` GET /products/:sku/pricing
++ `OpListPricingByTier` GET /products/tiers/:ref/pricing
++ `OpUpdateTierPricing` PUT /products/:sku/tiers/:ref/pricing
++ `OpDeleteTierPricing` DELETE /products/:sku/tiers/:ref/pricing
++ Operations requiring `RoleAdmin` return 403 Forbidden if `admin` is not passed in claim.
+
 ## v0.34.1 (Wed 22 May 2019)
 + Fixes OpUpdateCatalog to batch update the catalog table.
 + Code style tidy.

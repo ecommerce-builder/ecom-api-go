@@ -24,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.34.1"
+var version = "v0.35.0"
 
 const maxDbConnectAttempts = 3
 
@@ -442,6 +442,12 @@ func main() {
 			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
 		})
 
+		r.Route("/products/{sku}/tiers/{ref}/pricing", func(r chi.Router) {
+			r.Put("/", a.Authorization(app.OpUpdateTierPricing, a.UpdateTierPricingHandler()))
+			r.Get("/", a.Authorization(app.OpGetTierPricing, a.GetTierPricingHandler()))
+			r.Delete("/", a.Authorization(app.OpDeleteTierPricing, a.DeleteTierPricingHandler()))
+		})
+
 		r.Route("/products", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateProduct, a.CreateProductHandler()))
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
@@ -449,6 +455,9 @@ func main() {
 			r.Head("/{sku}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
 			r.Put("/{sku}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
 			r.Delete("/{sku}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
+
+			r.Get("/{sku}/pricing", a.Authorization(app.OpListPricingBySKU, a.ListPricingBySKUHandler()))
+			r.Get("/tiers/{ref}/pricing", a.Authorization(app.OpListPricingByTier, a.ListPricingByTierHandler()))
 		})
 
 		r.Route("/devkeys", func(r chi.Router) {
