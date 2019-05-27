@@ -133,7 +133,7 @@ func NewService(model *postgres.PgModel, fbApp *firebase.App) *Service {
 	return &Service{model, fbApp}
 }
 
-// Auth accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if
+// Authenticate accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if
 func (s *Service) Authenticate(ctx context.Context, jwt string) (*auth.Token, error) {
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
@@ -147,7 +147,7 @@ func (s *Service) Authenticate(ctx context.Context, jwt string) (*auth.Token, er
 	return token, nil
 }
 
-// GetAdmins returns a list of administrators
+// ListAdmins returns a list of administrators
 func (s *Service) ListAdmins(ctx context.Context) ([]*Customer, error) {
 	admins, err := s.model.GetAllAdmins(ctx)
 	if err != nil {
@@ -407,13 +407,15 @@ func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*Custom
 	return &ac, nil
 }
 
+// GetCustomerDevKey returns a CustomerDevKey for the customer with the given UUID.
 func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error) {
 	ak, err := s.model.GetCustomerDevKey(ctx, uuid)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			return nil, err
 		}
+		return nil, err
 	}
-
 	return &CustomerDevKey{
 		UUID:         ak.UUID,
 		Key:          ak.Key,
@@ -488,7 +490,7 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 		if err == sql.ErrNoRows {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "get product %q failed", sku)
+		return nil, errors.Wrapf(err, "service: get product %q failed", sku)
 	}
 	return &Product{
 		SKU:  p.SKU,
@@ -734,7 +736,7 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 	return token, customer, nil
 }
 
-// ListCustomersDevAPIKeys gets all API Keys for a customer.
+// ListCustomersDevKeys gets all API Keys for a customer.
 func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*CustomerDevKey, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
 	if err != nil {
@@ -759,7 +761,7 @@ func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*Cus
 	return apiKeys, nil
 }
 
-// GenerateCustomerAPIKey creates a new API Key for a customer
+// GenerateCustomerDevKey creates a new API Key for a customer
 func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error) {
 	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
 	if err != nil {
@@ -844,6 +846,7 @@ func (s *Service) GetAddress(ctx context.Context, uuid string) (*Address, error)
 	return &aa, nil
 }
 
+// GetAddressOwner returns the Customer that owns the address with the given UUID.
 func (s *Service) GetAddressOwner(ctx context.Context, uuid string) (*string, error) {
 	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, uuid)
 	if err != nil {
@@ -1172,4 +1175,135 @@ func (s *Service) DeleteCatalogAssocs(ctx context.Context) (affected int64, err 
 		return 0, errors.Wrapf(err, "service: delete catalog assocs")
 	}
 	return n, nil
+}
+
+// Image represents a product image.
+type Image struct {
+	UUID     string    `json:"uuid"`
+	SKU      string    `json:"sku"`
+	Path     string    `json:"path"`
+	GSURL    string    `json:"gsurl"`
+	Width    uint      `json:"width"`
+	Height   uint      `json:"height"`
+	Size     uint      `json:"size"`
+	Created  time.Time `json:"created"`
+	Modified time.Time `json:"modified"`
+}
+
+// CreateImageEntry creates a new image entry for a product with the given SKU.
+func (s *Service) CreateImageEntry(ctx context.Context, sku, path string) (*Image, error) {
+	pc := postgres.CreateProductImage{
+		SKU:   sku,
+		W:     99999999,
+		H:     99999999,
+		Path:  path,
+		GSURL: fmt.Sprintf("%s%s", "gs://", path),
+		Typ:   "image/jpeg",
+		Ori:   true,
+		Pri:   10,
+		Size:  0,
+		Q:     100,
+	}
+	pi, err := s.model.CreateImageEntry(ctx, &pc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "service: create image sku=%q, path=%q, entry failed", sku, path)
+	}
+	image := Image{
+		UUID:     pi.UUID,
+		SKU:      pi.SKU,
+		Path:     pi.Path,
+		GSURL:    pi.GSURL,
+		Width:    pi.W,
+		Height:   pi.H,
+		Size:     pi.Size,
+		Created:  pi.Created,
+		Modified: pi.Modified,
+	}
+	return &image, nil
+}
+
+// ImageUUIDExists returns true if the image with the given UUID
+// exists in the database. Note: it does not check if it exists
+// in Google storage.
+func (s *Service) ImageUUIDExists(ctx context.Context, uuid string) (bool, error) {
+	exists, err := s.model.ImageUUIDExists(ctx, uuid)
+	if err != nil {
+		return false, errors.Wrapf(err, "service: ImageUUIDExists(ctx, %q) failed", uuid)
+	}
+	return exists, nil
+}
+
+// ImagePathExists returns true if the image with the given path
+// exists in the database. Note: it does not check if it exists
+// in Google storage.
+func (s *Service) ImagePathExists(ctx context.Context, path string) (bool, error) {
+	exists, err := s.model.ImagePathExists(ctx, path)
+	if err != nil {
+		return false, errors.Wrapf(err, "service: ImagePathExists(ctx, %q) failed", path)
+	}
+	return exists, nil
+}
+
+// GetImage returns an image by the given UUID.
+func (s *Service) GetImage(ctx context.Context, uuid string) (*Image, error) {
+	pi, err := s.model.GetProductImageByUUID(ctx, uuid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, errors.Wrapf(err, "service: GetProductImageByUUID(ctx, %q) failed", uuid)
+	}
+	image := Image{
+		UUID:     pi.UUID,
+		SKU:      pi.SKU,
+		Path:     pi.Path,
+		GSURL:    pi.GSURL,
+		Width:    pi.W,
+		Height:   pi.H,
+		Size:     pi.Size,
+		Created:  pi.Created,
+		Modified: pi.Modified,
+	}
+	return &image, nil
+}
+
+// ListProductImages return a slice of Images.
+func (s *Service) ListProductImages(ctx context.Context, sku string) ([]*Image, error) {
+	pilist, err := s.model.GetImageBySKU(ctx, sku)
+	if err != nil {
+		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q) failed", sku)
+	}
+	images := make([]*Image, 0, 8)
+	for _, pi := range pilist {
+		image := Image{
+			UUID:     pi.UUID,
+			SKU:      pi.SKU,
+			Path:     pi.Path,
+			GSURL:    pi.GSURL,
+			Width:    pi.W,
+			Height:   pi.H,
+			Size:     pi.Size,
+			Created:  pi.Created,
+			Modified: pi.Modified,
+		}
+		images = append(images, &image)
+	}
+	return images, nil
+}
+
+// DeleteImage delete the image with the given UUID.
+func (s *Service) DeleteImage(ctx context.Context, uuid string) error {
+	if _, err := s.model.DeleteProductImage(ctx, uuid); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteAllProductImages deletes all images associated to the product
+// with the given SKU.
+func (s *Service) DeleteAllProductImages(ctx context.Context, sku string) error {
+	if _, err := s.model.DeleteAllProductImages(ctx, sku); err != nil {
+		return errors.Wrapf(err, "service: DeleteAllProductImages(ctx, %q)", sku)
+	}
+	return nil
 }

@@ -55,12 +55,14 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem,
 			OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey,
 			OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs,
-			OpGetTierPricing, OpListPricingBySKU, OpListPricingByTier:
+			OpGetTierPricing, OpListPricingBySKU, OpListPricingByTier, OpGetImage,
+			OpListProductImages:
 			next.ServeHTTP(w, r)
 			return
 		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
 			OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo,
-			OpUpdateCatalog, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing:
+			OpUpdateCatalog, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
+			OpAddImage, OpDeleteImage, OpDeleteAllProductImages:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return

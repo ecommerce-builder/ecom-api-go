@@ -24,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.35.0"
+var version = "v0.36.0"
 
 const maxDbConnectAttempts = 3
 
@@ -440,6 +440,17 @@ func main() {
 			r.Post("/{cuuid}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
 			r.Get("/{cuuid}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
 			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
+		})
+
+		r.Route("/products/{sku}/images", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpAddImage, a.AddImageHandler()))
+			r.Get("/", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
+			r.Delete("/", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
+		})
+
+		r.Route("/images", func(r chi.Router) {
+			r.Get("/{uuid}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
+			r.Delete("/{uuid}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
 		})
 
 		r.Route("/products/{sku}/tiers/{ref}/pricing", func(r chi.Router) {

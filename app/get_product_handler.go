@@ -20,7 +20,7 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			fmt.Fprintf(os.Stderr, "service GetProduct(ctx, %s) error: %+v", sku, err)
+			fmt.Fprintf(os.Stderr, "app: GetProduct(ctx, %q) error: %+v", sku, err)
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

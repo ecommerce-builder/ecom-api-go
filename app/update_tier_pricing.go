@@ -13,11 +13,9 @@ import (
 // UpdateTierPricingHandler creates a handler function that updates
 // as tier price for a product of SKU with tier ref.
 func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
-
 	type updateTierPricingRequest struct {
 		UnitPrice float64 `json:"unit_price"`
 	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		sku := chi.URLParam(r, "sku")
 		ref := chi.URLParam(r, "ref")
@@ -33,7 +31,6 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 			})
 			return
 		}
-
 		if ref != "default" {
 			w.WriteHeader(http.StatusConflict)
 			return

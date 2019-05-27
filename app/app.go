@@ -44,6 +44,13 @@ const (
 	OpUpdateTierPricing string = "OpUpdateTierPricing"
 	OpDeleteTierPricing string = "OpDeleteTierPricing"
 
+	// Image
+	OpAddImage          string = "OpAddImage"
+	OpGetImage          string = "OpGetImage"
+	OpListProductImages string = "OpListProductImages"
+	OpDeleteImage       string = "OpDeleteImage"
+	OpDeleteAllProductImages string = "OppDeleteAllProductImages"
+
 	// Developer Keys
 	OpGenerateCustomerDevKey string = "GenerateCustomerDevKey"
 	OpListCustomersDevKeys   string = "ListCustomersDevKeys"

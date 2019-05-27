@@ -1,4 +1,11 @@
 # CHANGELOG
+## v0.36.0 (Mon 27 May 2019)
++ `OpAddImage` POST /products/:sku/images
++ `OpGetImage` GET /images/:uuid
++ `OpListProductImages` GET /products/:sku/images
++ `OpDeleteImage` DELETE /images/:uuid
++ `OpDeleteAllProductImages` DELETE /products/:sku/images
+
 ## v0.35.0 (Mon 27 May 2019)
 + Operation constants all prefixed with `Op`.
 + `OpGetTierPricing` GET /products/:sku/tiers/:ref/pricing
