@@ -99,7 +99,7 @@ type Address struct {
 
 type ProductUpdate struct {
 	EAN  string      `json:"ean" yaml:"ean"`
-	Path  string     `json:"path" yaml:"path"`
+	Path string      `json:"path" yaml:"path"`
 	Name string      `json:"name" yaml:"name"`
 	Data ProductData `json:"data" yaml:"data"`
 }
@@ -120,13 +120,15 @@ type ProductData struct {
 
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	SKU      string      `json:"sku" yaml:"sku,omitempty"`
-	EAN      string      `json:"ean" yaml:"ean"`
-	Path     string      `json:"path" yaml:"path"`
-	Name     string      `json:"name" yaml:"name"`
-	Data     ProductData `json:"data" yaml:"data"`
-	Created  time.Time   `json:"created,omitempty"`
-	Modified time.Time   `json:"modified,omitempty"`
+	SKU      string                     `json:"sku" yaml:"sku,omitempty"`
+	EAN      string                     `json:"ean" yaml:"ean"`
+	Path     string                     `json:"path" yaml:"path"`
+	Name     string                     `json:"name" yaml:"name"`
+	Data     ProductData                `json:"data" yaml:"data"`
+	Images   []*Image                   `json:"images" yaml:"images"`
+	Pricing  map[string]*ProductPricing `json:"pricing" yaml:"pricing"`
+	Created  time.Time                  `json:"created,omitempty"`
+	Modified time.Time                  `json:"modified,omitempty"`
 }
 
 func NewService(model *postgres.PgModel, fbApp *firebase.App) *Service {
@@ -429,7 +431,7 @@ func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*Customer
 func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Product, error) {
 	pu := &postgres.ProductUpdate{
 		EAN:  pc.EAN,
-		Path:  pc.Path,
+		Path: pc.Path,
 		Name: pc.Name,
 		Data: postgres.ProductData{
 			Summary: pc.Data.Summary,
@@ -487,10 +489,14 @@ func (s *Service) ProductsExist(ctx context.Context, skus []string) (exists, mis
 func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) {
 	p, err := s.model.GetProduct(ctx, sku)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == postgres.ErrProductNotFound {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "service: get product %q failed", sku)
+		return nil, errors.Wrapf(err, "model: GetProduct(ctx, %q) failed", sku)
+	}
+	images, err := s.ListProductImages(ctx, sku)
+	if err != nil {
+		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", sku)
 	}
 	return &Product{
 		SKU:  p.SKU,
@@ -502,6 +508,7 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 			Desc:    p.Data.Desc,
 			Spec:    p.Data.Spec,
 		},
+		Images:   images,
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
@@ -546,7 +553,7 @@ func (s *Service) ProductExists(ctx context.Context, sku string) (bool, error) {
 func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	update := &postgres.ProductUpdate{
 		EAN:  pu.EAN,
-		Path:  pu.Path,
+		Path: pu.Path,
 		Name: pu.Name,
 		Data: postgres.ProductData{
 			Summary: pu.Data.Summary,
@@ -690,7 +697,7 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 			// if no key matches create a dummy apiKey struct
 			// to ensure the compare hash happens. This mitigates against
 			// timing attacks.
-			ak = &postgres.CustomerDevKey{
+			ak = &postgres.CustomerDevKeyFull{
 				Key:  "none",
 				Hash: "$2a$14$dRgjB9nBHoCs5txdVgN2EeVopE8rfZ7gLJNpLxw9GYq.u53FD00ny", // "nomatch"
 			}
@@ -704,9 +711,9 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 		return "", nil, errors.Wrap(err, "bcrypt.CompareHashAndPassword([]byte(ak.Hash), []byte(ak.Key))")
 	}
 
-	cust, err := s.model.GetCustomerByID(ctx, ak.CustomerID)
+	cust, err := s.model.GetCustomerByUUID(ctx, ak.CustomerUUID)
 	if err != nil {
-		return "", nil, errors.Wrapf(err, "s.model.GetCustomerByID(ctx, customerID=%q)", ak.CustomerID)
+		return "", nil, errors.Wrapf(err, "s.model.GetCustomerByUUID(ctx, customerID=%q)", ak.CustomerUUID)
 	}
 
 	authClient, err := s.fbApp.Auth(ctx)
@@ -743,18 +750,18 @@ func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*Cus
 		return nil, err
 	}
 
-	apks, err := s.model.GetCustomerDevKeys(ctx, customerID)
+	rows, err := s.model.GetCustomerDevKeys(ctx, customerID)
 	if err != nil {
 		return nil, err
 	}
-	apiKeys := make([]*CustomerDevKey, 0, len(apks))
-	for _, ak := range apks {
+	apiKeys := make([]*CustomerDevKey, 0, len(rows))
+	for _, row := range rows {
 		c := CustomerDevKey{
-			UUID:         ak.UUID,
-			Key:          ak.Key,
+			UUID:         row.UUID,
+			Key:          row.Key,
 			CustomerUUID: uuid,
-			Created:      ak.Created,
-			Modified:     ak.Modified,
+			Created:      row.Created,
+			Modified:     row.Modified,
 		}
 		apiKeys = append(apiKeys, &c)
 	}
@@ -1269,7 +1276,7 @@ func (s *Service) GetImage(ctx context.Context, uuid string) (*Image, error) {
 
 // ListProductImages return a slice of Images.
 func (s *Service) ListProductImages(ctx context.Context, sku string) ([]*Image, error) {
-	pilist, err := s.model.GetImageBySKU(ctx, sku)
+	pilist, err := s.model.GetImagesBySKU(ctx, sku)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q) failed", sku)
 	}
