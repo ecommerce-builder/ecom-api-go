@@ -63,7 +63,7 @@ type Product struct {
 	UUID     string
 	SKU      string
 	EAN      string
-	URL      string
+	Path     string
 	Name     string
 	Data     ProductData
 	Created  time.Time
@@ -72,7 +72,7 @@ type Product struct {
 
 type ProductUpdate struct {
 	EAN  string      `json:"ean"`
-	URL  string      `json:"url"`
+	Path string      `json:"path"`
 	Name string      `json:"name"`
 	Data ProductData `json:"data"`
 }
@@ -559,14 +559,14 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 func (m *PgModel) CreateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	query := `
 		INSERT INTO products (
-			sku, ean, url, name, data, created, modified
+			sku, ean, path, name, data, created, modified
 		) VALUES (
 			$1, $2, $3, $4, $5, NOW(), NOW()
 		) RETURNING
-			id, uuid, sku, ean, url, name, data, created, modified
+			id, uuid, sku, ean, path, name, data, created, modified
 	`
 	p := Product{}
-	err := m.db.QueryRowContext(ctx, query, sku, pu.EAN, pu.URL, pu.Name, pu.Data).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
+	err := m.db.QueryRowContext(ctx, query, sku, pu.EAN, pu.Path, pu.Name, pu.Data).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query scan context sku=%q, query=%q", sku, query)
 	}
@@ -576,12 +576,12 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku string, pu *ProductUpda
 // GetProduct returns the product by SKU.
 func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) {
 	query := `
-		SELECT id, uuid, sku, ean, url, name, data, created, modified
+		SELECT id, uuid, sku, ean, path, name, data, created, modified
 		FROM products
 		WHERE sku = $1
 	`
 	p := Product{}
-	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
+	err := m.db.QueryRowContext(ctx, query, sku).Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err
@@ -594,7 +594,7 @@ func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) 
 // GetProducts returns a list of all products in the products table.
 func (m *PgModel) GetProducts(ctx context.Context) ([]*Product, error) {
 	query := `
-		SELECT id, uuid, sku, ean, url, name, data, created, modified
+		SELECT id, uuid, sku, ean, path, name, data, created, modified
 		FROM products
 	`
 	rows, err := m.db.QueryContext(ctx, query)
@@ -606,7 +606,7 @@ func (m *PgModel) GetProducts(ctx context.Context) ([]*Product, error) {
 	products := make([]*Product, 0, 256)
 	for rows.Next() {
 		var p Product
-		err := rows.Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
+		err := rows.Scan(&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Data, &p.Created, &p.Modified)
 		if err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
@@ -666,14 +666,14 @@ func (m *PgModel) ProductExists(ctx context.Context, sku string) (bool, error) {
 func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	query := `
 		UPDATE products
-		SET ean = $1, url = $2, name = $3, data = $4, modified = NOW()
+		SET ean = $1, path = $2, name = $3, data = $4, modified = NOW()
 		WHERE sku = $5
 		RETURNING
-			id, uuid, sku, ean, url, name, data, created, modified
+			id, uuid, sku, ean, path, name, data, created, modified
 	`
 	p := Product{}
-	err := m.db.QueryRowContext(ctx, query, pu.EAN, pu.URL, pu.Name, pu.Data, sku).Scan(
-		&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.URL, &p.Name, &p.Data, &p.Created, &p.Modified)
+	err := m.db.QueryRowContext(ctx, query, pu.EAN, pu.Path, pu.Name, pu.Data, sku).Scan(
+		&p.ID, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query row context query=%q", query)
 	}

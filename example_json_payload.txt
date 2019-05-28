@@ -1,6 +1,6 @@
 [
   {
-    "url": "pinhole-cameras/tiny-pinhole",
+    "path": "pinhole-cameras/tiny-pinhole",
     "products": [
       { "sku": "PH701" },
       { "sku": "GTIP2PHWFGB" },
@@ -8,7 +8,7 @@
     ]
   },
   {
-    "url": "pinhole-cameras/wireless",
+    "path": "pinhole-cameras/wireless",
     "products": [
             {
                "sku": "GTIP2PHWFGB"

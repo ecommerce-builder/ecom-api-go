@@ -99,7 +99,7 @@ type Address struct {
 
 type ProductUpdate struct {
 	EAN  string      `json:"ean" yaml:"ean"`
-	URL  string      `json:"url" yaml:"url"`
+	Path  string     `json:"path" yaml:"path"`
 	Name string      `json:"name" yaml:"name"`
 	Data ProductData `json:"data" yaml:"data"`
 }
@@ -107,7 +107,7 @@ type ProductUpdate struct {
 type ProductCreate struct {
 	SKU  string      `json:"sku" yaml:"sku"`
 	EAN  string      `json:"ean" yaml:"ean"`
-	URL  string      `json:"url" yaml:"url"`
+	Path string      `json:"path" yaml:"path"`
 	Name string      `json:"name" yaml:"name"`
 	Data ProductData `json:"data" yaml:"data"`
 }
@@ -122,7 +122,7 @@ type ProductData struct {
 type Product struct {
 	SKU      string      `json:"sku" yaml:"sku,omitempty"`
 	EAN      string      `json:"ean" yaml:"ean"`
-	URL      string      `json:"url" yaml:"url"`
+	Path     string      `json:"path" yaml:"path"`
 	Name     string      `json:"name" yaml:"name"`
 	Data     ProductData `json:"data" yaml:"data"`
 	Created  time.Time   `json:"created,omitempty"`
@@ -429,7 +429,7 @@ func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*Customer
 func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Product, error) {
 	pu := &postgres.ProductUpdate{
 		EAN:  pc.EAN,
-		URL:  pc.URL,
+		Path:  pc.Path,
 		Name: pc.Name,
 		Data: postgres.ProductData{
 			Summary: pc.Data.Summary,
@@ -444,7 +444,7 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Produc
 	return &Product{
 		SKU:  p.SKU,
 		EAN:  p.EAN,
-		URL:  p.URL,
+		Path: p.Path,
 		Name: p.Name,
 		Data: ProductData{
 			Summary: p.Data.Summary,
@@ -495,7 +495,7 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 	return &Product{
 		SKU:  p.SKU,
 		EAN:  p.EAN,
-		URL:  p.URL,
+		Path: p.Path,
 		Name: p.Name,
 		Data: ProductData{
 			Summary: p.Data.Summary,
@@ -523,7 +523,7 @@ func (s *Service) ListProducts(ctx context.Context) ([]string, error) {
 func marshalProduct(a *Product, m *postgres.Product) {
 	a.SKU = m.SKU
 	a.EAN = m.EAN
-	a.URL = m.URL
+	a.Path = m.Path
 	a.Name = m.Name
 	a.Data.Summary = m.Data.Summary
 	a.Data.Desc = m.Data.Desc
@@ -546,7 +546,7 @@ func (s *Service) ProductExists(ctx context.Context, sku string) (bool, error) {
 func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
 	update := &postgres.ProductUpdate{
 		EAN:  pu.EAN,
-		URL:  pu.URL,
+		Path:  pu.Path,
 		Name: pu.Name,
 		Data: postgres.ProductData{
 			Summary: pu.Data.Summary,

@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.37.1 (Tue 28 May 2019)
++ Product `url` becomes `path`.
+
 ## v0.37.0 (Tue 28 May 2019)
 + Not Implemented routes for pricing tiers
 + `OpCreateTier` POST /tiers
