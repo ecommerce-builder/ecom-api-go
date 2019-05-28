@@ -22,6 +22,7 @@ func (a *App) ListPricingBySKUHandler() http.HandlerFunc {
 				return
 			}
 			fmt.Fprintf(os.Stderr, "service ListPricingBySKU(ctx, %s) error: %+v", sku, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

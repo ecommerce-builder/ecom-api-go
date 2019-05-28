@@ -18,7 +18,6 @@ func (app *App) GetCatalogHandler() http.HandlerFunc {
 			w.Write([]byte("{}"))
 			return
 		}
-
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service GetCatalog(ctx) error: %+v", errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
@@ -34,6 +33,7 @@ func (app *App) GetCatalogHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK) // 200 OK
 		if err = json.NewEncoder(w).Encode(tree); err != nil {
 			fmt.Fprintf(os.Stderr, "%+v", err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 	}

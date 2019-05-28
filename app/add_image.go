@@ -19,11 +19,11 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		sku := chi.URLParam(r, "sku")
 		exists, err := a.Service.ProductExists(ctx, sku)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		if !exists {
-			w.WriteHeader(http.StatusConflict)
+			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			json.NewEncoder(w).Encode(struct {
 				Code    int    `json:"code"`
 				Message string `json:"message"`

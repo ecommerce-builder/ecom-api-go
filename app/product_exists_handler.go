@@ -16,10 +16,11 @@ func (app *App) ProductExistsHandler() http.HandlerFunc {
 		exists, err := app.Service.ProductExists(r.Context(), sku)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "product exists failed for sku=%q: %v", sku, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		if !exists {
-			w.WriteHeader(http.StatusNotFound)
+			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return
 		}
 		w.WriteHeader(http.StatusNoContent) // 204 No Content

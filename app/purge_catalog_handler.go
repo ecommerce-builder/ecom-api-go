@@ -17,7 +17,7 @@ func (a *App) PurgeCatalogHandler() http.HandlerFunc {
 		has, err := a.Service.HasCatalogProductAssocs(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		if has {
@@ -35,6 +35,7 @@ func (a *App) PurgeCatalogHandler() http.HandlerFunc {
 		err = a.Service.DeleteCatalog(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service DeleteCatalog(ctx) error: %v", errors.Cause(err))
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.Header().Del("Content-Type")

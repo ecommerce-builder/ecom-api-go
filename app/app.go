@@ -37,6 +37,13 @@ const (
 	OpUpdateProduct string = "OpUpdateProduct"
 	OpDeleteProduct string = "OpDeleteProduct"
 
+	// Pricing Tiers
+	OpCreateTier string = "OpCreateTier"
+	OpGetTier    string = "OpGetTier"
+	OpListTiers  string = "OpListTiers"
+	OpUpdateTier string = "OpUpdateTier"
+	OpDeleteTier string = "OpDeleteTier"
+
 	// Pricing
 	OpGetTierPricing    string = "OpGetTierPricing"
 	OpListPricingBySKU  string = "OpListPricingBySKU"
@@ -45,10 +52,10 @@ const (
 	OpDeleteTierPricing string = "OpDeleteTierPricing"
 
 	// Image
-	OpAddImage          string = "OpAddImage"
-	OpGetImage          string = "OpGetImage"
-	OpListProductImages string = "OpListProductImages"
-	OpDeleteImage       string = "OpDeleteImage"
+	OpAddImage               string = "OpAddImage"
+	OpGetImage               string = "OpGetImage"
+	OpListProductImages      string = "OpListProductImages"
+	OpDeleteImage            string = "OpDeleteImage"
 	OpDeleteAllProductImages string = "OppDeleteAllProductImages"
 
 	// Developer Keys

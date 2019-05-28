@@ -23,6 +23,7 @@ func (a *App) GetTierPricingHandler() http.HandlerFunc {
 				return
 			}
 			fmt.Fprintf(os.Stderr, "service GetProductTierPricing(ctx, %s, %s) error: %+v", sku, ref, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		fmt.Println(pricing)

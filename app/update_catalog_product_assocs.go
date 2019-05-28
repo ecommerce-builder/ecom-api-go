@@ -42,7 +42,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		has, err := a.Service.HasCatalog(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		if !has {
@@ -117,7 +117,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		err = a.Service.BatchCreateCatalogProductAssocs(ctx, cpas)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%+v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusNoContent) // 204 No Content

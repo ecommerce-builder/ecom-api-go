@@ -23,6 +23,7 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 		product, err := a.Service.UpdateProduct(r.Context(), sku, &pu)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "update product failed: %+v", err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

@@ -13,10 +13,11 @@ import (
 // to retrieve a list of Customers.
 func (a *App) GetCustomerHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cuuid := chi.URLParam(r, "cuuid")
-		customer, err := a.Service.GetCustomer(r.Context(), cuuid)
+		uuid := chi.URLParam(r, "uuid")
+		customer, err := a.Service.GetCustomer(r.Context(), uuid)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %+v", cuuid, err)
+			fmt.Fprintf(os.Stderr, "service GetCustomer(%s) error: %+v", uuid, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

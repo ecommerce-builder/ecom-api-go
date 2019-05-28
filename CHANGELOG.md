@@ -1,4 +1,15 @@
 # CHANGELOG
+## v0.37.0 (Tue 28 May 2019)
++ Not Implemented routes for pricing tiers
++ `OpCreateTier` POST /tiers
++ `OpGetTier` GET /tiers/:ref
++ `OpListTiers` GET /tiers
++ `OpUpdateTier` PUT /tiers/:ref
++ `OpDeleteTier` DELETE /tiers/:ref
++ Add missing HTTP Status code responses
++ Enforce all routing through Authorization middleware
++ Code tidy
+
 ## v0.36.0 (Mon 27 May 2019)
 + `OpAddImage` POST /products/:sku/images
 + `OpGetImage` GET /images/:uuid

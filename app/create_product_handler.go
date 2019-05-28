@@ -19,10 +19,10 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
 		product, err := a.Service.CreateProduct(r.Context(), &pc)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "create product failed: %+v", err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created

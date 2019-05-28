@@ -16,7 +16,7 @@ func (a *App) ListCustomersDevKeysHandler() http.HandlerFunc {
 		apiKeys, err := a.Service.ListCustomersDevKeys(r.Context(), uuid)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service ListCustomersDevKeys(ctx, %s) error: %v", uuid, err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

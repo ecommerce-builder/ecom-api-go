@@ -20,13 +20,12 @@ func (a *App) GenerateCustomerDevKeyHandler() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
-
 		cak, err := a.Service.GenerateCustomerDevKey(r.Context(), uuid)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service GenerateCustomerAPIKey(ctx, %q) error: %v", uuid, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-
 		akresp := apiDevResponse{
 			Key:      cak.Key,
 			Created:  cak.Created,

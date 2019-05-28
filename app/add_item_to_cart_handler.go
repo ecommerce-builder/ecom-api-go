@@ -15,20 +15,17 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 		Sku string `json:"sku"`
 		Qty int    `json:"qty"`
 	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctid := chi.URLParam(r, "ctid")
-
+		uuid := chi.URLParam(r, "uuid")
 		o := itemRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
-		item, err := a.Service.AddItemToCart(r.Context(), ctid, o.Sku, o.Qty)
+		item, err := a.Service.AddItemToCart(r.Context(), uuid, o.Sku, o.Qty)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service AddItemToCart(%s, %s, %d) error: %v", ctid, o.Sku, o.Qty, err)
+			fmt.Fprintf(os.Stderr, "service AddItemToCart(%s, %s, %d) error: %v", uuid, o.Sku, o.Qty, err)
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(item)

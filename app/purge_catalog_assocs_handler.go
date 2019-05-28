@@ -12,7 +12,7 @@ func (a *App) PurgeCatalogAssocsHandler() http.HandlerFunc {
 		_, err := a.Service.DeleteCatalogAssocs(r.Context())
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "service DeleteCatalogAssocs(ctx) error: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.Header().Del("Content-Type")

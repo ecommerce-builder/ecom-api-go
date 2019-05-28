@@ -8,13 +8,13 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// DeleteAdminHandler creates an HTTP handler that deletes an administrator. 
+// DeleteAdminHandler creates an HTTP handler that deletes an administrator.
 func (a *App) DeleteAdminHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
-		err := a.Service.DeleteAdmin(r.Context(), uuid)
-		if err != nil {
+		if err := a.Service.DeleteAdmin(r.Context(), uuid); err != nil {
 			fmt.Fprintf(os.Stderr, "service DeleteAdmin(ctx, %s) error: %v", uuid, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.Header().Del("Content-Type")

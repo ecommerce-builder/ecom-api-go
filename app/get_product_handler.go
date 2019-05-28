@@ -21,6 +21,7 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 				return
 			}
 			fmt.Fprintf(os.Stderr, "app: GetProduct(ctx, %q) error: %+v", sku, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

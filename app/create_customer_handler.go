@@ -28,7 +28,6 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 			})
 			return
 		}
-
 		o := createCustomerRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
@@ -43,7 +42,6 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-
 		customer, err := a.Service.CreateCustomer(r.Context(), "customer", o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "CreateCustomerHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s): %v\n", "customer", o.Email, "*****", o.Firstname, o.Lastname, err)

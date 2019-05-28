@@ -24,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.36.0"
+var version = "v0.37.0"
 
 const maxDbConnectAttempts = 3
 
@@ -432,14 +432,24 @@ func main() {
 
 		// Customer and address management API
 		r.Route("/customers", func(r chi.Router) {
-			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
 			r.Post("/", a.Authorization(app.OpCreateCustomer, a.CreateCustomerHandler()))
-			r.Get("/{cuuid}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
+			r.Get("/{uuid}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
+			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
+
 			r.Get("/{uuid}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
 			r.Post("/{uuid}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
 			r.Post("/{cuuid}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
 			r.Get("/{cuuid}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
 			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
+		})
+
+		// tiers resource operation all return 501 Not Implemented
+		r.Route("/tiers", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreateTier, a.NotImplementedHandler()))
+			r.Get("/{ref}", a.Authorization(app.OpGetTier, a.NotImplementedHandler()))
+			r.Get("/", a.Authorization(app.OpListTiers, a.NotImplementedHandler()))
+			r.Put("/{ref}", a.Authorization(app.OpUpdateTier, a.NotImplementedHandler()))
+			r.Delete("/{ref}", a.Authorization(app.OpDeleteTier, a.NotImplementedHandler()))
 		})
 
 		r.Route("/products/{sku}/images", func(r chi.Router) {
@@ -482,11 +492,11 @@ func main() {
 
 		r.Route("/carts", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateCart, a.CreateCartHandler()))
-			r.Post("/{ctid}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
-			r.Get("/{ctid}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
-			r.Patch("/{ctid}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
-			r.Delete("/{ctid}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
-			r.Delete("/{ctid}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
+			r.Post("/{uuid}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
+			r.Get("/{uuid}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
+			r.Patch("/{uuid}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
+			r.Delete("/{uuid}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
+			r.Delete("/{uuid}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
 		})
 
 		r.Route("/catalog", func(r chi.Router) {
@@ -496,13 +506,13 @@ func main() {
 		})
 
 		r.Route("/assocs", func(r chi.Router) {
-			r.Put("/", a.UpdateCatalogProductAssocsHandler())
+			r.Put("/", a.Authorization(app.OpUpdateCatalogAssocs, a.UpdateCatalogProductAssocsHandler()))
 			r.Get("/", a.Authorization(app.OpGetCatalogAssocs, a.GetCatalogAssocsHandler()))
 			r.Delete("/", a.Authorization(app.OpPurgeCatalogAssocs, a.PurgeCatalogAssocsHandler()))
 		})
 
 		r.Route("/sysinfo", func(r chi.Router) {
-			r.Get("/", a.SystemInfoHandler(si))
+			r.Get("/", a.Authorization(app.OpSystemInfo, a.SystemInfoHandler(si)))
 		})
 	})
 

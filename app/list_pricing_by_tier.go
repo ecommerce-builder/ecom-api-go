@@ -22,6 +22,7 @@ func (a *App) ListPricingByTierHandler() http.HandlerFunc {
 				return
 			}
 			fmt.Fprintf(os.Stderr, "service ListPricingByTier(ctx, %s) error: %+v", ref, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
