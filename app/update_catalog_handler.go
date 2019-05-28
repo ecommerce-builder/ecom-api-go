@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
 // UpdateCatalogHandler creates an HTTP handler that updates the catalog.
 func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cats := nestedset.Node{}
+		cats := firebase.Node{}
 		if err := json.NewDecoder(r.Body).Decode(&cats); err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {

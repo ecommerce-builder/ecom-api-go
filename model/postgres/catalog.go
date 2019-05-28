@@ -2,14 +2,27 @@ package postgres
 
 import (
 	"context"
+	"time"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
 	"github.com/pkg/errors"
 )
 
+// A NestedSetNode represents a single node in the nested set.
+type NestedSetNode struct {
+	ID       int
+	Segment  string
+	Path     string
+	Name     string
+	Lft      int
+	Rgt      int
+	Depth    int
+	Created  time.Time
+	Modified time.Time
+}
+
 // BatchCreateNestedSet creates a nested set of nodes representing the
 // catalog hierarchy.
-func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*nestedset.NestedSetNode) error {
+func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*NestedSetNode) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "db.BeginTx")
@@ -45,13 +58,13 @@ func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*nestedset.Nest
 }
 
 // GetCatalogByPath retrieves a single set element by the given path.
-func (m *PgModel) GetCatalogByPath(ctx context.Context, path string) (*nestedset.NestedSetNode, error) {
+func (m *PgModel) GetCatalogByPath(ctx context.Context, path string) (*NestedSetNode, error) {
 	query := `
 		SELECT id, segment, path, name, lft, rgt, depth, created, modified
 		FROM catalog
 		WHERE path = $1
 	`
-	var n nestedset.NestedSetNode
+	var n NestedSetNode
 	err := m.db.QueryRowContext(ctx, query, path).Scan(&n.ID, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: query row ctx scan query=%q", query)
@@ -74,7 +87,7 @@ func (m *PgModel) HasCatalog(ctx context.Context) (bool, error) {
 }
 
 // GetCatalogNestedSet returns a slice of NestedSetNode representing the catalog as a nested set.
-func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedSetNode, error) {
+func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, error) {
 	query := `
 		SELECT id, segment, path, name, lft, rgt, depth, created, modified
 		FROM catalog
@@ -86,9 +99,9 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*nestedset.NestedS
 	}
 	defer rows.Close()
 
-	nodes := make([]*nestedset.NestedSetNode, 0, 256)
+	nodes := make([]*NestedSetNode, 0, 256)
 	for rows.Next() {
-		var n nestedset.NestedSetNode
+		var n NestedSetNode
 		err = rows.Scan(&n.ID, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, err
