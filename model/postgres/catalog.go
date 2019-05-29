@@ -9,7 +9,7 @@ import (
 
 // A NestedSetNode represents a single node in the nested set.
 type NestedSetNode struct {
-	ID       int
+	id       int
 	Segment  string
 	Path     string
 	Name     string
@@ -65,8 +65,8 @@ func (m *PgModel) GetCatalogByPath(ctx context.Context, path string) (*NestedSet
 		WHERE path = $1
 	`
 	var n NestedSetNode
-	err := m.db.QueryRowContext(ctx, query, path).Scan(&n.ID, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified)
-	if err != nil {
+	row := m.db.QueryRowContext(ctx, query, path)
+	if err := row.Scan(&n.id, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified); err != nil {
 		return nil, errors.Wrapf(err, "service: query row ctx scan query=%q", query)
 	}
 	return &n, nil
@@ -102,8 +102,7 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, er
 	nodes := make([]*NestedSetNode, 0, 256)
 	for rows.Next() {
 		var n NestedSetNode
-		err = rows.Scan(&n.ID, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified)
-		if err != nil {
+		if err = rows.Scan(&n.id, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified); err != nil {
 			return nil, err
 		}
 		nodes = append(nodes, &n)

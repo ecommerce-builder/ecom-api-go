@@ -42,6 +42,27 @@ func (n *Category) IsLeaf() bool {
 	return len(n.Nodes) == 0
 }
 
+// NestedSet uses preorder traversal of the tree to return a
+// slice of NestedSetNodes.
+func (n *Category) NestedSet(ns *[]*postgres.NestedSetNode) {
+	n.preorderTraversalNS(ns)
+}
+
+func (n *Category) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
+	nsn := &postgres.NestedSetNode{
+		Segment: n.Segment,
+		Path:    n.path,
+		Name:    n.Name,
+		Lft:     n.lft,
+		Rgt:     n.rgt,
+		Depth:   n.depth,
+	}
+	*ns = append(*ns, nsn)
+	for _, i := range n.Nodes {
+		i.preorderTraversalNS(ns)
+	}
+}
+
 // PreorderTraversalPrint provides a depth first search printout of each node
 // in the hierarchy.
 func (n *Category) PreorderTraversalPrint(w io.Writer) {
@@ -107,37 +128,16 @@ func (n *Category) GenerateNestedSet(lft, depth int, path string) int {
 	return rgt + 1
 }
 
-// NestedSet uses preorder traversal of the tree to return a
-// slice of NestedSetNodes.
-// func (n *Node) NestedSet(ns *[]*postgres.NestedSetNode) {
-// 	n.preorderTraversalNS(ns)
-// }
-
-// func (n *Node) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
-// 	nsn := &postgres.NestedSetNode{
-// 		Segment: n.Segment,
-// 		Path:    n.path,
-// 		Name:    n.Name,
-// 		Lft:     n.lft,
-// 		Rgt:     n.rgt,
-// 		Depth:   n.depth,
-// 	}
-// 	*ns = append(*ns, nsn)
-// 	for _, i := range n.Nodes {
-// 		i.preorderTraversalNS(ns)
-// 	}
-// }
-
 // UpdateCatalog takes a root tree Node and converts it to a nested set
 // representation before calling the model to persist the replacement
 // catalog.
 func (s *Service) UpdateCatalog(ctx context.Context, root *Category) error {
-	// root.GenerateNestedSet(1, 0, "")
-	// ns := make([]*postgres.NestedSetNode, 0, 128)
-	// root.NestedSet(&ns)
-	// if err := s.model.BatchCreateNestedSet(ctx, ns); err != nil {
-	// 	return errors.Wrap(err, "service: replace catalog")
-	// }
+	root.GenerateNestedSet(1, 0, "")
+	ns := make([]*postgres.NestedSetNode, 0, 128)
+	root.NestedSet(&ns)
+	if err := s.model.BatchCreateNestedSet(ctx, ns); err != nil {
+		return errors.Wrap(err, "service: replace catalog")
+	}
 	return nil
 }
 
