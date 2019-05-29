@@ -1,4 +1,11 @@
 # CHANGELOG
+## v0.38.0 (Wed 29 May 2019)
++ Sentinel values for JSON error response `code` property.
++ Renamed all application handler to remove the postfix.
++ Split the model layer into separate files.
++ Split the service layer into separate files.
++ Moved the tree code from utils/nested set to the service catalog.
+
 ## v0.37.1 (Tue 28 May 2019)
 + Product `url` becomes `path`.
 
