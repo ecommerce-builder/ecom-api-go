@@ -2,15 +2,17 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/utils/nestedset"
+	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
 // UpdateCatalogHandler creates an HTTP handler that updates the catalog.
 func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cats := nestedset.Node{}
+		cats := firebase.Category{}
 		if err := json.NewDecoder(r.Body).Decode(&cats); err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
@@ -24,6 +26,20 @@ func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 		if err := a.Service.UpdateCatalog(r.Context(), &cats); err != nil {
+			if err == firebase.ErrAssocsAlreadyExist {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeAssocsAlreadyExist,
+					fmt.Sprintf("catalog associations already exist"),
+				})
+				return
+			}
+			fmt.Fprintf(os.Stderr, "UpdateCatalog(ctx, cats) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

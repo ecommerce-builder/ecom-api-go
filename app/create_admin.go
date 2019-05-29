@@ -22,10 +22,12 @@ func (a *App) CreateAdminHandler() http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
-				400,
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
 				err.Error(),
 			})
 			return
@@ -37,10 +39,12 @@ func (a *App) CreateAdminHandler() http.HandlerFunc {
 			fmt.Fprintf(os.Stderr, "CreateAdminHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s): %v\n", "admin", o.Email, "*****", o.Firstname, o.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
-				500,
+				http.StatusInternalServerError,
+				ErrCodeInternalServerError,
 				err.Error(),
 			})
 			return

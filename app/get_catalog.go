@@ -22,10 +22,12 @@ func (app *App) GetCatalogHandler() http.HandlerFunc {
 			fmt.Fprintf(os.Stderr, "service GetCatalog(ctx) error: %+v", errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
-				500,
+				http.StatusInternalServerError,
+				ErrCodeInternalServerError,
 				err.Error(),
 			})
 			return

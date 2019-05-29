@@ -13,7 +13,6 @@ import (
 func (app *App) GetAddressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
-
 		addr, err := app.Service.GetAddress(r.Context(), uuid)
 		if err != nil {
 			if app.Service.IsNotExist(err) {

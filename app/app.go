@@ -4,6 +4,30 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
+const (
+	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
+	ErrCodeInternalServerError string = "internal-server-error"
+
+	// ErrCodeBadRequest is sent as the error code for 400 Bad Request.
+	ErrCodeBadRequest string = "bad-request"
+
+	// ErrCodeAssocsAlreadyExist is sent when the consumer attempts to purge the catalog
+	// before purging the catalog associations.
+	ErrCodeAssocsAlreadyExist string = "assocs/assocs-already-exist"
+
+	// ErrCodeNoCatalog is sent when the consumer attempts to apply catalog associations
+	// before a catalog has been applied.
+	ErrCodeNoCatalog string = "catalog/no-catalog"
+
+	// ErrMissingPathsLeafsSKUs is sent when the consumer attempts to apply catalog
+	// associations that contain references to paths that are non existence, paths that
+	// are non leaf categories or product SKUs that do not exist.
+	ErrMissingPathsLeafsSKUs string = "assocs/missing-paths-leafs-skus"
+
+	// ErrCodeProductSKUNotFound indicates the product with given SKU could not be found.
+	ErrCodeProductSKUNotFound string = "products/product-sku-not-found"
+)
+
 // Cart operation sentinel values.
 const (
 	// Admin
