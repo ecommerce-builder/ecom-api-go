@@ -26,7 +26,9 @@ type Category struct {
 	parent   *Category
 	Nodes    []*Category `json:"categories"`
 	Products []*struct {
-		SKU string `json:"sku"`
+		SKU  string `json:"sku"`
+		Path string `json:"path"`
+		Name string `json:"name"`
 	} `json:"products"`
 }
 
@@ -193,8 +195,14 @@ func (n *Category) FindNodeByPath(path string) *Category {
 	return context
 }
 
+type spnTuple struct {
+	sku  string
+	path string
+	name string
+}
+
 // BuildTree builds a Tree hierarchy from a Nested Set.
-func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]string) *Category {
+func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) *Category {
 	context := &Category{
 		Segment: nestedset[0].Segment,
 		path:    nestedset[0].Path,
@@ -202,7 +210,9 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]string) *C
 		parent:  nil,
 		Nodes:   make([]*Category, 0),
 		Products: make([]*struct {
-			SKU string `json:"sku"`
+			SKU  string `json:"sku"`
+			Path string `json:"path"`
+			Name string `json:"name"`
 		}, 0),
 		lft: nestedset[0].Lft,
 		rgt: nestedset[0].Rgt,
@@ -214,13 +224,19 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]string) *C
 			skus = nil
 		}
 		products := make([]*struct {
-			SKU string `json:"sku"`
+			SKU  string `json:"sku"`
+			Path string `json:"path"`
+			Name string `json:"name"`
 		}, 0)
 		for _, s := range skus {
 			products = append(products, &struct {
-				SKU string `json:"sku"`
+				SKU  string `json:"sku"`
+				Path string `json:"path"`
+				Name string `json:"name"`
 			}{
-				SKU: s,
+				SKU:  s.sku,
+				Path: s.path,
+				Name: s.name,
 			})
 		}
 		n := &Category{
@@ -265,18 +281,22 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 	if len(ns) == 0 {
 		return nil, nil
 	}
-	cpas, err := s.model.GetCatalogProductAssocs(ctx)
+	cpas, err := s.model.GetCatalogProductAssocsFull(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: get catalog product assocs")
 	}
 	// convert slice into map
-	cmap := make(map[string][]string)
-	for _, cp := range cpas {
-		_, ok := cmap[cp.Path]
+	cmap := make(map[string][]spnTuple)
+	for _, cpf := range cpas {
+		_, ok := cmap[cpf.Path]
 		if ok {
-			cmap[cp.Path] = append(cmap[cp.Path], cp.SKU)
+			cmap[cpf.Path] = append(cmap[cpf.Path], spnTuple{
+				sku:  cpf.SKU,
+				path: cpf.Path,
+				name: cpf.Name,
+			})
 		} else {
-			cmap[cp.Path] = []string{cp.SKU}
+			cmap[cpf.Path] = []spnTuple{}
 		}
 	}
 	tree := BuildTree(ns, cmap)

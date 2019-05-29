@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.39.0 (Wed 29 May 2019)
++ Unexported ids on postgres layer.
++ Add `path` and `name` to the OpGetCatalog products section.
+
 ## v0.38.0 (Wed 29 May 2019)
 + Sentinel values for JSON error response `code` property.
 + Renamed all application handler to remove the postfix.

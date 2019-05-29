@@ -33,6 +33,19 @@ type CatalogProductAssoc struct {
 	Modified  time.Time
 }
 
+// CatalogProductAssocFull maps products to leaf nodes in the catalogue hierarchy.
+type CatalogProductAssocFull struct {
+	id        int
+	catalogID int
+	productID int
+	Path      string
+	SKU       string
+	Name      string
+	Pri       int
+	Created   time.Time
+	Modified  time.Time
+}
+
 // CreateCatalogProductAssoc links an existing product identified by sku
 // to an existing leaf node of the catalog denoted by path.
 func (m *PgModel) CreateCatalogProductAssoc(ctx context.Context, path, sku string) (*CatalogProduct, error) {
@@ -150,6 +163,39 @@ func (m *PgModel) GetCatalogProductAssocs(ctx context.Context) ([]*CatalogProduc
 	for rows.Next() {
 		var n CatalogProductAssoc
 		err = rows.Scan(&n.id, &n.catalogID, &n.productID, &n.Path, &n.SKU, &n.Pri, &n.Created, &n.Modified)
+		if err != nil {
+			return nil, errors.Wrapf(err, "model: scan failed")
+		}
+		cpas = append(cpas, &n)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrapf(err, "model: rows.Err()")
+	}
+	return cpas, nil
+}
+
+// GetCatalogProductAssocsFull returns an Slice of catalogue to product
+// associations joined with products to including name.
+func (m *PgModel) GetCatalogProductAssocsFull(ctx context.Context) ([]*CatalogProductAssocFull, error) {
+	query := `
+		SELECT
+			C.id, catalog_id, product_id, C.path, C.sku, P.name,
+			pri, C.created, C.modified
+		FROM
+			catalog_products AS C,
+			products AS P
+		WHERE C.sku = P.sku
+		ORDER BY C.path, pri ASC;
+	`
+	rows, err := m.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, errors.Wrapf(err, "model: query context query=%q", query)
+	}
+	defer rows.Close()
+	cpas := make([]*CatalogProductAssocFull, 0, 32)
+	for rows.Next() {
+		var n CatalogProductAssocFull
+		err = rows.Scan(&n.id, &n.catalogID, &n.productID, &n.Path, &n.SKU, &n.Name, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, errors.Wrapf(err, "model: scan failed")
 		}
