@@ -2,26 +2,91 @@ package firebase
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"strings"
+	"text/tabwriter"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
 )
 
-// A Node represents a hierarchical tree structure.
-type Node struct {
-        Segment string `json:"segment"`
-        path    string
-        Name    string `json:"name"`
-        lft     int
-        rgt     int
-        depth   int
-        parent  *Node
-        Nodes   []*Node `json:"categories"`
+// A Category represents an individual category in the catalog hierarchy.
+type Category struct {
+	Segment  string `json:"segment"`
+	path     string
+	Name     string `json:"name"`
+	lft      int
+	rgt      int
+	depth    int
+	parent   *Category
+	Nodes    []*Category `json:"categories"`
+	Products []*struct {
+		SKU string `json:"sku"`
+	} `json:"products"`
+}
+
+// AddChild attaches a Category to its parent Category.
+func (n *Category) AddChild(c *Category) {
+	c.parent = n
+	n.Nodes = append(n.Nodes, c)
+}
+
+// IsRoot returns true for the root node only.
+func (n *Category) IsRoot() bool {
+	return n.parent == nil
+}
+
+// IsLeaf return true if the node is a leaf node.
+func (n *Category) IsLeaf() bool {
+	return len(n.Nodes) == 0
+}
+
+// PreorderTraversalPrint provides a depth first search printout of each node
+// in the hierarchy.
+func (n *Category) PreorderTraversalPrint(w io.Writer) {
+	tw := new(tabwriter.Writer).Init(w, 0, 8, 2, ' ', 0)
+	n.preorderTraversalWrite(tw)
+	tw.Flush()
+}
+
+func (n *Category) preorderTraversalWrite(w io.Writer) {
+	fmt.Fprintf(w, "segment: %s\t path: %q\tname: %q\tlft: %d\t rgt: %d\t depth %d\n", n.Segment, n.path, n.Name, n.lft, n.rgt, n.depth)
+
+	for _, i := range n.Nodes {
+		i.preorderTraversalWrite(w)
+	}
+}
+
+func moveContext(context *Category) *Category {
+	if context.parent == nil {
+		return context
+	}
+	prev := context
+	context = context.parent
+	for prev.rgt == context.rgt-1 && context.parent != nil {
+		prev = context
+		context = context.parent
+	}
+	return context
+}
+
+// NewCategory creates a new Category.
+func NewCategory(segment, name string) *Category {
+	return &Category{
+		Segment: segment,
+		path:    "",
+		Name:    name,
+		lft:     -1,
+		rgt:     -1,
+		depth:   -1,
+		parent:  nil,
+		Nodes:   make([]*Category, 0),
+	}
 }
 
 // GenerateNestedSet performs a pre-order tree traversal wiring the tree.
-func (n *Node) GenerateNestedSet(lft, depth int, path string) int {
+func (n *Category) GenerateNestedSet(lft, depth int, path string) int {
 	rgt := lft + 1
 	for _, i := range n.Nodes {
 		if path == "" {
@@ -44,50 +109,36 @@ func (n *Node) GenerateNestedSet(lft, depth int, path string) int {
 
 // NestedSet uses preorder traversal of the tree to return a
 // slice of NestedSetNodes.
-func (n *Node) NestedSet(ns *[]*postgres.NestedSetNode) {
-	n.preorderTraversalNS(ns)
-}
+// func (n *Node) NestedSet(ns *[]*postgres.NestedSetNode) {
+// 	n.preorderTraversalNS(ns)
+// }
 
-func (n *Node) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
-	nsn := &postgres.NestedSetNode{
-		Segment: n.Segment,
-		Path:    n.path,
-		Name:    n.Name,
-		Lft:     n.lft,
-		Rgt:     n.rgt,
-		Depth:   n.depth,
-	}
-	*ns = append(*ns, nsn)
-	for _, i := range n.Nodes {
-		i.preorderTraversalNS(ns)
-	}
-}
+// func (n *Node) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
+// 	nsn := &postgres.NestedSetNode{
+// 		Segment: n.Segment,
+// 		Path:    n.path,
+// 		Name:    n.Name,
+// 		Lft:     n.lft,
+// 		Rgt:     n.rgt,
+// 		Depth:   n.depth,
+// 	}
+// 	*ns = append(*ns, nsn)
+// 	for _, i := range n.Nodes {
+// 		i.preorderTraversalNS(ns)
+// 	}
+// }
 
 // UpdateCatalog takes a root tree Node and converts it to a nested set
 // representation before calling the model to persist the replacement
 // catalog.
-func (s *Service) UpdateCatalog(ctx context.Context, root *Node) error {
-	root.GenerateNestedSet(1, 0, "")
-	ns := make([]*postgres.NestedSetNode, 0, 128)
-	root.NestedSet(&ns)
-	if err := s.model.BatchCreateNestedSet(ctx, ns); err != nil {
-		return errors.Wrap(err, "service: replace catalog")
-	}
+func (s *Service) UpdateCatalog(ctx context.Context, root *Category) error {
+	// root.GenerateNestedSet(1, 0, "")
+	// ns := make([]*postgres.NestedSetNode, 0, 128)
+	// root.NestedSet(&ns)
+	// if err := s.model.BatchCreateNestedSet(ctx, ns); err != nil {
+	// 	return errors.Wrap(err, "service: replace catalog")
+	// }
 	return nil
-}
-
-// A Category represents an individual category in the catalog hierarchy.
-type Category struct {
-	Segment  string `json:"segment"`
-	path     string
-	Name     string `json:"name"`
-	lft      int
-	rgt      int
-	parent   *Category
-	Nodes    []*Category `json:"categories"`
-	Products []*struct {
-		SKU string `json:"sku"`
-	} `json:"products"`
 }
 
 func (n *Category) addChild(c *Category) {
@@ -108,24 +159,6 @@ func (n *Category) findNode(segment string) *Category {
 		}
 	}
 	return nil
-}
-
-// IsLeaf return true if the node is a leaf node.
-func (n *Category) IsLeaf() bool {
-	return len(n.Nodes) == 0
-}
-
-func moveContext(context *Category) *Category {
-	if context.parent == nil {
-		return context
-	}
-	prev := context
-	context = context.parent
-	for prev.rgt == context.rgt-1 && context.parent != nil {
-		prev = context
-		context = context.parent
-	}
-	return context
 }
 
 // FindNodeByPath traverses the tree looking for a Node with a matching path.
@@ -149,7 +182,7 @@ func (n *Category) FindNodeByPath(path string) *Category {
 }
 
 // BuildTree builds a Tree hierarchy from a Nested Set.
-func buildCategoryTree(nestedset []*postgres.NestedSetNode, cmap map[string][]string) *Category {
+func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]string) *Category {
 	context := &Category{
 		Segment: nestedset[0].Segment,
 		path:    nestedset[0].Path,
@@ -234,7 +267,7 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 			cmap[cp.Path] = []string{cp.SKU}
 		}
 	}
-	tree := buildCategoryTree(ns, cmap)
+	tree := BuildTree(ns, cmap)
 	return tree, nil
 }
 

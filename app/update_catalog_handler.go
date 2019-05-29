@@ -10,7 +10,7 @@ import (
 // UpdateCatalogHandler creates an HTTP handler that updates the catalog.
 func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cats := firebase.Node{}
+		cats := firebase.Category{}
 		if err := json.NewDecoder(r.Body).Decode(&cats); err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {

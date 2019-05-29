@@ -14,6 +14,7 @@ type Service struct {
 	fbApp *firebase.App
 }
 
+// NewService creates a new Service
 func NewService(model *postgres.PgModel, fbApp *firebase.App) *Service {
 	return &Service{model, fbApp}
 }

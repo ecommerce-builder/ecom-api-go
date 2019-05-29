@@ -1,23 +1,24 @@
-package nestedset
+package firebase
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNestedSetEmptyRootNode(t *testing.T) {
-	nodes := map[string]*Node{
-		"root": NewNode("", "root"),
-		"a":    NewNode("a", "Category A"),
-		"b":    NewNode("b", "Category B"),
-		"c":    NewNode("c", "Category C"),
-		"d":    NewNode("d", "Category D"),
-		"e":    NewNode("e", "Category E"),
-		"f":    NewNode("f", "Category F"),
-		"g":    NewNode("g", "Category G"),
+	nodes := map[string]*Category{
+		"root": NewCategory("", "root"),
+		"a":    NewCategory("a", "Category A"),
+		"b":    NewCategory("b", "Category B"),
+		"c":    NewCategory("c", "Category C"),
+		"d":    NewCategory("d", "Category D"),
+		"e":    NewCategory("e", "Category E"),
+		"f":    NewCategory("f", "Category F"),
+		"g":    NewCategory("g", "Category G"),
 	}
 
 	// Build a tree
@@ -37,7 +38,7 @@ func TestNestedSetEmptyRootNode(t *testing.T) {
 }
 
 func TestBuildTreeEmptyRootNode(t *testing.T) {
-	nodes := []*NestedSetNode{
+	nodes := []*postgres.NestedSetNode{
 		{Segment: "", Path: "", Name: "root", Lft: 1, Rgt: 16, Depth: 0},
 		{Segment: "a", Path: "a", Name: "Category A", Lft: 2, Rgt: 11, Depth: 1},
 		{Segment: "d", Path: "a/d", Name: "Category D", Lft: 3, Rgt: 6, Depth: 2},
@@ -47,30 +48,28 @@ func TestBuildTreeEmptyRootNode(t *testing.T) {
 		{Segment: "b", Path: "b", Name: "Category B", Lft: 12, Rgt: 13, Depth: 1},
 		{Segment: "c", Path: "c", Name: "Category C", Lft: 14, Rgt: 15, Depth: 1},
 	}
-
-	root := BuildTree(nodes)
-
+	root := BuildTree(nodes, nil)
 	buf := new(bytes.Buffer)
 	root.PreorderTraversalPrint(buf)
 	t.Logf("\n%s\n", buf.String())
 }
 
 func TestNestedSet(t *testing.T) {
-	nodes := map[string]*Node{
-		"a": NewNode("a", "Category A"),
-		"b": NewNode("b", "Category B"),
-		"c": NewNode("c", "Category C"),
-		"d": NewNode("d", "Category D"),
-		"e": NewNode("e", "Category E"),
-		"f": NewNode("f", "Category F"),
-		"g": NewNode("g", "Category G"),
-		"h": NewNode("h", "Category H"),
-		"i": NewNode("i", "Category I"),
-		"j": NewNode("j", "Category J"),
-		"k": NewNode("k", "Category K"),
-		"l": NewNode("l", "Category L"),
-		"m": NewNode("m", "Category M"),
-		"n": NewNode("n", "Category N"),
+	nodes := map[string]*Category{
+		"a": NewCategory("a", "Category A"),
+		"b": NewCategory("b", "Category B"),
+		"c": NewCategory("c", "Category C"),
+		"d": NewCategory("d", "Category D"),
+		"e": NewCategory("e", "Category E"),
+		"f": NewCategory("f", "Category F"),
+		"g": NewCategory("g", "Category G"),
+		"h": NewCategory("h", "Category H"),
+		"i": NewCategory("i", "Category I"),
+		"j": NewCategory("j", "Category J"),
+		"k": NewCategory("k", "Category K"),
+		"l": NewCategory("l", "Category L"),
+		"m": NewCategory("m", "Category M"),
+		"n": NewCategory("n", "Category N"),
 	}
 
 	// Build a tree
@@ -129,7 +128,7 @@ func TestNestedSet(t *testing.T) {
 }
 
 func TestBuildTree(t *testing.T) {
-	nodes := []*NestedSetNode{
+	nodes := []*postgres.NestedSetNode{
 		{Segment: "a", Path: "a", Name: "Category A", Lft: 1, Rgt: 28, Depth: 0},
 		{Segment: "b", Path: "a/b", Name: "Category B", Lft: 2, Rgt: 5, Depth: 1},
 		{Segment: "e", Path: "a/b/e", Name: "Category E", Lft: 3, Rgt: 4, Depth: 2},
@@ -145,16 +144,14 @@ func TestBuildTree(t *testing.T) {
 		{Segment: "k", Path: "a/d/h/k", Name: "Category K", Lft: 22, Rgt: 23, Depth: 3},
 		{Segment: "l", Path: "a/d/h/l", Name: "Category L", Lft: 24, Rgt: 25, Depth: 3},
 	}
-
-	root := BuildTree(nodes)
-
+	root := BuildTree(nodes, nil)
 	buf := new(bytes.Buffer)
 	root.PreorderTraversalPrint(buf)
 	t.Logf("\n%s\n", buf.String())
 }
 
 func TestFindNodeByPath(t *testing.T) {
-	nodes := []*NestedSetNode{
+	nodes := []*postgres.NestedSetNode{
 		{Segment: "a", Path: "a", Name: "Category A", Lft: 1, Rgt: 28, Depth: 0},
 		{Segment: "b", Path: "a/b", Name: "Category B", Lft: 2, Rgt: 5, Depth: 1},
 		{Segment: "e", Path: "a/b/e", Name: "Category E", Lft: 3, Rgt: 4, Depth: 2},
@@ -170,7 +167,7 @@ func TestFindNodeByPath(t *testing.T) {
 		{Segment: "k", Path: "a/d/h/k", Name: "Category K", Lft: 22, Rgt: 23, Depth: 3},
 		{Segment: "l", Path: "a/d/h/l", Name: "Category L", Lft: 24, Rgt: 25, Depth: 3},
 	}
-	root := BuildTree(nodes)
+	root := BuildTree(nodes, nil)
 
 	n := root.FindNodeByPath("not-there")
 	assert.Nil(t, n)

@@ -98,7 +98,7 @@ func (s *Service) UpdateTierPricing(ctx context.Context, sku, ref string, unitPr
 	}
 	p, err = s.model.UpdateTierPricing(ctx, sku, ref, unitPrice)
 	if err != nil {
-		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %d) failed", sku, ref, unitPrice)
+		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %.4f) failed", sku, ref, unitPrice)
 	}
 	pricing := ProductPricing{
 		SKU:       p.SKU,
@@ -117,4 +117,3 @@ func (s *Service) DeleteTierPricing(ctx context.Context, sku, ref string) error 
 	}
 	return nil
 }
-
