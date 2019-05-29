@@ -15,7 +15,7 @@ type SystemInfo struct {
 type SystemEnv struct {
 	PG   PgSystemEnv   `json:"pg"`
 	Goog GoogSystemEnv `json:"google"`
-	App  AppSystemEnv  `json:"app"`
+	App  ApplSystemEnv `json:"app"`
 }
 
 // PgSystemEnv contains the environment settings for the Postgres database.
@@ -33,8 +33,8 @@ type GoogSystemEnv struct {
 	WebAPIKey     string `json:"ECOM_GOOGLE_WEB_API_KEY"`
 }
 
-// AppSystemEnv contains the application port and root email address.
-type AppSystemEnv struct {
+// ApplSystemEnv contains the application port and root email address.
+type ApplSystemEnv struct {
 	AppPort      string `json:"PORT"`
 	AppRootEmail string `json:"ECOM_APP_ROOT_EMAIL"`
 }

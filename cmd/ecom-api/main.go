@@ -399,7 +399,7 @@ func main() {
 				GoogProjectID: projectID,
 				WebAPIKey:     webAPIKey,
 			},
-			App: app.AppSystemEnv{
+			App: app.ApplSystemEnv{
 				AppPort:      port,
 				AppRootEmail: rootEmail,
 			},

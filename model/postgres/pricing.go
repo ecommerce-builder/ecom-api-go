@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ProductPricing maps a product_pricing table row
 type ProductPricing struct {
 	id        int
 	TierRef   string

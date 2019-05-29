@@ -8,36 +8,39 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ProductUpdate contains fields required for updating a product.
 type ProductUpdate struct {
-	EAN  string      `json:"ean" yaml:"ean"`
-	Path string      `json:"path" yaml:"path"`
-	Name string      `json:"name" yaml:"name"`
-	Data ProductData `json:"data" yaml:"data"`
+	EAN  string      `json:"ean"`
+	Path string      `json:"path"`
+	Name string      `json:"name"`
+	Data ProductData `json:"data"`
 }
 
+// ProductCreate contains fields required for creating a product.
 type ProductCreate struct {
-	SKU  string      `json:"sku" yaml:"sku"`
-	EAN  string      `json:"ean" yaml:"ean"`
-	Path string      `json:"path" yaml:"path"`
-	Name string      `json:"name" yaml:"name"`
-	Data ProductData `json:"data" yaml:"data"`
+	SKU  string      `json:"sku"`
+	EAN  string      `json:"ean"`
+	Path string      `json:"path"`
+	Name string      `json:"name"`
+	Data ProductData `json:"data"`
 }
 
+// ProductData contains fields for product data.
 type ProductData struct {
-	Summary string `json:"summary" yaml:"summary"`
-	Desc    string `json:"description" yaml:"description"`
-	Spec    string `json:"specification" yaml:"specification"`
+	Summary string `json:"summary"`
+	Desc    string `json:"description"`
+	Spec    string `json:"specification"`
 }
 
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	SKU      string                     `json:"sku" yaml:"sku,omitempty"`
-	EAN      string                     `json:"ean" yaml:"ean"`
-	Path     string                     `json:"path" yaml:"path"`
-	Name     string                     `json:"name" yaml:"name"`
-	Data     ProductData                `json:"data" yaml:"data"`
-	Images   []*Image                   `json:"images" yaml:"images"`
-	Pricing  map[string]*ProductPricing `json:"pricing" yaml:"pricing"`
+	SKU      string                     `json:"sku"`
+	EAN      string                     `json:"ean"`
+	Path     string                     `json:"path"`
+	Name     string                     `json:"name"`
+	Data     ProductData                `json:"data"`
+	Images   []*Image                   `json:"images"`
+	Pricing  map[string]*ProductPricing `json:"pricing"`
 	Created  time.Time                  `json:"created,omitempty"`
 	Modified time.Time                  `json:"modified,omitempty"`
 }

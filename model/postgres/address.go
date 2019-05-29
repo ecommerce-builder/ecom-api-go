@@ -11,7 +11,7 @@ import (
 
 // Address contains address information for a Customer
 type Address struct {
-	ID          int
+	id          int
 	AddrUUID    string
 	CustomerID  int
 	Typ         string
@@ -37,8 +37,9 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 		) RETURNING
 			id, uuid, customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country, created, modified
 	`
-	err := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
-	if err != nil {
+	row := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country)
+	if err := row.Scan(&a.id, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q", query)
 	}
 	return &a, nil
@@ -54,8 +55,9 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 		FROM addresses
 		WHERE uuid = $1
 	`
-	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
-	if err != nil {
+	row := m.db.QueryRowContext(ctx, query, uuid)
+	if err := row.Scan(&a.id, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &ResourceError{
 				Op:       "GetAddressByUUID",
@@ -119,8 +121,8 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address,
 
 	for rows.Next() {
 		var a Address
-		err = rows.Scan(&a.ID, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1, &a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified)
-		if err != nil {
+		if err = rows.Scan(&a.id, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+			&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
 			return nil, errors.Wrapf(err, "rows scan query=%q", query)
 		}
 		addresses = append(addresses, &a)

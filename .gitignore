@@ -1,5 +1,6 @@
 .vscode
 *_secret.yaml
+bin/
 certs/
 data/init.sql
 ecom-api

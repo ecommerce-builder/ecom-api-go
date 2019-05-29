@@ -15,8 +15,8 @@ func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*Customer, error) 
 		WHERE uuid = $1 AND role='admin'
 	`
 	c := Customer{}
-	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
-	if err != nil {
+	row := m.db.QueryRowContext(ctx, query, uuid)
+	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}
 	return &c, nil
@@ -39,8 +39,7 @@ func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*Customer, error) {
 	admins := make([]*Customer, 0, 8)
 	for rows.Next() {
 		var c Customer
-		err := rows.Scan(&c.ID, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
-		if err != nil {
+		if err := rows.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
 		admins = append(admins, &c)

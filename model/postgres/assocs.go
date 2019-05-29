@@ -9,8 +9,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CatalogProduct maps to a catalog_product table row.
 type CatalogProduct struct {
-	ID        int
+	id        int
 	CatalogID int
 	ProductID int
 	Path      string
@@ -58,8 +59,8 @@ func (m *PgModel) CreateCatalogProductAssoc(ctx context.Context, path, sku strin
 			id, catalog_id, product_id, path, sku, pri, created, modified
 	`
 	cp := CatalogProduct{}
-	err := m.db.QueryRowContext(ctx, query, path, sku, path, sku, path).Scan(&cp.ID, &cp.CatalogID, &cp.ProductID, &cp.Path, &cp.SKU, &cp.Pri, &cp.Created, &cp.Modified)
-	if err != nil {
+	row := m.db.QueryRowContext(ctx, query, path, sku, path, sku, path)
+	if err := row.Scan(&cp.id, &cp.CatalogID, &cp.ProductID, &cp.Path, &cp.SKU, &cp.Pri, &cp.Created, &cp.Modified); err != nil {
 		return nil, errors.Wrapf(err, "model: query row context scan query=%q", query)
 	}
 	return &cp, nil
