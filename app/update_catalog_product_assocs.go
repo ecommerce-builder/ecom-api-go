@@ -29,10 +29,12 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		if r.Body == nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
-				400,
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
 				"Please send a request body",
 			})
 			return
@@ -48,11 +50,13 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		if !has {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
 				http.StatusConflict,
-				"Catalog product associations can only be updated if a catalog first exists.",
+				ErrCodeNoCatalog,
+				"catalog product associations can only be updated if a catalog exists.",
 			})
 			return
 		}
@@ -62,10 +66,12 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
-				400,
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
 				err.Error(),
 			})
 			return
@@ -83,7 +89,8 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		if missingPaths != nil || nonLeafs != nil || missingSKUs != nil {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 				Data    struct {
 					MissingPaths []string `json:"missing_paths"`
@@ -91,7 +98,8 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 					MissingSKUs  []string `json:"missing_skus"`
 				} `json:"data"`
 			}{
-				409,
+				http.StatusConflict,
+				ErrMissingPathsLeafsSKUs,
 				fmt.Sprintf("Missing paths: %v Non-leaf paths: %v Missing SKUs: %v", missingPaths, nonLeafs, missingSKUs),
 				struct {
 					MissingPaths []string `json:"missing_paths"`
@@ -105,7 +113,6 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 			})
 			return
 		}
-
 		cpas := map[string][]string{}
 		for _, a := range cas {
 			skus := make([]string, 0, 32)
@@ -139,7 +146,6 @@ func validateCatalogAssocs(cas catalogAssocs, tree *firebase.Category) (skus, mi
 			nonLeafs = append(nonLeafs, ca.Path)
 		}
 	}
-
 	// convert map keys to slice
 	skus = make([]string, 0, 128)
 	for k := range skumap {

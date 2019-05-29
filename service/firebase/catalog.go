@@ -11,6 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrAssocsAlreadyExist is returned by UpdateCatalog when any associations
+// already exist.
+var ErrAssocsAlreadyExist = errors.New("service: associations already exist")
+
 // A Category represents an individual category in the catalog hierarchy.
 type Category struct {
 	Segment  string `json:"segment"`
@@ -132,6 +136,14 @@ func (n *Category) GenerateNestedSet(lft, depth int, path string) int {
 // representation before calling the model to persist the replacement
 // catalog.
 func (s *Service) UpdateCatalog(ctx context.Context, root *Category) error {
+	hasAssocs, err := s.HasCatalogProductAssocs(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "HasCatalogProductAssocs(ctx) error")
+	}
+	if hasAssocs {
+		return ErrAssocsAlreadyExist
+	}
+
 	root.GenerateNestedSet(1, 0, "")
 	ns := make([]*postgres.NestedSetNode, 0, 128)
 	root.NestedSet(&ns)

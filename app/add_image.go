@@ -25,10 +25,12 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		if !exists {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
-				409,
+				http.StatusConflict,
+				ErrCodeProductSKUNotFound,
 				fmt.Sprintf("product with sku=%s not found", sku),
 			})
 			return

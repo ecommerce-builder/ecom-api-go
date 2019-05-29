@@ -110,4 +110,3 @@ func (s *Service) DeleteCatalogAssocs(ctx context.Context) (affected int64, err 
 	}
 	return n, nil
 }
-

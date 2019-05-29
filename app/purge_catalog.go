@@ -23,17 +23,17 @@ func (a *App) PurgeCatalogHandler() http.HandlerFunc {
 		if has {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
 				http.StatusConflict,
-				"Catalog cannot be purged before catalog product associations have first been purged.",
+				ErrCodeAssocsAlreadyExist,
+				"OpPurgeCatalog cannot be called whilst catalog product associations exist",
 			})
 			return
 		}
-
-		err = a.Service.DeleteCatalog(ctx)
-		if err != nil {
+		if err = a.Service.DeleteCatalog(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "service DeleteCatalog(ctx) error: %v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

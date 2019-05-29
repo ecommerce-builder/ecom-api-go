@@ -2,7 +2,9 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
@@ -24,6 +26,20 @@ func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 		if err := a.Service.UpdateCatalog(r.Context(), &cats); err != nil {
+			if err == firebase.ErrAssocsAlreadyExist {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeAssocsAlreadyExist,
+					fmt.Sprintf("catalog associations already exist"),
+				})
+				return
+			}
+			fmt.Fprintf(os.Stderr, "UpdateCatalog(ctx, cats) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
