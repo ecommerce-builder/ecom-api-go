@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.40.1 (Fri 31 May 2019)
++ Bugfix `OpGetCatalog` returns products with incorrect category path instead of product slug path.
++ Add .gitcloudignore to prevent unnecessary files uploading.
+
 ## v0.40.0 (Fri 31 May 2019)
 + Requires database scheme version 0.13.0
 + `product_pricing_tiers` table becomes `pricing_tiers`.

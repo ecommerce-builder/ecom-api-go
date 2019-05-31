@@ -1,0 +1,11 @@
+.gcloudignore
+.git
+.gitignore
+.vscode
+bin/
+cmd/ecom-api/af.yaml
+data/
+deploy/
+ecom
+docker-compose.yml
+Dockerfile

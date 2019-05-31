@@ -24,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.40.0"
+var version = "v0.40.1"
 
 const maxDbConnectAttempts = 3
 
@@ -128,8 +128,8 @@ func initLogging() {
 	})
 
 	//lg.SetFormatter(stackdriver.NewFormatter(
-	//	stackdriver.WithService("your-service"),
-	//	stackdriver.WithVersion("v0.1.0"),
+	//	stackdriver.WithService("default"),
+	//	stackdriver.WithVersion("v0.40.1"),
 	//))
 
 	// Output to stdout instead of the default stderr
