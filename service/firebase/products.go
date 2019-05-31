@@ -2,74 +2,157 @@ package firebase
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
 )
 
-// ProductUpdate contains fields required for updating a product.
-type ProductUpdate struct {
-	EAN  string      `json:"ean"`
-	Path string      `json:"path"`
-	Name string      `json:"name"`
-	Data ProductData `json:"data"`
+// ImageEntry contains the product image data.
+type ImageEntry struct {
+	Path  string `json:"path"`
+	Title string `json:"title"`
+}
+
+// ProductPricingEntry contains the product pricing data.
+type ProductPricingEntry struct {
+	TierRef   string    `json:"tier_ref,omitempty"`
+	UnitPrice float64   `json:"unit_price"`
+	Created   time.Time `json:"created,omitempty"`
+	Modified  time.Time `json:"modified,omitempty"`
+}
+
+// ProductContent contains the variable JSON data of the product
+type ProductContent struct {
+	Meta struct {
+		Title       string `json:"title"`
+		Keywords    string `json:"keywords"`
+		Description string `json:"description"`
+	} `json:"meta"`
+	Videos        []string `json:"videos"`
+	Manuals       []string `json:"manuals"`
+	Software      []string `json:"software"`
+	Summary       string   `json:"summary"`
+	Description   string   `json:"description"`
+	Specification string   `json:"specification"`
+	InTheBox      string   `json:"in-the-box"`
 }
 
 // ProductCreate contains fields required for creating a product.
 type ProductCreate struct {
-	SKU  string      `json:"sku"`
-	EAN  string      `json:"ean"`
-	Path string      `json:"path"`
-	Name string      `json:"name"`
-	Data ProductData `json:"data"`
-}
-
-// ProductData contains fields for product data.
-type ProductData struct {
-	Summary string `json:"summary"`
-	Desc    string `json:"description"`
-	Spec    string `json:"specification"`
+	EAN     string                 `json:"ean"`
+	Path    string                 `json:"path"`
+	Name    string                 `json:"name"`
+	Images  []*ImageEntry          `json:"images"`
+	Pricing []*ProductPricingEntry `json:"pricing"`
+	Content ProductContent         `json:"content"`
 }
 
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	SKU      string                     `json:"sku"`
-	EAN      string                     `json:"ean"`
-	Path     string                     `json:"path"`
-	Name     string                     `json:"name"`
-	Data     ProductData                `json:"data"`
-	Images   []*Image                   `json:"images"`
-	Pricing  map[string]*ProductPricing `json:"pricing"`
-	Created  time.Time                  `json:"created,omitempty"`
-	Modified time.Time                  `json:"modified,omitempty"`
+	SKU      string                          `json:"sku"`
+	EAN      string                          `json:"ean"`
+	Path     string                          `json:"path"`
+	Name     string                          `json:"name"`
+	Images   []*Image                        `json:"images"`
+	Pricing  map[string]*ProductPricingEntry `json:"pricing"`
+	Content  ProductContent                  `json:"content"`
+	Created  time.Time                       `json:"created,omitempty"`
+	Modified time.Time                       `json:"modified,omitempty"`
 }
 
-// CreateProduct create a new product if the product SKU does not already exist.
-func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreate) (*Product, error) {
-	pu := &postgres.ProductUpdate{
-		EAN:  pc.EAN,
-		Path: pc.Path,
-		Name: pc.Name,
-		Data: postgres.ProductData{
-			Summary: pc.Data.Summary,
-			Desc:    pc.Data.Desc,
-			Spec:    pc.Data.Spec,
+// ReplaceProduct create a new product if the product SKU does not
+// already exist, or updates it if it does.
+func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCreate) (*Product, error) {
+	imagesReq := make([]*postgres.CreateImage, 0, 4)
+	for _, i := range pc.Images {
+		img := postgres.CreateImage{
+			SKU:   sku,
+			W:     999999,
+			H:     999999,
+			Path:  i.Path,
+			Typ:   "image/jpeg",
+			Ori:   true,
+			Pri:   10,
+			Size:  0,
+			Q:     100,
+			GSURL: "gs://" + i.Path,
+		}
+		imagesReq = append(imagesReq, &img)
+	}
+	pricingReq := make([]*postgres.ProductPricingEntry, 0, 4)
+	for _, r := range pc.Pricing {
+		item := postgres.ProductPricingEntry{
+			TierRef:   r.TierRef,
+			UnitPrice: r.UnitPrice,
+		}
+		pricingReq = append(pricingReq, &item)
+	}
+	update := &postgres.ProductCreateUpdate{
+		EAN:     pc.EAN,
+		Path:    pc.Path,
+		Name:    pc.Name,
+		Images:  imagesReq,
+		Pricing: pricingReq,
+		Content: postgres.ProductContent{
+			Meta:          pc.Content.Meta,
+			Videos:        pc.Content.Videos,
+			Manuals:       pc.Content.Manuals,
+			Software:      pc.Content.Software,
+			Summary:       pc.Content.Summary,
+			Description:   pc.Content.Description,
+			Specification: pc.Content.Specification,
+			InTheBox:      pc.Content.InTheBox,
 		},
 	}
-	p, err := s.model.CreateProduct(ctx, pc.SKU, pu)
+
+	fmt.Printf("%+v\n", update)
+
+	p, err := s.model.UpdateProduct(ctx, sku, update)
 	if err != nil {
-		return nil, errors.Wrapf(err, "create product %q failed", pc.SKU)
+		return nil, errors.Wrapf(err, "UpdateProduct(ctx, sku=%q, ...) failed", sku)
+	}
+	images := make([]*Image, 0, 4)
+	for _, i := range p.Images {
+		img := Image{
+			UUID:     i.UUID,
+			SKU:      i.SKU,
+			Path:     i.Path,
+			GSURL:    i.GSURL,
+			Width:    i.W,
+			Height:   i.H,
+			Size:     i.Size,
+			Created:  i.Created,
+			Modified: i.Modified,
+		}
+		images = append(images, &img)
+	}
+	pricing := make(map[string]*ProductPricingEntry)
+	for _, pr := range p.Pricing {
+		price := ProductPricingEntry{
+			UnitPrice: pr.UnitPrice,
+			Created:   pr.Created,
+			Modified:  pr.Modified,
+		}
+		pricing[pr.TierRef] = &price
 	}
 	return &Product{
-		SKU:  p.SKU,
-		EAN:  p.EAN,
-		Path: p.Path,
-		Name: p.Name,
-		Data: ProductData{
-			Summary: p.Data.Summary,
-			Desc:    p.Data.Desc,
-			Spec:    p.Data.Spec,
+		SKU:     p.SKU,
+		EAN:     p.EAN,
+		Path:    p.Path,
+		Name:    p.Name,
+		Images:  images,
+		Pricing: pricing,
+		Content: ProductContent{
+			Meta:          pc.Content.Meta,
+			Videos:        pc.Content.Videos,
+			Manuals:       pc.Content.Manuals,
+			Software:      pc.Content.Software,
+			Summary:       pc.Content.Summary,
+			Description:   pc.Content.Description,
+			Specification: pc.Content.Specification,
+			InTheBox:      pc.Content.InTheBox,
 		},
 		Created:  p.Created,
 		Modified: p.Modified,
@@ -121,10 +204,10 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 		EAN:  p.EAN,
 		Path: p.Path,
 		Name: p.Name,
-		Data: ProductData{
-			Summary: p.Data.Summary,
-			Desc:    p.Data.Desc,
-			Spec:    p.Data.Spec,
+		Content: ProductContent{
+			Summary:       p.Content.Summary,
+			Description:   p.Content.Description,
+			Specification: p.Content.Specification,
 		},
 		Images:   images,
 		Created:  p.Created,
@@ -150,9 +233,9 @@ func marshalProduct(a *Product, m *postgres.Product) {
 	a.EAN = m.EAN
 	a.Path = m.Path
 	a.Name = m.Name
-	a.Data.Summary = m.Data.Summary
-	a.Data.Desc = m.Data.Desc
-	a.Data.Spec = m.Data.Spec
+	a.Content.Summary = m.Content.Summary
+	a.Content.Description = m.Content.Description
+	a.Content.Specification = m.Content.Specification
 	a.Created = m.Created
 	a.Modified = m.Modified
 	return
@@ -165,27 +248,6 @@ func (s *Service) ProductExists(ctx context.Context, sku string) (bool, error) {
 		return false, errors.Wrapf(err, "ProductExists(ctx, %q) failed", sku)
 	}
 	return exists, nil
-}
-
-// UpdateProduct updates a product by SKU.
-func (s *Service) UpdateProduct(ctx context.Context, sku string, pu *ProductUpdate) (*Product, error) {
-	update := &postgres.ProductUpdate{
-		EAN:  pu.EAN,
-		Path: pu.Path,
-		Name: pu.Name,
-		Data: postgres.ProductData{
-			Summary: pu.Data.Summary,
-			Desc:    pu.Data.Desc,
-			Spec:    pu.Data.Spec,
-		},
-	}
-	p, err := s.model.UpdateProduct(ctx, sku, update)
-	if err != nil {
-		return nil, errors.Wrapf(err, "update product sku=%q failed", sku)
-	}
-	ap := &Product{}
-	marshalProduct(ap, p)
-	return ap, nil
 }
 
 // DeleteProduct deletes the product with the given SKU.

@@ -88,17 +88,17 @@ var ErrTierPricingNotFound = errors.New("service: tier pricing not found")
 
 // UpdateTierPricing updates the tier pricing for the given sku and tier ref.
 // If the produt pricing is not found returns nil, nil.
-func (s *Service) UpdateTierPricing(ctx context.Context, sku, ref string, unitPrice float64) (*ProductPricing, error) {
-	p, err := s.model.GetProductPricingBySKUAndTier(ctx, sku, ref)
+func (s *Service) UpdateTierPricing(ctx context.Context, sku, tierRef string, unitPrice float64) (*ProductPricing, error) {
+	p, err := s.model.GetProductPricingBySKUAndTier(ctx, sku, tierRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "GetProductPricingBySKUAndTier(ctx, %q, %q) failed", sku, ref)
+		return nil, errors.Wrapf(err, "GetProductPricingBySKUAndTier(ctx, %q, %q) failed", sku, tierRef)
 	}
 	if p == nil {
 		return nil, ErrTierPricingNotFound
 	}
-	p, err = s.model.UpdateTierPricing(ctx, sku, ref, unitPrice)
+	p, err = s.model.UpdateTierPricing(ctx, sku, tierRef, unitPrice)
 	if err != nil {
-		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %.4f) failed", sku, ref, unitPrice)
+		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %.4f) failed", sku, tierRef, unitPrice)
 	}
 	pricing := ProductPricing{
 		SKU:       p.SKU,
@@ -111,9 +111,9 @@ func (s *Service) UpdateTierPricing(ctx context.Context, sku, ref string, unitPr
 }
 
 // DeleteTierPricing deletes a tier pricing by SKU and tier ref.
-func (s *Service) DeleteTierPricing(ctx context.Context, sku, ref string) error {
-	if err := s.model.DeleteProductPricingBySKUAndTier(ctx, sku, ref); err != nil {
-		return errors.Wrapf(err, "DeleteProductPricingBySKUAndTier(ctx, %q, %q) failed", sku, ref)
+func (s *Service) DeleteTierPricing(ctx context.Context, sku, tierRef string) error {
+	if err := s.model.DeleteProductPricingBySKUAndTier(ctx, sku, tierRef); err != nil {
+		return errors.Wrapf(err, "DeleteProductPricingBySKUAndTier(ctx, %q, %q) failed", sku, tierRef)
 	}
 	return nil
 }

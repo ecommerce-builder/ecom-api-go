@@ -59,7 +59,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpListProductImages:
 			next.ServeHTTP(w, r)
 			return
-		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
+		case OpListCustomers, OpReplaceProduct, OpDeleteProduct,
 			OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo,
 			OpUpdateCatalog, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages:

@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CreateProductImage struct contains the data required to store a new product image.
-type CreateProductImage struct {
+// CreateImage struct contains the data required to store a new product image.
+type CreateImage struct {
 	SKU   string
 	W     uint
 	H     uint
@@ -23,8 +23,8 @@ type CreateProductImage struct {
 	Data  interface{}
 }
 
-// ProductImage struct holds a row of the product_images table.
-type ProductImage struct {
+// Image struct holds a row of the product_images table.
+type Image struct {
 	id        uint
 	ProductID uint
 	UUID      string
@@ -45,7 +45,7 @@ type ProductImage struct {
 }
 
 // CreateImageEntry writes a new image entry to the product_images table.
-func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateProductImage) (*ProductImage, error) {
+func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateImage) (*Image, error) {
 	query := `
 		INSERT INTO product_images (
 			product_id, sku,
@@ -63,7 +63,7 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateProductImage) (
 			id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 			gsurl, data, created, modified
 	`
-	p := ProductImage{}
+	p := Image{}
 	err := m.db.QueryRowContext(ctx, query, c.SKU, c.SKU,
 		c.W, c.H, c.Path, c.Typ,
 		c.Ori,
@@ -77,7 +77,7 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateProductImage) (
 }
 
 // GetImagesBySKU returns a slice of Images associated to a given product SKU.
-func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ProductImage, error) {
+func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*Image, error) {
 	query := `
 		SELECT
 		  id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
@@ -91,9 +91,9 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ProductIma
 		return nil, err
 	}
 	defer rows.Close()
-	images := make([]*ProductImage, 0, 16)
+	images := make([]*Image, 0, 16)
 	for rows.Next() {
-		p := ProductImage{}
+		p := Image{}
 		err = rows.Scan(&p.id, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 		if err != nil {
 			return nil, err
@@ -122,14 +122,14 @@ func (m *PgModel) ImagePathExists(ctx context.Context, path string) (bool, error
 
 // GetProductImageByUUID returns a ProductImage by the given UUID.
 // If the product is not found returns nil, error indicating not found.
-func (m *PgModel) GetProductImageByUUID(ctx context.Context, uuid string) (*ProductImage, error) {
+func (m *PgModel) GetProductImageByUUID(ctx context.Context, uuid string) (*Image, error) {
 	query := `
 		SELECT id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 		gsurl, data, created, modified
 		FROM product_images
 		WHERE uuid = $1
 	`
-	p := ProductImage{}
+	p := Image{}
 	if err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (m *PgModel) ImageUUIDExists(ctx context.Context, uuid string) (bool, error
 
 // ConfirmImageUploaded updates the `up` column to true to indicate the
 // uploaded has taken place.
-func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*ProductImage, error) {
+func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Image, error) {
 	query := `
 		UPDATE product_images
 		SET up = 't', modified = NOW()
@@ -160,7 +160,7 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Produ
 		RETURNING id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 		gsurl, data, created, modified
 	`
-	p := ProductImage{}
+	p := Image{}
 	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, err

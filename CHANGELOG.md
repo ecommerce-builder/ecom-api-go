@@ -1,4 +1,12 @@
 # CHANGELOG
+## v0.40.0 (Fri 31 May 2019)
++ Requires database scheme version 0.13.0
++ `product_pricing_tiers` table becomes `pricing_tiers`.
++ Replaced two operations `OpCreateProduct` and `OpUpdateProduct` with `OpReplaceProduct`.
++ New `ErrCodeDuplicateImagePath` return code to prevent duplicate image paths on `OpReplaceProduct`.
++ `Data` field becomes `Content`.
++ Skeleton validation added to `OpReplaceProduct`. Still has more to do.
+
 ## v0.39.0 (Wed 29 May 2019)
 + Unexported ids on postgres layer.
 + Add `path` and `name` to the OpGetCatalog products section.

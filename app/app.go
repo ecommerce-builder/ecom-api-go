@@ -26,6 +26,10 @@ const (
 
 	// ErrCodeProductSKUNotFound indicates the product with given SKU could not be found.
 	ErrCodeProductSKUNotFound string = "products/product-sku-not-found"
+
+	// ErrCodeDuplicateImagePath return value is sent when a consumer attempts
+	// add a new product with duplicate image paths.
+	ErrCodeDuplicateImagePath string = "products/duplicate-image-paths"
 )
 
 // Cart operation sentinel values.
@@ -54,12 +58,11 @@ const (
 	OpDeleteAddress         string = "OpDeleteAddress"
 
 	// Products
-	OpCreateProduct string = "OpCreateProduct"
-	OpGetProduct    string = "OpGetProduct"
-	OpListProducts  string = "OpListProducts"
-	OpProductExists string = "OpProductExists"
-	OpUpdateProduct string = "OpUpdateProduct"
-	OpDeleteProduct string = "OpDeleteProduct"
+	OpReplaceProduct string = "OpReplaceProduct"
+	OpGetProduct     string = "OpGetProduct"
+	OpListProducts   string = "OpListProducts"
+	OpProductExists  string = "OpProductExists"
+	OpDeleteProduct  string = "OpDeleteProduct"
 
 	// Pricing Tiers
 	OpCreateTier string = "OpCreateTier"

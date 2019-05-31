@@ -228,8 +228,7 @@ func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*Catalog
 	if err != nil {
 		return err
 	}
-
-	stmt, err := tx.Prepare(`
+	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO catalog_products
 			(catalog_id, product_id, path, sku, pri)
 		VALUES (
@@ -246,7 +245,6 @@ func (m *PgModel) UpdateCatalogProductAssocs(ctx context.Context, cpo []*Catalog
 		return err
 	}
 	defer stmt.Close()
-
 	for _, c := range cpo {
 		if _, err := stmt.ExecContext(ctx, c.Path, c.SKU, c.Path, c.SKU, c.Pri); err != nil {
 			tx.Rollback()

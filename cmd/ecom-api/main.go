@@ -24,7 +24,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.39.0"
+var version = "v0.40.0"
 
 const maxDbConnectAttempts = 3
 
@@ -470,11 +470,10 @@ func main() {
 		})
 
 		r.Route("/products", func(r chi.Router) {
-			r.Post("/", a.Authorization(app.OpCreateProduct, a.CreateProductHandler()))
+			r.Put("/{sku}", a.Authorization(app.OpReplaceProduct, a.CreateReplaceProductHandler()))
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
 			r.Get("/{sku}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
 			r.Head("/{sku}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
-			r.Put("/{sku}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
 			r.Delete("/{sku}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
 			r.Get("/{sku}/pricing", a.Authorization(app.OpListPricingBySKU, a.ListPricingBySKUHandler()))

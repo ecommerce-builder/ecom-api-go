@@ -44,14 +44,14 @@ func TestUpdateProduct(t *testing.T) {
 	defer teardown()
 
 	ctx := context.Background()
-	pu := &ProductUpdate{
-		EAN: "Updated EAN",
+	pu := &ProductCreateUpdate{
+		EAN:  "Updated EAN",
 		Path: "updated-url",
 		Name: "Updated Name",
-		Data: ProductData{
-			Summary: "Updated Summary",
-			Desc: "Updated Description",
-			Spec: "Updated Specification",
+		Content: ProductContent{
+			Summary:       "Updated Summary",
+			Description:   "Updated Description",
+			Specification: "Updated Specification",
 		},
 	}
 	pr, err := model.UpdateProduct(ctx, "DESK-SKU", pu)
@@ -236,7 +236,7 @@ func TestCreateImageEntry(t *testing.T) {
 	defer teardown()
 
 	ctx := context.Background()
-	cpis := []CreateProductImage{
+	cpis := []CreateImage{
 		{ // 0
 			SKU:   "WATER",
 			W:     800,
@@ -277,7 +277,7 @@ func TestCreateImageEntry(t *testing.T) {
 			Data:  nil,
 		},
 	}
-	pis := make([]*ProductImage, 3)
+	pis := make([]*Image, 3)
 	t.Run("CreateProductImages", func(t *testing.T) {
 		var err error
 		for i, c := range cpis {
@@ -319,7 +319,7 @@ func TestCreateImageEntry(t *testing.T) {
 	})
 
 	t.Run("GetImageEntries", func(t *testing.T) {
-		images, err := model.GetImageEntries(ctx, "TV")
+		images, err := model.GetImagesBySKU(ctx, "TV")
 		if err != nil {
 			t.Fatalf("GetImageEntries(ctx, %q): %s", "TV", err)
 		}
@@ -342,7 +342,7 @@ func TestCreateImageEntry(t *testing.T) {
 
 	t.Run("DeleteImageEntry", func(t *testing.T) {
 		for _, p := range pis {
-			count, err := model.DeleteImageEntry(ctx, p.UUID)
+			count, err := model.DeleteProductImage(ctx, p.UUID)
 			if err != nil {
 				t.Fatalf("DeleteImageEntry(ctx, %v): %s", p.UUID, err)
 			}

@@ -19,18 +19,18 @@ type ProductPricing struct {
 }
 
 // GetProductPricingBySKUAndTier returns a ProductPricing for a given SKU and tier ref.
-func (m *PgModel) GetProductPricingBySKUAndTier(ctx context.Context, sku, ref string) (*ProductPricing, error) {
+func (m *PgModel) GetProductPricingBySKUAndTier(ctx context.Context, sku, tierRef string) (*ProductPricing, error) {
 	query := `
 		SELECT id, tier_ref, sku, unit_price, created, modified
 		FROM product_pricing
 		WHERE sku = $1 AND tier_ref = $2
 	`
 	p := ProductPricing{}
-	if err := m.db.QueryRowContext(ctx, query, sku, ref).Scan(&p.id, &p.TierRef, &p.SKU, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+	if err := m.db.QueryRowContext(ctx, query, sku, tierRef).Scan(&p.id, &p.TierRef, &p.SKU, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, errors.Wrapf(err, " m.db.QueryRowContext(ctx, %q, %q, %q).Scan(...)", query, sku, ref)
+		return nil, errors.Wrapf(err, " m.db.QueryRowContext(ctx, %q, %q, %q).Scan(...)", query, sku, tierRef)
 	}
 	return &p, nil
 }
@@ -63,15 +63,15 @@ func (m *PgModel) GetProductPricingBySKU(ctx context.Context, sku string) ([]*Pr
 }
 
 // GetProductPricingByTier returns a list of ProductPricing items for a given tier ref.
-func (m *PgModel) GetProductPricingByTier(ctx context.Context, ref string) ([]*ProductPricing, error) {
+func (m *PgModel) GetProductPricingByTier(ctx context.Context, tierRef string) ([]*ProductPricing, error) {
 	query := `
 	SELECT id, tier_ref, sku, unit_price, created, modified
 	FROM product_pricing
 	WHERE tier_ref = $1
 	`
-	rows, err := m.db.QueryContext(ctx, query, ref)
+	rows, err := m.db.QueryContext(ctx, query, tierRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, %q)", query, ref)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, %q)", query, tierRef)
 	}
 	defer rows.Close()
 	pricing := make([]*ProductPricing, 0, 8)
@@ -89,8 +89,8 @@ func (m *PgModel) GetProductPricingByTier(ctx context.Context, ref string) ([]*P
 }
 
 // UpdateTierPricing updates the product pricing with the new unit price
-// by `sku` and tier `ref`.
-func (m *PgModel) UpdateTierPricing(ctx context.Context, sku, ref string, unitPrice float64) (*ProductPricing, error) {
+// by `sku` and tier `tier_ref`.
+func (m *PgModel) UpdateTierPricing(ctx context.Context, sku, tierRef string, unitPrice float64) (*ProductPricing, error) {
 	query := `
 		UPDATE product_pricing
 		SET
@@ -101,16 +101,16 @@ func (m *PgModel) UpdateTierPricing(ctx context.Context, sku, ref string, unitPr
 		  id, tier_ref, sku, unit_price, created, modified
 	`
 	p := ProductPricing{}
-	if err := m.db.QueryRowContext(ctx, query, unitPrice, sku, ref).Scan(&p.id, &p.TierRef, &p.SKU, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+	if err := m.db.QueryRowContext(ctx, query, unitPrice, sku, tierRef).Scan(&p.id, &p.TierRef, &p.SKU, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 		return nil, errors.Wrap(err, "UpdateTierPricing QueryRowContext failed")
 	}
 	return &p, nil
 }
 
 // DeleteProductPricingBySKUAndTier deletes a tier pricing by SKU and tier ref.
-func (m *PgModel) DeleteProductPricingBySKUAndTier(ctx context.Context, sku, ref string) error {
+func (m *PgModel) DeleteProductPricingBySKUAndTier(ctx context.Context, sku, tierRef string) error {
 	query := `DELETE FROM product_pricing WHERE sku = $1 AND tier_ref = $2`
-	if _, err := m.db.ExecContext(ctx, query, sku, ref); err != nil {
+	if _, err := m.db.ExecContext(ctx, query, sku, tierRef); err != nil {
 		return errors.Wrapf(err, "exec context query=%q", query)
 	}
 	return nil

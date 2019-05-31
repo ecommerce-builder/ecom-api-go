@@ -25,7 +25,7 @@ type Image struct {
 
 // CreateImageEntry creates a new image entry for a product with the given SKU.
 func (s *Service) CreateImageEntry(ctx context.Context, sku, path string) (*Image, error) {
-	pc := postgres.CreateProductImage{
+	pc := postgres.CreateImage{
 		SKU:   sku,
 		W:     99999999,
 		H:     99999999,
