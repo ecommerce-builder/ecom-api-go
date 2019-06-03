@@ -18,7 +18,7 @@ func unauthorized(w http.ResponseWriter) {
 func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		log.Debugf("AuthorizationMiddleware started for operation %s", op)
+		log.Debugf("authorization started for %s", op)
 		decodedToken := ctx.Value("ecomDecodedToken").(*auth.Token)
 
 		// Get the customer UUID and customer role from the JWT
@@ -47,7 +47,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		log.Debugf("role %s, op %s, JWT cuuid %s", role, op, cuuid)
+		log.Infof("%s role %s, JWT cuuid %s", op, role, cuuid)
 
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
@@ -128,7 +128,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			unauthorized(w)
 			return
 		default:
-			log.Infof("(default) authorization declined for operation %s", op)
+			log.Infof("(default) authorization declined for %s", op)
 			unauthorized(w)
 			return
 		}
