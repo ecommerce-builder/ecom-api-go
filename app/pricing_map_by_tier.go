@@ -10,18 +10,18 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// ListPricingByTierHandler creates a handler function that returns a
-// map of SKU to pricing entries.
-func (a *App) ListPricingByTierHandler() http.HandlerFunc {
+// PricingMapByTierHandler creates a handler function that returns a
+// map of SKU to PricingEntry.
+func (a *App) PricingMapByTierHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ref := chi.URLParam(r, "ref")
-		pmap, err := a.Service.ListPricingByTier(r.Context(), ref)
+		pmap, err := a.Service.PricingMapByTier(r.Context(), ref)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			fmt.Fprintf(os.Stderr, "service ListPricingByTier(ctx, %s) error: %+v", ref, err)
+			fmt.Fprintf(os.Stderr, "service PricingMapByTierHandler(ctx, %s) error: %+v", ref, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

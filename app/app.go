@@ -73,8 +73,8 @@ const (
 
 	// Pricing
 	OpGetTierPricing    string = "OpGetTierPricing"
-	OpListPricingBySKU  string = "OpListPricingBySKU"
-	OpListPricingByTier string = "OpListPricingByTier"
+	OpMapPricingBySKU   string = "OpMapPricingBySKU"
+	OpMapPricingByTier  string = "OpMapPricingByTier"
 	OpUpdateTierPricing string = "OpUpdateTierPricing"
 	OpDeleteTierPricing string = "OpDeleteTierPricing"
 

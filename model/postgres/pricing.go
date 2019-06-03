@@ -38,10 +38,10 @@ func (m *PgModel) GetProductPricingBySKUAndTier(ctx context.Context, sku, tierRe
 // GetProductPricingBySKU returns a list of ProductPricing items for a given SKU.
 func (m *PgModel) GetProductPricingBySKU(ctx context.Context, sku string) ([]*ProductPricing, error) {
 	query := `
-	SELECT id, tier_ref, sku, unit_price, created, modified
-	FROM product_pricing
-	WHERE sku = $1
-	ORDER BY tier_ref ASC
+		SELECT id, tier_ref, sku, unit_price, created, modified
+		FROM product_pricing
+		WHERE sku = $1
+		ORDER BY tier_ref ASC
 	`
 	rows, err := m.db.QueryContext(ctx, query, sku)
 	if err != nil {
@@ -65,9 +65,9 @@ func (m *PgModel) GetProductPricingBySKU(ctx context.Context, sku string) ([]*Pr
 // GetProductPricingByTier returns a list of ProductPricing items for a given tier ref.
 func (m *PgModel) GetProductPricingByTier(ctx context.Context, tierRef string) ([]*ProductPricing, error) {
 	query := `
-	SELECT id, tier_ref, sku, unit_price, created, modified
-	FROM product_pricing
-	WHERE tier_ref = $1
+		SELECT id, tier_ref, sku, unit_price, created, modified
+		FROM product_pricing
+		WHERE tier_ref = $1
 	`
 	rows, err := m.db.QueryContext(ctx, query, tierRef)
 	if err != nil {

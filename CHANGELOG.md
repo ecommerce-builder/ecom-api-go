@@ -1,4 +1,12 @@
 # CHANGELOG
+## v0.43.0 (Mon 3 Jun 2019)
++ `OpListPricingBySKU` renamed to `OpMapPricingBySKU`.
++ `OpListPricingByTier` renamed to `OpMapPricingByTier`.
++ `a.Service.ListPricingBySKU` renamed to `a.Service.PricingMapBySKU`.
++ `a.Service.ListPricingByTier` renamed to `a.Service.PricingMapByTier`.
++ Buxfix: field tag corrected from `in-the-box` to `in_the_box`.
++ Introduces two _named types_ `SKU` and `TierRef` improving readablity.
+
 ## v0.42.1 (Mon 3 Jun 2019)
 + Fix broken field tag on `OpProductApply` `in_the_box`.
 

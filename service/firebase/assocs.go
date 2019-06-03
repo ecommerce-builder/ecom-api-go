@@ -53,9 +53,6 @@ func (s *Service) HasCategoryProductAssocs(ctx context.Context) (bool, error) {
 	return has, nil
 }
 
-// A SKU handles unique product SKUs.
-type SKU string
-
 // An AssocProduct holds details of a product in the context of an AssocSet.
 type AssocProduct struct {
 	SKU      string    `json:"sku"`

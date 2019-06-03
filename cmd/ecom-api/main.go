@@ -25,7 +25,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.42.1"
+var version = "v0.43.0"
 
 const maxDbConnectAttempts = 3
 
@@ -130,7 +130,7 @@ func initLogging() {
 
 	lg.SetFormatter(stackdriver.NewFormatter(
 		stackdriver.WithService("default"),
-		stackdriver.WithVersion("v0.42.1"),
+		stackdriver.WithVersion("v0.43.0"),
 	))
 
 	// Output to stdout instead of the default stderr
@@ -477,8 +477,8 @@ func main() {
 			r.Head("/{sku}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
 			r.Delete("/{sku}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
-			r.Get("/{sku}/pricing", a.Authorization(app.OpListPricingBySKU, a.ListPricingBySKUHandler()))
-			r.Get("/tiers/{ref}/pricing", a.Authorization(app.OpListPricingByTier, a.ListPricingByTierHandler()))
+			r.Get("/{sku}/pricing", a.Authorization(app.OpMapPricingBySKU, a.PricingMapBySKUHandler()))
+			r.Get("/tiers/{ref}/pricing", a.Authorization(app.OpMapPricingByTier, a.PricingMapByTierHandler()))
 		})
 
 		r.Route("/devkeys", func(r chi.Router) {

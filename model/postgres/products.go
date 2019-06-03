@@ -43,7 +43,7 @@ type ProductContent struct {
 	Summary       string   `json:"summary"`
 	Description   string   `json:"description"`
 	Specification string   `json:"specification"`
-	InTheBox      string   `json:"in-the-box"`
+	InTheBox      string   `json:"in_the_box"`
 }
 
 // Product maps to a products row.

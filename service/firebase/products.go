@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -13,14 +12,6 @@ import (
 type ImageEntry struct {
 	Path  string `json:"path"`
 	Title string `json:"title"`
-}
-
-// ProductPricingEntry contains the product pricing data.
-type ProductPricingEntry struct {
-	TierRef   string    `json:"tier_ref,omitempty"`
-	UnitPrice float64   `json:"unit_price"`
-	Created   time.Time `json:"created,omitempty"`
-	Modified  time.Time `json:"modified,omitempty"`
 }
 
 // ProductContent contains the variable JSON data of the product
@@ -41,25 +32,25 @@ type ProductContent struct {
 
 // ProductCreate contains fields required for creating a product.
 type ProductCreate struct {
-	EAN     string                 `json:"ean"`
-	Path    string                 `json:"path"`
-	Name    string                 `json:"name"`
-	Images  []*ImageEntry          `json:"images"`
-	Pricing []*ProductPricingEntry `json:"pricing"`
-	Content ProductContent         `json:"content"`
+	EAN     string            `json:"ean"`
+	Path    string            `json:"path"`
+	Name    string            `json:"name"`
+	Images  []*ImageEntry     `json:"images"`
+	Pricing []*ProductPricing `json:"pricing"`
+	Content ProductContent    `json:"content"`
 }
 
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	SKU      string                          `json:"sku"`
-	EAN      string                          `json:"ean"`
-	Path     string                          `json:"path"`
-	Name     string                          `json:"name"`
-	Images   []*Image                        `json:"images"`
-	Pricing  map[string]*ProductPricingEntry `json:"pricing"`
-	Content  ProductContent                  `json:"content"`
-	Created  time.Time                       `json:"created,omitempty"`
-	Modified time.Time                       `json:"modified,omitempty"`
+	SKU      string                    `json:"sku"`
+	EAN      string                    `json:"ean"`
+	Path     string                    `json:"path"`
+	Name     string                    `json:"name"`
+	Images   []*Image                  `json:"images"`
+	Pricing  map[TierRef]*PricingEntry `json:"pricing"`
+	Content  ProductContent            `json:"content"`
+	Created  time.Time                 `json:"created,omitempty"`
+	Modified time.Time                 `json:"modified,omitempty"`
 }
 
 // ReplaceProduct create a new product if the product SKU does not
@@ -84,7 +75,7 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 	pricingReq := make([]*postgres.ProductPricingEntry, 0, 4)
 	for _, r := range pc.Pricing {
 		item := postgres.ProductPricingEntry{
-			TierRef:   r.TierRef,
+			TierRef:   string(r.TierRef),
 			UnitPrice: r.UnitPrice,
 		}
 		pricingReq = append(pricingReq, &item)
@@ -106,9 +97,6 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 			InTheBox:      pc.Content.InTheBox,
 		},
 	}
-
-	fmt.Printf("%+v\n", update)
-
 	p, err := s.model.UpdateProduct(ctx, sku, update)
 	if err != nil {
 		return nil, errors.Wrapf(err, "UpdateProduct(ctx, sku=%q, ...) failed", sku)
@@ -128,14 +116,14 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 		}
 		images = append(images, &img)
 	}
-	pricing := make(map[string]*ProductPricingEntry)
+	pricing := make(map[TierRef]*PricingEntry)
 	for _, pr := range p.Pricing {
-		price := ProductPricingEntry{
+		price := PricingEntry{
 			UnitPrice: pr.UnitPrice,
 			Created:   pr.Created,
 			Modified:  pr.Modified,
 		}
-		pricing[pr.TierRef] = &price
+		pricing[TierRef(pr.TierRef)] = &price
 	}
 	return &Product{
 		SKU:     p.SKU,
@@ -199,6 +187,10 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", sku)
 	}
+	pricing, err := s.PricingMapBySKU(ctx, sku)
+	if err != nil {
+		return nil, errors.Wrapf(err, "service: PricingMapBySKU(ctx, %q)", sku)
+	}
 	return &Product{
 		SKU:  p.SKU,
 		EAN:  p.EAN,
@@ -210,6 +202,7 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 			Specification: p.Content.Specification,
 		},
 		Images:   images,
+		Pricing:  pricing,
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
