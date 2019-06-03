@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.42.1 (Mon 3 Jun 2019)
++ Fix broken field tag on `OpProductApply` `in_the_box`.
+
 ## v0.42.0 (Mon 3 Jun 2019)
 + Requires schema 0.15.0
 + Adds `schema_version` to `OpSystemInfo` response.
