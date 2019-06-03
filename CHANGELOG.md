@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.42.0 (Mon 3 Jun 2019)
++ Requires schema 0.15.0
++ Adds `schema_version` to `OpSystemInfo` response.
+
 ## v0.41.0 (Mon 3 Jun 2019)
 + Requires schema 0.14.0
 + Uses `catagories` instead of `catalog` for tables.

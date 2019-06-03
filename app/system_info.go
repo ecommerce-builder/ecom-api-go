@@ -2,7 +2,9 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 )
 
 // SystemInfo contains the system version string and system environment data.
@@ -18,13 +20,17 @@ type SystemEnv struct {
 	App  ApplSystemEnv `json:"app"`
 }
 
-// PgSystemEnv contains the environment settings for the Postgres database.
+// PgSystemEnv contains the environment and runtime settings
+// for the Postgres database. `schema_version` is embedded in
+// a postgres function setup by the initial schema create script
+// outside of this app.
 type PgSystemEnv struct {
-	PgHost     string `json:"ECOM_PG_HOST"`
-	PgPort     string `json:"ECOM_PG_PORT"`
-	PgDatabase string `json:"ECOM_PG_DATABASE"`
-	PgUser     string `json:"ECOM_PG_USER"`
-	PgSSLMode  string `json:"ECOM_PG_SSLMODE"`
+	PgHost        string `json:"ECOM_PG_HOST"`
+	PgPort        string `json:"ECOM_PG_PORT"`
+	PgDatabase    string `json:"ECOM_PG_DATABASE"`
+	PgUser        string `json:"ECOM_PG_USER"`
+	PgSSLMode     string `json:"ECOM_PG_SSLMODE"`
+	SchemaVersion string `json:"schema_version"`
 }
 
 // GoogSystemEnv contains the Google Firebase environment variables.
@@ -42,6 +48,12 @@ type ApplSystemEnv struct {
 // SystemInfoHandler returns data about the API runtime
 func (app *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		version, err := app.Service.GetSchemaVersion(r.Context())
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%+v", err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		}
+		si.Env.PG.SchemaVersion = *version
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(si)
 	}

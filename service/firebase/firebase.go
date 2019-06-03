@@ -6,6 +6,7 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
+	"github.com/pkg/errors"
 )
 
 // Service firebase implementation
@@ -30,4 +31,13 @@ func (s *Service) Authenticate(ctx context.Context, jwt string) (*auth.Token, er
 		return nil, err
 	}
 	return token, nil
+}
+
+// GetSchemaVersion returns the underlying database schema version as string.
+func (s *Service) GetSchemaVersion(ctx context.Context) (*string, error) {
+	version, err := s.model.GetSchemaVersion(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "service: GetSchemaVersion() failed")
+	}
+	return version, nil
 }
