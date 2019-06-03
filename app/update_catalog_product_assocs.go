@@ -10,19 +10,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-type catalogProduct struct {
+type categoryProduct struct {
 	SKU string `json:"sku"`
 }
 
-type catalogAssoc struct {
-	Path     string           `json:"path"`
-	Products []catalogProduct `json:"products"`
+type categoryAssoc struct {
+	Path     string            `json:"path"`
+	Products []categoryProduct `json:"products"`
 }
 
-type catalogAssocs []catalogAssoc
+type categoryAssocs []categoryAssoc
 
 // UpdateCatalogProductAssocsHandler creates a handler function that overwrites
-// a new catalog association.
+// a new category association.
 func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -56,12 +56,12 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 			}{
 				http.StatusConflict,
 				ErrCodeNoCatalog,
-				"catalog product associations can only be updated if a catalog exists.",
+				"category product associations can only be updated if a catalog exists.",
 			})
 			return
 		}
 
-		cas := catalogAssocs{}
+		cas := categoryAssocs{}
 		err = json.NewDecoder(r.Body).Decode(&cas)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
@@ -121,7 +121,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 			}
 			cpas[a.Path] = skus
 		}
-		err = a.Service.BatchCreateCatalogProductAssocs(ctx, cpas)
+		err = a.Service.CreateCategoryProductAssocs(ctx, cpas)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
@@ -131,7 +131,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 	}
 }
 
-func validateCatalogAssocs(cas catalogAssocs, tree *firebase.Category) (skus, missingPaths, nonLeafs []string) {
+func validateCatalogAssocs(cas categoryAssocs, tree *firebase.Category) (skus, missingPaths, nonLeafs []string) {
 	skumap := make(map[string]bool)
 	for _, ca := range cas {
 		for _, cp := range ca.Products {

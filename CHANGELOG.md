@@ -1,4 +1,11 @@
 # CHANGELOG
+## v0.41.0 (Mon 3 Jun 2019)
++ Requires schema 0.14.0
++ Uses `catagories` instead of `catalog` for tables.
++ catalog becomes a collective noun for all categories in the `categories` table.
++ Associations are held in the `categories_products` table and data structs are referred to as `CategoryProductAssoc`.
++ Resource becomes GET `/categories` instead of `/catalog`. This ensures future proofing GET `/catalog/x/yz`.
+
 ## v0.40.1 (Fri 31 May 2019)
 + Bugfix `OpGetCatalog` returns products with incorrect category path instead of product slug path.
 + Add .gitcloudignore to prevent unnecessary files uploading.

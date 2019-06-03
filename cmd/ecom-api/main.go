@@ -15,6 +15,7 @@ import (
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	firebase "firebase.google.com/go"
 	_ "firebase.google.com/go/auth"
+	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
@@ -24,7 +25,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.40.1"
+var version = "v0.41.0"
 
 const maxDbConnectAttempts = 3
 
@@ -123,14 +124,14 @@ const (
 
 func initLogging() {
 	// Output logs with colour
-	lg.SetFormatter(&lg.TextFormatter{
-		ForceColors: true,
-	})
+	// lg.SetFormatter(&lg.TextFormatter{
+	// 	ForceColors: true,
+	// })
 
-	//lg.SetFormatter(stackdriver.NewFormatter(
-	//	stackdriver.WithService("default"),
-	//	stackdriver.WithVersion("v0.40.1"),
-	//))
+	lg.SetFormatter(stackdriver.NewFormatter(
+		stackdriver.WithService("default"),
+		stackdriver.WithVersion("v0.41.0"),
+	))
 
 	// Output to stdout instead of the default stderr
 	lg.SetOutput(os.Stdout)
@@ -498,7 +499,7 @@ func main() {
 			r.Delete("/{uuid}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
 		})
 
-		r.Route("/catalog", func(r chi.Router) {
+		r.Route("/categories", func(r chi.Router) {
 			r.Put("/", a.Authorization(app.OpUpdateCatalog, a.UpdateCatalogHandler()))
 			r.Get("/", a.Authorization(app.OpGetCatalog, a.GetCatalogHandler()))
 			r.Delete("/", a.Authorization(app.OpPurgeCatalog, a.PurgeCatalogHandler()))

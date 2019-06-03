@@ -9,12 +9,12 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
-// GetCatalogAssocsHandler creates a handler to return the entire catalog
+// GetCategoryAssocsHandler creates a handler to return the entire catalog
 func (app *App) GetCatalogAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cpo, err := app.Service.GetCatalogAssocs(r.Context())
+		cpo, err := app.Service.GetCategoryAssocs(r.Context())
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service GetCatalogAssocs(ctx) error: %v", err)
+			fmt.Fprintf(os.Stderr, "service GetCategoryAssocs(ctx) error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`

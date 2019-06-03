@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CatalogProductAssoc maps products to leaf nodes in the catalogue hierarchy
-type CatalogProductAssoc struct {
+// CategoryProductAssoc maps products to leaf nodes in the catalogue hierarchy
+type CategoryProductAssoc struct {
 	Path     string    `json:"path"`
 	SKU      string    `json:"sku"`
 	Pri      int       `json:"pri"`
@@ -16,24 +16,24 @@ type CatalogProductAssoc struct {
 	Modified time.Time `json:"modified"`
 }
 
-// BatchCreateCatalogProductAssocs creates a set of catalog product
+// CreateCategoryProductAssocs creates a set of catalog product
 // associations either completing with all or failing with none
 // being added.
-func (s *Service) BatchCreateCatalogProductAssocs(ctx context.Context, cpas map[string][]string) error {
-	err := s.model.BatchCreateCatalogProductAssocs(ctx, cpas)
+func (s *Service) CreateCategoryProductAssocs(ctx context.Context, cpas map[string][]string) error {
+	err := s.model.CreateCategoryProductAssocs(ctx, cpas)
 	if err != nil {
-		return errors.Wrap(err, "service: BatchCreateCatalogProductAssocs")
+		return errors.Wrap(err, "service: CreateCategoryProductAssocs")
 	}
 	return nil
 }
 
-// CreateCatalogProductAssocs associates an existing product to a catalog entry.
-func (s *Service) CreateCatalogProductAssocs(ctx context.Context, path, sku string) (*CatalogProductAssoc, error) {
-	cpa, err := s.model.CreateCatalogProductAssoc(ctx, path, sku)
+// CreateCategoryProductAssoc associates an existing product to a catalog entry.
+func (s *Service) CreateCategoryProductAssoc(ctx context.Context, path, sku string) (*CategoryProductAssoc, error) {
+	cpa, err := s.model.CreateCategoryProductAssoc(ctx, path, sku)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: create catalog product assoc sku=%q", sku)
 	}
-	scpa := CatalogProductAssoc{
+	scpa := CategoryProductAssoc{
 		Path:     cpa.Path,
 		SKU:      cpa.SKU,
 		Pri:      cpa.Pri,
@@ -43,10 +43,10 @@ func (s *Service) CreateCatalogProductAssocs(ctx context.Context, path, sku stri
 	return &scpa, nil
 }
 
-// HasCatalogProductAssocs returns true if any catalog product associations
+// HasCategoryProductAssocs returns true if any catalog product associations
 // exist.
-func (s *Service) HasCatalogProductAssocs(ctx context.Context) (bool, error) {
-	has, err := s.model.HasCatalogProductAssocs(ctx)
+func (s *Service) HasCategoryProductAssocs(ctx context.Context) (bool, error) {
+	has, err := s.model.HasCategoryProductAssocs(ctx)
 	if err != nil {
 		return false, errors.Wrap(err, "service: has catalog product assocs")
 	}
@@ -69,9 +69,9 @@ type Assoc struct {
 	Products []AssocProduct `json:"products"`
 }
 
-// GetCatalogAssocs returns the catalog product associations
-func (s *Service) GetCatalogAssocs(ctx context.Context) (map[string]*Assoc, error) {
-	cpo, err := s.model.GetCatalogProductAssocs(ctx)
+// GetCategoryAssocs returns all of the category product associations
+func (s *Service) GetCategoryAssocs(ctx context.Context) (map[string]*Assoc, error) {
+	cpo, err := s.model.GetCategoryProductAssocs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -93,18 +93,18 @@ func (s *Service) GetCatalogAssocs(ctx context.Context) (map[string]*Assoc, erro
 	return assocs, nil
 }
 
-// UpdateCatalogProductAssocs updates the catalog product associations
-// func (s *Service) UpdateCatalogProductAssocs(ctx context.Context, cpo []*postgres.catalogProductAssoc) error {
-// 	err := s.model.UpdateCatalogProductAssocs(ctx, cpo)
+// UpdateCategoryProductAssocs updates the category product associations
+// func (s *Service) UpdateCategoryProductAssocs(ctx context.Context, cpo []*postgres.catalogProductAssoc) error {
+// 	err := s.model.UpdateCategoryProductAssocs(ctx, cpo)
 // 	if err != nil {
 // 		return err
 // 	}
 // 	return nil
 // }
 
-// DeleteCatalogAssocs delete all catalog product associations.
-func (s *Service) DeleteCatalogAssocs(ctx context.Context) (affected int64, err error) {
-	n, err := s.model.DeleteCatalogProductAssocs(ctx)
+// DeleteCategoryAssocs delete all catalog product associations.
+func (s *Service) DeleteCategoryAssocs(ctx context.Context) (affected int64, err error) {
+	n, err := s.model.DeleteCategoryProductAssocs(ctx)
 	if err != nil {
 		return 0, errors.Wrapf(err, "service: delete catalog assocs")
 	}

@@ -21,19 +21,19 @@ type NestedSetNode struct {
 }
 
 // BatchCreateNestedSet creates a nested set of nodes representing the
-// catalog hierarchy.
+// catalog.
 func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*NestedSetNode) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "db.BeginTx")
 	}
-	query := "DELETE FROM catalog"
+	query := "DELETE FROM categories"
 	if _, err = tx.ExecContext(ctx, query); err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "model: delete catalog query=%q", query)
+		return errors.Wrapf(err, "model: delete categories query=%q", query)
 	}
 	query = `
-		INSERT INTO catalog (
+		INSERT INTO categories (
 			segment, path, name, lft, rgt, depth, created, modified
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, NOW(), NOW()
@@ -61,7 +61,7 @@ func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*NestedSetNode)
 func (m *PgModel) GetCatalogByPath(ctx context.Context, path string) (*NestedSetNode, error) {
 	query := `
 		SELECT id, segment, path, name, lft, rgt, depth, created, modified
-		FROM catalog
+		FROM categories
 		WHERE path = $1
 	`
 	var n NestedSetNode
@@ -72,9 +72,9 @@ func (m *PgModel) GetCatalogByPath(ctx context.Context, path string) (*NestedSet
 	return &n, nil
 }
 
-// HasCatalog returns true if any rows exist in the catalog table.
+// HasCatalog returns true if any rows exist in the categories table.
 func (m *PgModel) HasCatalog(ctx context.Context) (bool, error) {
-	query := "SELECT COUNT(*) AS count FROM catalog"
+	query := "SELECT COUNT(*) AS count FROM categories"
 	var count int
 	err := m.db.QueryRowContext(ctx, query).Scan(&count)
 	if err != nil {
@@ -90,7 +90,7 @@ func (m *PgModel) HasCatalog(ctx context.Context) (bool, error) {
 func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, error) {
 	query := `
 		SELECT id, segment, path, name, lft, rgt, depth, created, modified
-		FROM catalog
+		FROM categories
 		ORDER BY lft ASC
 	`
 	rows, err := m.db.QueryContext(ctx, query)
@@ -114,12 +114,12 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, er
 	return nodes, nil
 }
 
-// DeleteCatalogNestedSet delete all rows in the catalog table.
+// DeleteCatalogNestedSet delete all rows in the categories table.
 func (m *PgModel) DeleteCatalogNestedSet(ctx context.Context) error {
-	query := `DELETE FROM catalog`
+	query := `DELETE FROM categories`
 	_, err := m.db.ExecContext(ctx, query)
 	if err != nil {
-		return errors.Wrap(err, "service: delete catalog")
+		return errors.Wrap(err, "service: delete categories")
 	}
 	return nil
 }

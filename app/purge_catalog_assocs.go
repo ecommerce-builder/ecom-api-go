@@ -9,9 +9,9 @@ import (
 // PurgeCatalogAssocsHandler deletes all catalog product associations.
 func (a *App) PurgeCatalogAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := a.Service.DeleteCatalogAssocs(r.Context())
+		_, err := a.Service.DeleteCategoryAssocs(r.Context())
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service DeleteCatalogAssocs(ctx) error: %+v", err)
+			fmt.Fprintf(os.Stderr, "service DeleteCategoryAssocs(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
