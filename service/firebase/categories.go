@@ -289,16 +289,11 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 	// convert slice into map
 	cmap := make(map[string][]spnTuple)
 	for _, cpf := range cpas {
-		_, ok := cmap[cpf.CategoryPath]
-		if ok {
-			cmap[cpf.CategoryPath] = append(cmap[cpf.CategoryPath], spnTuple{
-				sku:  cpf.SKU,
-				path: cpf.ProductPath,
-				name: cpf.Name,
-			})
-		} else {
-			cmap[cpf.CategoryPath] = []spnTuple{}
-		}
+		cmap[cpf.CategoryPath] = append(cmap[cpf.CategoryPath], spnTuple{
+			sku:  cpf.SKU,
+			path: cpf.ProductPath,
+			name: cpf.Name,
+		})
 	}
 	tree := BuildTree(ns, cmap)
 	return tree, nil

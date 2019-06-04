@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.44.1 (Tue 4 Jun 2019)
++ Fix bug with `OpGetCatalog` not returning the first product of each path.
+
 ## v0.44.0 (Tue 4 Jun 2019)
 + Drop `summary` and `meta.keywords` fields. Not needed.
 + Remove `marshalProduct` func. No longer used.
