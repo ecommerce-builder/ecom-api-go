@@ -18,13 +18,11 @@ type ImageEntry struct {
 type ProductContent struct {
 	Meta struct {
 		Title       string `json:"title"`
-		Keywords    string `json:"keywords"`
 		Description string `json:"description"`
 	} `json:"meta"`
 	Videos        []string `json:"videos"`
 	Manuals       []string `json:"manuals"`
 	Software      []string `json:"software"`
-	Summary       string   `json:"summary"`
 	Description   string   `json:"description"`
 	Specification string   `json:"specification"`
 	InTheBox      string   `json:"in_the_box"`
@@ -91,7 +89,6 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 			Videos:        pc.Content.Videos,
 			Manuals:       pc.Content.Manuals,
 			Software:      pc.Content.Software,
-			Summary:       pc.Content.Summary,
 			Description:   pc.Content.Description,
 			Specification: pc.Content.Specification,
 			InTheBox:      pc.Content.InTheBox,
@@ -137,7 +134,6 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 			Videos:        pc.Content.Videos,
 			Manuals:       pc.Content.Manuals,
 			Software:      pc.Content.Software,
-			Summary:       pc.Content.Summary,
 			Description:   pc.Content.Description,
 			Specification: pc.Content.Specification,
 			InTheBox:      pc.Content.InTheBox,
@@ -197,7 +193,6 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 		Path: p.Path,
 		Name: p.Name,
 		Content: ProductContent{
-			Summary:       p.Content.Summary,
 			Description:   p.Content.Description,
 			Specification: p.Content.Specification,
 		},
@@ -219,19 +214,6 @@ func (s *Service) ListProducts(ctx context.Context) ([]string, error) {
 		skus = append(skus, p.SKU)
 	}
 	return skus, nil
-}
-
-func marshalProduct(a *Product, m *postgres.Product) {
-	a.SKU = m.SKU
-	a.EAN = m.EAN
-	a.Path = m.Path
-	a.Name = m.Name
-	a.Content.Summary = m.Content.Summary
-	a.Content.Description = m.Content.Description
-	a.Content.Specification = m.Content.Specification
-	a.Created = m.Created
-	a.Modified = m.Modified
-	return
 }
 
 // ProductExists return true if the given product exists.

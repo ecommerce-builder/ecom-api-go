@@ -34,13 +34,11 @@ type ProductCreateUpdate struct {
 type ProductContent struct {
 	Meta struct {
 		Title       string `json:"title"`
-		Keywords    string `json:"keywords"`
 		Description string `json:"description"`
 	} `json:"meta"`
 	Videos        []string `json:"videos"`
 	Manuals       []string `json:"manuals"`
 	Software      []string `json:"software"`
-	Summary       string   `json:"summary"`
 	Description   string   `json:"description"`
 	Specification string   `json:"specification"`
 	InTheBox      string   `json:"in_the_box"`

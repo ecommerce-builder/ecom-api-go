@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.44.0 (Tue 4 Jun 2019)
++ Drop `summary` and `meta.keywords` fields. Not needed.
++ Remove `marshalProduct` func. No longer used.
+
 ## v0.43.0 (Mon 3 Jun 2019)
 + `OpListPricingBySKU` renamed to `OpMapPricingBySKU`.
 + `OpListPricingByTier` renamed to `OpMapPricingByTier`.

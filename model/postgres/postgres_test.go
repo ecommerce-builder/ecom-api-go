@@ -49,7 +49,6 @@ func TestUpdateProduct(t *testing.T) {
 		Path: "updated-url",
 		Name: "Updated Name",
 		Content: ProductContent{
-			Summary:       "Updated Summary",
 			Description:   "Updated Description",
 			Specification: "Updated Specification",
 		},
