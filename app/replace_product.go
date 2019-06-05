@@ -15,9 +15,8 @@ func validateRequestBody(pc *service.ProductCreate) error {
 	for _, img := range pc.Images {
 		if _, found := imagemap[img.Path]; found {
 			return fmt.Errorf("duplicate image path %s", img.Path)
-		} else {
-			imagemap[img.Path] = true
 		}
+		imagemap[img.Path] = true
 	}
 
 	// TODO: make sure the new path is not already taken by another
