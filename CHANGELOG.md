@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.45.0 (Thu 6 Jun 2019)
++ Catalog associations `PUT /assocs` uses map[string]Assocs instead of structs.
+
 ## v0.44.1 (Tue 4 Jun 2019)
 + Fix bug with `OpGetCatalog` not returning the first product of each path.
 

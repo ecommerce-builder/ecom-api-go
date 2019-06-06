@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-
-	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
 // GetCatalogAssocsHandler creates a handler to return the entire catalog
@@ -27,11 +25,7 @@ func (app *App) GetCatalogAssocsHandler() http.HandlerFunc {
 			})
 			return
 		}
-		as := make([]*firebase.Assoc, 0)
-		for _, v := range cpo {
-			as = append(as, v)
-		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(as)
+		json.NewEncoder(w).Encode(cpo)
 	}
 }

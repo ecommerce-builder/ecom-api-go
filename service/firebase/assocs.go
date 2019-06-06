@@ -62,7 +62,6 @@ type AssocProduct struct {
 
 // Assoc details a catalog association including products.
 type Assoc struct {
-	Path     string         `json:"path"`
 	Products []AssocProduct `json:"products"`
 }
 
@@ -76,7 +75,6 @@ func (s *Service) GetCategoryAssocs(ctx context.Context) (map[string]*Assoc, err
 	for _, v := range cpo {
 		if _, ok := assocs[v.Path]; !ok {
 			assocs[v.Path] = &Assoc{
-				Path:     v.Path,
 				Products: make([]AssocProduct, 0),
 			}
 		}

@@ -10,16 +10,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-type categoryProduct struct {
-	SKU string `json:"sku"`
-}
-
 type categoryAssoc struct {
-	Path     string            `json:"path"`
-	Products []categoryProduct `json:"products"`
+	Products []string `json:"products"`
 }
 
-type categoryAssocs []categoryAssoc
+type categoryAssocs map[string]categoryAssoc
 
 // UpdateCatalogProductAssocsHandler creates a handler function that overwrites
 // a new category association.
@@ -61,7 +56,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 			return
 		}
 
-		cas := categoryAssocs{}
+		cas := map[string]categoryAssoc{}
 		err = json.NewDecoder(r.Body).Decode(&cas)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
@@ -114,12 +109,12 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 			return
 		}
 		cpas := map[string][]string{}
-		for _, a := range cas {
+		for path, a := range cas {
 			skus := make([]string, 0, 32)
-			for _, cp := range a.Products {
-				skus = append(skus, cp.SKU)
+			for _, s := range a.Products {
+				skus = append(skus, s)
 			}
-			cpas[a.Path] = skus
+			cpas[path] = skus
 		}
 		err = a.Service.CreateCategoryProductAssocs(ctx, cpas)
 		if err != nil {
@@ -131,19 +126,19 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 	}
 }
 
-func validateCatalogAssocs(cas categoryAssocs, tree *firebase.Category) (skus, missingPaths, nonLeafs []string) {
+func validateCatalogAssocs(cmap map[string]categoryAssoc, tree *firebase.Category) (skus, missingPaths, nonLeafs []string) {
 	skumap := make(map[string]bool)
-	for _, ca := range cas {
-		for _, cp := range ca.Products {
-			if _, ok := skumap[cp.SKU]; !ok {
-				skumap[cp.SKU] = true
+	for path, ca := range cmap {
+		for _, s := range ca.Products {
+			if _, ok := skumap[s]; !ok {
+				skumap[s] = true
 			}
 		}
-		n := tree.FindNodeByPath(ca.Path)
+		n := tree.FindNodeByPath(path)
 		if n == nil {
-			missingPaths = append(missingPaths, ca.Path)
+			missingPaths = append(missingPaths, path)
 		} else if !n.IsLeaf() {
-			nonLeafs = append(nonLeafs, ca.Path)
+			nonLeafs = append(nonLeafs, path)
 		}
 	}
 	// convert map keys to slice
