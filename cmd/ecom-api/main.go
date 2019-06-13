@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
@@ -25,7 +26,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.45.0"
+var version = "v0.46.0"
 
 const maxDbConnectAttempts = 3
 
@@ -106,12 +107,16 @@ var (
 	//
 	// Application settings
 	//
-	port         = os.Getenv("PORT")
-	tlsModeFlag  = os.Getenv("ECOM_APP_TLS_MODE")
-	tlsCertFile  = os.Getenv("ECOM_APP_TLS_CERT")
-	tlsKeyFile   = os.Getenv("ECOM_APP_TLS_KEY")
-	rootEmail    = os.Getenv("ECOM_APP_ROOT_EMAIL")
-	rootPassword = os.Getenv("ECOM_APP_ROOT_PASSWORD")
+	port                        = os.Getenv("PORT")
+	tlsModeFlag                 = os.Getenv("ECOM_APP_TLS_MODE")
+	tlsCertFile                 = os.Getenv("ECOM_APP_TLS_CERT")
+	tlsKeyFile                  = os.Getenv("ECOM_APP_TLS_KEY")
+	rootEmail                   = os.Getenv("ECOM_APP_ROOT_EMAIL")
+	rootPassword                = os.Getenv("ECOM_APP_ROOT_PASSWORD")
+	maxOpenConnsEnv             = os.Getenv("ECOM_APP_MAX_OPEN_CONNS")
+	maxIdleConnsEnv             = os.Getenv("ECOM_APP_MAX_IDLE_CONNS")
+	connMaxLifetimeEnv          = os.Getenv("ECOM_APP_CONN_MAX_LIFETIME")
+	enableStackDriverLoggingEnv = os.Getenv("ECOM_APP_ENABLE_STACKDRIVER_LOGGING")
 )
 
 const (
@@ -123,15 +128,20 @@ const (
 )
 
 func initLogging() {
-	// Output logs with colour
-	// lg.SetFormatter(&lg.TextFormatter{
-	// 	ForceColors: true,
-	// })
-
-	lg.SetFormatter(stackdriver.NewFormatter(
-		stackdriver.WithService("default"),
-		stackdriver.WithVersion("v0.45.0"),
-	))
+	if enableStackDriverLoggingEnv == "no" || enableStackDriverLoggingEnv == "off" || enableStackDriverLoggingEnv == "false" {
+		enableStackDriverLoggingEnv = ""
+	}
+	if enableStackDriverLoggingEnv != "" {
+		lg.SetFormatter(stackdriver.NewFormatter(
+			stackdriver.WithService("default"),
+			stackdriver.WithVersion("v0.46.0"),
+		))
+	} else {
+		// Output logs with colour
+		lg.SetFormatter(&lg.TextFormatter{
+			ForceColors: true,
+		})
+	}
 
 	// Output to stdout instead of the default stderr
 	lg.SetOutput(os.Stdout)
@@ -331,10 +341,61 @@ func main() {
 		lg.Fatal("app root password not set. Use ECOM_APP_ROOT_PASSWORD")
 	}
 
+	// 6. Connection pooling
+	var maxOpenConns int
+	if maxOpenConnsEnv != "" {
+		var err error
+		maxOpenConns, err = strconv.Atoi(maxOpenConnsEnv)
+		if err != nil {
+			lg.Fatal("app failed to read value in ECOM_APP_MAX_OPEN_CONNS")
+		}
+	} else {
+		lg.Info("ECOM_APP_MAX_OPEN_CONNS is not set. Using the default of unlimited")
+	}
+
+	var maxIdleConns int
+	if maxIdleConnsEnv != "" {
+		var err error
+		maxIdleConns, err = strconv.Atoi(maxIdleConnsEnv)
+		if err != nil {
+			lg.Fatal("app failed to read value in ECOM_APP_MAX_IDLE_CONNS")
+		}
+		// There is no point in ever having any more idle connections than the
+		// maximum allowed open connections, because if you could instantaneously
+		// grab all the allowed open connections, the remain idle connections
+		// would always remain idle. It's like having a bridge with four lanes,
+		// but only ever allowing three vehicles to drive across it at once.
+		// https://stackoverflow.com/questions/31952791/setmaxopenconns-and-setmaxidleconns/31952911#31952911
+		if maxIdleConns > maxOpenConns {
+			lg.Fatal("app maxIdleConns exceeds maxOpenConns. Check both ECOM_APP_MAX_OPEN_CONNS and ECOM_APP_MAX_IDLE_CONNS")
+		}
+	}
+
+	var connMaxLifetime int
+	if connMaxLifetimeEnv != "" {
+		var err error
+		connMaxLifetime, err = strconv.Atoi(connMaxLifetimeEnv)
+		if err != nil {
+			lg.Fatal("app failed to read value in ECOM_APP_CONN_MAX_LIFETIME")
+		}
+	}
+
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		lg.Fatalf("failed to open db: %v", err)
+	}
+	if maxOpenConns > 0 {
+		db.SetMaxOpenConns(maxOpenConns)
+		lg.Infof("max open connections set to %d", maxOpenConns)
+	}
+	if maxIdleConns > 0 {
+		db.SetMaxIdleConns(maxIdleConns)
+		lg.Infof("max idle connections set to %d", maxIdleConns)
+	}
+	if connMaxLifetime > 0 {
+		db.SetConnMaxLifetime(time.Minute * time.Duration(connMaxLifetime))
+		lg.Infof("max conn max lifetime set to %d minutes", connMaxLifetime)
 	}
 
 	attempt := 0

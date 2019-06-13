@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.46.0 (Thu 13 Jun 2019)
++ New env vars `ECOM_APP_MAX_OPEN_CONNS`, `ECOM_APP_MAX_IDLE_CONNS` and `ECOM_APP_CONN_MAX_LIFETIME` used to
+  configure relational database connections.
++ New env var `ECOM_APP_ENABLE_STACKDRIVER_LOGGING` to switch formats in Google App Engine.
+
 ## v0.45.0 (Thu 6 Jun 2019)
 + Catalog associations `PUT /assocs` uses map[string]Assocs instead of structs.
 
