@@ -9,7 +9,6 @@ import (
 
 // CartItem structure holds the details individual cart item
 type CartItem struct {
-	UUID      string    `json:"uuid"`
 	SKU       string    `json:"sku"`
 	Qty       int       `json:"qty"`
 	UnitPrice float64   `json:"unit_price"`
@@ -34,7 +33,6 @@ func (s *Service) AddItemToCart(ctx context.Context, uuid string, sku string, qt
 		return nil, err
 	}
 	sitem := CartItem{
-		UUID:      item.UUID,
 		SKU:       item.SKU,
 		Qty:       item.Qty,
 		UnitPrice: item.UnitPrice,
@@ -54,7 +52,6 @@ func (s *Service) GetCartItems(ctx context.Context, cartUUID string) ([]*CartIte
 	results := make([]*CartItem, 0, 32)
 	for _, v := range items {
 		i := CartItem{
-			UUID:      v.UUID,
 			SKU:       v.SKU,
 			Qty:       v.Qty,
 			UnitPrice: v.UnitPrice,
@@ -73,7 +70,6 @@ func (s *Service) UpdateCartItem(ctx context.Context, cartUUID string, sku strin
 		return nil, err
 	}
 	sitem := CartItem{
-		UUID:      item.UUID,
 		SKU:       item.SKU,
 		Qty:       item.Qty,
 		UnitPrice: item.UnitPrice,

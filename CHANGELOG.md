@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.46.1 (Tue 18 Jun 2019)
++ Remove `uuid` property from JSON array response in GET /carts/:uuid/items
+
 ## v0.46.0 (Thu 13 Jun 2019)
 + New env vars `ECOM_APP_MAX_OPEN_CONNS`, `ECOM_APP_MAX_IDLE_CONNS` and `ECOM_APP_CONN_MAX_LIFETIME` used to
   configure relational database connections.
