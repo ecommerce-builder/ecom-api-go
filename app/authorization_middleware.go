@@ -109,10 +109,16 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 
+			if role == RoleAdmin {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			uuid := chi.URLParam(r, "uuid")
 			ocuuid, err := a.Service.GetAddressOwner(ctx, uuid)
 			if err != nil {
 				log.Errorf("a.Service.GetAddressOwner(%s) error: %v", uuid, err)
+				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
 			if ocuuid == nil {

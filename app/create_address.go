@@ -28,8 +28,7 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 			return
 		}
 
-		cuuid := chi.URLParam(r, "cuuid")
-
+		uuid := chi.URLParam(r, "uuid")
 		o := addressRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
@@ -37,9 +36,9 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 			return
 		}
 
-		address, err := a.Service.CreateAddress(r.Context(), cuuid, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
+		address, err := a.Service.CreateAddress(r.Context(), uuid, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", cuuid, err)
+			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", uuid, err)
 			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created

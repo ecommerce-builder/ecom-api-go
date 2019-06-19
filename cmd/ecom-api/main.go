@@ -26,7 +26,7 @@ import (
 )
 
 // set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.46.2"
+var version = "v0.46.3"
 
 const maxDbConnectAttempts = 3
 
@@ -134,7 +134,7 @@ func initLogging() {
 	if enableStackDriverLoggingEnv != "" {
 		lg.SetFormatter(stackdriver.NewFormatter(
 			stackdriver.WithService("default"),
-			stackdriver.WithVersion("v0.46.2"),
+			stackdriver.WithVersion("v0.46.3"),
 		))
 	} else {
 		// Output logs with colour
@@ -500,9 +500,9 @@ func main() {
 
 			r.Get("/{uuid}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
 			r.Post("/{uuid}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
-			r.Post("/{cuuid}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
-			r.Get("/{cuuid}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
-			r.Patch("/{cuuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
+			r.Post("/{uuid}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
+			r.Get("/{uuid}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
+			r.Patch("/{uuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
 		})
 
 		// tiers resource operation all return 501 Not Implemented

@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.46.3 (Wed 19 Jun 2019)
++ Bugfix `OpCreateAddress`, `OpGetCustomersAddresses` and `OpUpdateAddress` for `cuuid` -> `uuid` url param.
+
 ## v0.46.2 (Wed 19 Jun 2019)
 + Bugfix `OpGetCustomer` using `cuuid` url param instead of `uuid`.
 
