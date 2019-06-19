@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.46.2 (Wed 19 Jun 2019)
++ Bugfix `OpGetCustomer` using `cuuid` url param instead of `uuid`.
+
 ## v0.46.1 (Tue 18 Jun 2019)
 + Remove `uuid` property from JSON array response in GET /carts/:uuid/items
 

@@ -86,8 +86,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if role == RoleCustomer {
-				log.Debugf("URL cuuid %s", chi.URLParam(r, "cuuid"))
-				if subtle.ConstantTimeCompare([]byte(cuuid), []byte(chi.URLParam(r, "cuuid"))) == 1 {
+				log.Debugf("URL uuid %s", chi.URLParam(r, "uuid"))
+				if subtle.ConstantTimeCompare([]byte(cuuid), []byte(chi.URLParam(r, "uuid"))) == 1 {
 					next.ServeHTTP(w, r)
 					return
 				}
