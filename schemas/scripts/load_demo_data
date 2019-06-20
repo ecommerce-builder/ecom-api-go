@@ -1,0 +1,5 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+datadir=$DIR/../postgres/data
+
+cat $datadir/demo_data.sql | psql --no-psqlrc ecom_dev

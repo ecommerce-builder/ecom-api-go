@@ -1,0 +1,7 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+schemadir=$DIR/../postgres/schema
+datadir=$DIR/../postgres/data
+dockerdir=$DIR/../postgres/docker
+
+cat $dockerdir/docker_setup.sql $schemadir/init.sql $schema_version/schema_version_function.sql $schemadir/products.sql $schemadir/carts.sql $schemadir/pricing_tiers.sql $schemadir/product_pricing.sql $schemadir/categories.sql $schemadir/categories_products.sql $schemadir/categories_leafs.sql $schemadir/customers.sql $schemadir/customers_devkeys.sql $schemadir/addresses.sql $schemadir/orders.sql $schemadir/order_items.sql $schemadir/payments.sql $datadir/demo_data.sql

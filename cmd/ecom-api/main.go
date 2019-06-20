@@ -25,8 +25,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-// set at compile-time using -ldflags "-X main.version=$VERSION"
-var version = "v0.46.3"
+var version = "v0.47.0"
 
 const maxDbConnectAttempts = 3
 
@@ -134,7 +133,7 @@ func initLogging() {
 	if enableStackDriverLoggingEnv != "" {
 		lg.SetFormatter(stackdriver.NewFormatter(
 			stackdriver.WithService("default"),
-			stackdriver.WithVersion("v0.46.3"),
+			stackdriver.WithVersion(version),
 		))
 	} else {
 		// Output logs with colour

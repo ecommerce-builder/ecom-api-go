@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.47.0 (Thu 20 Jun 2019)
++ Postgres schema `0.15.1` relocated to this repo. For previous history of changes see the [original repo](https://bitbucket.org/andyfusniakteam/ecom-schemas). Each future schema version will match the `ecom-api` version string.
+
 ## v0.46.3 (Wed 19 Jun 2019)
 + Bugfix `OpCreateAddress`, `OpGetCustomersAddresses` and `OpUpdateAddress` for `cuuid` -> `uuid` url param.
 
