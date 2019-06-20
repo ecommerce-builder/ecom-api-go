@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.47.1 (Fri 20 Jun 2019)
++ Executable outputs runtime.Version(), GOOS and GOARCH upon startup.
++ Makefile to automate builds and Dockerfile modified to use alpine build from Makefile.
+
 ## v0.47.0 (Thu 20 Jun 2019)
 + Postgres schema `0.15.1` relocated to this repo. For previous history of changes see the [original repo](https://bitbucket.org/andyfusniakteam/ecom-schemas). Each future schema version will match the `ecom-api` version string.
 

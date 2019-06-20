@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -25,7 +26,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.47.0"
+var version = "v0.47.1"
 
 const maxDbConnectAttempts = 3
 
@@ -179,7 +180,8 @@ func mustHaveFile(path, title string) {
 func main() {
 	initLogging()
 
-	lg.Infof("app version %s started", version)
+	lg.Infof("app version %s", version)
+	lg.Infof("built with %s for %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
 	// 1. Data Source Name
 	// dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
