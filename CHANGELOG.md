@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.48.2 (Fri 21 Jun 2019)
++ Have to embed the version string into `main.go` as no way to pass it to GAE builds.
+
 ## v0.48.1 (Fri 21 Jun 2019)
 + Exeutable `version` string comes from `VERSION` file in root directory. Must use make to build.
 + Makefile includes `deploy-gae` to push latest version to GAE Standard.
