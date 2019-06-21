@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"syscall"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
@@ -23,10 +25,11 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 	lg "github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 	"google.golang.org/api/option"
 )
 
-var version = "v0.47.1"
+var version = "v0.48.0"
 
 const maxDbConnectAttempts = 3
 
@@ -151,8 +154,13 @@ func initLogging() {
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
+}
+
+func testDelayHandler(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Second * 30)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func exists(path string) (bool, error) {
@@ -178,11 +186,16 @@ func mustHaveFile(path, title string) {
 }
 
 func main() {
+	// wave goodbye on the way out the door
+	defer func() {
+		lg.Infof("goodbye from ecom-api version %s", version)
+	}()
+
 	initLogging()
 
-	lg.Infof("app version %s", version)
+	lg.Infof("ecom-api version %s", version)
 	lg.Infof("built with %s for %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-
+	lg.Infof("running process id %d", os.Getpid())
 	// 1. Data Source Name
 	// dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
 	if pghost == "" {
@@ -274,7 +287,7 @@ func main() {
 	if projectID == "" {
 		lg.Fatal("missing project ID. Use export ECOM_GOOGLE_PROJECT_ID")
 	}
-	lg.Infof("project ID set to %s", projectID)
+	lg.Infof("google project ID set to %s", projectID)
 	if webAPIKey == "" {
 		lg.Fatal("missing Web API Key. Use export ECOM_GOOGLE_WEB_API_KEY")
 	}
@@ -283,7 +296,7 @@ func main() {
 	// 4. Server Port
 	if port == "" {
 		port = "8080"
-		lg.Infof("no application port specified using default port %s", port)
+		lg.Infof("HTTP Port not specified using default port %s", port)
 	} else {
 		lg.Infof("environment variable PORT specifies port %s to be used", port)
 	}
@@ -386,6 +399,14 @@ func main() {
 	if err != nil {
 		lg.Fatalf("failed to open db: %v", err)
 	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			lg.Warn("failed to close the database")
+		} else {
+			lg.Info("database closed")
+		}
+	}()
+
 	if maxOpenConns > 0 {
 		db.SetMaxOpenConns(maxOpenConns)
 		lg.Infof("max open connections set to %d", maxOpenConns)
@@ -413,8 +434,7 @@ func main() {
 			break
 		}
 	}
-
-	lg.Infoln("established database connection")
+	lg.Infoln("established a database connection")
 
 	// build a Postgres model
 	pgModel := model.NewPgModel(db)
@@ -592,14 +612,52 @@ func main() {
 		r.Post("/", a.SignInWithDevKeyHandler())
 	})
 
+	r.Route("/testdelay", func(r chi.Router) {
+		r.Get("/", testDelayHandler)
+	})
+
+	// Server setup with signal handling
+	srv := &http.Server{Addr: fmt.Sprintf(":%s", port), Handler: r}
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+
+		// interrupt signal sent from terminal
+		signal.Notify(sigint, os.Interrupt)
+		// sigterm signal sent from kubernetes
+		signal.Notify(sigint, syscall.SIGTERM)
+
+		switch sig := <-sigint; sig {
+		case unix.SIGINT:
+			lg.Infof("received signal SIGINT")
+		case unix.SIGTERM:
+			lg.Infof("received signal SIGTERM")
+		default:
+			lg.Errorf("received unexpected signal %d", sig)
+		}
+
+		lg.Infof("gracefully shutting down the server...")
+		// We received an interrupt signal, shut down.
+		if err := srv.Shutdown(context.Background()); err != nil {
+			// Error from closing listeners, or context timeout:
+			lg.Infof("HTTP server Shutdown: %v", err)
+		}
+		lg.Infof("HTTP server shutdown complete")
+		close(idleConnsClosed)
+	}()
+
 	// tlsMode determines whether to serve HTTPS traffic directly.
 	// If tlsMode is false, you can enable HTTPS with a GKE Layer 7 load balancer
 	// using an Ingress.
 	if tlsMode {
 		lg.Infof("server listening on HTTPS port %s", port)
-		lg.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%s", port), tlsCertFile, tlsKeyFile, r))
+		lg.Fatal(srv.ListenAndServeTLS(tlsCertFile, tlsKeyFile))
 	} else {
 		lg.Infof("server listening on HTTP port %s", port)
-		lg.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			lg.Fatal(err)
+		}
+
 	}
+	<-idleConnsClosed
 }

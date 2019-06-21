@@ -2,6 +2,6 @@ create function schema_version()
   returns text
 as
 $$
-  select 'v0.47.1' || '';
+  select 'v0.48.0' || '';
 $$
 language sql;

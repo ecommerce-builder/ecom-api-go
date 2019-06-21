@@ -1,5 +1,10 @@
 # CHANGELOG
-## v0.47.1 (Fri 20 Jun 2019)
+## v0.48.0 (Fri 21 Jun 2019)
++ Gracefully shutdown the HTTP Service by trapping signals `SIGINT` (2) and `SIGTERM` (15).
++ Defer shutdown on Postgres.
++ Goodbye message sent upon final termination.
+
+## v0.47.1 (Thu 20 Jun 2019)
 + Executable outputs runtime.Version(), GOOS and GOARCH upon startup.
 + Makefile to automate builds and Dockerfile modified to use alpine build from Makefile.
 
