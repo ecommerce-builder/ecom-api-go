@@ -29,7 +29,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.48.0"
+var version string
 
 const maxDbConnectAttempts = 3
 
@@ -193,7 +193,7 @@ func main() {
 
 	initLogging()
 
-	lg.Infof("ecom-api version %s", version)
+	lg.Infof("hello from ecom-api version %s", version)
 	lg.Infof("built with %s for %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	lg.Infof("running process id %d", os.Getpid())
 	// 1. Data Source Name

@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.48.1 (Fri 21 Jun 2019)
++ Exeutable `version` string comes from `VERSION` file in root directory. Must use make to build.
++ Makefile includes `deploy-gae` to push latest version to GAE Standard.
++ Executable says 'hello from ecom-api version x.y.z' to match 'goodbye'.
+
 ## v0.48.0 (Fri 21 Jun 2019)
 + Gracefully shutdown the HTTP Service by trapping signals `SIGINT` (2) and `SIGTERM` (15).
 + Defer shutdown on Postgres.
