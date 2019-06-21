@@ -91,7 +91,7 @@ secret-volume/
 
 ## <a name="deployment"></a>Deployment
 
-### <a name="gce"</a>Google Compute Engine
+### <a name="gce"></a>Google Compute Engine
 GAE offers free SSL endpoints and provides a proxy method to securely connect to Postgres, so there is no need to deploy the secret volume containing either the `secrets/tls` and `secrets/pg` directories. The `ecom-api` executable accepts the service account credentials as a Base64 encoded string passed using the `ECOM_GOOGLE_CREDENTIALS` so there is often no need to package the service credentials file. The app can be configured entirely using environment variables.
 
 See Google's documentation for [Deploying Containers on VMs and Managed Instance Groups](https://cloud.google.com/compute/docs/containers/deploying-containers).
@@ -131,7 +131,7 @@ Where:
 $ gcloud compute instances list
 ```
 
-#### <a name="updating-a-container></a>Updating a container
+#### <a name="updating-a-container"></a>Updating a container
 
 Update container declaration on the the instance
 Stops and restarts the instance to actuate
