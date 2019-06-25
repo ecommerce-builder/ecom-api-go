@@ -33,14 +33,18 @@ Configuration is grouped into three groups; [App](#env-app), [Google](#env-googl
 | **`ECOM_APP_TLS_KEY`**       | Depends  |         | Path to TSL certificate key. e.g. `/etc/secret-volume/tls/api_spycameracctv_com/key.pem` |
 | **`ECOM_APP_ROOT_EMAIL`**   | Optional |         |
 | **`ECOM_APP_ROOT_PASSWORD`** | Required |         |
+| **`ECOM_APP_ENABLE_STACKDRIVER_LOGGING`** | Optional | on | Accepts a value of `on` or `off` to switch the stack driver JSON formatted logging. |
+
 
 
 #### <a name="env-google"></a>Google
 
-| Env Var                   | Required | Default | Description |
-| -------------             | -------- | ------- | ------------|
-| **`ECOM_GOOGLE_PROJECT_ID`**  | Required |         | Set the value to the Google Project ID. e.g. `ecom-test-bf262`. |
-| **`ECOM_GOOGLE_CREDENTIALS`** | Required |         | Use either the filepath of the Google Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
+| Env Var                       | Required | Default | Description |
+| -------------                 | -------- | ------- | ------------|
+| **`ECOM_GAE_PROJECT_ID`**     | Required |         | Set the value to the Google Project ID where the GAE App is running. For example, `open247-gae`. |
+| **`ECOM_FIREBASE_PROJECT_ID`**  | Required |         | Set the value to the Firebase Project ID. e.g. `ecom-test-bf262`. |
+| **`ECOM_FIREBASE_WEB_API_KEY`** | Required |         | Firebase Web API Key used to Authentication. For example, `AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc`. |
+| **`ECOM_FIREBASE_CREDENTIALS`** | Required |         | Use either the filepath of the Firebase Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
 
 
 #### <a name="env-postgres"></a>Postgres
@@ -59,7 +63,7 @@ Configuration is grouped into three groups; [App](#env-app), [Google](#env-googl
 | **`ECOM_PG_CONNECT_TIMEOUT`** | Optional | 10      | Postgres connection timeout in seconds. Example `5`. |
 
 
-`ECOM_GOOGLE_PROJECT_ID` can be obtained from the Google Cloud Console. When you create a Firebase app, Google creates a Google Cloud project with the same project ID. The Firebase Auth is accessible via the Firebase control panel and is backed by a project of the same ID in the Google Cloud Console.
+`ECOM_GOOGLE_PROJECT_ID` can be obtained from the Firebase Console. When you create a Firebase app, Google creates a Google Cloud project with the same project ID. The Firebase Auth is accessible via the Firebase control panel and is backed by a project of the same ID in the Google Cloud Console.
 
 `ECOM_GOOGLE_CREDENTIALS` is the service account key file found in the Google Cloud Console, or Firebase console under the service account keys section.
 `ECOM_PG_PORT` should use a private IP if running on GKE or GCE.

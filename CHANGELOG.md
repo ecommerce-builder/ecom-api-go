@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.49.0 (Tue 25 Jun 2019)
++ Implements `stackdriver-gae-logrus-plugin` for structured logging with log entry threading.
++ `OpSysInfo` returns separate Firebase and Google config settings.
+
 ## v0.48.2 (Fri 21 Jun 2019)
 + Have to embed the version string into `main.go` as no way to pass it to GAE builds.
 

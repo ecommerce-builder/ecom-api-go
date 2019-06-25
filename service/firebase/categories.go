@@ -9,6 +9,7 @@ import (
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // ErrAssocsAlreadyExist is returned by UpdateCatalog when any associations
@@ -274,6 +275,7 @@ func (s *Service) HasCatalog(ctx context.Context) (bool, error) {
 
 // GetCatalog returns the catalog as a hierarchy of nodes.
 func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
+	log.WithContext(ctx).Debug("Service: GetCatalog called")
 	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
 		return nil, err

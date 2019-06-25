@@ -15,9 +15,10 @@ type SystemInfo struct {
 
 // SystemEnv contains the Postgres database, Google Firebase and Application data.
 type SystemEnv struct {
-	PG   PgSystemEnv   `json:"pg"`
-	Goog GoogSystemEnv `json:"google"`
-	App  ApplSystemEnv `json:"app"`
+	PG       PgSystemEnv       `json:"pg"`
+	Goog     GoogSystemEnv     `json:"google"`
+	Firebase FirebaseSystemEnv `json:"firebase"`
+	App      ApplSystemEnv     `json:"app"`
 }
 
 // PgSystemEnv contains the environment and runtime settings
@@ -33,10 +34,15 @@ type PgSystemEnv struct {
 	SchemaVersion string `json:"schema_version"`
 }
 
-// GoogSystemEnv contains the Google Firebase environment variables.
+// GoogSystemEnv contains the Google environment variables.
 type GoogSystemEnv struct {
-	GoogProjectID string `json:"ECOM_GOOGLE_PROJECT_ID"`
-	WebAPIKey     string `json:"ECOM_GOOGLE_WEB_API_KEY"`
+	GAEProjectID string `json:"ECOM_GAE_PROJECT_ID"`
+}
+
+// FirebaseSystemEnv contains the Firebase environment variables.
+type FirebaseSystemEnv struct {
+	ProjectID string `json:"ECOM_FIREBASE_PROJECT_ID"`
+	WebAPIKey string `json:"ECOM_FIREBASE_WEB_API_KEY"`
 }
 
 // ApplSystemEnv contains the application port and root email address.
@@ -47,6 +53,7 @@ type ApplSystemEnv struct {
 
 // SystemInfoHandler returns data about the API runtime
 func (app *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
+	fmt.Printf("%#v\n", si)
 	return func(w http.ResponseWriter, r *http.Request) {
 		version, err := app.Service.GetSchemaVersion(r.Context())
 		if err != nil {

@@ -7,12 +7,15 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // GetCatalogHandler creates a handler to return the entire catalog
 func (app *App) GetCatalogHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tree, err := app.Service.GetCatalog(r.Context())
+		ctx := r.Context()
+		log.WithContext(ctx).Info("App: GetCatalogHandler called")
+		tree, err := app.Service.GetCatalog(ctx)
 		if tree == nil {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("{}"))
