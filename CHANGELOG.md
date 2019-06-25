@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.49.3 (Tue 25 Jun 2019)
++ Uses `stackdriver-gae-logrus-plugin` `v0.1.3` with parse `X-Cloud-Trace-Context` bugfix.
+
 ## v0.49.2 (Tue 25 Jun 2019)
 + Update deps for `go.mod` including `v0.1.2` of stackdriver-gae-logrus-plugin
 + Contextual logging in Authorization middleware.
