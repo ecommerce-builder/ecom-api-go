@@ -18,7 +18,8 @@ func unauthorized(w http.ResponseWriter) {
 func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		log.Debugf("authorization started for %s", op)
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Debugf("authorization started for %s", op)
 		decodedToken := ctx.Value("ecomDecodedToken").(*auth.Token)
 
 		// Get the customer UUID and customer role from the JWT
@@ -47,7 +48,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		log.Infof("%s role %s, JWT cuuid %s", op, role, cuuid)
+		contextLogger.Infof("%s role %s, JWT cuuid %s", op, role, cuuid)
 
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
@@ -86,7 +87,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if role == RoleCustomer {
-				log.Debugf("URL uuid %s", chi.URLParam(r, "uuid"))
+				contextLogger.Debugf("URL uuid %s", chi.URLParam(r, "uuid"))
 				if subtle.ConstantTimeCompare([]byte(cuuid), []byte(chi.URLParam(r, "uuid"))) == 1 {
 					next.ServeHTTP(w, r)
 					return
@@ -117,12 +118,12 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			uuid := chi.URLParam(r, "uuid")
 			ocuuid, err := a.Service.GetAddressOwner(ctx, uuid)
 			if err != nil {
-				log.Errorf("a.Service.GetAddressOwner(%s) error: %v", uuid, err)
+				contextLogger.Errorf("a.Service.GetAddressOwner(%s) error: %v", uuid, err)
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
 			if ocuuid == nil {
-				log.Errorf("a.Service.GetAddressOwner(%s) returned nil", uuid)
+				contextLogger.Errorf("a.Service.GetAddressOwner(%s) returned nil", uuid)
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
@@ -134,7 +135,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			unauthorized(w)
 			return
 		default:
-			log.Infof("(default) authorization declined for %s", op)
+			contextLogger.Infof("(default) authorization declined for %s", op)
 			unauthorized(w)
 			return
 		}

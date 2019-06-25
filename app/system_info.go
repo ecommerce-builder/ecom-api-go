@@ -53,7 +53,6 @@ type ApplSystemEnv struct {
 
 // SystemInfoHandler returns data about the API runtime
 func (app *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
-	fmt.Printf("%#v\n", si)
 	return func(w http.ResponseWriter, r *http.Request) {
 		version, err := app.Service.GetSchemaVersion(r.Context())
 		if err != nil {

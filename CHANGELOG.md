@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.49.1 (Tue 25 Jun 2019)
++ Update deps for `go.mod` including `v0.1.2` of stackdriver-gae-logrus-plugin
++ Contextual logging in Authorization middleware.
+
 ## v0.49.0 (Tue 25 Jun 2019)
 + Implements `stackdriver-gae-logrus-plugin` for structured logging with log entry threading.
 + `OpSysInfo` returns separate Firebase and Google config settings.

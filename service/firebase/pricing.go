@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -44,7 +43,6 @@ func (s *Service) GetTierPricing(ctx context.Context, sku, ref string) (*Product
 		Created:   p.Created,
 		Modified:  p.Modified,
 	}
-	fmt.Println(pricing)
 	return &pricing, nil
 }
 
