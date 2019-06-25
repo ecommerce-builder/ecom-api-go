@@ -1,5 +1,5 @@
 # CHANGELOG
-## v0.49.1 (Tue 25 Jun 2019)
+## v0.49.2 (Tue 25 Jun 2019)
 + Update deps for `go.mod` including `v0.1.2` of stackdriver-gae-logrus-plugin
 + Contextual logging in Authorization middleware.
 
