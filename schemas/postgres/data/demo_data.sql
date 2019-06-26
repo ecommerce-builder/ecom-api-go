@@ -1,6 +1,7 @@
 -- customers and addresses
 -- 1
-INSERT INTO customers (uid, role, email, firstname, lastname) VALUES ('uid1', 'customer', 'joe@example.com', 'Joe', 'Blogs');
+INSERT INTO customers (uid, role, email, firstname, lastname)
+  VALUES ('uid1', 'customer', 'joe@example.com', 'Joe', 'Blogs');
 
 -- address: id=1
 INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, country)
@@ -8,7 +9,8 @@ INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, co
 
 
 -- 2
-INSERT INTO customers (uid, role, email, firstname, lastname) VALUES ('uid2', 'customer', 'sammy@example.com', 'Sammy', 'Peterson');
+INSERT INTO customers (uid, role, email, firstname, lastname)
+  VALUES ('uid2', 'customer', 'sammy@example.com', 'Sammy', 'Peterson');
 
 -- address: id=2
 INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, country)
@@ -16,7 +18,8 @@ INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, co
 
 
 -- 3
-INSERT INTO customers (uid, role, email, firstname, lastname) VALUES ('uid3', 'customer', 'faith@example.com', 'Faith', 'Bowman');
+INSERT INTO customers (uid, role, email, firstname, lastname)
+  VALUES ('uid3', 'customer', 'faith@example.com', 'Faith', 'Bowman');
 
 -- address: id=3
 INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, country)
@@ -40,7 +43,8 @@ INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, co
 
 
 -- 4
-INSERT INTO customers (uid, role, email, firstname, lastname) VALUES ('uid4', 'customer', 'clifton@example.com', 'Clifton', 'Delgado');
+INSERT INTO customers (uid, role, email, firstname, lastname)
+  VALUES ('uid4', 'customer', 'clifton@example.com', 'Clifton', 'Delgado');
 
 -- address: id=8
 INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, country)
@@ -48,7 +52,8 @@ INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, co
 
 
 -- 5
-INSERT INTO customers (uid, role, email, firstname, lastname) VALUES ('uid5', 'customer', 'bernadette@example.com', 'Bernadette', 'Graham');
+INSERT INTO customers (uid, role, email, firstname, lastname)
+  VALUES ('uid5', 'customer', 'bernadette@example.com', 'Bernadette', 'Graham');
 
 -- address: id=9
 INSERT INTO addresses (typ, customer_id, contact_name, addr1, city, postcode, country)
@@ -93,35 +98,35 @@ INSERT INTO categories (segment, path, name, lft, rgt, depth, created, modified)
 -- 100001
 INSERT INTO orders (customer_id, ship_tb, billing, shipping, total)
   VALUES(1, true, '{"address_id": 1, "contact_name": "Joe Blogs", "addr1": "4524 Mulberry Avenue",
-                    "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 99.99);
+                    "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 9999);
 INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100001, 'FRIDGE', 1, 95.54, 20);
+  VALUES(100001, 'FRIDGE', 1, 9554, 20);
 INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100001, 'WATER', 1, 4.45, 20);
+  VALUES(100001, 'WATER', 1, 445, 20);
 
 
 -- 100002
 INSERT INTO orders (customer_id, ship_tb, billing, shipping, total)
   VALUES(1, true, '{"address_id": 1, "contact_name": "Joe Blogs", "addr1": "4524 Mulberry Avenue",
-                    "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 125.98);
+                    "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 12598);
 INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100002, 'TV', 1, 125.98, 7);
+  VALUES(100002, 'TV', 1, 12598, 7);
 
 -- 100003
 INSERT INTO orders (customer_id, ship_tb, billing, shipping, total)
   VALUES(2, true, '{"address_id": 2, "contact_name": "Sammy Peterson", "addr1": "138 Ermin Street",
-                    "city": "Wrentham", "postcode": "NR34 9TT", "country": "UK"}', NULL, 98);
+                    "city": "Wrentham", "postcode": "NR34 9TT", "country": "UK"}', NULL, 9800);
 INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100003, 'DRILL', 2, 49, 20);
+  VALUES(100003, 'DRILL', 2, 4900, 20);
 
 -- 100004
 INSERT INTO orders (customer_id, billing, shipping, total)
   VALUES(3, '{"address_id": 6 , "contact_name": "Faith Bowman", "addr1": "38 Walden Road",
               "city": "Greenburn", "postcode": "DD5 8AU", "country": "UK"}',
             '{"address_id": 3, "contact_name": "Faith Bowman", "addr1": "18 Pier Road",
-              "city": "Statham", "postcode": "WA13 3DW", "country": "UK"}', 78.49);
+              "city": "Statham", "postcode": "WA13 3DW", "country": "UK"}', 7849);
 INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100004, 'DESK', 1, 78.49, 7);
+  VALUES(100004, 'DESK', 1, 7849, 7);
 
 -- 100005
 INSERT INTO orders (customer_id, billing, shipping, total)
@@ -130,7 +135,7 @@ INSERT INTO orders (customer_id, billing, shipping, total)
             '{"address_id": 9, "contact_name": "Bernadette Graham", "addr1": "89 Cubbine Road",
               "city": "Southburracoppin", "postcode": "6421", "country": "AU"}', 946);
 INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100005, 'DESK', 4, 78.49, 7);
+  VALUES(100005, 'DESK', 4, 7849, 7);
 
 
 INSERT INTO payments (order_id, typ, status) VALUES(100001, 'stripe', 'success');
@@ -163,22 +168,22 @@ INSERT INTO pricing_tiers (tier_ref, title, description)
 
 -- product pricing
 -- default
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'WATER-SKU', 2.45);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DRILL-SKU', 19.29);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'TV-SKU', 144.57);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'PHONE-SKU', 18.53);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DESK-SKU', 254.82);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'WATER-SKU', 245);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DRILL-SKU', 1929);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'TV-SKU', 14457);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'PHONE-SKU', 1853);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DESK-SKU', 25482);
 
 -- goldfish
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'WATER-SKU', 1.45);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DRILL-SKU', 15.29);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'TV-SKU', 124.57);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'PHONE-SKU', 14.53);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DESK-SKU', 224.82);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'WATER-SKU', 145);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DRILL-SKU', 1529);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'TV-SKU', 12457);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'PHONE-SKU', 1453);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DESK-SKU', 22482);
 
 -- seabass
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'WATER-SKU', 1.29);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DRILL-SKU', 12.29);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'TV-SKU', 99.57);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'PHONE-SKU', 12.53);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DESK-SKU', 198.42);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'WATER-SKU', 129);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DRILL-SKU', 1229);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'TV-SKU', 9957);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'PHONE-SKU', 1253);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DESK-SKU', 19842);
