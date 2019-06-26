@@ -3,11 +3,33 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
 	"time"
 
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 )
+
+// NewAddress contains details of a new address to add to the database.
+type NewAddress struct {
+	ContactName string
+	Addr1       string
+	Addr2       string
+	City        string
+	County      string
+	Postcode    string
+	Country     string
+}
+
+// Value marshals NewAddress to a JSON string.
+func (a NewAddress) Value() (driver.Value, error) {
+	b, err := json.Marshal(a)
+	if err != nil {
+		return nil, errors.Wrap(err, "json marshal of NewAddress failed")
+	}
+	return string(b), nil
+}
 
 // Address contains address information for a Customer
 type Address struct {

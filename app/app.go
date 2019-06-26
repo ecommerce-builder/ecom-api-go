@@ -47,6 +47,9 @@ const (
 	OpDeleteCartItem string = "OpDeleteCartItem"
 	OpEmptyCartItems string = "OpEmptyCartItems"
 
+	// Orders
+	OpPlaceOrder string = "OpPlaceOrder"
+
 	// Customers
 	OpCreateCustomer        string = "OpCreateCustomer"
 	OpGetCustomer           string = "OpGetCustomer"
