@@ -22,21 +22,15 @@ type orderResponseBody struct {
 	*service.Order
 }
 
-func validateOrderRequestBody(req *orderRequestBody) ([]string, bool) {
-	var errs []string
+func validateOrderRequestBody(req *orderRequestBody) (string, bool) {
 	if req.CartID == nil {
-		errs = append(errs, "cart_id missing")
+		return "cart_id missing", false
 	}
-
-	if len(errs) > 0 {
-		return errs, false
-	}
-	return nil, true
+	return "", true
 }
 
 // PlaceOrderHandler returns an HTTP handler that places a new order.
 func (a *App) PlaceOrderHandler() http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
@@ -59,14 +53,13 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		valErrs, ok := validateOrderRequestBody(&req)
+		msg, ok := validateOrderRequestBody(&req)
 		if !ok {
-			fmt.Println(valErrs)
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			return
 		}
 
-		fmt.Printf("%#v\n", req)
+		fmt.Printf("%#v\n", msg)
 
 		order, err := a.Service.PlaceOrder(ctx, req.ContactName, req.Email, req.Billing, req.Shipping)
 		if err != nil {

@@ -1,17 +1,21 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
-	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // PurgeCatalogAssocsHandler deletes all catalog product associations.
 func (a *App) PurgeCatalogAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := a.Service.DeleteCategoryAssocs(r.Context())
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: PurgeCatalogAssocsHandler started")
+
+		_, err := a.Service.DeleteCategoryAssocs(ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service DeleteCategoryAssocs(ctx) error: %+v", err)
+			contextLogger.Errorf("service DeleteCategoryAssocs(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

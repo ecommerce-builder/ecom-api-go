@@ -54,7 +54,7 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 		contextLogger.Info("authentication success")
 
 		// store the decodedToken in the context
-		ctx2 := context.WithValue(r.Context(), "ecomDecodedToken", decodedToken)
+		ctx2 := context.WithValue(ctx, "ecomDecodedToken", decodedToken)
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r.WithContext(ctx2))
 	}

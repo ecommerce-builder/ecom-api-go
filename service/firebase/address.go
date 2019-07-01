@@ -7,7 +7,7 @@ import (
 
 // Address contains address information for a Customer
 type Address struct {
-	AddrUUID    string    `json:"uuid"`
+	ID          string    `json:"id"`
 	Typ         string    `json:"typ"`
 	ContactName string    `json:"contact_name"`
 	Addr1       string    `json:"addr1"`
@@ -33,7 +33,7 @@ func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactN
 	}
 
 	aa := Address{
-		AddrUUID:    a.AddrUUID,
+		ID:          a.UUID,
 		Typ:         a.Typ,
 		ContactName: a.ContactName,
 		Addr1:       a.Addr1,
@@ -66,7 +66,7 @@ func (s *Service) GetAddress(ctx context.Context, uuid string) (*Address, error)
 	}
 
 	aa := Address{
-		AddrUUID:    addr.AddrUUID,
+		ID:          addr.UUID,
 		Typ:         addr.Typ,
 		ContactName: addr.ContactName,
 		Addr1:       addr.Addr1,
@@ -81,9 +81,9 @@ func (s *Service) GetAddress(ctx context.Context, uuid string) (*Address, error)
 	return &aa, nil
 }
 
-// GetAddressOwner returns the Customer that owns the address with the given UUID.
-func (s *Service) GetAddressOwner(ctx context.Context, uuid string) (*string, error) {
-	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, uuid)
+// GetAddressOwner returns the Customer that owns the address with the given ID.
+func (s *Service) GetAddressOwner(ctx context.Context, id string) (*string, error) {
+	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (s *Service) GetAddresses(ctx context.Context, customerUUID string) ([]*Add
 	results := make([]*Address, 0, 32)
 	for _, v := range al {
 		i := Address{
-			AddrUUID:    v.AddrUUID,
+			ID:          v.UUID,
 			Typ:         v.Typ,
 			ContactName: v.ContactName,
 			Addr1:       v.Addr1,
@@ -132,4 +132,3 @@ func (s *Service) DeleteAddress(ctx context.Context, addrUUID string) error {
 
 	return nil
 }
-

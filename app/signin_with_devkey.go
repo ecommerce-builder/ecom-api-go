@@ -2,11 +2,10 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,6 +19,10 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 		Customer    *firebase.Customer `json:"customer"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: SignInWithDevKeyHandler started")
+
 		if r.Body == nil {
 			http.Error(w, "Please send a request body", 400)
 			return
@@ -30,13 +33,13 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		customToken, customer, err := a.Service.SignInWithDevKey(r.Context(), o.Key)
+		customToken, customer, err := a.Service.SignInWithDevKey(ctx, o.Key)
 		if err != nil {
 			if err == bcrypt.ErrMismatchedHashAndPassword {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			fmt.Fprintf(os.Stderr, "service SignInWithDevKeyHandler(ctx, ...) error: %v\n", err)
+			contextLogger.Errorf("service SignInWithDevKeyHandler(ctx, ...) error: %v\n", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

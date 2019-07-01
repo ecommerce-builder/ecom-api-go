@@ -168,9 +168,9 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Image
 	return &p, nil
 }
 
-// DeleteProductImage deletes an image entry row from the product_images
+// DeleteProductImageByUUID deletes an image entry row from the product_images
 // table by UUID.
-func (m *PgModel) DeleteProductImage(ctx context.Context, uuid string) (int64, error) {
+func (m *PgModel) DeleteProductImageByUUID(ctx context.Context, uuid string) (int64, error) {
 	query := `
 		DELETE FROM product_images
 		WHERE uuid = $1

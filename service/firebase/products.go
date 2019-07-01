@@ -101,7 +101,7 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 	images := make([]*Image, 0, 4)
 	for _, i := range p.Images {
 		img := Image{
-			UUID:     i.UUID,
+			ID:       i.UUID,
 			SKU:      i.SKU,
 			Path:     i.Path,
 			GSURL:    i.GSURL,

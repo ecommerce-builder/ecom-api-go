@@ -2,11 +2,12 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // UpdateCartItemHandler creates a handler to add an item to a given cart
@@ -15,6 +16,10 @@ func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 		Qty int `json:"qty"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: UpdateCartItemHandler started")
+
 		uuid := chi.URLParam(r, "uuid")
 		sku := chi.URLParam(r, "sku")
 		o := qtyRequestBody{}
@@ -23,13 +28,21 @@ func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		cart, err := app.Service.UpdateCartItem(r.Context(), uuid, sku, o.Qty)
+		item, err := app.Service.UpdateCartItem(ctx, uuid, sku, o.Qty)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service UpdateCartItem(ctx, %s, %s, %d) error: %v", uuid, sku, o.Qty, err)
+			if err == service.ErrCartItemNotFound {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			contextLogger.Errorf("service UpdateCartItem(ctx, %q, %q, %d) error: %v", uuid, sku, o.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+		res := cartItemResponseBody{
+			Object:   "cart_item",
+			CartItem: item,
+		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(*cart)
+		json.NewEncoder(w).Encode(res)
 	}
 }

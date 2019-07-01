@@ -12,6 +12,9 @@
   * [Model](#arch-model)
   * [Service](#arch-service)
   * [App](#arch-app)
+* [API](#api)
+  * [OpCreateCart](#OpCreateCart)
+  * [OpAddItemToCart](#OpAddItemToCart)
 
 ## <a name="configuration"></a>Configuration
 
@@ -317,83 +320,202 @@ Cons:
 | Proprietary | | Risk of vendor lock-in if relying on Particular dependencies. | Open source |
 
 
-## API
-### Carts
+API
+---
 
-#### CreateCart
-Creates a new shopping cart returning a unique cart UUID to be used for all
+### OpCreateCart
+Creates a new shopping cart returning a unique cart ID to be used for all
 subseqent requests.
-```
+``` http
 POST /carts
 ```
 
+### Example Response
 
-#### AddItemToCart
-Add a single item to a given cart.
+#### 201 Created
+``` json
+{
+    "object": "cart",
+    "id": "f83796a0-b1f2-4e5a-a207-19ea0956475f"
+}
 ```
-POST /carts/{uuid}/items
+
+#### 409 Conflict
+``` json
+{
+    "status": 409,
+    "code": "cart/cart-item-already-exists",
+    "message": "cart item already exists in the cart"
+}
+```
+
+___
+
+
+### OpAddItemToCart
+Add a an item to a cart of ID.
+``` http
+POST /carts/:id/items
+```
+Response body
+``` json
 {
   "sku": "drill",
   "qty": 2
 }
 ```
 
+Example Response
+
+#### 201 Created
+``` json
+{
+    "object": "item",
+    "sku": "TV-SKU",
+    "qty": 2,
+    "unit_price": 14457,
+    "created": "2019-07-01T13:49:25.526664Z",
+    "modified": "2019-07-01T13:49:25.526664Z"
+}
+```
+
+___
+
 
 #### UpdateCartItem
 Update an individual item in a given cart.
 
 ##### Request
+``` http
+PATCH /carts/:id/items/:sku
 ```
-POST /carts/{uuid}/items/{sku}
+Request body
+``` json
 {
   "qty": 3
 }
 ```
-##### Response
-Returns `201 Created` on success.
+
+Example Response
+
+#### 201 Created
+
+
+___
+
 
 
 #### DeleteCartItem
 Delete an individual item from a given cart.
 
 ##### Request
-```
-DELETE /carts/{uuid}/items/{sku}
+``` http
+DELETE /carts/:id/items/:sku
 ```
 ##### Response
 Returns `204 No Content` if succesfully deleted, or `404 Not Found` if the
 item is not in the cart.
 
+
+___
+
+### OpGetCartItems
+
+``` http
+GET /carts/:id/items
+```
+
+Example Response
+
+### 200 OK
+
+``` json
+{
+    "object": "list",
+    "items": [
+        {
+            "object": "cart_item",
+            "sku": "DESK-SKU",
+            "qty": 1,
+            "unit_price": 25482,
+            "created": "2019-06-27T12:28:52.999335Z",
+            "modified": "2019-07-01T14:02:11.91783Z"
+        },
+        {
+            "object": "cart_item",
+            "sku": "TV-SKU",
+            "qty": 2,
+            "unit_price": 14457,
+            "created": "2019-07-01T13:49:25.526664Z",
+            "modified": "2019-07-01T13:49:25.526664Z"
+        }
+    ]
+}
+```
+
+___
+
+
 #### EmptyCartItems
 Empties the entire shopping cart of all items.
 ##### Request
 ```
-DELETE /carts/{uuid}/items
+DELETE /carts/:id/items
 ```
 ##### Response
 Returns `204 No Content` if the cart is successfully emptied.
 
-### Customer
+___
+
 
 #### CreateCustomer
+``` http
 POST /customers
+```
+
+___
+
 
 #### GetCustomer
-GET /customers/{uuid}
+``` http
+GET /customers/:id
+```
 
-### Addresses
+____
+
 
 #### CreateAddress
-POST /customers/{uuid}/addresses
+``` http
+POST /customers/:id/addresses
+```
+
+____
+
 
 #### GetAddress
-GET /addresses/{uuid}
+``` http
+GET /addresses/:id
+```
+____
+
 
 #### ListAddresses
-GET /customers/{uuid}/addresses
+``` http
+GET /customers/:id/addresses
+```
+
+____
+
 
 #### UpdateAddress
-PATCH /addresses/{uuid}
+``` http
+PATCH /addresses/:id
+```
+
+____
+
 
 #### DeleteAddress
-DELETE /addresses/{uuid}
+``` http
+DELETE /addresses/:id
+```

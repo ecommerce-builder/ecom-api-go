@@ -14,7 +14,7 @@ import (
 
 // CustomerDevKey struct holding the details of a customer Developer Key including its bcrypt hash.
 type CustomerDevKey struct {
-	UUID         string    `json:"uuid"`
+	ID           string    `json:"id"`
 	Key          string    `json:"key"`
 	CustomerUUID string    `json:"customer_uuid"`
 	Created      time.Time `json:"created"`
@@ -45,9 +45,9 @@ func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*Cus
 	}, nil
 }
 
-// GetCustomerDevKey returns a CustomerDevKey for the customer with the given UUID.
-func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error) {
-	ak, err := s.model.GetCustomerDevKey(ctx, uuid)
+// GetCustomerDevKey returns a CustomerDevKey for the customer with the given ID.
+func (s *Service) GetCustomerDevKey(ctx context.Context, id string) (*CustomerDevKey, error) {
+	ak, err := s.model.GetCustomerDevKey(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err
@@ -55,7 +55,7 @@ func (s *Service) GetCustomerDevKey(ctx context.Context, uuid string) (*Customer
 		return nil, err
 	}
 	return &CustomerDevKey{
-		UUID:         ak.UUID,
+		ID:           ak.UUID,
 		Key:          ak.Key,
 		CustomerUUID: ak.CustomerUUID,
 		Created:      ak.Created,
@@ -77,7 +77,7 @@ func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*Cus
 	apiKeys := make([]*CustomerDevKey, 0, len(rows))
 	for _, row := range rows {
 		c := CustomerDevKey{
-			UUID:         row.UUID,
+			ID:           row.UUID,
 			Key:          row.Key,
 			CustomerUUID: uuid,
 			Created:      row.Created,
@@ -130,7 +130,7 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 		return "", nil, errors.Wrapf(err, "authClient.CustomToken(ctx, uid=%q)", userRecord.UID)
 	}
 	customer = &Customer{
-		UUID:      cust.UUID,
+		ID:        cust.UUID,
 		UID:       cust.UID,
 		Role:      cust.Role,
 		Email:     cust.Email,

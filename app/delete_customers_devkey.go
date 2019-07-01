@@ -4,14 +4,19 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
 
 // DeleteCustomerDevKeyHandler deletes a customer Developer Key.
 func (a *App) DeleteCustomerDevKeyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: DeleteCustomerDevKeyHandler started")
+
 		ctid := chi.URLParam(r, "ccuid")
 		sku := chi.URLParam(r, "sku")
-		count, _ := a.Service.DeleteCartItem(r.Context(), ctid, sku)
+		count, _ := a.Service.DeleteCartItem(ctx, ctid, sku)
 		if count == 0 {
 			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return

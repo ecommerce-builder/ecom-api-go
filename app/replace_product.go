@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
 
 func validateRequestBody(pc *service.ProductCreate) error {
@@ -31,6 +31,10 @@ func validateRequestBody(pc *service.ProductCreate) error {
 // hierarchy.
 func (a *App) CreateReplaceProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: CreateReplaceProductHandler started")
+
 		sku := chi.URLParam(r, "sku")
 		pc := service.ProductCreate{}
 		if err := json.NewDecoder(r.Body).Decode(&pc); err != nil {
@@ -50,9 +54,9 @@ func (a *App) CreateReplaceProductHandler() http.HandlerFunc {
 			})
 			return
 		}
-		product, err := a.Service.ReplaceProduct(r.Context(), sku, &pc)
+		product, err := a.Service.ReplaceProduct(ctx, sku, &pc)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "create product failed: %+v", err)
+			contextLogger.Errorf("create product failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

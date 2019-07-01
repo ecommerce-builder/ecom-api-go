@@ -2,9 +2,9 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // CreateAdminHandler creates a new administrator
@@ -17,6 +17,10 @@ func (a *App) CreateAdminHandler() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: CreateAdminHandler started")
+
 		o := createAdminRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
@@ -34,9 +38,9 @@ func (a *App) CreateAdminHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		customer, err := a.Service.CreateCustomer(r.Context(), "admin", o.Email, o.Password, o.Firstname, o.Lastname)
+		customer, err := a.Service.CreateCustomer(ctx, "admin", o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "CreateAdminHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s): %v\n", "admin", o.Email, "*****", o.Firstname, o.Lastname, err)
+			contextLogger.Errorf("CreateAdminHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s): %v\n", "admin", o.Email, "*****", o.Firstname, o.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`

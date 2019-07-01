@@ -2,12 +2,11 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
 
 // UpdateTierPricingHandler creates a handler function that updates
@@ -17,6 +16,10 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 		UnitPrice float64 `json:"unit_price"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: UpdateTierPricingHandler started")
+
 		sku := chi.URLParam(r, "sku")
 		ref := chi.URLParam(r, "ref")
 		var req updateTierPricingRequest
@@ -37,17 +40,16 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
-		pricing, err := a.Service.UpdateTierPricing(r.Context(), sku, ref, req.UnitPrice)
+		pricing, err := a.Service.UpdateTierPricing(ctx, sku, ref, req.UnitPrice)
 		if err != nil {
 			if err == firebase.ErrTierPricingNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				return
 			}
+			contextLogger.Errorf("service UpdateTierPricing(ctx, %s, %s) error: %+v", sku, ref, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			fmt.Fprintf(os.Stderr, "service UpdateTierPricing(ctx, %s, %s) error: %+v", sku, ref, err)
 			return
 		}
-		fmt.Println(pricing)
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(*pricing)
 	}

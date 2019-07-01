@@ -2,12 +2,18 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi"
+
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	log "github.com/sirupsen/logrus"
 )
+
+type addressResponseBody struct {
+	Object string `json:"object"`
+	*service.Address
+}
 
 // CreateAddressHandler creates an HTTP handler that creates a new customer address record.
 func (a *App) CreateAddressHandler() http.HandlerFunc {
@@ -23,6 +29,10 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: CreateAddressHandler started")
+
 		if r.Body == nil {
 			http.Error(w, "Please send a request body", 400)
 			return
@@ -32,16 +42,32 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 		o := addressRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
-			http.Error(w, err.Error(), 400)
+			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
+				err.Error(),
+			})
+			return
+		}
+		defer r.Body.Close()
+
+		address, err := a.Service.CreateAddress(ctx, uuid, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
+		if err != nil {
+			contextLogger.Panicf("a.Service.CreateAddress(ctx, %s, ...) failed with error: %v", uuid, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 
-		address, err := a.Service.CreateAddress(r.Context(), uuid, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "service CreateAddress(%s, ...) error: %v", uuid, err)
-			return
+		res := addressResponseBody{
+			Object:  "address",
+			Address: address,
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(*address)
+		json.NewEncoder(w).Encode(res)
 	}
 }

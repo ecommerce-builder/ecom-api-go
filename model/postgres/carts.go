@@ -2,11 +2,16 @@ package postgres
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
 	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
+)
+
+var (
+	ErrCartItemAlreadyExists = errors.New("cart already exists")
+	ErrCartItemNotFound      = errors.New("cart item not found")
 )
 
 // CartItem structure holds the details individual cart item.
@@ -40,7 +45,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, uuid, tierRef, sku string, 
 	var exists bool
 	m.db.QueryRowContext(ctx, query, uuid, sku).Scan(&exists)
 	if exists == true {
-		return nil, fmt.Errorf("cart item %s already exists", sku)
+		return nil, ErrCartItemAlreadyExists
 	}
 
 	var unitPriceStr []byte
@@ -92,8 +97,8 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartIte
 	return cartItems, nil
 }
 
-// UpdateItemByCartUUID updates the qty of a cart item of the given sku.
-func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*CartItem, error) {
+// UpdateItemByCartID updates the qty of a cart item of the given sku.
+func (m *PgModel) UpdateItemByCartID(ctx context.Context, id, sku string, qty int) (*CartItem, error) {
 	query := `
 		UPDATE carts
 		SET qty = $1, modified = NOW()
@@ -101,17 +106,20 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string
 		RETURNING id, uuid, sku, qty, unit_price, created, modified
 	`
 	item := CartItem{}
-	row := m.db.QueryRowContext(ctx, query, qty, cartUUID, sku)
+	row := m.db.QueryRowContext(ctx, query, qty, id, sku)
 	if err := row.Scan(&item.id, &item.UUID, &item.SKU, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCartItemNotFound
+		}
 		return nil, errors.Wrapf(err, "query row scan query=%q", query)
 	}
 	return &item, nil
 }
 
 // DeleteCartItem deletes a single cart item.
-func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, sku string) (count int64, err error) {
+func (m *PgModel) DeleteCartItem(ctx context.Context, id, sku string) (count int64, err error) {
 	query := `DELETE FROM carts WHERE uuid = $1 AND sku = $2`
-	res, err := m.db.ExecContext(ctx, query, cartUUID, sku)
+	res, err := m.db.ExecContext(ctx, query, id, sku)
 	if err != nil {
 		return -1, errors.Wrapf(err, "exec context query=%q", query)
 	}
@@ -123,9 +131,9 @@ func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, sku string) (cou
 }
 
 // EmptyCartItems empty the cart of all items. Does not affect coupons.
-func (m *PgModel) EmptyCartItems(ctx context.Context, cartUUID string) (err error) {
+func (m *PgModel) EmptyCartItems(ctx context.Context, id string) (err error) {
 	query := `DELETE FROM carts WHERE uuid = $1`
-	_, err = m.db.ExecContext(ctx, query, cartUUID)
+	_, err = m.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return errors.Wrapf(err, "exec context query=%q", query)
 	}

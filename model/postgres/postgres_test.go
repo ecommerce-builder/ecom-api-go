@@ -71,7 +71,6 @@ func TestUpdateProduct(t *testing.T) {
 // 	if err != nil {
 // 		t.Fatalf("model.GetCustomers(): %v", err)
 // 	}
-// 	fmt.Println(prs.RContext)
 // 	if err != nil {
 // 		t.Errorf("model.GetCatalogNestedSet(ctx): %v", err)
 // 	}
@@ -133,7 +132,7 @@ func TestCreateCategoryProductAssoc(t *testing.T) {
 	defer teardown()
 
 	ctx := context.Background()
-	cp, err := model.CreateCatalogProductAssoc(ctx, "a/c/f/j/m", "WATER-SKU")
+	cp, err := model.CreateCategoryProductAssocs(ctx, "a/c/f/j/m", "WATER-SKU")
 	if err != nil {
 		t.Errorf("create category product assoc: %v", err)
 	}

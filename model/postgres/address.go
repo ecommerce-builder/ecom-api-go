@@ -34,7 +34,7 @@ func (a NewAddress) Value() (driver.Value, error) {
 // Address contains address information for a Customer
 type Address struct {
 	id          int
-	AddrUUID    string
+	UUID        string
 	CustomerID  int
 	Typ         string
 	ContactName string
@@ -60,7 +60,7 @@ func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contac
 			id, uuid, customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country, created, modified
 	`
 	row := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country)
-	if err := row.Scan(&a.id, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+	if err := row.Scan(&a.id, &a.UUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
 		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q", query)
 	}
@@ -78,7 +78,7 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 		WHERE uuid = $1
 	`
 	row := m.db.QueryRowContext(ctx, query, uuid)
-	if err := row.Scan(&a.id, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+	if err := row.Scan(&a.id, &a.UUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
 		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &ResourceError{
@@ -143,7 +143,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address,
 
 	for rows.Next() {
 		var a Address
-		if err = rows.Scan(&a.id, &a.AddrUUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+		if err = rows.Scan(&a.id, &a.UUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
 			&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
 			return nil, errors.Wrapf(err, "rows scan query=%q", query)
 		}
@@ -157,7 +157,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address,
 }
 
 // UpdateAddressByUUID updates an address for a given customer
-func (m *PgModel) UpdateAddressByUUID(ctx context.Context, addrUUID string) (*Address, error) {
+func (m *PgModel) UpdateAddressByUUID(ctx context.Context, UUID string) (*Address, error) {
 	// TO BE DONE
 	//
 	//query := `UPDATE addresses SET`
@@ -166,9 +166,9 @@ func (m *PgModel) UpdateAddressByUUID(ctx context.Context, addrUUID string) (*Ad
 }
 
 // DeleteAddressByUUID deletes an address by uuid
-func (m *PgModel) DeleteAddressByUUID(ctx context.Context, addrUUID string) error {
+func (m *PgModel) DeleteAddressByUUID(ctx context.Context, UUID string) error {
 	query := `DELETE FROM addresses WHERE uuid = $1`
-	_, err := m.db.ExecContext(ctx, query, addrUUID)
+	_, err := m.db.ExecContext(ctx, query, UUID)
 	if err != nil {
 		return errors.Wrapf(err, "exec context query=%q", query)
 	}

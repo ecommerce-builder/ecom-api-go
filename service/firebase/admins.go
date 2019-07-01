@@ -15,7 +15,7 @@ func (s *Service) ListAdmins(ctx context.Context) ([]*Customer, error) {
 	adms := make([]*Customer, 0, 8)
 	for _, c := range admins {
 		customer := &Customer{
-			UUID:      c.UUID,
+			ID:        c.UUID,
 			UID:       c.UID,
 			Role:      c.Role,
 			Email:     c.Email,

@@ -2,36 +2,37 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
-	"time"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
 
 // GenerateCustomerDevKeyHandler creates a new API Key for a given customer
 func (a *App) GenerateCustomerDevKeyHandler() http.HandlerFunc {
-	type apiDevResponse struct {
-		UUID     string    `json:"uuid"`
-		Key   string       `json:"key"`
-		Created  time.Time `json:"created"`
-		Modified time.Time `json:"modified"`
+	type customerDevKeyResponseBody struct {
+		Object         string `json:"id"`
+		CustomerDevKey *service.CustomerDevKey
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: GenerateCustomerDevKeyHandler started")
+
 		uuid := chi.URLParam(r, "uuid")
-		cak, err := a.Service.GenerateCustomerDevKey(r.Context(), uuid)
+		cak, err := a.Service.GenerateCustomerDevKey(ctx, uuid)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service GenerateCustomerAPIKey(ctx, %q) error: %v", uuid, err)
+			contextLogger.Errorf("service GenerateCustomerAPIKey(ctx, %q) error: %v", uuid, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		akresp := apiDevResponse{
-			Key:      cak.Key,
-			Created:  cak.Created,
-			Modified: cak.Modified,
+		res := customerDevKeyResponseBody{
+			Object:         "devkey",
+			CustomerDevKey: cak,
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(akresp)
+		json.NewEncoder(w).Encode(res)
 	}
 }

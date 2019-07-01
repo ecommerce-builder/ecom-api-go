@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -64,7 +63,7 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email string, bil
 	if err != nil {
 		return nil, errors.Wrapf(err, "s.model.AddOrder(ctx, %q, ...) failed", customerUUID)
 	}
-	fmt.Printf("%#v\n", orow.Billing)
+
 	order := Order{
 		ID: orow.UUID,
 		Billing: &OrderAddress{
