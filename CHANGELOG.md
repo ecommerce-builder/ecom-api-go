@@ -1,4 +1,15 @@
 # CHANGELOG
+## v0.50.0 (Mon 1 Jul 2019)
++ `OpPlaceOrder` basic skelton implemetation.
++ `object: "<name>"` wrapper for image, cart item, customer, devkey
++ `UUID` replaced with `ID` for service layer.
++ Firebase Auth customer claims uses `cid` not `cuuid`.
++ Error handling for `UpdateCartItem` service for missing cart and item combination.
++ Error handling for `AddItemToCart` service for existing item using `ErrCodeCartAlreadyExists`.
++ Contextual logging throughout app, service and model layers.
++ Updated `README.md`.
++ Open API `app.yaml` file for documenation.
+
 ## v0.49.3 (Tue 25 Jun 2019)
 + Uses `stackdriver-gae-logrus-plugin` `v0.1.3` with parse `X-Cloud-Trace-Context` bugfix.
 

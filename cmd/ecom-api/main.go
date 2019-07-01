@@ -32,7 +32,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.49.3"
+var version = "v0.50.0"
 
 const maxDbConnectAttempts = 3
 

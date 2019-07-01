@@ -1,0 +1,110 @@
+openapi: 3.0.0
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/mr6502/ecom-api/1.0.0
+info:
+  description: Ecom API
+  version: "v0.50.0"
+  title: Headless Ecommerce API
+  contact:
+    email: andy@andyfusniak.com
+paths:
+  /orders:
+    post:
+      summary: place an order
+      operationId: OpPlaceOrder
+      requestBody:
+        description: Order to place in the system
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewOrder'
+      description: Adds an item to the system
+      responses:
+        '201':
+          description: order placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: 'invalid input, object invalid'
+        '409':
+          description: a conflict prevented the order being placed
+components:
+  schemas:
+    NewOrder:
+      type: object
+      required:
+        - customer
+        - billing_address
+        - shipping_address
+      properties:
+        customer:
+          type: object
+          properties:
+            contact_name:
+              type: string
+              example: 'John Doe'
+            email:
+              type: string
+              format: email
+              example: 'john@example.com'
+        billing_address:
+            $ref: '#/components/schemas/NewAddress'
+        shipping_address:
+            $ref: '#/components/schemas/NewAddress'
+    Order:
+      properties:
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+    NewAddress:
+      required:
+        - contact_name
+        - addr1
+        - city
+        - county
+        - postcode
+        - country
+      properties:
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country:
+          type: string
+          example: 'GB'
+    Address:
+      allOf:
+          - $ref: '#/components/schemas/NewAddress'
+          - required:
+            - uuid
+            - created
+            - modified
+            properties:
+              uuid:
+                type: string
+                format: uuid
+                example: 'c7c9ff19-4bc9-4953-a1bd-9dee0b41b4fe'
+              created:
+                type: string
+                format: date-time
+                example: '2019-06-26T10:26:14.047Z'
+              modified:
+                type: string
+                format: date-time
+                example: '2019-06-26T10:26:14.047Z'
