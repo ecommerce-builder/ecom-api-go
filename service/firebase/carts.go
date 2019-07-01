@@ -4,7 +4,17 @@ import (
 	"context"
 	"time"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	// ErrCartItemAlreadyExists is returned when attempting to add a
+	// cart item to a cart that already contains that item.
+	ErrCartItemAlreadyExists = errors.New("cart already exists")
+
+	ErrCartItemNotFound = errors.New("cart item not found")
 )
 
 // CartItem structure holds the details individual cart item
@@ -16,7 +26,7 @@ type CartItem struct {
 	Modified  time.Time `json:"modified"`
 }
 
-// CreateCart generates a new random UUID to be used for subseqent cart calls
+// CreateCart generates a new random id to be used for subseqent cart calls
 func (s *Service) CreateCart(ctx context.Context) (*string, error) {
 	strptr, err := s.model.CreateCart(ctx)
 	if err != nil {
@@ -26,11 +36,14 @@ func (s *Service) CreateCart(ctx context.Context) (*string, error) {
 }
 
 // AddItemToCart adds a single item to a given cart
-func (s *Service) AddItemToCart(ctx context.Context, uuid string, sku string, qty int) (*CartItem, error) {
-	log.Debugf("s.AddItemToCart(%s, %s, %d) started", uuid, sku, qty)
-	item, err := s.model.AddItemToCart(ctx, uuid, "default", sku, qty)
+func (s *Service) AddItemToCart(ctx context.Context, id string, sku string, qty int) (*CartItem, error) {
+	log.WithContext(ctx).Debugf("s.AddItemToCart(%q, %q, %d) started", id, sku, qty)
+	item, err := s.model.AddItemToCart(ctx, id, "default", sku, qty)
 	if err != nil {
-		return nil, err
+		if err == postgres.ErrCartItemAlreadyExists {
+			return nil, ErrCartItemAlreadyExists
+		}
+		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, %q, %q, %q, %d) failed: ", id, "default", sku, qty)
 	}
 	sitem := CartItem{
 		SKU:       item.SKU,
@@ -43,8 +56,8 @@ func (s *Service) AddItemToCart(ctx context.Context, uuid string, sku string, qt
 }
 
 // GetCartItems get all items in the given cart
-func (s *Service) GetCartItems(ctx context.Context, cartUUID string) ([]*CartItem, error) {
-	items, err := s.model.GetCartItems(ctx, cartUUID)
+func (s *Service) GetCartItems(ctx context.Context, id string) ([]*CartItem, error) {
+	items, err := s.model.GetCartItems(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -64,9 +77,12 @@ func (s *Service) GetCartItems(ctx context.Context, cartUUID string) ([]*CartIte
 }
 
 // UpdateCartItem updates a single item's qty
-func (s *Service) UpdateCartItem(ctx context.Context, cartUUID string, sku string, qty int) (*CartItem, error) {
-	item, err := s.model.UpdateItemByCartUUID(ctx, cartUUID, sku, qty)
+func (s *Service) UpdateCartItem(ctx context.Context, id string, sku string, qty int) (*CartItem, error) {
+	item, err := s.model.UpdateItemByCartID(ctx, id, sku, qty)
 	if err != nil {
+		if err == postgres.ErrCartItemNotFound {
+			return nil, ErrCartItemNotFound
+		}
 		return nil, err
 	}
 	sitem := CartItem{
@@ -80,8 +96,8 @@ func (s *Service) UpdateCartItem(ctx context.Context, cartUUID string, sku strin
 }
 
 // DeleteCartItem deletes a single cart item
-func (s *Service) DeleteCartItem(ctx context.Context, cartUUID string, sku string) (count int64, err error) {
-	count, err = s.model.DeleteCartItem(ctx, cartUUID, sku)
+func (s *Service) DeleteCartItem(ctx context.Context, id string, sku string) (count int64, err error) {
+	count, err = s.model.DeleteCartItem(ctx, id, sku)
 	if err != nil {
 		return -1, err
 	}
@@ -89,6 +105,6 @@ func (s *Service) DeleteCartItem(ctx context.Context, cartUUID string, sku strin
 }
 
 // EmptyCartItems empties the cart of all items but not coupons
-func (s *Service) EmptyCartItems(ctx context.Context, cartUUID string) (err error) {
-	return s.model.EmptyCartItems(ctx, cartUUID)
+func (s *Service) EmptyCartItems(ctx context.Context, id string) (err error) {
+	return s.model.EmptyCartItems(ctx, id)
 }

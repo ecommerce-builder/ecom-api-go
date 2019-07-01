@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type categoryAssoc struct {
@@ -21,6 +21,9 @@ type categoryAssocs map[string]categoryAssoc
 func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: UpdateCatalogProductAssocsHandler started")
+
 		if r.Body == nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
@@ -38,7 +41,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		// Catalog product associations may only be written if a catalog exists.
 		has, err := a.Service.HasCatalog(ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
+			contextLogger.Errorf("a.Service.HasCatalog(ctx) failed %+v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -77,7 +80,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		skus, missingPaths, nonLeafs := validateCatalogAssocs(cas, tree)
 		_, missingSKUs, err := a.Service.ProductsExist(ctx, skus)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%+v", errors.Cause(err))
+			contextLogger.Errorf("a.Service.ProductsExist(ctx, ...) failed: %+v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -118,7 +121,7 @@ func (a *App) UpdateCatalogProductAssocsHandler() http.HandlerFunc {
 		}
 		err = a.Service.CreateCategoryProductAssocs(ctx, cpas)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%+v", err)
+			contextLogger.Errorf("CreateCategoryProductAssocs(ctx, ...) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

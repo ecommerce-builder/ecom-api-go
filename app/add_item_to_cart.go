@@ -2,12 +2,17 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
+
+type cartItemResponseBody struct {
+	Object string `json:"object"`
+	*service.CartItem
+}
 
 // AddItemToCartHandler creates a handler to add an item to a given cart
 func (a *App) AddItemToCartHandler() http.HandlerFunc {
@@ -16,19 +21,40 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 		Qty int    `json:"qty"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: AddItemToCartHandler started")
+
 		uuid := chi.URLParam(r, "uuid")
 		o := itemRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		item, err := a.Service.AddItemToCart(r.Context(), uuid, o.SKU, o.Qty)
+		item, err := a.Service.AddItemToCart(ctx, uuid, o.SKU, o.Qty)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service AddItemToCart(%s, %s, %d) error: %v", uuid, o.SKU, o.Qty, err)
+			if err == service.ErrCartItemAlreadyExists {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeCartAlreadyExists,
+					"cart item already exists in the cart",
+				})
+				return
+			}
+			contextLogger.Errorf("service AddItemToCart(%q, %q, %d) failed with error: %v", uuid, o.SKU, o.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+		res := cartItemResponseBody{
+			Object:   "cart_item",
+			CartItem: item,
+		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(item)
+		json.NewEncoder(w).Encode(res)
 	}
 }

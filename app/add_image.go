@@ -4,10 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
+
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/go-chi/chi"
 )
+
+type imageResponseBody struct {
+	Object string `json:"object"`
+	*service.Image
+}
 
 // AddImageHandler creates a handler to add an images to a product.
 func (a *App) AddImageHandler() http.HandlerFunc {
@@ -16,9 +23,13 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: AddImageHandler started")
+
 		sku := chi.URLParam(r, "sku")
 		exists, err := a.Service.ProductExists(ctx, sku)
 		if err != nil {
+			contextLogger.Errorf("a.Service.ProductExists(ctx, %q) failed: error %v", sku, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -43,7 +54,7 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		}
 		exists, err = a.Service.ImagePathExists(ctx, imageRequestBody.Path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service ImageExists(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
+			contextLogger.Errorf("service ImageExists(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -60,11 +71,15 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		}
 		image, err := a.Service.CreateImageEntry(ctx, sku, imageRequestBody.Path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service CreateImageEntry(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
+			contextLogger.Errorf("service CreateImageEntry(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		res := imageResponseBody{
+			Object: "image",
+			Image:  image,
+		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(image)
+		json.NewEncoder(w).Encode(res)
 	}
 }

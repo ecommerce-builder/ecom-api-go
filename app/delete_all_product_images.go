@@ -1,21 +1,24 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
 
 // DeleteAllProductImagesHandler create a handler that deletes all images for the
 // product with the given SKU.
 func (a *App) DeleteAllProductImagesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: DeleteAllProductImagesHandler started")
+
 		sku := chi.URLParam(r, "sku")
-		exists, err := a.Service.ProductExists(r.Context(), sku)
+		exists, err := a.Service.ProductExists(ctx, sku)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ProductExists(ctx, %q) failed: %v", sku, err)
+			contextLogger.Errorf("ProductExists(ctx, %q) failed: %v", sku, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -23,8 +26,8 @@ func (a *App) DeleteAllProductImagesHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return
 		}
-		if err := a.Service.DeleteAllProductImages(r.Context(), sku); err != nil {
-			fmt.Fprintf(os.Stderr, "DeleteAllProductImages(ctx, %q) failed: %v", sku, err)
+		if err := a.Service.DeleteAllProductImages(ctx, sku); err != nil {
+			contextLogger.Errorf("DeleteAllProductImages(ctx, %q) failed: %v", sku, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

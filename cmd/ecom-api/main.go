@@ -602,7 +602,11 @@ func main() {
 			r.Delete("/", a.Authorization(app.OpPurgeCatalog, a.PurgeCatalogHandler()))
 		})
 
-		r.Route("/assocs", func(r chi.Router) {
+		r.Route("/orders", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpPlaceOrder, a.PlaceOrderHandler()))
+		})
+
+		r.Route("/associations", func(r chi.Router) {
 			r.Put("/", a.Authorization(app.OpUpdateCatalogAssocs, a.UpdateCatalogProductAssocsHandler()))
 			r.Get("/", a.Authorization(app.OpGetCatalogAssocs, a.GetCatalogAssocsHandler()))
 			r.Delete("/", a.Authorization(app.OpPurgeCatalogAssocs, a.PurgeCatalogAssocsHandler()))

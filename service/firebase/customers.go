@@ -13,7 +13,7 @@ import (
 
 // Customer details
 type Customer struct {
-	UUID      string    `json:"uuid"`
+	ID        string    `json:"id"`
 	UID       string    `json:"uid"`
 	Role      string    `json:"role"`
 	Email     string    `json:"email"`
@@ -54,7 +54,7 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 			if err != nil {
 				return errors.Wrap(err, "create customer for root user failed")
 			}
-			_, err = s.GenerateCustomerDevKey(ctx, customer.UUID)
+			_, err = s.GenerateCustomerDevKey(ctx, customer.ID)
 			if err != nil {
 				return errors.Wrap(err, "generate customer devkey failed")
 			}
@@ -91,15 +91,15 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 
 	// Set the custom claims for this user
 	err = authClient.SetCustomUserClaims(ctx, c.UID, map[string]interface{}{
-		"cuuid": c.UUID,
-		"role":  role,
+		"cid":  c.UUID,
+		"role": role,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("set custom claims for uid=%s uuid=%s role=%s failed: %v", c.UID, c.UUID, role, err)
 	}
 
 	ac := Customer{
-		UUID:      c.UUID,
+		ID:        c.UUID,
 		UID:       c.UID,
 		Role:      c.Role,
 		Email:     c.Email,
@@ -129,7 +129,7 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	results := make([]*Customer, 0)
 	for _, v := range prs.RSet.([]*postgres.Customer) {
 		c := Customer{
-			UUID:      v.UUID,
+			ID:        v.UUID,
 			UID:       v.UID,
 			Role:      v.Role,
 			Email:     v.Email,
@@ -160,7 +160,7 @@ func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*Custom
 	}
 
 	ac := Customer{
-		UUID:      c.UUID,
+		ID:        c.UUID,
 		UID:       c.UID,
 		Email:     c.Email,
 		Firstname: c.Firstname,

@@ -22,8 +22,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		contextLogger.Debugf("authorization started for %s", op)
 		decodedToken := ctx.Value("ecomDecodedToken").(*auth.Token)
 
-		// Get the customer UUID and customer role from the JWT
-		var cuuid, role string
+		// Get the customer ID and customer role from the JWT
+		var cid, role string
 		if val, ok := decodedToken.Claims["role"]; ok {
 			role = val.(string)
 		}
@@ -31,8 +31,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		if role == "" {
 			role = RoleShopper
 		} else {
-			if val, ok := decodedToken.Claims["cuuid"]; ok {
-				cuuid = val.(string)
+			if val, ok := decodedToken.Claims["cid"]; ok {
+				cid = val.(string)
 			}
 
 			if role != RoleCustomer && role != RoleAdmin && role != RoleSuperUser {
@@ -48,7 +48,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		contextLogger.Infof("%s role %s, JWT cuuid %s", op, role, cuuid)
+		contextLogger.Infof("%s role %s, JWT cid %s", op, role, cid)
 
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
@@ -88,7 +88,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 			if role == RoleCustomer {
 				contextLogger.Debugf("URL uuid %s", chi.URLParam(r, "uuid"))
-				if subtle.ConstantTimeCompare([]byte(cuuid), []byte(chi.URLParam(r, "uuid"))) == 1 {
+				if subtle.ConstantTimeCompare([]byte(cid), []byte(chi.URLParam(r, "uuid"))) == 1 {
 					next.ServeHTTP(w, r)
 					return
 				}
@@ -116,19 +116,19 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			uuid := chi.URLParam(r, "uuid")
-			ocuuid, err := a.Service.GetAddressOwner(ctx, uuid)
+			ocid, err := a.Service.GetAddressOwner(ctx, uuid)
 			if err != nil {
 				contextLogger.Errorf("a.Service.GetAddressOwner(%s) error: %v", uuid, err)
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
-			if ocuuid == nil {
+			if ocid == nil {
 				contextLogger.Errorf("a.Service.GetAddressOwner(%s) returned nil", uuid)
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
 
-			if subtle.ConstantTimeCompare([]byte(cuuid), []byte(*ocuuid)) == 1 {
+			if subtle.ConstantTimeCompare([]byte(cid), []byte(*ocid)) == 1 {
 				next.ServeHTTP(w, r)
 				return
 			}

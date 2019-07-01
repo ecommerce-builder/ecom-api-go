@@ -19,6 +19,10 @@ const (
 	// before a catalog has been applied.
 	ErrCodeNoCatalog string = "catalog/no-catalog"
 
+	// ErrCodeCartAlreadyExists is sent when attempting to add a cart item to a cart
+	// and that cart item is already in the cart.
+	ErrCodeCartAlreadyExists string = "cart/cart-item-already-exists"
+
 	// ErrMissingPathsLeafsSKUs is sent when the consumer attempts to apply catalog
 	// associations that contain references to paths that are non existence, paths that
 	// are non leaf categories or product SKUs that do not exist.
@@ -46,6 +50,9 @@ const (
 	OpUpdateCartItem string = "OpUpdateCartItem"
 	OpDeleteCartItem string = "OpDeleteCartItem"
 	OpEmptyCartItems string = "OpEmptyCartItems"
+
+	// Orders
+	OpPlaceOrder string = "OpPlaceOrder"
 
 	// Customers
 	OpCreateCustomer        string = "OpCreateCustomer"

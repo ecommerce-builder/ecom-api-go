@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -24,9 +23,9 @@ func paginationQueryFromQueryParams(v url.Values) (*service.PaginationQuery, err
 		limit = 0 // unlimited
 	}
 	pq := &service.PaginationQuery{
-		OrderBy:  v.Get("order_by"),
-		OrderDir: v.Get("order_dir"),
-		Limit: limit,
+		OrderBy:    v.Get("order_by"),
+		OrderDir:   v.Get("order_dir"),
+		Limit:      limit,
 		StartAfter: v.Get("start_after"),
 	}
 	return pq, nil
@@ -36,22 +35,23 @@ func paginationQueryFromQueryParams(v url.Values) (*service.PaginationQuery, err
 // API to retrievs a list of Customers using a PaginationQuery.
 func (a *App) ListCustomersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: ListCustomersHandler started")
+
 		pq, err := paginationQueryFromQueryParams(r.URL.Query())
 		if err != nil {
 			log.Errorf("pagination query (query params=%s) from query params failed: %v", r.URL, err)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-
-		fmt.Printf("ListCustomersHandler... pg = %v\n", pq)
-
 		//pagq := &PaginationQuery{
 		//	OrderBy:    r.URL.Query().Get("order_by"),
 		//	OrderDir:   r.URL.Query().Get("order_dir"),
 		//	Limit:      l,
 		//	StartAfter: r.URL.Query().Get("start_after"),
 		//}
-		prs, err := a.Service.GetCustomers(r.Context(), pq)
+		prs, err := a.Service.GetCustomers(ctx, pq)
 		if err != nil {
 			log.Errorf("service GetCustomers(ctx) error: %+v", err)
 			return

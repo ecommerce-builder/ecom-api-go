@@ -12,7 +12,7 @@ import (
 
 // Image represents a product image.
 type Image struct {
-	UUID     string    `json:"uuid"`
+	ID       string    `json:"id"`
 	SKU      string    `json:"sku"`
 	Path     string    `json:"path"`
 	GSURL    string    `json:"gsurl"`
@@ -42,7 +42,7 @@ func (s *Service) CreateImageEntry(ctx context.Context, sku, path string) (*Imag
 		return nil, errors.Wrapf(err, "service: create image sku=%q, path=%q, entry failed", sku, path)
 	}
 	image := Image{
-		UUID:     pi.UUID,
+		ID:       pi.UUID,
 		SKU:      pi.SKU,
 		Path:     pi.Path,
 		GSURL:    pi.GSURL,
@@ -87,7 +87,7 @@ func (s *Service) GetImage(ctx context.Context, uuid string) (*Image, error) {
 		return nil, errors.Wrapf(err, "service: GetProductImageByUUID(ctx, %q) failed", uuid)
 	}
 	image := Image{
-		UUID:     pi.UUID,
+		ID:       pi.UUID,
 		SKU:      pi.SKU,
 		Path:     pi.Path,
 		GSURL:    pi.GSURL,
@@ -109,7 +109,7 @@ func (s *Service) ListProductImages(ctx context.Context, sku string) ([]*Image, 
 	images := make([]*Image, 0, 8)
 	for _, pi := range pilist {
 		image := Image{
-			UUID:     pi.UUID,
+			ID:       pi.UUID,
 			SKU:      pi.SKU,
 			Path:     pi.Path,
 			GSURL:    pi.GSURL,
@@ -124,10 +124,10 @@ func (s *Service) ListProductImages(ctx context.Context, sku string) ([]*Image, 
 	return images, nil
 }
 
-// DeleteImage delete the image with the given UUID.
-func (s *Service) DeleteImage(ctx context.Context, uuid string) error {
-	if _, err := s.model.DeleteProductImage(ctx, uuid); err != nil {
-		return err
+// DeleteImage delete the image with the given ID.
+func (s *Service) DeleteImage(ctx context.Context, id string) error {
+	if _, err := s.model.DeleteProductImageByUUID(ctx, id); err != nil {
+		return errors.Wrapf(err, "service: DeleteProductImageByUUID(ctx, %q)", id)
 	}
 	return nil
 }

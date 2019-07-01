@@ -5,12 +5,21 @@ import (
 	"net/http"
 )
 
+type configResponseBody struct {
+	Object string `json:"object"`
+	*FirebaseSystemEnv
+}
+
 // ConfigHandler returns a handler function that returns API configuration
 // including Firebase public key.
 func (a *App) ConfigHandler(se FirebaseSystemEnv) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(se)
+		res := configResponseBody{
+			Object:            "config",
+			FirebaseSystemEnv: &se,
+		}
+		json.NewEncoder(w).Encode(res)
 	}
 }

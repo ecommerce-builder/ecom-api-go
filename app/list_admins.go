@@ -2,17 +2,21 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // ListAdminsHandler creates a handler that returns a list of administrators.
 func (a *App) ListAdminsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		admins, err := a.Service.ListAdmins(r.Context())
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: ListAdminsHandler started")
+
+		admins, err := a.Service.ListAdmins(ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service: GetAdmins(ctx) error: %v", err)
+			contextLogger.Errorf("service: GetAdmins(ctx) error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

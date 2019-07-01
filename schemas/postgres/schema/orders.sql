@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS orders (
   ship_tb      BOOL DEFAULT false,
   billing      JSONB NOT NULL,
   shipping     JSONB,
-  total        NUMERIC(8, 4) NOT NULL CHECK (total >= 0.0000),
+  total        INTEGER NOT NULL CHECK (total >= 0),
   created      TIMESTAMP NOT NULL DEFAULT NOW(),
   FOREIGN KEY (customer_id) REFERENCES customers(id)
 );

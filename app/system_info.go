@@ -2,9 +2,9 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // SystemInfo contains the system version string and system environment data.
@@ -54,9 +54,13 @@ type ApplSystemEnv struct {
 // SystemInfoHandler returns data about the API runtime
 func (app *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		version, err := app.Service.GetSchemaVersion(r.Context())
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: SystemInfoHandler started")
+
+		version, err := app.Service.GetSchemaVersion(ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%+v", err)
+			contextLogger.Errorf("app.Service.GetSchemaVersion(ctx) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 		}
 		si.Env.PG.SchemaVersion = *version

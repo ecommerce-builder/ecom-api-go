@@ -2,10 +2,16 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
+
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	log "github.com/sirupsen/logrus"
 )
+
+type customerResponseBody struct {
+	Object string `json:"object"`
+	*service.Customer
+}
 
 // CreateCustomerHandler creates a new customer record
 func (a *App) CreateCustomerHandler() http.HandlerFunc {
@@ -17,6 +23,10 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("App: CreateCustomerHandler called")
+
 		if r.Body == nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
@@ -46,9 +56,10 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		customer, err := a.Service.CreateCustomer(r.Context(), "customer", o.Email, o.Password, o.Firstname, o.Lastname)
+
+		customer, err := a.Service.CreateCustomer(ctx, "customer", o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "CreateCustomerHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s): %v\n", "customer", o.Email, "*****", o.Firstname, o.Lastname, err)
+			contextLogger.Errorf("CreateCustomerHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s) with error: %v", "customer", o.Email, "*****", o.Firstname, o.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
@@ -61,7 +72,12 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 			})
 			return
 		}
+
+		res := customerResponseBody{
+			Object:   "customer",
+			Customer: customer,
+		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(*customer)
+		json.NewEncoder(w).Encode(res)
 	}
 }
