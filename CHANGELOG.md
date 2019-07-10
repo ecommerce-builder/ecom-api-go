@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.52.0 (Wed 10 Jul 2019)
++ Silence the Makefile targets.
++ Schema `order_items` table includes `currency`, `discount` and `tax_codes`.
++ Guest and Customer order placement.
+
 ## v0.50.0 (Mon 1 Jul 2019)
 + `OpPlaceOrder` basic skelton implemetation.
 + `object: "<name>"` wrapper for image, cart item, customer, devkey

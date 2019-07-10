@@ -21,7 +21,7 @@ var (
 type CartItem struct {
 	SKU       string    `json:"sku"`
 	Qty       int       `json:"qty"`
-	UnitPrice float64   `json:"unit_price"`
+	UnitPrice int       `json:"unit_price"`
 	Created   time.Time `json:"created"`
 	Modified  time.Time `json:"modified"`
 }
@@ -53,6 +53,15 @@ func (s *Service) AddItemToCart(ctx context.Context, id string, sku string, qty 
 		Modified:  item.Modified,
 	}
 	return &sitem, nil
+}
+
+// HasCartItems returns true if any cart items have previously been added to the given cart.
+func (s *Service) HasCartItems(ctx context.Context, id string) (bool, error) {
+	has, err := s.model.HasCartItems(ctx, id)
+	if err != nil {
+		return false, errors.Wrap(err, "service: has cart items failed")
+	}
+	return has, nil
 }
 
 // GetCartItems get all items in the given cart

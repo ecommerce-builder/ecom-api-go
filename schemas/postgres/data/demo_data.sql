@@ -96,46 +96,45 @@ INSERT INTO categories (segment, path, name, lft, rgt, depth, created, modified)
 
 -- orders, order_items and payments
 -- 100001
-INSERT INTO orders (customer_id, ship_tb, billing, shipping, total)
+INSERT INTO orders (customer_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(1, true, '{"address_id": 1, "contact_name": "Joe Blogs", "addr1": "4524 Mulberry Avenue",
-                    "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 9999);
-INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100001, 'FRIDGE', 1, 9554, 20);
-INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100001, 'WATER', 1, 445, 20);
-
+            "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 9999, 2000, 11999);
+INSERT INTO order_items (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
+  VALUES(100001, 'FRIDGE', 'Luxuary Fridge', 1, 9554, 'GBP', null, 'T20', 1911);
+INSERT INTO order_items (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
+  VALUES(100001, 'WATER-SKU', 'Water Bottle', 1, 445, 'GBP', null, 'T20', 89);
 
 -- 100002
-INSERT INTO orders (customer_id, ship_tb, billing, shipping, total)
+INSERT INTO orders (customer_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(1, true, '{"address_id": 1, "contact_name": "Joe Blogs", "addr1": "4524 Mulberry Avenue",
-                    "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 12598);
-INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100002, 'TV', 1, 12598, 7);
+            "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 12598, 2520, 15118);
+INSERT INTO order_items (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
+  VALUES(100002, 'TV-SKU', 'LCD TV System', 1, 12598, 'GBP', null, 'T20', 2520);
 
 -- 100003
-INSERT INTO orders (customer_id, ship_tb, billing, shipping, total)
+INSERT INTO orders (customer_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(2, true, '{"address_id": 2, "contact_name": "Sammy Peterson", "addr1": "138 Ermin Street",
-                    "city": "Wrentham", "postcode": "NR34 9TT", "country": "UK"}', NULL, 9800);
-INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100003, 'DRILL', 2, 4900, 20);
+            "city": "Wrentham", "postcode": "NR34 9TT", "country": "UK"}', NULL, 9800, 980, 10780);
+INSERT INTO order_items (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
+  VALUES(100003, 'DRILL-SKU', 'Electric Power Drill', 2, 4900, 'GBP', null, 'T20', 980);
 
 -- 100004
-INSERT INTO orders (customer_id, billing, shipping, total)
+INSERT INTO orders (customer_id, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(3, '{"address_id": 6 , "contact_name": "Faith Bowman", "addr1": "38 Walden Road",
-              "city": "Greenburn", "postcode": "DD5 8AU", "country": "UK"}',
+            "city": "Greenburn", "postcode": "DD5 8AU", "country": "UK"}',
             '{"address_id": 3, "contact_name": "Faith Bowman", "addr1": "18 Pier Road",
-              "city": "Statham", "postcode": "WA13 3DW", "country": "UK"}', 7849);
-INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100004, 'DESK', 1, 7849, 7);
+              "city": "Statham", "postcode": "WA13 3DW", "country": "UK"}', 7849, 1570, 9419);
+INSERT INTO order_items (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
+  VALUES(100004, 'DESK-SKU', 'Oak Desk', 1, 7849, 'GBP', null, 'T20', 1570);
 
 -- 100005
-INSERT INTO orders (customer_id, billing, shipping, total)
+INSERT INTO orders (customer_id, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(5, '{"address_id": 10, "contact_name": "Bernadette Graham", "addr1": "38 Porana Place",
               "city": "Woolgorong", "postcode": "6630", "country": "AU"}',
             '{"address_id": 9, "contact_name": "Bernadette Graham", "addr1": "89 Cubbine Road",
-              "city": "Southburracoppin", "postcode": "6421", "country": "AU"}', 946);
-INSERT INTO order_items (order_id, sku, qty, unit_price, vat)
-  VALUES(100005, 'DESK', 4, 7849, 7);
+              "city": "Southburracoppin", "postcode": "6421", "country": "AU"}', 31396, 6279, 37675);
+INSERT INTO order_items (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
+  VALUES(100005, 'DESK-SKU', 'Oak Desk', 4, 7849, 'GBP', null, 'T20', 6279);
 
 
 INSERT INTO payments (order_id, typ, status) VALUES(100001, 'stripe', 'success');

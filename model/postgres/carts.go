@@ -20,7 +20,20 @@ type CartItem struct {
 	UUID      string
 	SKU       string
 	Qty       int
-	UnitPrice float64
+	UnitPrice int
+	Created   time.Time
+	Modified  time.Time
+}
+
+// CartProductItem holds details of the an invidual cart item joined
+// with product info.
+type CartProductItem struct {
+	id        int
+	UUID      string
+	SKU       string
+	Name      string
+	Qty       int
+	UnitPrice int
 	Created   time.Time
 	Modified  time.Time
 }
@@ -67,6 +80,20 @@ func (m *PgModel) AddItemToCart(ctx context.Context, uuid, tierRef, sku string, 
 		return nil, errors.Wrapf(err, "query scan failed query=%q", query)
 	}
 	return &item, nil
+}
+
+// HasCartItems returns true if any cart items has previously been added.
+func (m *PgModel) HasCartItems(ctx context.Context, uuid string) (bool, error) {
+	query := "SELECT COUNT(*) AS count FROM carts WHERE uuid = $1"
+	var count int
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&count)
+	if err != nil {
+		return false, errors.Wrapf(err, "query row context scan query=%q", query)
+	}
+	if count == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
 // GetCartItems gets all items in the cart

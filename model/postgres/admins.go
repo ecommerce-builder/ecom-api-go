@@ -7,14 +7,14 @@ import (
 )
 
 // GetAdmin returns a Customer of role admin for the given UUID.
-func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*Customer, error) {
+func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*CustomerRow, error) {
 	query := `
 		SELECT
 			id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
 		WHERE uuid = $1 AND role='admin'
 	`
-	c := Customer{}
+	c := CustomerRow{}
 	row := m.db.QueryRowContext(ctx, query, uuid)
 	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
@@ -23,7 +23,7 @@ func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*Customer, error) 
 }
 
 // GetAllAdmins returns a slice of Customers who are all of role admin
-func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*Customer, error) {
+func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*CustomerRow, error) {
 	query := `
 		SELECT id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
@@ -36,9 +36,9 @@ func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*Customer, error) {
 	}
 	defer rows.Close()
 
-	admins := make([]*Customer, 0, 8)
+	admins := make([]*CustomerRow, 0, 8)
 	for rows.Next() {
-		var c Customer
+		var c CustomerRow
 		if err := rows.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}

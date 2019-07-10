@@ -223,7 +223,7 @@ func (m *PgModel) HasCategoryProductAssocs(ctx context.Context) (bool, error) {
 // UpdateCategoryProductAssocs updates all entries in the categories
 // product associations table.
 func (m *PgModel) UpdateCategoryProductAssocs(ctx context.Context, cpo []*CategoryProductAssoc) error {
-	tx, err := m.db.Begin()
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

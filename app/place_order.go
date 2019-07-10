@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
@@ -10,9 +9,10 @@ import (
 )
 
 type orderRequestBody struct {
-	ContactName string              `json:"contact_name"`
 	CartID      *string             `json:"cart_id"`
-	Email       string              `json:"email"`
+	ContactName *string             `json:"contact_name"`
+	Email       *string             `json:"email"`
+	CustomerID  *string             `json:"customer_id"`
 	Billing     *service.NewAddress `json:"billing_address"`
 	Shipping    *service.NewAddress `json:"shipping_address"`
 }
@@ -25,6 +25,16 @@ type orderResponseBody struct {
 func validateOrderRequestBody(req *orderRequestBody) (string, bool) {
 	if req.CartID == nil {
 		return "cart_id missing", false
+	}
+
+	if req.CustomerID != nil {
+		if req.ContactName != nil || req.Email != nil {
+			return "Either set customer_id for customer orders or set contact_name with email for guest orders - not both", false
+		}
+	} else {
+		if req.ContactName == nil || req.Email == nil {
+			return "For placing guest orders set both contact_name and email", false
+		}
 	}
 	return "", true
 }
@@ -56,14 +66,35 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 		msg, ok := validateOrderRequestBody(&req)
 		if !ok {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusConflict,
+				"validate/invalid-request-body",
+				msg,
+			})
 			return
 		}
 
-		fmt.Printf("%#v\n", msg)
-
-		order, err := a.Service.PlaceOrder(ctx, req.ContactName, req.Email, req.Billing, req.Shipping)
+		contextLogger.Debugf("a.Service.PlaceOrder(ctx, req.ContextName=%v, req.Email=%v, res.CustomerID=%v, %q, ...)", req.ContactName, req.Email, req.CustomerID, *req.CartID)
+		order, err := a.Service.PlaceOrder(ctx, req.ContactName, req.Email, req.CustomerID, *req.CartID, req.Billing, req.Shipping)
 		if err != nil {
-			contextLogger.Panicf("App: PlaceOrder(ctx, %q, %q, ...) failed with error: %v", req.ContactName, req.Email, err)
+			if err == service.ErrCartEmpty {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					"order/empty-cart",
+					"The cart id you passed contains no items",
+				})
+				return
+			}
+			contextLogger.Panicf("App: PlaceOrder(ctx, %q, %q, ...) failed with error: %v", *req.ContactName, *req.Email, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

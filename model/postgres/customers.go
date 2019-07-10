@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Customer details.
-type Customer struct {
+// CustomerRow holds details of a single row from the customers table.
+type CustomerRow struct {
 	id        int
 	UUID      string
 	UID       string
@@ -43,7 +43,7 @@ type PaginationQuery struct {
 }
 
 // CreateCustomer creates a new customer
-func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*Customer, error) {
+func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*CustomerRow, error) {
 	query := `
 		INSERT INTO customers (
 			uid, role, email, firstname, lastname
@@ -52,7 +52,7 @@ func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstnam
 		)
 		RETURNING id, uuid, uid, role, email, firstname, lastname, created, modified
 	`
-	c := Customer{}
+	c := CustomerRow{}
 	err := m.db.QueryRowContext(ctx, query, uid, role, email, firstname, lastname).Scan(
 		&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
 	if err != nil {
@@ -138,9 +138,9 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	}
 	defer rows.Close()
 
-	customers := make([]*Customer, 0)
+	customers := make([]*CustomerRow, 0)
 	for rows.Next() {
-		var c Customer
+		var c CustomerRow
 		if err = rows.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 			return nil, errors.Wrapf(err, "rows scan Customer=%v", c)
 		}
@@ -155,14 +155,14 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 }
 
 // GetCustomerByUUID gets a customer by customer UUID
-func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*Customer, error) {
+func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*CustomerRow, error) {
 	query := `
 		SELECT
 			id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
 		WHERE uuid = $1
 	`
-	c := Customer{}
+	c := CustomerRow{}
 	row := m.db.QueryRowContext(ctx, query, customerUUID)
 	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
@@ -171,14 +171,14 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 }
 
 // GetCustomerByID gets a customer by customer ID
-func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*Customer, error) {
+func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*CustomerRow, error) {
 	query := `
 		SELECT
 			id, uuid, uid, role, email, firstname, lastname, created, modified
 		FROM customers
 		WHERE id = $1
 	`
-	c := Customer{}
+	c := CustomerRow{}
 	row := m.db.QueryRowContext(ctx, query, customerID)
 	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)

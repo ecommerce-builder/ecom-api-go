@@ -127,7 +127,7 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	}
 
 	results := make([]*Customer, 0)
-	for _, v := range prs.RSet.([]*postgres.Customer) {
+	for _, v := range prs.RSet.([]*postgres.CustomerRow) {
 		c := Customer{
 			ID:        v.UUID,
 			UID:       v.UID,

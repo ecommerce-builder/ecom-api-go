@@ -57,7 +57,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey,
 			OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs,
 			OpGetTierPricing, OpMapPricingBySKU, OpMapPricingByTier, OpGetImage,
-			OpListProductImages:
+			OpListProductImages, OpPlaceOrder:
 			next.ServeHTTP(w, r)
 			return
 		case OpListCustomers, OpReplaceProduct, OpDeleteProduct,
