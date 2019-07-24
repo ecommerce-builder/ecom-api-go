@@ -4,6 +4,7 @@
   * [Environment Variable](#environment-variables)
     * [App](#env-app)
     * [Google](#env-google)
+    * [Stripe](#env-stripe)
     * [Postgres](#env-postgres)
   * [File Structure](#file-structure)
 * [Deployment](#deployment)
@@ -23,7 +24,7 @@ The `ecom-api` executable accepts a configuration through the use of environment
 
 ### <a name="environment-variables"></a>Environment Variables
 
-Configuration is grouped into three groups; [App](#env-app), [Google](#env-google) and [PostgreSQL](#env-postgres) prefixed with `ECOM_APP_`, `ECOM_GOOGLE_` and `ECOM_PG_` respectively.
+Configuration is grouped into four groups; [App](#env-app), [Google](#env-google), [Stripe](#env-stripe) and [PostgreSQL](#env-postgres) prefixed with `ECOM_APP_`, `ECOM_GOOGLE_`, `ECOM_STRIPE_` and `ECOM_PG_` respectively. The Stripe configuration is optional and is only require if you intend to take payments using Stripe.
 
 
 #### <a name="env-app"></a>App
@@ -42,12 +43,21 @@ Configuration is grouped into three groups; [App](#env-app), [Google](#env-googl
 
 #### <a name="env-google"></a>Google
 
-| Env Var                       | Required | Default | Description |
-| -------------                 | -------- | ------- | ------------|
-| **`ECOM_GAE_PROJECT_ID`**     | Required |         | Set the value to the Google Project ID where the GAE App is running. For example, `open247-gae`. |
+| Env Var                         | Required | Default | Description |
+| -------------                   | -------- | ------- | ------------|
+| **`ECOM_GAE_PROJECT_ID`**       | Required |         | Set the value to the Google Project ID where the GAE App is running. For example, `open247-gae`. |
 | **`ECOM_FIREBASE_PROJECT_ID`**  | Required |         | Set the value to the Firebase Project ID. e.g. `ecom-test-bf262`. |
 | **`ECOM_FIREBASE_WEB_API_KEY`** | Required |         | Firebase Web API Key used to Authentication. For example, `AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc`. |
 | **`ECOM_FIREBASE_CREDENTIALS`** | Required |         | Use either the filepath of the Firebase Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
+
+#### <a name="env-stripe"></a>Stripe
+
+The stripe settings are optional and only required if you are processing payments with the Stripe checkout. If you do not use Stripe, you do not need to pass either of the following environment variables to the ecom service. If you are using Stripe, make sure you pass both the secret key and signing key. The secret key is used for payments and the signing key is used to verify confirmations from Stripe webhooks.
+
+| Env Var                       | Required | Default | Description |
+| -------                       | -------- | ------- | ----------- |
+| **`ECOM_STRIPE_SECRET_KEY`**  | Depends  |         | Found in the [API Keys](https://dashboard.stripe.com/test/apikeys) section of the Stripe Dashboard. |
+| **`ECOM_STRIPE_SIGNING_KEY`** | Depends  |         | Found in the [Webhooks](https://dashboard.stripe.com/test/webhooks) section of the Stripe Dashboard. |
 
 
 #### <a name="env-postgres"></a>Postgres

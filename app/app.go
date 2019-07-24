@@ -90,24 +90,28 @@ const (
 	OpGetImage               string = "OpGetImage"
 	OpListProductImages      string = "OpListProductImages"
 	OpDeleteImage            string = "OpDeleteImage"
-	OpDeleteAllProductImages string = "OppDeleteAllProductImages"
+	OpDeleteAllProductImages string = "OpDeleteAllProductImages"
 
 	// Developer Keys
-	OpGenerateCustomerDevKey string = "GenerateCustomerDevKey"
-	OpListCustomersDevKeys   string = "ListCustomersDevKeys"
-	OpDeleteCustomerDevKey   string = "DeleteCustomerDevKey"
-	OpSignInWithDevKey       string = "SignInWithDevKey"
+	OpGenerateCustomerDevKey string = "OpGenerateCustomerDevKey"
+	OpListCustomersDevKeys   string = "OpListCustomersDevKeys"
+	OpDeleteCustomerDevKey   string = "OpDeleteCustomerDevKey"
+	OpSignInWithDevKey       string = "OpSignInWithDevKey"
 
 	// Catalog and assocations
-	OpUpdateCatalog       string = "UpdateCatalog"
-	OpGetCatalog          string = "GetCatalog"
-	OpPurgeCatalog        string = "PurgeCatalog"
-	OpGetCatalogAssocs    string = "GetCatalogAssocs"
-	OpUpdateCatalogAssocs string = "UpdateCatalogAssocs"
-	OpPurgeCatalogAssocs  string = "PurgeCatalogAssocs"
+	OpUpdateCatalog       string = "OpUpdateCatalog"
+	OpGetCatalog          string = "OpGetCatalog"
+	OpPurgeCatalog        string = "OpPurgeCatalog"
+	OpGetCatalogAssocs    string = "OpGetCatalogAssocs"
+	OpUpdateCatalogAssocs string = "OpUpdateCatalogAssocs"
+	OpPurgeCatalogAssocs  string = "OpPurgeCatalogAssocs"
+
+	// Stripe
+        OpStripeCheckout string = "OpStripeCheckout"
+        OpStripeWebhook  string = "OpStripeWebhook"
 
 	// System
-	OpSystemInfo string = "SystemInfo"
+	OpSystemInfo string = "OpSysInfo"
 
 	// Roles
 	RoleSuperUser string = "root"
