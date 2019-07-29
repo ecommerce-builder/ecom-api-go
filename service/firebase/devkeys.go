@@ -14,18 +14,18 @@ import (
 
 // CustomerDevKey struct holding the details of a customer Developer Key including its bcrypt hash.
 type CustomerDevKey struct {
-	ID           string    `json:"id"`
-	Key          string    `json:"key"`
-	CustomerUUID string    `json:"customer_uuid"`
-	Created      time.Time `json:"created"`
-	Modified     time.Time `json:"modified"`
+	ID         string    `json:"id"`
+	Key        string    `json:"key"`
+	CustomerID string    `json:"customer_id,omitempty"`
+	Created    time.Time `json:"created"`
+	Modified   time.Time `json:"modified"`
 }
 
 // GenerateCustomerDevKey creates a new API Key for a customer
-func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKey, error) {
-	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
+func (s *Service) GenerateCustomerDevKey(ctx context.Context, customerID string) (*CustomerDevKey, error) {
+	cid, err := s.model.GetCustomerIDByUUID(ctx, customerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.GetCustomerIDByUUID(ctx, %q)", uuid)
+		return nil, errors.Wrapf(err, "s.model.GetCustomerIDByUUID(ctx, %q)", customerID)
 	}
 	data := make([]byte, 32)
 	_, err = rand.Read(data)
@@ -33,13 +33,15 @@ func (s *Service) GenerateCustomerDevKey(ctx context.Context, uuid string) (*Cus
 		return nil, errors.Wrap(err, "rand.Read(data)")
 	}
 
-	ak, err := s.model.CreateCustomerDevKey(ctx, customerID, base58.Encode(data))
+	ak, err := s.model.CreateCustomerDevKey(ctx, cid, base58.Encode(data))
 	if err != nil {
 		return nil, errors.Wrapf(err, "s.model.CreateCustomerDevKey(ctx, customerID=%q, ...)", customerID)
 	}
 
 	return &CustomerDevKey{
-		Key:      ak.Key,
+		ID:  ak.UUID,
+		Key: ak.Key,
+		// CustomerID: customerID,
 		Created:  ak.Created,
 		Modified: ak.Modified,
 	}, nil
@@ -55,17 +57,17 @@ func (s *Service) GetCustomerDevKey(ctx context.Context, id string) (*CustomerDe
 		return nil, err
 	}
 	return &CustomerDevKey{
-		ID:           ak.UUID,
-		Key:          ak.Key,
-		CustomerUUID: ak.CustomerUUID,
-		Created:      ak.Created,
-		Modified:     ak.Modified,
+		ID:         ak.UUID,
+		Key:        ak.Key,
+		CustomerID: ak.CustomerUUID,
+		Created:    ak.Created,
+		Modified:   ak.Modified,
 	}, nil
 }
 
 // ListCustomersDevKeys gets all API Keys for a customer.
-func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*CustomerDevKey, error) {
-	customerID, err := s.model.GetCustomerIDByUUID(ctx, uuid)
+func (s *Service) ListCustomersDevKeys(ctx context.Context, id string) ([]*CustomerDevKey, error) {
+	customerID, err := s.model.GetCustomerIDByUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -77,11 +79,11 @@ func (s *Service) ListCustomersDevKeys(ctx context.Context, uuid string) ([]*Cus
 	apiKeys := make([]*CustomerDevKey, 0, len(rows))
 	for _, row := range rows {
 		c := CustomerDevKey{
-			ID:           row.UUID,
-			Key:          row.Key,
-			CustomerUUID: uuid,
-			Created:      row.Created,
-			Modified:     row.Modified,
+			ID:         row.UUID,
+			Key:        row.Key,
+			CustomerID: id,
+			Created:    row.Created,
+			Modified:   row.Modified,
 		}
 		apiKeys = append(apiKeys, &c)
 	}

@@ -1,4 +1,13 @@
 # CHANGELOG
+## v0.53.0 (Mon 29 Jul 2019)
++ Stripe webhook implemented
++ Stripe checkout implemented
++ Alter schema for payments
++ Unit prices use 4 decimal places
++ Updated README.md
++ Record Stripe Payment Intent reference with orders
++ Change developer key JSON response
+
 ## v0.52.0 (Wed 10 Jul 2019)
 + Silence the Makefile targets.
 + Schema `order_items` table includes `currency`, `discount` and `tax_codes`.

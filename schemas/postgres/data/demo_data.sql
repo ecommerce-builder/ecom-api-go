@@ -167,22 +167,22 @@ INSERT INTO pricing_tiers (tier_ref, title, description)
 
 -- product pricing
 -- default
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'WATER-SKU', 245);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DRILL-SKU', 1929);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'TV-SKU', 14457);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'PHONE-SKU', 1853);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DESK-SKU', 25482);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'WATER-SKU', 24500);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DRILL-SKU', 192900);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'TV-SKU', 1445700);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'PHONE-SKU', 185300);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DESK-SKU', 2548200);
 
 -- goldfish
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'WATER-SKU', 145);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DRILL-SKU', 1529);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'TV-SKU', 12457);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'PHONE-SKU', 1453);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DESK-SKU', 22482);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'WATER-SKU', 14500);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DRILL-SKU', 152900);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'TV-SKU', 1245700);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'PHONE-SKU', 145300);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'DESK-SKU', 2248200);
 
 -- seabass
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'WATER-SKU', 129);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DRILL-SKU', 1229);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'TV-SKU', 9957);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'PHONE-SKU', 1253);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DESK-SKU', 19842);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'WATER-SKU', 12900);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DRILL-SKU', 122900);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'TV-SKU', 995700);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'PHONE-SKU', 125300);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('seabass', 'DESK-SKU', 1984200);

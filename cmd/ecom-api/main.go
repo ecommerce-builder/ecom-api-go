@@ -25,6 +25,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
+	"github.com/stripe/stripe-go"
 
 	log "github.com/sirupsen/logrus"
 
@@ -32,7 +33,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.52.0"
+var version = "v0.53.0"
 
 const maxDbConnectAttempts = 3
 
@@ -110,6 +111,10 @@ var (
 	fbProjectID   = os.Getenv("ECOM_FIREBASE_PROJECT_ID")
 	fbWebAPIKey   = os.Getenv("ECOM_FIREBASE_WEB_API_KEY")
 	fbCredentials = os.Getenv("ECOM_FIREBASE_CREDENTIALS")
+
+	// Stripe settings (optional)
+	stripeSecretKey     = os.Getenv("ECOM_STRIPE_SECRET_KEY")
+	stripeSigningSecret = os.Getenv("ECOM_STRIPE_SIGNING_SECRET")
 
 	//
 	// Application settings
@@ -303,7 +308,25 @@ func main() {
 	}
 	log.Infof("Web API Key set to %s", fbWebAPIKey)
 
-	// 4. Server Port
+	// 4. Stripe Secret Key and Signing Key.
+	if stripeSecretKey == "" && stripeSigningSecret == "" {
+		log.Warn("ECOM_STRIPE_SECRET_KEY and ECOM_STRIPE_SIGNING_SECRET are not set. This service will not process Stripe payments")
+	} else {
+		if stripeSecretKey == "" {
+			log.Fatal("ECOM_STRIPE_SIGNING_SECRET must be set since ECOM_STRIPE_SECRET_KEY has been set")
+		}
+
+		if stripeSigningSecret == "" {
+			log.Fatal("ECOM_STRIPE_SECRET_KEY must be set since ECOM_STRIPE_SIGNING_SECRET has been set")
+		}
+
+		if stripeSecretKey != "" {
+			stripe.Key = stripeSecretKey
+			log.Info("Stripe Secret Key set in Stripe library")
+		}
+	}
+
+	// 5. Server Port
 	if port == "" {
 		port = "8080"
 		log.Infof("HTTP Port not specified using default port %s", port)
@@ -531,7 +554,7 @@ func main() {
 		// Customer and address management API
 		r.Route("/customers", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateCustomer, a.CreateCustomerHandler()))
-			r.Get("/{uuid}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
 			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
 
 			r.Get("/{uuid}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
@@ -604,6 +627,7 @@ func main() {
 
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpPlaceOrder, a.PlaceOrderHandler()))
+			r.Post("/{id}/stripecheckout", a.Authorization(app.OpStripeCheckout, a.StripeCheckoutHandler()))
 		})
 
 		r.Route("/associations", func(r chi.Router) {
@@ -625,6 +649,9 @@ func main() {
 		r.Get("/", healthCheckHandler)
 		r.Get("/healthz", healthCheckHandler)
 		r.Get("/config", a.ConfigHandler(si.Env.Firebase))
+		r.Route("/stripe-webhook", func(r chi.Router) {
+			r.Post("/", a.StripeWebhookHandler(stripeSigningSecret))
+		})
 	})
 
 	r.Route("/signin-with-devkey", func(r chi.Router) {

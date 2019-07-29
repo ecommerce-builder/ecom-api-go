@@ -2,11 +2,16 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 )
+
+// ErrCustomerNotFound is returned when a query for the customer
+// could not be found in the database.
+var ErrCustomerNotFound = errors.New("model: customer not found")
 
 // CustomerRow holds details of a single row from the customers table.
 type CustomerRow struct {
@@ -165,6 +170,9 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 	c := CustomerRow{}
 	row := m.db.QueryRowContext(ctx, query, customerUUID)
 	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCustomerNotFound
+		}
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}
 	return &c, nil
@@ -181,6 +189,9 @@ func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*Custome
 	c := CustomerRow{}
 	row := m.db.QueryRowContext(ctx, query, customerID)
 	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCustomerNotFound
+		}
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}
 	return &c, nil

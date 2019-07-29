@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -43,6 +42,7 @@ type OrderItem struct {
 	Name      string     `json:"name"`
 	Qty       int        `json:"qty"`
 	UnitPrice int        `json:"unit_price"`
+	Currency  string     `json:"currency"`
 	Discount  *int       `json:"discount,omitempty"`
 	TaxCode   string     `json:"tax_code"`
 	VAT       int        `json:"vat"`
@@ -58,38 +58,47 @@ type OrderCustomer struct {
 
 // Order contains details of an previous order.
 type Order struct {
-	ID       string        `json:"id"`
-	Amount   int           `json:"amount"`
-	Status   string        `json:"status"`
-	Payment  string        `json:"payment"`
-	Customer OrderCustomer `json:"customer"`
-	Currency string        `json:"currency"`
-	Billing  *OrderAddress `json:"billing_address"`
-	Shipping *OrderAddress `json:"shipping_address"`
-	Items    []*OrderItem  `json:"items"`
-	Created  time.Time     `json:"created"`
+	ID          string         `json:"id"`
+	Status      string         `json:"status"`
+	Payment     string         `json:"payment"`
+	Customer    *OrderCustomer `json:"customer"`
+	Billing     *OrderAddress  `json:"billing_address"`
+	Shipping    *OrderAddress  `json:"shipping_address"`
+	Currency    string         `json:"currency"`
+	TotalExVAT  int            `json:"total_ex_vat"`
+	VATTotal    int            `json:"vat_total"`
+	TotalIncVAT int            `json:"total_inc_vat"`
+	Items       []*OrderItem   `json:"items"`
+	Created     time.Time      `json:"created"`
+	Modified    time.Time      `json:"modified"`
 }
 
 // PlaceOrder places a new order in the system.
 func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, customerID *string, cartID string, billing *NewAddress, shipping *NewAddress) (*Order, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("PlaceOrder(ctx, contactName=%v, email=%v, customerID=%v, cartID=%v, ...)", contactName, email, customerID, cartID)
+
 	// Guest orders have a customerUUID of nil whereas Customer orders
 	// are set to the UUID of that customer.
 	var customerUUID *string
 	if customerID != nil {
 		customer, err := s.GetCustomer(ctx, *customerID)
 		if err != nil {
+			if err == ErrCustomerNotFound {
+				return nil, err
+			}
 			return nil, errors.Wrapf(err, "s.GetCustomer(ctx, %q) failed", *customerID)
 		}
 		customerUUID = customerID
-		fmt.Printf("%#v\n", customer)
+		contextLogger.Debugf("%#v\n", customer)
 	} else {
 		customerUUID = nil
 	}
 
 	if customerUUID == nil {
-		fmt.Println("Its nil")
+		contextLogger.Debugf("customerUUID is nil")
 	} else {
-		fmt.Printf("%#v\n", *customerUUID)
+		contextLogger.Debugf("customerUUID is %s", *customerUUID)
 	}
 
 	// Prevent orders with empty carts.
@@ -122,7 +131,7 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, cu
 	}
 	log.WithContext(ctx).Debugf("customerUUID=%v, cartID=%v", customerUUID, cartID)
 
-	orow, oirows, crow, amount, err := s.model.AddOrder(ctx, customerUUID, cartID, &pgBilling, &pgShipping)
+	orow, oirows, crow, err := s.model.AddOrder(ctx, contactName, email, customerUUID, nil, cartID, &pgBilling, &pgShipping)
 	if err != nil {
 		return nil, errors.Wrap(err, "s.model.AddOrder(ctx, ...) failed")
 	}
@@ -135,10 +144,11 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, cu
 			Name:      oir.Name,
 			Qty:       oir.Qty,
 			UnitPrice: oir.UnitPrice,
+			Currency:  oir.Currency,
 			Discount:  oir.Discount,
 			TaxCode:   oir.TaxCode,
 			VAT:       oir.VAT,
-			Created:   nil,
+			Created:   &oir.Created,
 		}
 		orderItems = append(orderItems, &oi)
 	}
@@ -153,11 +163,93 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, cu
 
 	order := Order{
 		ID:       orow.UUID,
-		Amount:   amount,
+		Status:   orow.Status,
+		Payment:  orow.Payment,
+		Customer: &customer,
+		Billing: &OrderAddress{
+			ContactName: orow.Billing.ContactName,
+			Addr1:       orow.Billing.Addr1,
+			Addr2:       &orow.Billing.Addr2,
+			City:        orow.Billing.City,
+			County:      &orow.Billing.County,
+			Postcode:    orow.Billing.Postcode,
+			Country:     orow.Billing.Country,
+		},
+		Shipping: &OrderAddress{
+			ContactName: orow.Shipping.ContactName,
+			Addr1:       orow.Shipping.Addr1,
+			Addr2:       &orow.Shipping.Addr2,
+			City:        orow.Shipping.City,
+			County:      &orow.Shipping.County,
+			Postcode:    orow.Shipping.Postcode,
+			Country:     orow.Shipping.Country,
+		},
+
+		Currency:    orow.Currency,
+		TotalExVAT:  orow.TotalExVAT,
+		VATTotal:    orow.VATTotal,
+		TotalIncVAT: orow.TotalIncVAT,
+		Items:       orderItems,
+		Created:     orow.Created,
+		Modified:    orow.Modified,
+	}
+	return &order, nil
+}
+
+// GetOrder returns an order by order ID or nil if an error occurred.
+func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) {
+	orow, oirows, err := s.model.GetOrderDetailsByUUID(ctx, orderID)
+	if err != nil {
+		if err == postgres.ErrOrderNotFound || err == postgres.ErrOrderItemsNotFound {
+			return nil, errors.Wrapf(err, "s.model.GetOrderDetailsByUUID(ctx, orderID=%s)", orderID)
+		}
+		return nil, errors.Wrap(err, "GetOrderDetailsByUUID failed")
+	}
+
+	//var customer *Customer
+	//crow, err := s.model.GetCustomerByID(ctx, *orow.CustomerID)
+	//if err != nil {
+	//      if err == postgres.ErrCustomerNotFound {
+	//              customer = nil
+	//      } else {
+	//              return nil, errors.Wrapf(err, "s.model.GetCustomerByID(ctx, CustomerID=%s", *orow.CustomerID)
+	//      }
+	//}
+	//if crow != nil {
+	//      customer = &Customer{
+	//              ID:        crow.UUID,
+	//              UID:       crow.UID,
+	//              Role:      crow.Role,
+	//              Email:     crow.Email,
+	//              Firstname: crow.Firstname,
+	//              Lastname:  crow.Lastname,
+	//              Created:   crow.Created,
+	//              Modified:  crow.Modified,
+	//      }
+	//}
+
+	orderItems := make([]*OrderItem, 0, 8)
+	for _, oir := range oirows {
+		oi := OrderItem{
+			ID:        oir.UUID,
+			SKU:       oir.SKU,
+			Name:      oir.Name,
+			Qty:       oir.Qty,
+			UnitPrice: oir.UnitPrice,
+			Currency:  oir.Currency,
+			Discount:  oir.Discount,
+			TaxCode:   oir.TaxCode,
+			VAT:       oir.VAT,
+			Created:   nil,
+		}
+		orderItems = append(orderItems, &oi)
+	}
+	order := Order{
+		ID:       orow.UUID,
 		Status:   orow.Status,
 		Payment:  orow.Payment,
 		Currency: "GBP",
-		Customer: customer,
+		//Customer: customer,
 		Billing: &OrderAddress{
 			ContactName: orow.Billing.ContactName,
 			Addr1:       orow.Billing.Addr1,
@@ -179,5 +271,16 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, cu
 		Items:   orderItems,
 		Created: orow.Created,
 	}
+
 	return &order, nil
+}
+
+// SetStripePaymentIntentID attaches the payment intent id reference to an
+// existing order.
+func (s *Service) SetStripePaymentIntentID(ctx context.Context, orderID, pi string) error {
+	err := s.model.SetStripePaymentIntent(ctx, orderID, pi)
+	if err != nil {
+		return err
+	}
+	return nil
 }

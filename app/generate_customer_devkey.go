@@ -12,8 +12,8 @@ import (
 // GenerateCustomerDevKeyHandler creates a new API Key for a given customer
 func (a *App) GenerateCustomerDevKeyHandler() http.HandlerFunc {
 	type customerDevKeyResponseBody struct {
-		Object         string `json:"id"`
-		CustomerDevKey *service.CustomerDevKey
+		Object string `json:"object"`
+		*service.CustomerDevKey
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -22,15 +22,15 @@ func (a *App) GenerateCustomerDevKeyHandler() http.HandlerFunc {
 		contextLogger.Info("App: GenerateCustomerDevKeyHandler started")
 
 		uuid := chi.URLParam(r, "uuid")
-		cak, err := a.Service.GenerateCustomerDevKey(ctx, uuid)
+		cdk, err := a.Service.GenerateCustomerDevKey(ctx, uuid)
 		if err != nil {
 			contextLogger.Errorf("service GenerateCustomerAPIKey(ctx, %q) error: %v", uuid, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		res := customerDevKeyResponseBody{
-			Object:         "devkey",
-			CustomerDevKey: cak,
+			Object:         "developer_key",
+			CustomerDevKey: cdk,
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(res)
