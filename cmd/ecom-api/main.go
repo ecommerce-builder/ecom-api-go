@@ -115,6 +115,8 @@ var (
 	// Stripe settings (optional)
 	stripeSecretKey     = os.Getenv("ECOM_STRIPE_SECRET_KEY")
 	stripeSigningSecret = os.Getenv("ECOM_STRIPE_SIGNING_SECRET")
+	stripeSuccessURL    = os.Getenv("ECOM_STRIPE_SUCCESS_URL")
+	stripeCancelURL     = os.Getenv("ECOM_STRIPE_CANCEL_URL")
 
 	//
 	// Application settings
@@ -326,10 +328,22 @@ func main() {
 		}
 	}
 
+	if stripeSuccessURL == "" {
+		stripeSuccessURL = "https://example.com/success"
+		log.Info("ECOM_STRIPE_SUCCESS_URL is not set, so using default value")
+	}
+	log.Infof("ECOM_STRIPE_SUCCESS_URL set to %s", stripeSuccessURL)
+
+	if stripeCancelURL == "" {
+		stripeCancelURL = "https://example.com/cancel"
+		log.Info("ECOM_STRIPE_CANCEL_URL is not set, so using default value")
+	}
+	log.Infof("ECOM_STRIPE_CANCEL_URL set to %s", stripeCancelURL)
+
 	// 5. Server Port
 	if port == "" {
 		port = "8080"
-		log.Infof("HTTP Port not specified using default port %s", port)
+		log.Infof("HTTP Port not specified. Using default port %s", port)
 	} else {
 		log.Infof("environment variable PORT specifies port %s to be used", port)
 	}
@@ -627,7 +641,7 @@ func main() {
 
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpPlaceOrder, a.PlaceOrderHandler()))
-			r.Post("/{id}/stripecheckout", a.Authorization(app.OpStripeCheckout, a.StripeCheckoutHandler()))
+			r.Post("/{id}/stripecheckout", a.Authorization(app.OpStripeCheckout, a.StripeCheckoutHandler(stripeSuccessURL, stripeCancelURL)))
 		})
 
 		r.Route("/associations", func(r chi.Router) {

@@ -11,7 +11,7 @@ import (
 )
 
 // StripeCheckout generates a stripe checkout session
-func (s *Service) StripeCheckout(ctx context.Context, orderID string) (string, error) {
+func (s *Service) StripeCheckout(ctx context.Context, orderID, stripeSuccessURL, stripeCancelURL string) (string, error) {
 	order, err := s.GetOrder(ctx, orderID)
 	if err != nil {
 		// TODO: deal with ErrOrderNotFound and ErrOrderItemsNotFound
@@ -43,8 +43,8 @@ func (s *Service) StripeCheckout(ctx context.Context, orderID string) (string, e
 			"card",
 		}),
 		LineItems:  items,
-		SuccessURL: stripe.String("https://example.com/success"),
-		CancelURL:  stripe.String("https://example.com/cancel"),
+		SuccessURL: stripe.String(stripeSuccessURL),
+		CancelURL:  stripe.String(stripeCancelURL),
 	}
 
 	cs, err := session.New(params)

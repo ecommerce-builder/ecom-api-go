@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/stripe-go/webhook"
 	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/webhook"
 )
 
 // StripeWebhookHandler returns a handler that processes Stripe webhook API calls.

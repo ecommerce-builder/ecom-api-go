@@ -9,7 +9,7 @@ import (
 )
 
 // StripeCheckoutHandler returns a handler that returns a Stripe Checkout Session ID.
-func (a *App) StripeCheckoutHandler() http.HandlerFunc {
+func (a *App) StripeCheckoutHandler(stripeSuccessURL, stripeCancelURL string) http.HandlerFunc {
 	type stripeCheckoutResponseBody struct {
 		Object            string `json:"object"`
 		CheckoutSessionID string `json:"checkout_session_id"`
@@ -22,7 +22,7 @@ func (a *App) StripeCheckoutHandler() http.HandlerFunc {
 
 		id := chi.URLParam(r, "id")
 		contextLogger.Debugf("order id %s", id)
-		sid, err := a.Service.StripeCheckout(ctx, id)
+		sid, err := a.Service.StripeCheckout(ctx, id, stripeSuccessURL, stripeCancelURL)
 		if err != nil {
 			contextLogger.Errorf("service StripeCheckout(ctx, %q) error: %v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
