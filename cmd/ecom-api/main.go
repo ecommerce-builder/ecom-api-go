@@ -554,7 +554,7 @@ func main() {
 		// Customer and address management API
 		r.Route("/customers", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateCustomer, a.CreateCustomerHandler()))
-			r.Get("/{uuid}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
 			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
 
 			r.Get("/{uuid}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
@@ -650,7 +650,7 @@ func main() {
 		r.Get("/healthz", healthCheckHandler)
 		r.Get("/config", a.ConfigHandler(si.Env.Firebase))
 		r.Route("/stripe-webhook", func(r chi.Router) {
-			r.Post("/", a.StripeWebhookHandler())
+			r.Post("/", a.StripeWebhookHandler(stripeSigningSecret))
 		})
 	})
 

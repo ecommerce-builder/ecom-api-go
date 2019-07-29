@@ -16,10 +16,10 @@ func (a *App) GetCustomerHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetCustomerHandler called")
 
-		uuid := chi.URLParam(r, "uuid")
-		customer, err := a.Service.GetCustomer(ctx, uuid)
+		id := chi.URLParam(r, "id")
+		customer, err := a.Service.GetCustomer(ctx, id)
 		if err != nil {
-			contextLogger.Errorf("service GetCustomer(%s) error: %+v", uuid, err)
+			contextLogger.Errorf("service GetCustomer(id=%s) error: %+v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

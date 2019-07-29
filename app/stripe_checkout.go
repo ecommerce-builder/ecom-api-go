@@ -21,6 +21,7 @@ func (a *App) StripeCheckoutHandler() http.HandlerFunc {
 		contextLogger.Info("App: StripeCheckoutHandler started")
 
 		id := chi.URLParam(r, "id")
+		contextLogger.Debugf("order id %s", id)
 		sid, err := a.Service.StripeCheckout(ctx, id)
 		if err != nil {
 			contextLogger.Errorf("service StripeCheckout(ctx, %q) error: %v", id, err)

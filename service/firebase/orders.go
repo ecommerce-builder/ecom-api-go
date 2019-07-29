@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -76,24 +75,30 @@ type Order struct {
 
 // PlaceOrder places a new order in the system.
 func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, customerID *string, cartID string, billing *NewAddress, shipping *NewAddress) (*Order, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("PlaceOrder(ctx, contactName=%v, email=%v, customerID=%v, cartID=%v, ...)", contactName, email, customerID, cartID)
+
 	// Guest orders have a customerUUID of nil whereas Customer orders
 	// are set to the UUID of that customer.
 	var customerUUID *string
 	if customerID != nil {
 		customer, err := s.GetCustomer(ctx, *customerID)
 		if err != nil {
+			if err == ErrCustomerNotFound {
+				return nil, err
+			}
 			return nil, errors.Wrapf(err, "s.GetCustomer(ctx, %q) failed", *customerID)
 		}
 		customerUUID = customerID
-		fmt.Printf("%#v\n", customer)
+		contextLogger.Debugf("%#v\n", customer)
 	} else {
 		customerUUID = nil
 	}
 
 	if customerUUID == nil {
-		fmt.Println("Its nil")
+		contextLogger.Debugf("customerUUID is nil")
 	} else {
-		fmt.Printf("%#v\n", *customerUUID)
+		contextLogger.Debugf("customerUUID is %s", *customerUUID)
 	}
 
 	// Prevent orders with empty carts.
@@ -126,7 +131,7 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, cu
 	}
 	log.WithContext(ctx).Debugf("customerUUID=%v, cartID=%v", customerUUID, cartID)
 
-	orow, oirows, crow, err := s.model.AddOrder(ctx, contactName, email, customerUUID, cartID, &pgBilling, &pgShipping)
+	orow, oirows, crow, err := s.model.AddOrder(ctx, contactName, email, customerUUID, nil, cartID, &pgBilling, &pgShipping)
 	if err != nil {
 		return nil, errors.Wrap(err, "s.model.AddOrder(ctx, ...) failed")
 	}
@@ -268,4 +273,14 @@ func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) 
 	}
 
 	return &order, nil
+}
+
+// SetStripePaymentIntentID attaches the payment intent id reference to an
+// existing order.
+func (s *Service) SetStripePaymentIntentID(ctx context.Context, orderID, pi string) error {
+	err := s.model.SetStripePaymentIntent(ctx, orderID, pi)
+	if err != nil {
+		return err
+	}
+	return nil
 }

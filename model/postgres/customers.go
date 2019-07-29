@@ -170,6 +170,9 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 	c := CustomerRow{}
 	row := m.db.QueryRowContext(ctx, query, customerUUID)
 	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCustomerNotFound
+		}
 		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
 	}
 	return &c, nil

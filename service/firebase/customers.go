@@ -11,6 +11,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ErrCustomerNotFound is returned when a customer does not exist in the database.
+var ErrCustomerNotFound = errors.New("service: customer not found")
+
 // Customer details
 type Customer struct {
 	ID        string    `json:"id"`
@@ -68,7 +71,8 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 
 // CreateCustomer creates a new customer
 func (s *Service) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error) {
-	log.Debugf("s.CreateCustomer(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("s.CreateCustomer(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return nil, err
@@ -153,11 +157,17 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 }
 
 // GetCustomer retrieves a customer by customer UUID
-func (s *Service) GetCustomer(ctx context.Context, customerUUID string) (*Customer, error) {
-	c, err := s.model.GetCustomerByUUID(ctx, customerUUID)
+func (s *Service) GetCustomer(ctx context.Context, customerID string) (*Customer, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("service: GetCustomer(ctx, customerID=%s)", customerID)
+	c, err := s.model.GetCustomerByUUID(ctx, customerID)
 	if err != nil {
+		if err == postgres.ErrCustomerNotFound {
+			return nil, ErrCustomerNotFound
+		}
 		return nil, err
 	}
+	contextLogger.Debugf("service: s.model.GetCustomerByUUID(ctx, customerUUID=%s) returned %v", customerID, c)
 
 	ac := Customer{
 		ID:        c.UUID,

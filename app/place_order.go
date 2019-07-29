@@ -93,6 +93,18 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 					"The cart id you passed contains no items",
 				})
 				return
+			} else if err == service.ErrCustomerNotFound {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					"order/customer-not-found",
+					"The customer with the given customer_id could not be found",
+				})
+				return
 			}
 			contextLogger.Panicf("App: PlaceOrder(ctx, %q, %q, ...) failed with error: %v", *req.ContactName, *req.Email, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

@@ -79,6 +79,7 @@ type OrderRow struct {
 	CustomerID    *int
 	CustomerName  *string
 	CustomerEmail *string
+	StripePI      *string
 	ShipTb        bool
 	Billing       *orderAddress
 	Shipping      *orderAddress
@@ -110,7 +111,7 @@ type OrderItemRow struct {
 // shipping is nil ship_tb (ship to billing address) is set to true.
 // Returns both the OrderRow and list of OrderItemRows as well as the
 // order total including VAT to be paid, or nil, nil, 0 if an error occurs.
-func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, customerUUID *string, cartUUID string, billing, shipping *NewAddress) (*OrderRow, []*OrderItemRow, *CustomerRow, error) {
+func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, customerUUID *string, stripePI *string, cartUUID string, billing, shipping *NewAddress) (*OrderRow, []*OrderItemRow, *CustomerRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "db.BeginTx")
@@ -156,17 +157,16 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 		}
 		customerID = &c.id
 	}
-	fmt.Printf("%#v\n", customerID)
 
 	query = `
 		INSERT INTO orders (
-			status, payment, customer_id, customer_name, customer_email, ship_tb,
+			status, payment, customer_id, customer_name, customer_email, stripe_pi, ship_tb,
 			billing, shipping, currency, total_ex_vat, vat_total, total_inc_vat,
 			created, modified
 		) VALUES (
-			'incomplete', 'unpaid', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()
+			'incomplete', 'unpaid', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()
 		) RETURNING
-			id, uuid, status, payment, customer_id, customer_name, customer_email,
+			id, uuid, status, payment, customer_id, customer_name, customer_email, stripe_pi,
 			ship_tb, billing, shipping, currency, total_ex_vat, vat_total,
 			total_inc_vat, created, modified
 	`
@@ -182,8 +182,8 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	totalExVAT, totalVAT := totalSpend(cartItems)
 	totalIncVAT := totalExVAT + totalVAT
 
-	row := tx.QueryRowContext(ctx, query, customerID, customerName, customerEmail, shipTb, billing, shipping, currency, totalExVAT, totalVAT, totalIncVAT)
-	if err := row.Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.CustomerID, &o.CustomerName, &o.CustomerEmail,
+	row := tx.QueryRowContext(ctx, query, customerID, customerName, customerEmail, stripePI, shipTb, billing, shipping, currency, totalExVAT, totalVAT, totalIncVAT)
+	if err := row.Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.CustomerID, &o.CustomerName, &o.CustomerEmail, &o.StripePI,
 		&o.ShipTb, &o.Billing, &o.Shipping, &o.Currency, &o.TotalExVAT, &o.VATTotal,
 		&o.TotalIncVAT, &o.Created, &o.Modified); err != nil {
 		tx.Rollback()
@@ -235,14 +235,14 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 
 	query := `
 		SELECT
-		  id,  uuid, status, payment, customer_id, customer_name, customer_email,
+		  id,  uuid, status, payment, customer_id, customer_name, customer_email, stripe_pi,
 		  ship_tb, billing, shipping, currency, total_ex_vat, vat_total,
 		  total_inc_vat, created, modified
 		FROM orders
 		WHERE uuid = $1
 	`
 	o := OrderRow{}
-	if err := tx.QueryRowContext(ctx, query, orderUUID).Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.CustomerID, &o.CustomerName, &o.CustomerEmail,
+	if err := tx.QueryRowContext(ctx, query, orderUUID).Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.CustomerID, &o.CustomerName, &o.CustomerEmail, &o.StripePI,
 		&o.ShipTb, &o.Billing, &o.Shipping, &o.Currency, &o.TotalExVAT, &o.VATTotal,
 		&o.TotalIncVAT, &o.Created, &o.Modified); err != nil {
 		if err == sql.ErrNoRows {
@@ -285,4 +285,59 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 		return nil, nil, errors.Wrap(err, "tx.Commit() failed")
 	}
 	return &o, orderItems, nil
+}
+
+// SetStripePaymentIntent sets payment intent id reference on an
+// existing order and updates the modified timestamp.
+func (m *PgModel) SetStripePaymentIntent(ctx context.Context, orderID, pi string) error {
+	query := `
+		UPDATE orders
+		SET stripe_pi = $1, modified = NOW()
+		WHERE uuid = $2
+	`
+	_, err := m.db.ExecContext(ctx, query, pi, orderID)
+	if err != nil {
+		return errors.Wrapf(err, "m.db.ExecContext(ctx, query=%q, pi=%q, orderID=%q) failed", query, pi, orderID)
+	}
+	return nil
+}
+
+// RecordPayment marks the order with the given order ID and Stripe Intent
+// referenceas complete and paid.
+func (m *PgModel) RecordPayment(ctx context.Context, orderID, pi string, body []byte) error {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "db.BeginTx")
+	}
+
+	query := `
+		UPDATE orders
+		SET status = 'completed', payment = 'paid', modified = NOW()
+		WHERE uuid = $1 AND stripe_pi = $2
+		RETURNING id
+	`
+	var id int
+	err = tx.QueryRowContext(ctx, query, orderID, pi).Scan(&id)
+	if err != nil {
+		return errors.Wrapf(err, "tx.ExecContext(ctx, query=%q, pi=%q, orderID=%q) failed", query, pi, orderID)
+	}
+
+	query = `
+		INSERT INTO payments (
+		  order_id, typ, result, created
+		) VALUES (
+		  $1, 'stripe', $2, NOW()
+		)
+	`
+	_, err = tx.ExecContext(ctx, query, id, body)
+	if err != nil {
+		return errors.Wrapf(err, "tx.ExecContext(ctx, query=%q, id=%d, body=%q) failed", query, id, body)
+	}
+
+	if err = tx.Commit(); err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "tx.Commit() failed")
+	}
+
+	return nil
 }

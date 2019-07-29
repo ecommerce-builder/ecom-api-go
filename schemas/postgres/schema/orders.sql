@@ -4,18 +4,15 @@ CREATE TYPE order_status
 CREATE TYPE order_payment_status
   AS ENUM ('unpaid', 'paid');
 
-CREATE TYPE order_type
-  AS ENUM ('guest', 'customer');
-
 CREATE TABLE IF NOT EXISTS orders (
   id              SERIAL PRIMARY KEY,
   uuid            UUID DEFAULT uuid_generate_v4() UNIQUE,
-  otype           order_type NOT NULL,
   status          order_status DEFAULT 'incomplete',
   payment         order_payment_status DEFAULT 'unpaid',
   customer_id     INTEGER NULL,
   customer_name   VARCHAR(512) NULL DEFAULT NULL,
   customer_email  VARCHAR(512) NULL DEFAULT NULL,
+  stripe_pi       VARCHAR(64) NULL DEFAULT NULL,
   ship_tb         BOOL DEFAULT false,
   billing         JSONB NOT NULL,
   shipping        JSONB,

@@ -14,8 +14,12 @@
   * [Service](#arch-service)
   * [App](#arch-app)
 * [API](#api)
-  * [OpCreateCart](#OpCreateCart)
-  * [OpAddItemToCart](#OpAddItemToCart)
+  * [CreateCart](#CreateCart)
+  * [AddItemToCart](#AddItemToCart)
+  * [GenerateCustomerDevKey](#GenerateCustomerDevKey)
+  * [SignInWithDevKey](#SignInWithDevKey)
+  * [PlaceOrder](#PlaceOrder)
+  * [StripeCheckout](#StripeCheckout)
 
 ## <a name="configuration"></a>Configuration
 
@@ -58,7 +62,8 @@ The stripe settings are optional and only required if you are processing payment
 | -------                       | -------- | ------- | ----------- |
 | **`ECOM_STRIPE_SECRET_KEY`**  | Depends  |         | Found in the [API Keys](https://dashboard.stripe.com/test/apikeys) section of the Stripe Dashboard. |
 | **`ECOM_STRIPE_SIGNING_KEY`** | Depends  |         | Found in the [Webhooks](https://dashboard.stripe.com/test/webhooks) section of the Stripe Dashboard. |
-
+| **`ECOM_STRIPE_SUCCESS_URL`** | Depends  |         | URL to redirect to when checkout payment is successful. |
+| **`ECOM_STRIPE_CANCEL_URL`**  | Depends  |         | URL to redirect to when checkout payment is cancelled. |
 
 #### <a name="env-postgres"></a>Postgres
 
@@ -85,7 +90,7 @@ GAE sets `PORT` for each container it starts. Hard coding the port to 8080 cause
 
 ### <a name="file-structure"></a>File Structure
 
-Each VM running the ecom-api must have access to its own private disk mounted at /etc/secret-volume. This directory contains three directories pg, service_account_credentials and tls housing the PostgreSQL key files for SSL connections, Firebase Service Account files and SSL certificates respectively.
+Each VM running the ecom-api must have access to its own private disk mounted at `/etc/secret-volume`. This directory contains three directories `pg`, `service_account_credentials` and tls housing the PostgreSQL key files for SSL connections, Firebase Service Account files and SSL certificates respectively.
 
 ```
 secret-volume/
@@ -220,15 +225,17 @@ Even if the VM is destroyed and replaced with another, the new VM will be attach
 
 Postgres
 
+```
 docker run --name postgres-9.6.10 -d -p 5432:5432 \
 -e POSTGRES_PASSWORD=postgres postgres:9.6.10
-
+```
 
 Run psql to connect to the database:
 
+```
 CREATE DATABASE ecom_dev WITH ENCODING 'UTF8';
 \connect ecom_dev
-
+```
 
 To enable SQL logging first connect to the running container.
 
@@ -333,14 +340,46 @@ Cons:
 API
 ---
 
-### OpCreateCart
-Creates a new shopping cart returning a unique cart ID to be used for all
-subseqent requests.
-``` http
-POST /carts
+To run the curl examples in this section `$JWT` must be set to a valid Javascript Web Token from Firebase Auth.
+`$ENDPOINT` must be set to a valid API endpoint such as
+```
+https://open247-gae.appspot.com
 ```
 
-### Example Response
+## Authentication
+
+Most requests require a JSON Web Token (JWT) aquired by signing into the Firebase Auth that corresponds to the API endpoint.
+
+API resources are protected by levels of access:
+
+* None (No JWT required)
+* `RoleShopper` (JWT contains no custom `role` claim)
+* `RoleCustomer` (JWT contains a custom claim `"role": "customer"`)
+* `RoleAdmin` (JWT contains a custom claim `"role": "admin"`)
+* `RoleSuperUser` (JWT contains a custom claim `"role": "root"`)
+
+
+Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
+
+### CreateCart
+
+Creates a new shopping cart returning a unique cart ID to be used for all
+subseqent requests. JWT must contain `RoleShopper`, `RoleCustomer` or `RoleSuperUser` privileges.
+
+#### Request
+Use an empty request body.
+
+```http
+POST https://open247-gae.appspot.com/carts
+```
+
+#### Curl Example
+```bash
+curl -X POST \
+-H "Authorization: Bearer $JWT" $ENDPOINT/carts
+```
+
+#### Example Response
 
 #### 201 Created
 ``` json
@@ -349,6 +388,49 @@ POST /carts
     "id": "f83796a0-b1f2-4e5a-a207-19ea0956475f"
 }
 ```
+
+___
+
+
+### AddItemToCart
+Add a an item to the cart with the given ID. JWT must contain `RoleShopper`, `RoleCustomer` or `RoleSuperUser` privileges.
+
+#### Request
+```http
+POST /carts/:id/items
+```
+
+```bash
+curl -v -X POST \
+-H "Authorization: Bearer $JWT" \
+-H 'Accept: application/json' \
+-H 'Content-Type: application/json' \
+-d '{"sku":"DRILL-SKU","qty":2}' \
+$ENDPOINT/carts/f83796a0-b1f2-4e5a-a207-19ea0956475f/item
+```
+
+### Request body
+``` json
+{
+  "sku": "DRILL-SKU",
+  "qty": 2
+}
+```
+
+#### Example Response
+
+#### 201 Created
+``` json
+{
+    "object": "item",
+    "sku": "DRILL-SKU",
+    "qty": 2,
+    "unit_price": 192900,
+    "created": "2019-07-01T13:49:25.526664Z",
+    "modified": "2019-07-01T13:49:25.526664Z"
+}
+```
+
 
 #### 409 Conflict
 ``` json
@@ -362,44 +444,19 @@ POST /carts
 ___
 
 
-### OpAddItemToCart
-Add a an item to a cart of ID.
-``` http
-POST /carts/:id/items
-```
-Response body
-``` json
-{
-  "sku": "drill",
-  "qty": 2
-}
-```
-
-Example Response
-
-#### 201 Created
-``` json
-{
-    "object": "item",
-    "sku": "TV-SKU",
-    "qty": 2,
-    "unit_price": 14457,
-    "created": "2019-07-01T13:49:25.526664Z",
-    "modified": "2019-07-01T13:49:25.526664Z"
-}
-```
-
-___
-
-
 #### UpdateCartItem
 Update an individual item in a given cart.
 
 ##### Request
-``` http
+```http
 PATCH /carts/:id/items/:sku
 ```
-Request body
+
+##### Request body
+```bash
+{{ENDPOINT}}/carts/:uuid/items/:sku
+```
+
 ``` json
 {
   "qty": 3
@@ -528,4 +585,125 @@ ____
 #### DeleteAddress
 ``` http
 DELETE /addresses/:id
+```
+
+___
+
+#### GenerateCustomerDevKey
+
+Generates a new customer developer key. Requires `RoleAdmin` or `RoleSuperUser` privilege.
+
+```http
+POST /customers/:id/devkeys
+```
+
+```bash
+curl -v -X POST \
+-H "Authorization: Bearer $JWT" \
+-H 'Accept: application/json' \
+$ENDPOINT/customers/faaa916e-bf0d-4e56-8023-23a65f1030ac/devkeys
+```
+
+##### Response 201 Created
+```http
+{
+  "object": "developer_key",
+  "id": "4305b5ad-7c20-4072-9513-119ecfc54870",
+  "key": "8JjVkbyNU3hMmQdApnfmtwR52xy4AR3BmhbnsKCPgris",
+  "created": "2019-07-26T16:17:12.990307Z",
+  "modified": "2019-07-26T16:17:12.990307Z"
+}
+```
+
+___
+
+
+#### SignInWithDevKey
+
+```http
+POST /signin-with-devkey
+```
+
+Signin with a secret developer key. After you receive the custom token in the response, pass it to Firebase Auth [signInWithCustomToken](https://firebase.google.com/docs/reference/node/firebase.auth.Auth#sign-inwith-custom-token) to sign in the user:
+
+```javascript
+firebase.auth().signInWithCustomToken(token).catch(function(error) {
+  // Handle Errors here.
+  var errorCode = error.code;
+  var errorMessage = error.message;
+  // ...
+});
+```
+
+To sign out a user, call `signOut`:
+
+```javascript
+firebase.auth().signOut().then(function() {
+  // Sign-out successful.
+}).catch(function(error) {
+  // An error happened.
+});
+```
+
+
+
+```bash
+curl -v -X POST \
+-H 'Accept: application/json' \
+-H 'Content-Type: application/json' \
+-d '{"key": "8JjVkbyNU3hMmQdApnfmtwR52xy4AR3BmhbnsKCPgris"}' $ENDPOINT/signin-with-devkey
+```
+
+#### Response 200 OK
+```http
+{
+  "custom_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXJlYmFzZS1hZG1pbnNkay1xbGwzaEB0ZXN0LWRhdGEtb2FrLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6Ly9pZGVudGl0eXRvb2xraXQuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJleHAiOjE1NjQxNjE3MDUsImlhdCI6MTU2NDE1ODEwNSwic3ViIjoiZmlyZWJhc2UtYWRtaW5zZGstcWxsM2hAdGVzdC1kYXRhLW9hay5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsInVpZCI6IkFIeXJWTUZ5cEdOOVJ1VDF3R0VlcmtvcEdybjEifQ.lp0xbU2UB0YHABnC8slFYOa7UmifqnsjNK7zASVpKfsU9l6J1aux26BWw06tnwJ-a6PuTrUw6RudWwqkbxezV3kmu7AfTWh0F9Vr3styyJc-k6NKkp8H3NzG11Jz00s-7q1WZOucR8yHf3puxyvxkKsp7Clq_b61uVpeotNEdmtZ6lZ1jU3wYTN5U3DucyLAGvMYiDZI9OO1KhQcN8xfCGREarTfpthVbWBig428ISc1rOgP0nUawzqd5c0t3rhYrZS6PKoi7DvOuSdw3f3YCgfk1mBNwweNT_6RjkNN5dsz1mt7Ss_P6dMUo1NOaHRADpkFK6u42g3ZTc6P7jqmBg",
+  "customer": {
+    "id": "faaa916e-bf0d-4e56-8023-23a65f1030ac",
+    "uid": "AHyrVMFypGN9RuT1wGEerkopGrn1",
+    "role": "root",
+    "email": "andy+root@andyfusniak.com",
+    "firstname": "Andy",
+    "lastname": "Fusniak",
+    "created": "2019-07-26T15:51:36.411177Z",
+    "modified": "2019-07-26T15:51:36.411177Z"
+  }
+}
+```
+___
+
+#### PlaceOrder
+
+``` http
+POST /orders
+```
+
+___
+
+
+#### StripeCheckout
+
+```http
+POST /orders/:id/stripecheckout
+```
+
+Initiates the Stripe checkout process recording an intent to pay against the order.
+##### Request
+
+
+```bash
+curl -v -X POST \
+-H "Authorization: Bearer $JWT" \
+-H 'Accept: application/json' \
+$ENDPOINT/orders/f76538c3-e94b-42e6-b1a5-ddbee2b1e3c9/stripecheckout
+```
+
+##### Response
+Returns `200 OK`.
+
+```http
+{
+  "object": "stripe_checkout_session",
+  "checkout_session_id": "cs_test_7sKcYwUtBPWVonB6b5aa0UrhwTBrId78Wb9l0GTEduj3rCwmi33EJAEr"
+}
 ```
