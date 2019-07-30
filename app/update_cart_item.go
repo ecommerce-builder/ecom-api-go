@@ -20,7 +20,7 @@ func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: UpdateCartItemHandler started")
 
-		uuid := chi.URLParam(r, "uuid")
+		id := chi.URLParam(r, "id")
 		sku := chi.URLParam(r, "sku")
 		o := qtyRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
@@ -28,13 +28,13 @@ func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		item, err := app.Service.UpdateCartItem(ctx, uuid, sku, o.Qty)
+		item, err := app.Service.UpdateCartItem(ctx, id, sku, o.Qty)
 		if err != nil {
 			if err == service.ErrCartItemNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service UpdateCartItem(ctx, %q, %q, %d) error: %v", uuid, sku, o.Qty, err)
+			contextLogger.Errorf("service UpdateCartItem(ctx, %q, %q, %d) error: %v", id, sku, o.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

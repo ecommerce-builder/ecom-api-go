@@ -14,30 +14,32 @@ var (
 	// cart item to a cart that already contains that item.
 	ErrCartItemAlreadyExists = errors.New("cart already exists")
 
+	// ErrCartItemNotFound is returned when a cart ID cannot be found.
 	ErrCartItemNotFound = errors.New("cart item not found")
 )
 
 // CartItem structure holds the details individual cart item
 type CartItem struct {
 	SKU       string    `json:"sku"`
+	Name      string    `json:"name"`
 	Qty       int       `json:"qty"`
 	UnitPrice int       `json:"unit_price"`
 	Created   time.Time `json:"created"`
 	Modified  time.Time `json:"modified"`
 }
 
-// CreateCart generates a new random id to be used for subseqent cart calls
+// CreateCart generates a new random id to be used for subseqent cart calls.
 func (s *Service) CreateCart(ctx context.Context) (*string, error) {
 	strptr, err := s.model.CreateCart(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "service: s.model.CreateCart(ctx) failed")
 	}
 	return strptr, nil
 }
 
-// AddItemToCart adds a single item to a given cart
+// AddItemToCart adds a single item to a given cart.
 func (s *Service) AddItemToCart(ctx context.Context, id string, sku string, qty int) (*CartItem, error) {
-	log.WithContext(ctx).Debugf("s.AddItemToCart(%q, %q, %d) started", id, sku, qty)
+	log.WithContext(ctx).Debugf("service: s.AddItemToCart(id=%q, sku=%q, qty=%d) started", id, sku, qty)
 	item, err := s.model.AddItemToCart(ctx, id, "default", sku, qty)
 	if err != nil {
 		if err == postgres.ErrCartItemAlreadyExists {
@@ -47,6 +49,7 @@ func (s *Service) AddItemToCart(ctx context.Context, id string, sku string, qty 
 	}
 	sitem := CartItem{
 		SKU:       item.SKU,
+		Name:      item.Name,
 		Qty:       item.Qty,
 		UnitPrice: item.UnitPrice,
 		Created:   item.Created,
@@ -75,6 +78,7 @@ func (s *Service) GetCartItems(ctx context.Context, id string) ([]*CartItem, err
 	for _, v := range items {
 		i := CartItem{
 			SKU:       v.SKU,
+			Name:      v.Name,
 			Qty:       v.Qty,
 			UnitPrice: v.UnitPrice,
 			Created:   v.Created,
@@ -87,7 +91,7 @@ func (s *Service) GetCartItems(ctx context.Context, id string) ([]*CartItem, err
 
 // UpdateCartItem updates a single item's qty
 func (s *Service) UpdateCartItem(ctx context.Context, id string, sku string, qty int) (*CartItem, error) {
-	item, err := s.model.UpdateItemByCartID(ctx, id, sku, qty)
+	item, err := s.model.UpdateItemByCartUUID(ctx, id, sku, qty)
 	if err != nil {
 		if err == postgres.ErrCartItemNotFound {
 			return nil, ErrCartItemNotFound
@@ -96,6 +100,7 @@ func (s *Service) UpdateCartItem(ctx context.Context, id string, sku string, qty
 	}
 	sitem := CartItem{
 		SKU:       item.SKU,
+		Name:      item.Name,
 		Qty:       item.Qty,
 		UnitPrice: item.UnitPrice,
 		Created:   item.Created,
