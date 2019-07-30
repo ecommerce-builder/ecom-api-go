@@ -87,8 +87,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if role == RoleCustomer {
-				contextLogger.Debugf("URL uuid %s", chi.URLParam(r, "uuid"))
-				if subtle.ConstantTimeCompare([]byte(cid), []byte(chi.URLParam(r, "uuid"))) == 1 {
+				contextLogger.Debugf("URL id %s", chi.URLParam(r, "id"))
+				if subtle.ConstantTimeCompare([]byte(cid), []byte(chi.URLParam(r, "id"))) == 1 {
 					next.ServeHTTP(w, r)
 					return
 				}
@@ -99,12 +99,12 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		case OpDeleteCustomerDevKey:
 			if role == RoleAdmin {
-				// uuid := chi.URLParam(r, "uuid")
+				// id := chi.URLParam(r, "id")
 			}
 			unauthorized(w)
 			return
 		case OpGetAddress, OpDeleteAddress:
-			// The customer UUID is not in the route so we ask the service layer for the  resource owner's customer UUID
+			// The customer ID is not in the route so we ask the service layer for the  resource owner's customer ID
 			if role == RoleShopper {
 				unauthorized(w)
 				return
@@ -115,15 +115,15 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 
-			uuid := chi.URLParam(r, "uuid")
-			ocid, err := a.Service.GetAddressOwner(ctx, uuid)
+			id := chi.URLParam(r, "id")
+			ocid, err := a.Service.GetAddressOwner(ctx, id)
 			if err != nil {
-				contextLogger.Errorf("a.Service.GetAddressOwner(%s) error: %v", uuid, err)
+				contextLogger.Errorf("a.Service.GetAddressOwner(%s) error: %v", id, err)
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}
 			if ocid == nil {
-				contextLogger.Errorf("a.Service.GetAddressOwner(%s) returned nil", uuid)
+				contextLogger.Errorf("a.Service.GetAddressOwner(%s) returned nil", id)
 				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 				return
 			}

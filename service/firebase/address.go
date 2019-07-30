@@ -48,16 +48,16 @@ func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactN
 	return &aa, nil
 }
 
-// GetAddress gets an address by UUID
-func (s *Service) GetAddress(ctx context.Context, uuid string) (*Address, error) {
-	addr, err := s.model.GetAddressByUUID(ctx, uuid)
+// GetAddress gets an address by ID.
+func (s *Service) GetAddress(ctx context.Context, id string) (*Address, error) {
+	addr, err := s.model.GetAddressByUUID(ctx, id)
 	if err != nil {
 		if s.model.IsNotExist(err) {
 			if ne, ok := err.(*ResourceError); ok {
 				return nil, &ResourceError{
 					Op:       "GetAddress",
 					Resource: "address",
-					UUID:     uuid,
+					ID:       id,
 					Err:      ne.Err,
 				}
 			}
@@ -123,7 +123,7 @@ func (s *Service) GetAddresses(ctx context.Context, customerUUID string) ([]*Add
 	return results, nil
 }
 
-// DeleteAddress deletes an address by uuid
+// DeleteAddress deletes an address by ID.
 func (s *Service) DeleteAddress(ctx context.Context, addrUUID string) error {
 	err := s.model.DeleteAddressByUUID(ctx, addrUUID)
 	if err != nil {

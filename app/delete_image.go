@@ -16,10 +16,10 @@ func (a *App) DeleteImageHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteImageHandler started")
 
-		uuid := chi.URLParam(r, "uuid")
-		exists, err := a.Service.ImageUUIDExists(ctx, uuid)
+		id := chi.URLParam(r, "id")
+		exists, err := a.Service.ImageUUIDExists(ctx, id)
 		if err != nil {
-			contextLogger.Errorf("ImageUUIDExists(ctx, %q) failed: %v", uuid, err)
+			contextLogger.Errorf("ImageUUIDExists(ctx, %q) failed: %v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -27,12 +27,12 @@ func (a *App) DeleteImageHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return
 		}
-		if err := a.Service.DeleteImage(ctx, uuid); err != nil {
+		if err := a.Service.DeleteImage(ctx, id); err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("delete image uuid=%q failed: %v", uuid, err)
+			contextLogger.Errorf("delete image id=%q failed: %v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

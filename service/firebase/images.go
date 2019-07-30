@@ -55,13 +55,13 @@ func (s *Service) CreateImageEntry(ctx context.Context, sku, path string) (*Imag
 	return &image, nil
 }
 
-// ImageUUIDExists returns true if the image with the given UUID
+// ImageUUIDExists returns true if the image with the given ID
 // exists in the database. Note: it does not check if it exists
 // in Google storage.
-func (s *Service) ImageUUIDExists(ctx context.Context, uuid string) (bool, error) {
-	exists, err := s.model.ImageUUIDExists(ctx, uuid)
+func (s *Service) ImageUUIDExists(ctx context.Context, id string) (bool, error) {
+	exists, err := s.model.ImageUUIDExists(ctx, id)
 	if err != nil {
-		return false, errors.Wrapf(err, "service: ImageUUIDExists(ctx, %q) failed", uuid)
+		return false, errors.Wrapf(err, "service: ImageUUIDExists(ctx, %q) failed", id)
 	}
 	return exists, nil
 }
@@ -77,14 +77,14 @@ func (s *Service) ImagePathExists(ctx context.Context, path string) (bool, error
 	return exists, nil
 }
 
-// GetImage returns an image by the given UUID.
-func (s *Service) GetImage(ctx context.Context, uuid string) (*Image, error) {
-	pi, err := s.model.GetProductImageByUUID(ctx, uuid)
+// GetImage returns an image by the given ID.
+func (s *Service) GetImage(ctx context.Context, id string) (*Image, error) {
+	pi, err := s.model.GetProductImageByUUID(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "service: GetProductImageByUUID(ctx, %q) failed", uuid)
+		return nil, errors.Wrapf(err, "service: GetProductImageByUUID(ctx, %q) failed", id)
 	}
 	image := Image{
 		ID:       pi.UUID,

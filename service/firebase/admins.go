@@ -30,20 +30,20 @@ func (s *Service) ListAdmins(ctx context.Context) ([]*Customer, error) {
 }
 
 // DeleteAdmin deletes an administrator.
-func (s *Service) DeleteAdmin(ctx context.Context, uuid string) error {
+func (s *Service) DeleteAdmin(ctx context.Context, id string) error {
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to firebase auth client")
 	}
-	admin, err := s.model.GetAdmin(ctx, uuid)
+	admin, err := s.model.GetAdmin(ctx, id)
 	if err != nil {
-		return errors.Wrapf(err, "get admin failed for uuid=%q", uuid)
+		return errors.Wrapf(err, "get admin failed for id=%q", id)
 	}
 	if admin.Role != "admin" {
-		return errors.Errorf("customer record with uuid=%q does not have role admin or could not be found", uuid)
+		return errors.Errorf("customer record with id=%q does not have role admin or could not be found", id)
 	}
-	if err = s.model.DeleteAdminByUUID(ctx, uuid); err != nil {
-		return errors.Wrapf(err, "delete customer by uuid for uuid=%q failed", uuid)
+	if err = s.model.DeleteAdminByUUID(ctx, id); err != nil {
+		return errors.Wrapf(err, "delete customer by id for id=%q failed", id)
 	}
 	if err = authClient.DeleteUser(ctx, admin.UID); err != nil {
 		return errors.Wrapf(err, "firebase auth delete user failed for uid=%q", admin.UID)

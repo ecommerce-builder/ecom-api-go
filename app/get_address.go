@@ -15,8 +15,8 @@ func (app *App) GetAddressHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetAddressHandler started")
 
-		uuid := chi.URLParam(r, "uuid")
-		addr, err := app.Service.GetAddress(ctx, uuid)
+		id := chi.URLParam(r, "id")
+		addr, err := app.Service.GetAddress(ctx, id)
 		if err != nil {
 			if app.Service.IsNotExist(err) {
 				// if ne, ok := err.(*firebase.ResourceError); ok {

@@ -15,8 +15,8 @@ func (a *App) ListAddressesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListAddressesHandler started")
 
-		uuid := chi.URLParam(r, "uuid")
-		addresses, _ := a.Service.GetAddresses(ctx, uuid)
+		id := chi.URLParam(r, "id")
+		addresses, _ := a.Service.GetAddresses(ctx, id)
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(addresses)
 	}

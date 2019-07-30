@@ -16,14 +16,14 @@ func (a *App) GetImageHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetImageHandler called")
 
-		uuid := chi.URLParam(r, "uuid")
-		product, err := a.Service.GetImage(ctx, uuid)
+		id := chi.URLParam(r, "id")
+		product, err := a.Service.GetImage(ctx, id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service: GetImage(ctx, %q) error: %+v", uuid, err)
+			contextLogger.Errorf("service: GetImage(ctx, %q) error: %+v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

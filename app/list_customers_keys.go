@@ -15,10 +15,10 @@ func (a *App) ListCustomersDevKeysHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListCustomersDevKeysHandler started")
 
-		uuid := chi.URLParam(r, "uuid")
-		apiKeys, err := a.Service.ListCustomersDevKeys(ctx, uuid)
+		id := chi.URLParam(r, "id")
+		apiKeys, err := a.Service.ListCustomersDevKeys(ctx, id)
 		if err != nil {
-			contextLogger.Errorf("service ListCustomersDevKeys(ctx, %s) error: %v", uuid, err)
+			contextLogger.Errorf("service ListCustomersDevKeys(ctx, %s) error: %v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

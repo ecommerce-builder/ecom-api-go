@@ -33,7 +33,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.54.0"
+var version = "v0.55.0"
 
 const maxDbConnectAttempts = 3
 
@@ -562,7 +562,7 @@ func main() {
 		r.Route("/admins", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateAdmin, a.CreateAdminHandler()))
 			r.Get("/", a.Authorization(app.OpListAdmins, a.ListAdminsHandler()))
-			r.Delete("/{uuid}", a.Authorization(app.OpDeleteAdmin, a.DeleteAdminHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteAdmin, a.DeleteAdminHandler()))
 		})
 
 		// Customer and address management API
@@ -571,11 +571,11 @@ func main() {
 			r.Get("/{id}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
 			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
 
-			r.Get("/{uuid}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
-			r.Post("/{uuid}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
-			r.Post("/{uuid}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
-			r.Get("/{uuid}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
-			r.Patch("/{uuid}/addresses/{auuid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
+			r.Get("/{id}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
+			r.Post("/{id}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
+			r.Post("/{id}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
+			r.Get("/{id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
+			r.Patch("/{id}/addresses/{aid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
 		})
 
 		// tiers resource operation all return 501 Not Implemented
@@ -594,8 +594,8 @@ func main() {
 		})
 
 		r.Route("/images", func(r chi.Router) {
-			r.Get("/{uuid}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
-			r.Delete("/{uuid}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
 		})
 
 		r.Route("/products/{sku}/tiers/{ref}/pricing", func(r chi.Router) {
@@ -616,12 +616,12 @@ func main() {
 		})
 
 		r.Route("/devkeys", func(r chi.Router) {
-			r.Delete("/{uuid}", a.Authorization(app.OpDeleteCustomerDevKey, a.DeleteCustomerDevKeyHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteCustomerDevKey, a.DeleteCustomerDevKeyHandler()))
 		})
 
 		r.Route("/addresses", func(r chi.Router) {
-			r.Get("/{uuid}", a.Authorization(app.OpGetAddress, a.GetAddressHandler()))
-			r.Delete("/{uuid}", a.Authorization(app.OpDeleteAddress, a.DeleteAddressHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetAddress, a.GetAddressHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteAddress, a.DeleteAddressHandler()))
 		})
 
 		r.Route("/carts", func(r chi.Router) {

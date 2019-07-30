@@ -14,12 +14,12 @@ var (
 type ResourceError struct {
 	Op       string
 	Resource string
-	UUID     string
+	ID       string
 	Err      error
 }
 
 func (e *ResourceError) Error() string {
-	return e.Op + " on " + e.Resource + " " + e.UUID + ": " + e.Err.Error()
+	return e.Op + " on " + e.Resource + " " + e.ID + ": " + e.Err.Error()
 }
 
 type permission interface {

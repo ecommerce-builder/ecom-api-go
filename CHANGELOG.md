@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.55.0 (Tue 30 Jul 2019)
++ All routes use `id` not `uuid`.
+
 ## v0.54.0 (Tue 30 Jul 2019)
 + Cart routes `uuid` becomes `id`.
 + Cart operations return the `name` of the product alongside the `sku` and `qty` etc.

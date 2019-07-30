@@ -14,9 +14,9 @@ func (a *App) DeleteCustomerDevKeyHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteCustomerDevKeyHandler started")
 
-		ctid := chi.URLParam(r, "ccuid")
+		id := chi.URLParam(r, "id")
 		sku := chi.URLParam(r, "sku")
-		count, _ := a.Service.DeleteCartItem(ctx, ctid, sku)
+		count, _ := a.Service.DeleteCartItem(ctx, id, sku)
 		if count == 0 {
 			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return

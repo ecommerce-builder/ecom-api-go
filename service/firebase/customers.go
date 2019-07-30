@@ -35,8 +35,8 @@ type PaginationQuery struct {
 
 type PaginationContext struct {
 	Total     int    `json:"total"`
-	FirstUUID string `json:"first_uuid"`
-	LastUUID  string `json:"last_uuid"`
+	FirstUUID string `json:"first_id"`
+	LastUUID  string `json:"last_id"`
 }
 
 type PaginationResultSet struct {
@@ -156,7 +156,7 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	return aprs, nil
 }
 
-// GetCustomer retrieves a customer by customer UUID
+// GetCustomer retrieves a customer by customer ID.
 func (s *Service) GetCustomer(ctx context.Context, customerID string) (*Customer, error) {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Debugf("service: GetCustomer(ctx, customerID=%s)", customerID)
@@ -172,6 +172,7 @@ func (s *Service) GetCustomer(ctx context.Context, customerID string) (*Customer
 	ac := Customer{
 		ID:        c.UUID,
 		UID:       c.UID,
+		Role:      c.Role,
 		Email:     c.Email,
 		Firstname: c.Firstname,
 		Lastname:  c.Lastname,
