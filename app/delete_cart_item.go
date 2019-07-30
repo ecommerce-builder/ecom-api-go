@@ -14,15 +14,15 @@ func (a *App) DeleteCartItemHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteCartItemHandler started")
 
-		uuid := chi.URLParam(r, "uuid")
+		id := chi.URLParam(r, "id")
 		sku := chi.URLParam(r, "sku")
-		count, err := a.Service.DeleteCartItem(ctx, uuid, sku)
+		count, err := a.Service.DeleteCartItem(ctx, id, sku)
 		if count == 0 {
 			w.WriteHeader(http.StatusNotFound) // 404 Not Found
 			return
 		}
 		if err != nil {
-			contextLogger.Errorf("DeleteCartItem(ctx, %q, %q) failed: %v", uuid, sku, err)
+			contextLogger.Errorf("DeleteCartItem(ctx, %q, %q) failed: %v", id, sku, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

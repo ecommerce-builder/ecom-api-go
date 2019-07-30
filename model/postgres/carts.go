@@ -50,8 +50,8 @@ func (m *PgModel) CreateCart(ctx context.Context) (*string, error) {
 }
 
 // AddItemToCart adds a new item with sku, qty and unit price
-func (m *PgModel) AddItemToCart(ctx context.Context, uuid, tierRef, sku string, qty int) (*CartItem, error) {
-	item := CartItem{}
+func (m *PgModel) AddItemToCart(ctx context.Context, uuid, tierRef, sku string, qty int) (*CartProductItem, error) {
+	item := CartProductItem{}
 
 	// check if the item is already in the cart
 	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE uuid=$1 AND sku=$2) AS exists;`
@@ -72,10 +72,12 @@ func (m *PgModel) AddItemToCart(ctx context.Context, uuid, tierRef, sku string, 
 	query = `
 		INSERT INTO carts (uuid, sku, qty, unit_price)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, uuid, sku, qty, unit_price, created, modified
+		RETURNING
+		  id, uuid, sku, (SELECT name FROM products WHERE sku = $5),
+		  qty, unit_price, created, modified
 	`
-	row := m.db.QueryRowContext(ctx, query, uuid, sku, qty, unitPrice)
-	if err := row.Scan(&item.id, &item.UUID, &item.SKU, &item.Qty,
+	row := m.db.QueryRowContext(ctx, query, uuid, sku, qty, unitPrice, sku)
+	if err := row.Scan(&item.id, &item.UUID, &item.SKU, &item.Name, &item.Qty,
 		&item.UnitPrice, &item.Created, &item.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query scan failed query=%q", query)
 	}
@@ -97,12 +99,14 @@ func (m *PgModel) HasCartItems(ctx context.Context, uuid string) (bool, error) {
 }
 
 // GetCartItems gets all items in the cart
-func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartItem, error) {
+func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartProductItem, error) {
 	query := `
 		SELECT
-		  id, uuid, sku, qty, unit_price, created, modified
-		FROM carts
-		WHERE uuid = $1
+		  C.id, C.uuid, C.sku, name, qty, unit_price, C.created, C.modified
+		FROM carts AS C INNER JOIN products AS P
+		  ON C.sku = P.sku
+		WHERE C.uuid = $1
+		ORDER BY created ASC
 	`
 	rows, err := m.db.QueryContext(ctx, query, cartUUID)
 	if err != nil {
@@ -110,10 +114,10 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartIte
 	}
 	defer rows.Close()
 
-	cartItems := make([]*CartItem, 0, 20)
+	cartItems := make([]*CartProductItem, 0, 20)
 	for rows.Next() {
-		c := CartItem{}
-		if err = rows.Scan(&c.id, &c.UUID, &c.SKU, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified); err != nil {
+		c := CartProductItem{}
+		if err = rows.Scan(&c.id, &c.UUID, &c.SKU, &c.Name, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified); err != nil {
 			return nil, errors.Wrapf(err, "scan cart item %v", c)
 		}
 		cartItems = append(cartItems, &c)
@@ -124,23 +128,24 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartIte
 	return cartItems, nil
 }
 
-// UpdateItemByCartID updates the qty of a cart item of the given sku.
-func (m *PgModel) UpdateItemByCartID(ctx context.Context, id, sku string, qty int) (*CartItem, error) {
+// UpdateItemByCartUUID updates the qty of a cart item of the given sku.
+func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, uuid, sku string, qty int) (*CartProductItem, error) {
 	query := `
 		UPDATE carts
 		SET qty = $1, modified = NOW()
 		WHERE uuid = $2 AND sku = $3
-		RETURNING id, uuid, sku, qty, unit_price, created, modified
+		RETURNING
+		  id, uuid, sku, (SELECT name FROM products WHERE sku = $4), qty, unit_price, created, modified
 	`
-	item := CartItem{}
-	row := m.db.QueryRowContext(ctx, query, qty, id, sku)
-	if err := row.Scan(&item.id, &item.UUID, &item.SKU, &item.Qty, &item.UnitPrice, &item.Created, &item.Modified); err != nil {
+	i := CartProductItem{}
+	row := m.db.QueryRowContext(ctx, query, qty, uuid, sku, sku)
+	if err := row.Scan(&i.id, &i.UUID, &i.SKU, &i.Name, &i.Qty, &i.UnitPrice, &i.Created, &i.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrCartItemNotFound
 		}
 		return nil, errors.Wrapf(err, "query row scan query=%q", query)
 	}
-	return &item, nil
+	return &i, nil
 }
 
 // DeleteCartItem deletes a single cart item.

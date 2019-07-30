@@ -14,9 +14,9 @@ func (a *App) EmptyCartItemsHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: EmptyCartItemsHandler started")
 
-		uuid := chi.URLParam(r, "uuid")
-		if err := a.Service.EmptyCartItems(ctx, uuid); err != nil {
-			contextLogger.Errorf("service EmptyCartItems(ctx, %s) error: %v", uuid, err)
+		id := chi.URLParam(r, "id")
+		if err := a.Service.EmptyCartItems(ctx, id); err != nil {
+			contextLogger.Errorf("service EmptyCartItems(ctx, %s) error: %v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

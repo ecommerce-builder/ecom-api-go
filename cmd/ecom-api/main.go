@@ -33,7 +33,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.53.0"
+var version = "v0.54.0"
 
 const maxDbConnectAttempts = 3
 
@@ -626,11 +626,11 @@ func main() {
 
 		r.Route("/carts", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateCart, a.CreateCartHandler()))
-			r.Post("/{uuid}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
-			r.Get("/{uuid}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
-			r.Patch("/{uuid}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
-			r.Delete("/{uuid}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
-			r.Delete("/{uuid}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
+			r.Post("/{id}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
+			r.Get("/{id}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
+			r.Patch("/{id}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
+			r.Delete("/{id}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
+			r.Delete("/{id}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
 		})
 
 		r.Route("/categories", func(r chi.Router) {

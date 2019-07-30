@@ -137,12 +137,12 @@ INSERT INTO order_items (order_id, sku, name, qty, unit_price, currency, discoun
   VALUES(100005, 'DESK-SKU', 'Oak Desk', 4, 7849, 'GBP', null, 'T20', 6279);
 
 
-INSERT INTO payments (order_id, typ, status) VALUES(100001, 'stripe', 'success');
-INSERT INTO payments (order_id, typ, status) VALUES(100002, 'paypal', 'success');
-INSERT INTO payments (order_id, typ, status) VALUES(100003, 'stripe', 'failed');
-INSERT INTO payments (order_id, typ, status) VALUES(100003, 'stripe', 'success');
-INSERT INTO payments (order_id, typ, status) VALUES(100004, 'paypal', 'success');
-INSERT INTO payments (order_id, typ, status) VALUES(100005, 'stripe', 'success');
+INSERT INTO payments (order_id, typ) VALUES(100001, 'stripe');
+INSERT INTO payments (order_id, typ) VALUES(100002, 'paypal');
+INSERT INTO payments (order_id, typ) VALUES(100003, 'stripe');
+INSERT INTO payments (order_id, typ) VALUES(100003, 'stripe');
+INSERT INTO payments (order_id, typ) VALUES(100004, 'paypal');
+INSERT INTO payments (order_id, typ) VALUES(100005, 'stripe');
 
 -- products
 INSERT INTO products (sku, ean, path, name, content) VALUES('WATER-SKU', 'WATER-EAN', 'water-bottle', 'Water Bottle', '{}');
@@ -167,11 +167,11 @@ INSERT INTO pricing_tiers (tier_ref, title, description)
 
 -- product pricing
 -- default
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'WATER-SKU', 24500);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DRILL-SKU', 192900);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'TV-SKU', 1445700);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'PHONE-SKU', 185300);
-INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DESK-SKU', 2548200);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'WATER-SKU', 20417);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DRILL-SKU', 395833);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'TV-SKU', 2066250);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'PHONE-SKU', 241583);
+INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('default', 'DESK-SKU', 2987083);
 
 -- goldfish
 INSERT INTO product_pricing (tier_ref, sku, unit_price) VALUES('goldfish', 'WATER-SKU', 14500);
