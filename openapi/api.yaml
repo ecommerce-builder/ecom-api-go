@@ -50,7 +50,7 @@ paths:
         - Misc
       responses:
         '200':
-          description:
+          description: System Config object
           content:
             application/json:
               schema:
