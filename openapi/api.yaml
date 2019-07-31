@@ -4,6 +4,8 @@ servers:
     url: https://open247-gae.appspot.com
   - description: Ecom Test API Service
     url: http://localhost:8080
+  - description: Ecom Test API Service Ngrok
+    url: https://ecdfc008.ngrok.io
 info:
   description: Ecom API
   version: "v0.55.0"
@@ -12,6 +14,47 @@ info:
     name: Andy Fusniak
     email: andy@andyfusniak.com
 paths:
+  /:
+    get:
+      summary: Health Check
+      operationId: OpHealthCheck1
+      tags:
+        - Misc
+      responses:
+        '200':
+          description: Heartbeat
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'OK'
+  /healthz:
+    get:
+      summary: Health Check
+      operationId: OpHealthCheck2
+      tags:
+        - Misc
+      responses:
+        '200':
+          description: Heartbeat
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'OK'
+  /config:
+    get:
+      summary: Get config object
+      operationId: GetSystemConfig
+      tags:
+        - Misc
+      responses:
+        '200':
+          description:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemConfig'
   /admins:
     post:
       security:
@@ -1025,6 +1068,17 @@ components:
           type: object
         content:
           $ref: '#/components/schemas/ProductContent'
+    SystemConfig:
+      properties:
+        object:
+          type: string
+          example: 'config'
+        ECOM_FIREBASE_PROJECT_ID:
+          type: string
+          example: 'test-data-oak'
+        ECOM_FIREBASE_WEB_API_KEY:
+          type: string
+          example: 'AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc'
     SystemInfo:
       properties:
         api_version:
