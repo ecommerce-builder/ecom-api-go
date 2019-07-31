@@ -334,6 +334,24 @@ paths:
           description: No Content
         '404':
           description: Not Found
+  /signin-with-devkey:
+    post:
+      summary: Signin with a developer key
+      operationId: OpSignInWithDevKey
+      tags:
+        - Developer Keys
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInDevKeyRequest'
+      responses:
+        '201':
+          description: Custom Token object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInDevKeyCustomToken'
   /customers/{customer_id}/addresses:
     parameters:
       - name: customer_id
@@ -753,6 +771,22 @@ components:
           type: string
           format: date-time
           example: '2019-07-31T14:36:13.595972Z'
+    SignInDevKeyRequest:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          example: '2Pb3bNxw3PDBEJ8U6hf7mLVgrYBhP8exZBA6xJDSh2zQ'
+    SignInDevKeyCustomToken:
+      type: object
+      required:
+        - custom_token
+      properties:
+        custom_token:
+          type: string
+          example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXJlYmFzZS1hZG1pbnNkay1xbGwzaEB0ZXN0LWRhdGEtb2FrLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6Ly9pZGVudGl0eXRvb2xraXQuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJleHAiOjE1NjQ2MTU1NzYsImlhdCI6MTU2NDYxMTk3Niwic3ViIjoiZmlyZWJhc2UtYWRtaW5zZGstcWxsM2hAdGVzdC1kYXRhLW9hay5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsInVpZCI6IkFIeXJWTUZ5cEdOOVJ1VDF3R0VlcmtvcEdybjEifQ.nIUsoOqfSBZuiYM9oWCwLAg9EGiudjYcgN5xEdn-8fN_SXlEOd3zf0COpA2d8R-Bk3WPD2l-EjMwVg4FH3Wefq8_TTbI_N1d4Ih3e-ksvlsvw-PP8Rye9yx58hEojmSsVk7FccBtvW8upl-GSa2j_sfRT4Sfaa9u1WmUdjMu_-wosZDYnDlMs1p73KN6Fq6NizsfcDVSWDDi3kzLg1ROI8kcqPE_O2N33e8Tm2mgfd9SXQL5XlpbuF963qqvLgq--0fQ37r-7Med2m_emfG93ZhsqYzIlBgSx3EgaZ_msW_Cia37d5UApqvR2RH0udzjRpXvN4Evh3CiSnC696oIeQ","customer":{"id":"7835fa6e-38de-4959-8838-c88ab3e073b3","uid":"AHyrVMFypGN9RuT1wGEerkopGrn1","role":"root","email":"andy+root@andyfusniak.com","firstname":"Andy","lastname":"Fusniak","created":"2019-07-31T14:36:02.918471Z","modified":"2019-07-31T14:36:02.918471Z"}}'
     NewOrder:
       type: object
       required:
