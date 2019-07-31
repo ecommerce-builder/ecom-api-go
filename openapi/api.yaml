@@ -1,18 +1,491 @@
-openapi: 3.0.0
+openapi: 3.0.2
 servers:
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/mr6502/ecom-api/1.0.0
+  - description: Ecom Test API Service (GAE)
+    url: https://open247-gae.appspot.com
+  - description: Ecom Test API Service
+    url: http://localhost:8080
 info:
   description: Ecom API
-  version: "v0.50.0"
+  version: "v0.55.0"
   title: Headless Ecommerce API
   contact:
+    name: Andy Fusniak
     email: andy@andyfusniak.com
 paths:
+  /admins:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create a new administrator
+      operationId: OpCreateAdmin
+      tags:
+        - Admins
+        - RoleAdmin
+      requestBody:
+        description: New administrator details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCustomer'
+      responses:
+        '201':
+          description: A customer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+    get:
+      security:
+        - bearerAuth: []
+      summary: List all administrators
+      operationId: OpListAdmins
+      tags:
+        - Admins
+        - RoleAdmin
+      responses:
+        '200':
+          description: A list of customer objects
+          content:
+            application/json:
+              schema:
+                $ref: ''
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete an administrator
+      operationId: OpDeleteAdmin
+      tags:
+        - Admins
+        - RoleSuperUser
+      responses:
+        '204':
+          description: No content
+  /customers:
+    post:
+      summary: Sign up a new customer
+      operationId: OpCreateCustomer
+      tags:
+        - Customers
+      requestBody:
+        description: New customer details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCustomer'
+      responses:
+        '201':
+          description: Customer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+    get:
+      security:
+        - bearerAuth: []
+      summary: List all customers
+      operationId: OpListCustomers
+      tags:
+        - Customers
+        - RoleAdmin
+      responses:
+        '200':
+          description: List of Customer objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+  /customers/{customer_id}:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get a customer object
+      operationId: OpGetCustomer
+      tags:
+        - Customers
+        - RoleCustomer
+      parameters:
+        - name: customer_id
+          required: true
+          in: path
+          description: Customer ID
+          schema:
+            type: string
+            example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+      responses:
+        '201':
+          description: Customer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+  /customers/{customer_id}/devkeys:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Generate a new developer key
+      operationId: OpGenerateCustomerDevKey
+      tags:
+        - Developer Keys
+        - RoleCustomer
+      parameters:
+        - name: customer_id
+          required: true
+          in: path
+          description: Customer ID
+          schema:
+            type: string
+            example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+      responses:
+        '201':
+          description: Developer Key object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevKey'
+    get:
+      security:
+        - bearerAuth: []
+      summary: List a customer's developer keys
+      operationId: OpListCustomersDevKeys
+      tags:
+        - Developer Keys
+        - RoleCustomer
+      parameters:
+        - name: customer_id
+          required: true
+          in: path
+          description: Customer ID
+          schema:
+            type: string
+            example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+      responses:
+        '200':
+          description: List of Developer Key objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DevKey'
+  /customers/{customer_id}/addresses:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Add a new address for a given customer
+      operationId: OpCreateAddress
+      tags:
+        - Addresses
+        - RoleCustomer
+      parameters:
+        - name: customer_id
+          required: true
+          in: path
+          description: Customer ID
+          schema:
+            type: string
+            example: '7835fa6e-38de-4959-8838-c88ab3e073b3'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAddress'
+      responses:
+        '201':
+          description: Address object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get all customer addresses
+      operationId: OpGetCustomersAddresses
+      tags:
+        - Addresses
+        - RoleCustomer
+      parameters:
+        - name: customer_id
+          required: true
+          in: path
+          description: Customer ID
+          schema:
+            type: string
+            example: '7835fa6e-38de-4959-8838-c88ab3e073b3'
+      responses:
+        '200':
+          description: List of Address objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+  /addresses/{address_id}:
+    patch:
+      security:
+        - bearerAuth: []
+      summary: Update an address
+      operationId: OpUpdateAddress
+      tags:
+        - Addresses
+        - RoleCustomer
+      parameters:
+        - name: address_id
+          required: true
+          in: path
+          description: Address ID
+          schema:
+            type: string
+            example: 'e3afa4f4-c5de-4e0f-8c37-5be677cfde6a'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAddress'
+      responses:
+        '200':
+          description: Address object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get an address object
+      operationId: OpGetAddress
+      tags:
+        - Addresses
+        - RoleCustomer
+      parameters:
+        - name: address_id
+          required: true
+          in: path
+          description: Address ID
+          schema:
+            type: string
+            example: 'e3afa4f4-c5de-4e0f-8c37-5be677cfde6a'
+      responses:
+        '200':
+          description: Address object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete an address object
+      operationId: OpDeleteAddress
+      tags:
+        - Addresses
+        - RoleCustomer
+      parameters:
+        - name: address_id
+          required: true
+          in: path
+          description: Address ID
+          schema:
+            type: string
+            example: 'e3afa4f4-c5de-4e0f-8c37-5be677cfde6a'
+      responses:
+        '204':
+          description: No Content
+  /products/{sku}:
+    put:
+      security:
+        - bearerAuth: []
+      summary: Create or replace a product by product SKU
+      operationId: OpReplaceProduct
+      tags:
+        - Products
+        - RoleAdmin
+      parameters:
+        - name: sku
+          required: true
+          in: path
+          description: Product SKU
+          schema:
+            type: string
+            example: 'TV-SKU'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProduct'
+      responses:
+        '201':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get a product by its SKU
+      operationId: OpGetProduct
+      tags:
+        - Products
+        - RoleShopper
+      parameters:
+        - name: sku
+          required: true
+          in: path
+          description: Product SKU
+          schema:
+            type: string
+            example: 'TV-SKU'
+      responses:
+        '200':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    head:
+      security:
+        - bearerAuth: []
+      summary: Check if a product exists
+      operationId: OpProductExists
+      tags:
+        - Products
+        - RoleShopper
+      parameters:
+        - name: sku
+          required: true
+          in: path
+          description: Product SKU
+          schema:
+            type: string
+            example: 'TV-SKU'
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /products:
+    get:
+      security:
+        - bearerAuth: []
+      summary: List all products
+      operationId: OpListProducts
+      tags:
+        - Products
+        - RoleShopper
+      responses:
+        '200':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+  /products/{sku}/tiers/{tier_ref}/pricing:
+    put:
+      security:
+        - bearerAuth: []
+      summary: Update a product pricing by product SKU and pricing tier reference
+      operationId: OpUpdateTierPricing
+      tags:
+        - Pricing
+        - RoleAdmin
+      parameters:
+        - name: sku
+          required: true
+          in: path
+          description: Product SKU
+          schema:
+            type: string
+            example: 'TV-SKU'
+        - name: tier_ref
+          required: true
+          in: path
+          description: Pricing tier reference
+          schema:
+            type: string
+            example: 'default'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePricing'
+      responses:
+        '200':
+          description: Pricing object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pricing'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get a product pricing by product SKU and pricing tier reference
+      operationId: OpGetTierPricing
+      tags:
+        - Pricing
+        - RoleShopper
+      parameters:
+        - name: sku
+          required: true
+          in: path
+          description: Product SKU
+          schema:
+            type: string
+            example: 'TV-SKU'
+        - name: tier_ref
+          required: true
+          in: path
+          description: Pricing tier reference
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          description: Pricing object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pricing'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete a product pricing by product SKU and pricing tier reference
+      operationId: OpDeleteTierPricing
+      tags:
+        - Pricing
+        - RoleAdmin
+      parameters:
+        - name: sku
+          required: true
+          in: path
+          description: Product SKU
+          schema:
+            type: string
+            example: 'TV-SKU'
+        - name: tier_ref
+          required: true
+          in: path
+          description: Pricing tier reference
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '204':
+          description: No Content
   /orders:
     post:
-      summary: place an order
+      security:
+        - bearerAuth: []
+      summary: Place an guest or customer order
       operationId: OpPlaceOrder
+      tags:
+        - Orders
+        - RoleShopper
       requestBody:
         description: Order to place in the system
         required: true
@@ -33,7 +506,101 @@ paths:
         '409':
           description: a conflict prevented the order being placed
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
+    NewCustomer:
+      type: object
+      required:
+        - email
+        - password
+        - firstname
+        - lastname
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'john.doe@example.com'
+        password:
+          type: string
+          example: 'Xxaks9SfmcT5avBR'
+        firstname:
+          type: string
+          example: 'John'
+        lastname:
+          type: string
+          example: 'Doe'
+    Customer:
+      type: object
+      required:
+        - id
+        - uid
+        - role
+        - email
+        - firstname
+        - lastname
+        - created
+        - modified
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+        uid:
+          type: string
+        role:
+          type: string
+          example: 'eocNauyyf3WchJG6WRWXePEqbTE2'
+        email:
+          type: string
+          format: email
+          example: 'john.doe@example.com'
+        firstname:
+          type: string
+          example: 'John'
+        lastname:
+          type: string
+          example: 'Doe'
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+    DevKey:
+      type: object
+      required:
+        - object
+        - id
+        - key
+        - customer_id
+        - created
+        - modified
+      properties:
+        object:
+          type: string
+          example: 'developer_key'
+        id:
+          type: string
+          example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
+        key:
+          type: string
+        customer_id:
+          type: string
+          example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-31T14:36:13.595972Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-31T14:36:13.595972Z'
     NewOrder:
       type: object
       required:
@@ -63,6 +630,7 @@ components:
           $ref: '#/components/schemas/Address'
     NewAddress:
       required:
+        - typ
         - contact_name
         - addr1
         - city
@@ -70,6 +638,10 @@ components:
         - postcode
         - country
       properties:
+        typ:
+          type: string
+          enum: [shipping, billing]
+          example: 'billing'
         contact_name:
           type: string
           example: John Doe
@@ -89,22 +661,207 @@ components:
           type: string
           example: 'GB'
     Address:
-      allOf:
-          - $ref: '#/components/schemas/NewAddress'
-          - required:
-            - uuid
-            - created
-            - modified
-            properties:
-              uuid:
-                type: string
-                format: uuid
-                example: 'c7c9ff19-4bc9-4953-a1bd-9dee0b41b4fe'
-              created:
-                type: string
-                format: date-time
-                example: '2019-06-26T10:26:14.047Z'
-              modified:
-                type: string
-                format: date-time
-                example: '2019-06-26T10:26:14.047Z'
+      required:
+        - object
+        - id
+        - typ
+        - contact_name
+        - addr1
+        - city
+        - county
+        - postcode
+        - country
+        - created
+        - modified
+      properties:
+        object:
+          type: string
+          example: 'billing'
+        id:
+          type: string
+          format: uuid
+          example: 'c7c9ff19-4bc9-4953-a1bd-9dee0b41b4fe'
+        typ:
+          type: string
+          enum: [shipping, billing]
+          example: 'billing'
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country:
+          type: string
+          example: 'GB'
+        created:
+          type: string
+          format: date-time
+          example: '2019-06-26T10:26:14.047Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-06-26T10:26:14.047Z'
+    Pricing:
+      required:
+        - object
+        - sku
+        - tier_ref
+        - unit_price
+        - created
+        - modified
+      properties:
+        object:
+          type: string
+          example: 'pricing'
+        sku:
+          type: string
+          example: 'TV-SKU'
+        tier_ref:
+          type: string
+          example: 'default'
+        unit_price:
+          type: integer
+          example: 2066250
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30T13:57:23.289157Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-31T15:27:15.536449Z'
+    UpdatePricing:
+      required:
+        - unit_price
+      properties:
+        unit_price:
+          type: integer
+          minimum: 0
+          example: 2066250
+    Image:
+      required:
+        - object
+        - id
+        - sku
+        - path
+        - gsurl
+        - width
+        - height
+        - size
+        - created
+        - modified
+      properties:
+        object:
+          type: string
+          example: 'image'
+        id:
+          type: string
+          example: 'e2a1b7ff-a00a-4d7c-a2dd-86e8ea749ed1'
+        sku:
+          type: string
+          example: 'USB32GBSP'
+        path:
+          type: string
+          example: '4439.jpg'
+        gsurl:
+          type: string
+          example: 'gs://4439.jpg'
+        width:
+          type: integer
+          minimum: 0
+          example: 999999
+        height:
+          type: integer
+          minimum: 0
+          example: 999999
+        size:
+          type: integer
+          minimum: 0
+          example: 0
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30T14:31:47.672541Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-30T14:31:47.672541Z'
+    NewProduct:
+      required:
+        - ean
+      properties:
+        ean:
+          type: string
+          example: '5060181650666'
+    ProductContent:
+      required:
+        - meta
+        - videos
+        - manuals
+        - software
+        - description
+        - specification
+        - in_the_box
+      properties:
+        meta:
+          type: object
+          required:
+            - title
+            - description
+          properties:
+            title:
+              type: string
+            description:
+              type: string
+        videos:
+          type: string
+        manuals:
+          type: string
+        software:
+          type: string
+        description:
+          type: string
+        in_the_box:
+          type: string
+    Product:
+      required:
+        - object
+        - sku
+        - path
+        - name
+        - images
+        - pricing
+        - content
+        - created
+        - modified
+      properties:
+        object:
+          type: string
+          example: 'product'
+        sku:
+          type: string
+          example: 'TV-SKU'
+        path:
+          type: string
+          example: 'usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system'
+        name:
+          type: string
+          example: 'Green Feathers Wireless Bird Box Camera & USB Recording Kit'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+        pricing:
+          type: object
+        content:
+          $ref: '#/components/schemas/ProductContent'
