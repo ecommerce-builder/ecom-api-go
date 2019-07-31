@@ -98,6 +98,112 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Customer'
+  /categories:
+    put:
+      security:
+        - bearerAuth: []
+      summary: Replace all categories
+      operationId: OpUpdateCatalog
+      tags:
+        - Categories
+        - RoleAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryNode'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get all categories
+      operationId: OpGetCatalog
+      tags:
+        - Categories
+        - RoleAdmin
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categories'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Purge all categories
+      operationId: OpPurgeCatalog
+      tags:
+        - Categories
+        - RoleAdmin
+      responses:
+        '204':
+          description: No Content
+  /associations:
+    put:
+      security:
+        - bearerAuth: []
+      summary: Replace all product to category associations
+      operationId: OpUpdateCatalogAssocs
+      tags:
+        - Associations
+        - RoleAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Associations'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PutAssocsConflictResponse'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get all product to category associations
+      operationId: OpGetCatalogAssocs
+      tags:
+        - Associations
+        - RoleShopper
+      responses:
+        '200':
+          description: Associations object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Associations'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Purge all product to category associations
+      operationId: OpPurgeCatalogAssocs
+      tags:
+        - Associations
+        - RoleAdmin
+      responses:
+        '204':
+          description: No Content
   /customers/{customer_id}:
     get:
       security:
@@ -163,6 +269,28 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/DevKey'
+  /devkeys/{dev_key_id}:
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete a developer key
+      operationId: OpDeleteCustomerDevKey
+      tags:
+        - Developer Keys
+        - RoleAdmin
+      parameters:
+        - name: dev_key_id
+          required: true
+          in: path
+          description: Developer Key ID
+          schema:
+            type: string
+            example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
   /customers/{customer_id}/addresses:
     parameters:
       - name: customer_id
@@ -461,7 +589,7 @@ paths:
       description: Adds an item to the system
       responses:
         '201':
-          description: order placed
+          description: Order object
           content:
             application/json:
               schema:
@@ -470,6 +598,22 @@ paths:
           description: 'invalid input, object invalid'
         '409':
           description: a conflict prevented the order being placed
+  /sysinfo:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get system information
+      operationId: OpSystemInfo
+      tags:
+        - Misc
+        - RoleAdmin
+      responses:
+        '200':
+          description: System info object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemInfo'
 components:
   securitySchemes:
     bearerAuth:
@@ -676,6 +820,57 @@ components:
           type: string
           format: date-time
           example: '2019-06-26T10:26:14.047Z'
+    AssocProduct:
+      properties:
+        sku:
+          type: string
+          example: 'NCIP9WFBB'
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30T13:57:23.269373Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-30T13:57:23.269373Z'
+    Associations:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          products:
+            type: array
+            items:
+              $ref: '#/components/schemas/AssocProduct'
+    Categories:
+      properties:
+        segment:
+          type: string
+          example: 'wireless-cctv'
+        name:
+          type: string
+          example: 'Wireless CCTV'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Categories'
+    CategoryNode:
+      required:
+        - segment
+        - name
+        - categories
+      properties:
+        segment:
+          type: string
+          example: 'wireless-cctv'
+        name:
+          type: string
+          example: 'Wireless CCTV'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+
     Pricing:
       required:
         - object
@@ -830,3 +1025,93 @@ components:
           type: object
         content:
           $ref: '#/components/schemas/ProductContent'
+    SystemInfo:
+      properties:
+        api_version:
+          type: string
+          example: 'v0.55.0'
+        env:
+          type: object
+          properties:
+            pg:
+              type: object
+              properties:
+                ECOM_PG_HOST:
+                  type: string
+                  example: 'localhost'
+                ECOM_PG_PORT:
+                  type: string
+                  example: '5432'
+                ECOM_PG_DATABASE:
+                  type: string
+                  example: 'ecom_dev'
+                ECOM_PG_USER:
+                  type: string
+                  example: 'postgres'
+                ECOM_PG_SSLMODE:
+                  type: string
+                  example: 'disable'
+                schema_version:
+                  type: string
+                  example: 'v0.53.0'
+            google:
+              type: object
+              properties:
+                ECOM_GAE_PROJECT_ID:
+                  type: string
+                  example: 'open247-gae'
+            firebase:
+              type: object
+              properties:
+                ECOM_FIREBASE_PROJECT_ID:
+                  type: string
+                  example: 'test-data-oak'
+                ECOM_FIREBASE_WEB_API_KEY:
+                  type: string
+                  example: 'AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc'
+            app:
+              type: object
+              properties:
+                PORT:
+                  type: string
+                  example: '8080'
+                ECOM_APP_ROOT_EMAIL:
+                  type: string
+                  example: 'andy+root@andyfusniak.com'
+    ErrorResponse:
+      properties:
+        status:
+          type: integer
+          example: 409
+        code:
+          type: string
+          example: "assocs/assocs-already-exist"
+        message:
+          type: string
+          example: "catalog associations already exist"
+    PutAssocsConflictResponse:
+      properties:
+        status:
+          type: integer
+          example: 409
+        code:
+          type: string
+          example: "assocs/assocs-already-exist"
+        message:
+          type: string
+          example: "catalog associations already exist"
+        data:
+          type: object
+          properties:
+            missing_paths:
+              type: array
+              items:
+                type: string
+            non_leaf_paths:
+              type: array
+              items:
+                type: string
+            missing_skus:
+              type: array
+              items:
+                type: string
