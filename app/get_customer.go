@@ -19,7 +19,7 @@ func (a *App) GetCustomerHandler() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		customer, err := a.Service.GetCustomer(ctx, id)
 		if err != nil {
-			contextLogger.Errorf("service GetCustomer(id=%s) error: %+v", id, err)
+			contextLogger.Errorf("service GetCustomer(ctx, id=%q) error: %+v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

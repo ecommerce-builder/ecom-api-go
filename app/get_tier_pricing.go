@@ -29,7 +29,12 @@ func (a *App) GetTierPricingHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+
+		res := pricingResponseBody{
+			Object:         "pricing",
+			ProductPricing: pricing,
+		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(*pricing)
+		json.NewEncoder(w).Encode(res)
 	}
 }

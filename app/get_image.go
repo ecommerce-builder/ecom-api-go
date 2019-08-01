@@ -17,7 +17,7 @@ func (a *App) GetImageHandler() http.HandlerFunc {
 		contextLogger.Info("App: GetImageHandler called")
 
 		id := chi.URLParam(r, "id")
-		product, err := a.Service.GetImage(ctx, id)
+		image, err := a.Service.GetImage(ctx, id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
@@ -27,7 +27,12 @@ func (a *App) GetImageHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+
+		res := imageResponseBody{
+			Object: "image",
+			Image:  image,
+		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(*product)
+		json.NewEncoder(w).Encode(res)
 	}
 }

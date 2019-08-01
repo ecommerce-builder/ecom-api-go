@@ -23,19 +23,21 @@
 
 ## <a name="configuration"></a>Configuration
 
-The `ecom-api` executable accepts a configuration through the use of environment variables.
+The `ecom-api` executable accepts configuration through the use of environment variables.
 
 
 ### <a name="environment-variables"></a>Environment Variables
 
-Configuration is grouped into four groups; [App](#env-app), [Google](#env-google), [Stripe](#env-stripe) and [PostgreSQL](#env-postgres) prefixed with `ECOM_APP_`, `ECOM_GOOGLE_`, `ECOM_STRIPE_` and `ECOM_PG_` respectively. The Stripe configuration is optional and is only require if you intend to take payments using Stripe.
+Configuration is split into four groups; [App](#env-app), [Google](#env-google), [Stripe](#env-stripe) and [PostgreSQL](#env-postgres) prefixed with `ECOM_APP_`, `ECOM_GOOGLE_`, `ECOM_STRIPE_` and `ECOM_PG_` respectively. The Stripe configuration is optional and is only require if you intend to take payments with the Stripe payment gateway.
+
+The Google configuration includes Firebase Auth and is mandatory since the API requires Firebase Auth for Authentication and Authorisation.
 
 
 #### <a name="env-app"></a>App
 
 | Env Var                  | Required | Default | Description |
 | -------------            | -------- | ------- | ------------|
-| **`PORT`**                   | Optional | 8080    | Usually set by the container. |
+| **`PORT`**                   | Optional | 8080    | Usually set by the container. For example, Google App Engine sets this on your behalf. |
 | **`ECOM_APP_TLS_MODE`**      | Optional | disable | To enable set the value to `enable`. If enabled you must set `ECOM_APP_TLS_CERT` and `ECOM_APP_TLS_KEY`. |
 | **`ECOM_APP_TLS_CERT`**      | Depends  |         | Path to TLS certificate. e.g. `/etc/secret-volume/tls/api_spycameracctv_com/cert.pem`. Required if `ECOM_APP_TLS_MODE=enable`. |
 | **`ECOM_APP_TLS_KEY`**       | Depends  |         | Path to TSL certificate key. e.g. `/etc/secret-volume/tls/api_spycameracctv_com/key.pem` |
@@ -90,7 +92,7 @@ GAE sets `PORT` for each container it starts. Hard coding the port to 8080 cause
 
 ### <a name="file-structure"></a>File Structure
 
-Each VM running the ecom-api must have access to its own private disk mounted at `/etc/secret-volume`. This directory contains three directories `pg`, `service_account_credentials` and tls housing the PostgreSQL key files for SSL connections, Firebase Service Account files and SSL certificates respectively.
+If you opt to host the `ecom-api` using a virtual machine instance, and opt to use private SSL certificates, the `ecom-api` executable must have access to its own private disk mounted at `/etc/secret-volume`. This directory contains three directories `pg`, `service_account_credentials` and tls housing the PostgreSQL key files for SSL connections, Firebase Service Account files and SSL certificates respectively.
 
 ```
 secret-volume/
@@ -424,6 +426,7 @@ $ENDPOINT/carts/f83796a0-b1f2-4e5a-a207-19ea0956475f/item
 {
     "object": "item",
     "sku": "DRILL-SKU",
+    "name": "Electric Drill",
     "qty": 2,
     "unit_price": 192900,
     "created": "2019-07-01T13:49:25.526664Z",

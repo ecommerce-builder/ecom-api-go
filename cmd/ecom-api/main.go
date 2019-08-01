@@ -33,7 +33,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.55.0"
+var version = "v0.56.0"
 
 const maxDbConnectAttempts = 3
 
@@ -575,7 +575,6 @@ func main() {
 			r.Post("/{id}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
 			r.Post("/{id}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
 			r.Get("/{id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
-			r.Patch("/{id}/addresses/{aid}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
 		})
 
 		// tiers resource operation all return 501 Not Implemented
@@ -620,6 +619,7 @@ func main() {
 		})
 
 		r.Route("/addresses", func(r chi.Router) {
+			r.Patch("/{id}", a.Authorization(app.OpUpdateAddress, a.UpdateAddressHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetAddress, a.GetAddressHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteAddress, a.DeleteAddressHandler()))
 		})

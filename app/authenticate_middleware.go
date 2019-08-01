@@ -22,6 +22,7 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 			contextLogger.Debug("authorization header missing")
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
+			w.Header().Set("Content-Type", "application/json")
 			return
 		}
 

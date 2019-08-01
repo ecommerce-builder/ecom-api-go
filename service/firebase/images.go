@@ -127,7 +127,7 @@ func (s *Service) ListProductImages(ctx context.Context, sku string) ([]*Image, 
 // DeleteImage delete the image with the given ID.
 func (s *Service) DeleteImage(ctx context.Context, id string) error {
 	if _, err := s.model.DeleteProductImageByUUID(ctx, id); err != nil {
-		return errors.Wrapf(err, "service: DeleteProductImageByUUID(ctx, %q)", id)
+		return errors.Wrapf(err, "service: DeleteProductImageByUUID(ctx, uuid=%q)", id)
 	}
 	return nil
 }

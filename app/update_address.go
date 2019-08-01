@@ -12,7 +12,7 @@ func (a *App) UpdateAddressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// a.Service.UpdateAddress()
 
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
+		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(service.Customer{})
 	}
 }

@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.56.0 (Thu 1 Aug 2019)
++ Fix authorization on `OpDeleteCustomerDevKey`.
++ Apply `"object": "image"` to `OpGetImage` and `OpUpdateTierPricing`.
++ Improve OpenAPI `api.yaml` contract.
+
 ## v0.55.0 (Tue 30 Jul 2019)
 + All routes use `id` not `uuid`.
 

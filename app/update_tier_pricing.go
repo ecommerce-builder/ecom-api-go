@@ -4,10 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
+
+type pricingResponseBody struct {
+	Object string `json:"object"`
+	*service.ProductPricing
+}
 
 // UpdateTierPricingHandler creates a handler function that updates
 // as tier price for a product of SKU with tier ref.
@@ -42,7 +47,7 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 		}
 		pricing, err := a.Service.UpdateTierPricing(ctx, sku, ref, req.UnitPrice)
 		if err != nil {
-			if err == firebase.ErrTierPricingNotFound {
+			if err == service.ErrTierPricingNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				return
 			}
@@ -50,7 +55,12 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+
+		res := pricingResponseBody{
+			Object:         "pricing",
+			ProductPricing: pricing,
+		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(*pricing)
+		json.NewEncoder(w).Encode(res)
 	}
 }

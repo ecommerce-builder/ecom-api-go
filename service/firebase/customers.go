@@ -65,7 +65,7 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 		}
 		return err
 	}
-	log.Infof("root superuser email=%s already exists", email)
+	log.Infof("root superuser email=%s already exists in Firebase Auth system", email)
 	return nil
 }
 
@@ -159,7 +159,7 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 // GetCustomer retrieves a customer by customer ID.
 func (s *Service) GetCustomer(ctx context.Context, customerID string) (*Customer, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("service: GetCustomer(ctx, customerID=%s)", customerID)
+	contextLogger.Debugf("service: GetCustomer(ctx, customerID=%q)", customerID)
 	c, err := s.model.GetCustomerByUUID(ctx, customerID)
 	if err != nil {
 		if err == postgres.ErrCustomerNotFound {

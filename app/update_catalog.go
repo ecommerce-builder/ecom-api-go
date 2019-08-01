@@ -20,10 +20,12 @@ func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&cats); err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
-				400,
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
 				err.Error(),
 			})
 			return

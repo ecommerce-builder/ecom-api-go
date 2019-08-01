@@ -107,8 +107,8 @@ const (
 	OpPurgeCatalogAssocs  string = "OpPurgeCatalogAssocs"
 
 	// Stripe
-        OpStripeCheckout string = "OpStripeCheckout"
-        OpStripeWebhook  string = "OpStripeWebhook"
+	OpStripeCheckout string = "OpStripeCheckout"
+	OpStripeWebhook  string = "OpStripeWebhook"
 
 	// System
 	OpSystemInfo string = "OpSysInfo"

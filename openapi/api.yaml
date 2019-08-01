@@ -8,7 +8,7 @@ servers:
     url: https://ecdfc008.ngrok.io
 info:
   description: Ecom API
-  version: "v0.55.0"
+  version: "v0.56.0"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -45,6 +45,8 @@ paths:
   /config:
     get:
       summary: Get config object
+      description: |
+        GetSystemConfig requires no JSON Web Token.
       operationId: GetSystemConfig
       tags:
         - Misc
@@ -55,15 +57,147 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemConfig'
+  /carts:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create a new shopping cart
+      description: |
+        OpCreateCart requires `RoleShopper` privileges.
+      operationId: OpCreateCart
+      tags:
+        - Carts
+      responses:
+        '201':
+          description: Cart object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+  /carts/{cart_id}/items:
+    parameters:
+      - name: cart_id
+        required: true
+        in: path
+        description: Cart ID
+        schema:
+          type: string
+          format: uuid
+          example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+    post:
+      security:
+        - bearerAuth: []
+      summary: Add an item to a cart
+      description: |
+        OpAddItemToCart requires `RoleShopper` privileges.
+      operationId: OpAddItemToCart
+      tags:
+        - Carts
+      requestBody:
+        description: New CartItem
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCartItem'
+      responses:
+        '201':
+          description: CartItem object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get cart items
+      description: |
+        OpAddItemToCart requires `RoleShopper` privileges.
+      operationId: OpGetCartItems
+      tags:
+        - Carts
+      responses:
+        '200':
+          description: List of CartItem objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartItem'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Empty the entire cart
+      description: |
+        OpEmptyCartItems requires `RoleShopper` privileges.
+      operationId: OpEmptyCartItems
+      tags:
+        - Carts
+      responses:
+        '204':
+          description: No Content
+  /carts/{cart_id}/items/{sku}:
+    parameters:
+      - name: cart_id
+        required: true
+        in: path
+        description: Cart ID
+        schema:
+          type: string
+          example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+      - name: sku
+        required: true
+        in: path
+        description: Product SKU
+        schema:
+          type: string
+          example: 'TV-SKU'
+    patch:
+      security:
+        - bearerAuth: []
+      summary: Update a cart item with a new quantity
+      description: |
+        OpUpdateCartItem requires `RoleShopper` privileges.
+      operationId: OpUpdateCartItem
+      tags:
+        - Carts
+      requestBody:
+        description: New quantity for cart item
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItem'
+      responses:
+        '201':
+          description: CartItem object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete a cart item
+      description: |
+        OpDeleteCartItem requires `RoleShopper` privileges.
+      operationId: OpDeleteCartItem
+      tags:
+        - Carts
+      responses:
+        '204':
+          description: No Content
   /admins:
     post:
       security:
         - bearerAuth: []
       summary: Create a new administrator
+      description: |
+        OpCreateAdmin requires `RoleAdmin` privileges.
       operationId: OpCreateAdmin
       tags:
         - Admins
-        - RoleAdmin
       requestBody:
         description: New administrator details
         required: true
@@ -82,10 +216,11 @@ paths:
       security:
         - bearerAuth: []
       summary: List all administrators
+      description: |
+        OpListAdmins requires `RoleAdmin` privileges.
       operationId: OpListAdmins
       tags:
         - Admins
-        - RoleAdmin
       responses:
         '200':
           description: A list of customer objects
@@ -97,16 +232,19 @@ paths:
       security:
         - bearerAuth: []
       summary: Delete an administrator
+      description: |
+        OpDeleteAdmin requires `RoleSuperUser` privileges.
       operationId: OpDeleteAdmin
       tags:
         - Admins
-        - RoleSuperUser
       responses:
         '204':
           description: No content
   /customers:
     post:
       summary: Sign up a new customer
+      description: |
+        OpCreateCustomer requires no JSON Web Token.
       operationId: OpCreateCustomer
       tags:
         - Customers
@@ -128,10 +266,11 @@ paths:
       security:
         - bearerAuth: []
       summary: List all customers
+      description: |
+        OpListCustomers requires `RoleAdmin` privileges.
       operationId: OpListCustomers
       tags:
         - Customers
-        - RoleAdmin
       responses:
         '200':
           description: List of Customer objects
@@ -146,10 +285,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Replace all categories
+      description: |
+        OpUpdateCatalog requires `RoleAdmin` privileges.
       operationId: OpUpdateCatalog
       tags:
         - Categories
-        - RoleAdmin
       requestBody:
         content:
           application/json:
@@ -170,10 +310,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get all categories
+      description: |
+        OpGetCatalog requires `RoleShopper` privileges.
       operationId: OpGetCatalog
       tags:
         - Categories
-        - RoleAdmin
       responses:
         '200':
           description: List of categories
@@ -185,10 +326,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Purge all categories
+      description: |
+        OpPurgeCatalog requires `RoleAdmin` privileges.
       operationId: OpPurgeCatalog
       tags:
         - Categories
-        - RoleAdmin
       responses:
         '204':
           description: No Content
@@ -197,10 +339,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Replace all product to category associations
+      description: |
+        OpUpdateCatalogAssocs requires `RoleAdmin` privileges.
       operationId: OpUpdateCatalogAssocs
       tags:
         - Associations
-        - RoleAdmin
       requestBody:
         content:
           application/json:
@@ -225,10 +368,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get all product to category associations
+      description: |
+        OpGetCatalogAssocs requires `RoleShopper` privileges.
       operationId: OpGetCatalogAssocs
       tags:
         - Associations
-        - RoleShopper
       responses:
         '200':
           description: Associations object
@@ -240,10 +384,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Purge all product to category associations
+      description: |
+        OpPurgeCatalogAssocs requires `RoleAdmin` privileges.
       operationId: OpPurgeCatalogAssocs
       tags:
         - Associations
-        - RoleAdmin
       responses:
         '204':
           description: No Content
@@ -252,10 +397,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get a customer object
+      description: |
+        OpGetCustomer requires `RoleCustomer` privileges.
       operationId: OpGetCustomer
       tags:
         - Customers
-        - RoleCustomer
       parameters:
         - name: customer_id
           required: true
@@ -284,10 +430,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Generate a new developer key
+      description: |
+        OpGenerateCustomerDevKey requires `RoleCustomer` privileges.
       operationId: OpGenerateCustomerDevKey
       tags:
         - Developer Keys
-        - RoleCustomer
       responses:
         '201':
           description: Developer Key object
@@ -299,10 +446,11 @@ paths:
       security:
         - bearerAuth: []
       summary: List a customer's developer keys
+      description: |
+        OpListCustomersDevKeys requires `RoleCustomer` privileges.
       operationId: OpListCustomersDevKeys
       tags:
         - Developer Keys
-        - RoleCustomer
       responses:
         '200':
           description: List of Developer Key objects
@@ -317,10 +465,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Delete a developer key
+      description: |
+        OpDeleteCustomerDevKey requires `RoleAdmin` privileges.
       operationId: OpDeleteCustomerDevKey
       tags:
         - Developer Keys
-        - RoleAdmin
       parameters:
         - name: dev_key_id
           required: true
@@ -337,6 +486,8 @@ paths:
   /signin-with-devkey:
     post:
       summary: Signin with a developer key
+      description: |
+        OpSignInWithDevKey requires no JWT Web Token.
       operationId: OpSignInWithDevKey
       tags:
         - Developer Keys
@@ -365,10 +516,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Add a new address for a given customer
+      description: |
+        OpCreateAddress requires `RoleCustomer` privileges.
       operationId: OpCreateAddress
       tags:
         - Addresses
-        - RoleCustomer
       requestBody:
         content:
           application/json:
@@ -385,10 +537,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get all customer addresses
+      description: |
+        OpGetCustomersAddresses requires `RoleCustomer` privileges.
       operationId: OpGetCustomersAddresses
       tags:
         - Addresses
-        - RoleCustomer
       responses:
         '200':
           description: List of Address objects
@@ -411,10 +564,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Update an address
+      description: |
+        OpUpdateAddress requires `RoleCustomer` privileges.
       operationId: OpUpdateAddress
       tags:
         - Addresses
-        - RoleCustomer
       requestBody:
         content:
           application/json:
@@ -431,10 +585,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get an address object
+      description: |
+        OpGetAddress requires `RoleCustomer` privileges.
       operationId: OpGetAddress
       tags:
         - Addresses
-        - RoleCustomer
       responses:
         '200':
           description: Address object
@@ -446,10 +601,133 @@ paths:
       security:
         - bearerAuth: []
       summary: Delete an address object
+      description: |
+        OpDeleteAddress requires `RoleCustomer` privileges.
       operationId: OpDeleteAddress
       tags:
         - Addresses
-        - RoleCustomer
+      responses:
+        '204':
+          description: No Content
+  /products/{sku}/pricing:
+    parameters:
+      - name: sku
+        required: true
+        in: path
+        description: Product SKU
+        schema:
+          type: string
+          example: 'TV-SKU'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get tier pricings for a given product
+      description: |
+        OpMapPricingBySKU requires `AdminShopper` privileges.
+      operationId: OpMapPricingBySKU
+      tags:
+        - Pricing
+      responses:
+        '200':
+          description: PricingMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingMap'
+  /products/{sku}/images:
+    parameters:
+      - name: sku
+        required: true
+        in: path
+        description: Product SKU
+        schema:
+          type: string
+          example: 'TV-SKU'
+    post:
+      security:
+        - bearerAuth: []
+      summary: Add an image to a product
+      description: |
+        OpAddImage requires `RoleAdmin` privileges.
+      operationId: OpAddImage
+      tags:
+        - Images
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewImage'
+      responses:
+        '201':
+          description: Image object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+    get:
+      security:
+        - bearerAuth: []
+      summary: List product images
+      description: |
+        OpListProductImages requires `RoleShopper` privileges.
+      operationId: OpListProductImages
+      tags:
+        - Images
+      responses:
+        '200':
+          description: List of Image objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Image'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete all product images for a given product SKU
+      description: |
+        OpDeleteAllProductImages requires `RoleAdmin` privileges.
+      operationId: OpDeleteAllProductImages
+      tags:
+        - Images
+      responses:
+        '204':
+          description: No Content
+  /images/{image_id}:
+    parameters:
+      - name: image_id
+        required: true
+        in: path
+        description: Image ID
+        schema:
+          type: string
+          example: '390d6786-0ff7-43e7-844b-af816589a045'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get an image by image ID
+      description: |
+        OpGetImage requires `RoleShopper` privileges.
+      operationId: OpGetImage
+      tags:
+        - Images
+      responses:
+        '200':
+          description: Image object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete an image by Image ID
+      description: |
+        OpDeleteImage requires `RoleAdmin` privileges.
+      operationId: OpDeleteImage
+      tags:
+        - Images
       responses:
         '204':
           description: No Content
@@ -466,10 +744,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Create or replace a product by product SKU
+      description: |
+        OpReplaceProduct requires `RoleAdmin` privileges.
       operationId: OpReplaceProduct
       tags:
         - Products
-        - RoleAdmin
       requestBody:
         content:
           application/json:
@@ -486,10 +765,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get a product by its SKU
+      description: |
+        OpGetProduct requires `RoleShopper` privileges.
       operationId: OpGetProduct
       tags:
         - Products
-        - RoleShopper
       responses:
         '200':
           description: Product object
@@ -501,10 +781,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Check if a product exists
+      description: |
+        OpProductExists requires `RoleShopper` privileges.
       operationId: OpProductExists
       tags:
         - Products
-        - RoleShopper
       responses:
         '204':
           description: No Content
@@ -514,10 +795,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Delete a product by SKU
+      description: |
+        OpDeleteProduct requires `RoleAdmin` privileges.
       operationId: OpDeleteProduct
       tags:
         - Products
-        - RoleAdmin
       responses:
         '204':
           description: No Content
@@ -528,10 +810,11 @@ paths:
       security:
         - bearerAuth: []
       summary: List all products
+      description: |
+        OpListProducts requires `RoleShopper` privileges.
       operationId: OpListProducts
       tags:
         - Products
-        - RoleShopper
       responses:
         '200':
           description: Product object
@@ -539,15 +822,86 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
+  /tiers:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Add a new pricing tier
+      description: |
+        OpCreateTier requires `RoleAdmin` privileges.
+      operationId: OpCreateTier
+      tags:
+        - Pricing
+      responses:
+        '501':
+          description: Not Implemented
+    get:
+      security:
+        - bearerAuth: []
+      summary: List pricing tiers
+      description: |
+        OpListTiers required `RoleAdmin` privileges.
+      operationId: OpListTiers
+      tags:
+        - Pricing
+      responses:
+        '501':
+          description: Not Implemented
+  /tiers/{tier_ref}:
+    parameters:
+      - name: tier_ref
+        required: true
+        in: path
+        description: Tier Reference
+        schema:
+          type: string
+          example: 'trade'
+    put:
+      security:
+        - bearerAuth: []
+      summary: Update a pricing tier
+      description: |
+        OpUpdateTier requires `RoleAdmin` privileges.
+      operationId: OpUpdateTier
+      tags:
+        - Pricing
+      responses:
+        '501':
+          description: Not Implemented
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get a pricing tier by tier reference
+      description: |
+        OpGetTier requires `RoleShopper` privileges.
+      operationId: OpGetTier
+      tags:
+        - Pricing
+      responses:
+        '501':
+          description: Not Implemented
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete a pricing tier
+      description: |
+        OpDeleteTier requires `RoleAdmin` privileges.
+      operationId: OpDeleteTier
+      tags:
+        - Pricing
+      responses:
+        '501':
+          description: Not Implemented
   /products/{sku}/tiers/{tier_ref}/pricing:
     put:
       security:
         - bearerAuth: []
       summary: Update a product pricing by product SKU and pricing tier reference
+      description: |
+        OpUpdateTierPricing requires `RoleAdmin` privileges.
       operationId: OpUpdateTierPricing
       tags:
         - Pricing
-        - RoleAdmin
       parameters:
         - name: sku
           required: true
@@ -579,10 +933,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get a product pricing by product SKU and pricing tier reference
+      description: |
+        OpGetTierPricing requires `RoleShopper` privileges.
       operationId: OpGetTierPricing
       tags:
         - Pricing
-        - RoleShopper
       parameters:
         - name: sku
           required: true
@@ -609,10 +964,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Delete a product pricing by product SKU and pricing tier reference
+      description: |
+        OpDeleteTierPricing requires `RoleAdmin` privileges.
       operationId: OpDeleteTierPricing
       tags:
         - Pricing
-        - RoleAdmin
       parameters:
         - name: sku
           required: true
@@ -631,15 +987,41 @@ paths:
       responses:
         '204':
           description: No Content
+  /products/tiers/{tier_ref}/pricing:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get all product pricings for a given tier
+      description: |
+        OpMapPricingByTier requires `RoleShopper` privileges.
+      operationId: OpMapPricingByTier
+      tags:
+        - Pricing
+      parameters:
+        - name: tier_ref
+          required: true
+          in: path
+          description: Pricing tier reference
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          description: PricingMap object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingMap'
   /orders:
     post:
       security:
         - bearerAuth: []
       summary: Place an guest or customer order
+      description: |
+        OpPlaceOrder requires `RoleShopper` privileges.
       operationId: OpPlaceOrder
       tags:
         - Orders
-        - RoleShopper
       requestBody:
         description: Order to place in the system
         required: true
@@ -647,7 +1029,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewOrder'
-      description: Adds an item to the system
       responses:
         '201':
           description: Order object
@@ -664,10 +1045,11 @@ paths:
       security:
         - bearerAuth: []
       summary: Get system information
+      description: |
+        OpSystemInfo requires `RoleAdmin` privileges.
       operationId: OpSystemInfo
       tags:
         - Misc
-        - RoleAdmin
       responses:
         '200':
           description: System info object
@@ -682,6 +1064,61 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    Cart:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'cart'
+        id:
+          type: string
+          example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+    CartItem:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'cart_item'
+        sku:
+          type: string
+          example: 'TV-SKU'
+        name:
+          type: string
+          example: 'LCD TV System'
+        qty:
+          type: integer
+          example: 5
+        unit_price:
+          type: integer
+          example: 2066250
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-01T15:37:32.269875Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-01T15:37:32.269875Z'
+    UpdateCartItem:
+      type: object
+      required:
+        - qty
+      properties:
+        qty:
+          type: integer
+          example: 3
+    NewCartItem:
+      type: object
+      required:
+        - sku
+        - qty
+      properties:
+        sku:
+          type: string
+          example: 'TV-SKU'
+        qty:
+          type: integer
+          example: 2
     NewCustomer:
       type: object
       required:
@@ -947,7 +1384,22 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryNode'
-
+    PricingMap:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          unit_price:
+            type: integer
+            example: 2066250
+          created:
+            type: string
+            format: date-time
+            example: '2019-07-31T17:03:17.673329Z'
+          modified:
+            type: string
+            format: date-time
+            example: '2019-07-31T17:03:17.673329Z'
     Pricing:
       required:
         - object
@@ -1033,6 +1485,13 @@ components:
           type: string
           format: date-time
           example: '2019-07-30T14:31:47.672541Z'
+    NewImage:
+      required:
+        - path
+      properties:
+        path:
+          type: string
+          example: 'images/products/namwa1.jpg'
     NewProduct:
       required:
         - ean
@@ -1117,7 +1576,7 @@ components:
       properties:
         api_version:
           type: string
-          example: 'v0.55.0'
+          example: 'v0.56.0'
         env:
           type: object
           properties:
@@ -1141,7 +1600,7 @@ components:
                   example: 'disable'
                 schema_version:
                   type: string
-                  example: 'v0.53.0'
+                  example: 'v0.56.0'
             google:
               type: object
               properties:

@@ -47,7 +47,7 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 			CustomToken: customToken,
 			Customer:    customer,
 		}
-		w.WriteHeader(http.StatusOK) // 200 Ok
+		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(ctRes)
 	}
 }
