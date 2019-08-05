@@ -12,8 +12,8 @@ import (
 // GetCartItemsHandler returns a list of all cart items
 func (a *App) GetCartItemsHandler() http.HandlerFunc {
 	type itemsListResponseBody struct {
-		Object string                  `json:"object"`
-		Items  []*cartItemResponseBody `json:"items"`
+		Object string              `json:"object"`
+		Data   []*service.CartItem `json:"data"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -32,21 +32,10 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-
-		cartResponseItems := make([]*cartItemResponseBody, 0, len(cartItems))
-		for _, t := range cartItems {
-			rt := cartItemResponseBody{
-				Object:   "cart_item",
-				CartItem: t,
-			}
-			cartResponseItems = append(cartResponseItems, &rt)
-		}
-
 		res := itemsListResponseBody{
 			Object: "list",
-			Items:  cartResponseItems,
+			Data:   cartItems,
 		}
-
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(&res)
 	}

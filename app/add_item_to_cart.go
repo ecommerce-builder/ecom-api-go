@@ -9,11 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type cartItemResponseBody struct {
-	Object string `json:"object"`
-	*service.CartItem
-}
-
 // AddItemToCartHandler creates a handler to add an item to a given cart
 func (a *App) AddItemToCartHandler() http.HandlerFunc {
 	type itemRequestBody struct {
@@ -54,11 +49,7 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		res := cartItemResponseBody{
-			Object:   "cart_item",
-			CartItem: item,
-		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(&item)
 	}
 }

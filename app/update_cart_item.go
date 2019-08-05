@@ -38,11 +38,7 @@ func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		res := cartItemResponseBody{
-			Object:   "cart_item",
-			CartItem: item,
-		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(&item)
 	}
 }
