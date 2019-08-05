@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.57.0 (Mon 5 Aug 2019)
++ Cart split into `carts` and `cart_items` tables.
++ Fix CORS bug with public routes.
++ Updated Open API Spec.
+
 ## v0.56.0 (Thu 1 Aug 2019)
 + Fix authorization on `OpDeleteCustomerDevKey`.
 + Apply `"object": "image"` to `OpGetImage` and `OpUpdateTierPricing`.

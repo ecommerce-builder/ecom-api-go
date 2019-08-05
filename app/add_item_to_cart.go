@@ -26,15 +26,18 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: AddItemToCartHandler started")
 
-		id := chi.URLParam(r, "id")
+		cartID := chi.URLParam(r, "cart_id")
 		o := itemRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		item, err := a.Service.AddItemToCart(ctx, id, o.SKU, o.Qty)
+		item, err := a.Service.AddItemToCart(ctx, cartID, o.SKU, o.Qty)
 		if err != nil {
-			if err == service.ErrCartItemAlreadyExists {
+			if err == service.ErrCartNotFound {
+				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				return
+			} else if err == service.ErrCartItemAlreadyExists {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -47,7 +50,7 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 				})
 				return
 			}
-			contextLogger.Errorf("service AddItemToCart(%q, %q, %d) failed with error: %v", id, o.SKU, o.Qty, err)
+			contextLogger.Errorf("service AddItemToCart(cartID=%q, sku=%q, qty=%d) failed with error: %v", cartID, o.SKU, o.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

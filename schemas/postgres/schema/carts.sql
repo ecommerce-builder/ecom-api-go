@@ -1,11 +1,7 @@
 CREATE TABLE IF NOT EXISTS carts (
   id          SERIAL PRIMARY KEY,
-  uuid        UUID NOT NULL,
-  sku         VARCHAR(64) NOT NULL,
-  qty         SMALLINT NOT NULL CHECK (qty >= 1 AND qty < 10000),
-  unit_price  INTEGER NOT NULL CHECK (unit_price >= 0),
+  uuid        UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  locked      BOOLEAN NOT NULL DEFAULT 'f',
   created     TIMESTAMP NOT NULL DEFAULT NOW(),
-  modified    TIMESTAMP NOT NULL DEFAULT NOW(),
-  UNIQUE (uuid, sku),
-  FOREIGN KEY (sku) REFERENCES products (sku)
+  modified    TIMESTAMP NOT NULL DEFAULT NOW()
 );

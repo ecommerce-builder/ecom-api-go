@@ -23,6 +23,10 @@ const (
 	// and that cart item is already in the cart.
 	ErrCodeCartAlreadyExists string = "cart/cart-item-already-exists"
 
+	// ErrCodeCartContainsNoItems is sent when attempting to empty a cart that is
+	// already empty.
+	ErrCodeCartContainsNoItems string = "cart/cart-contains-no-items"
+
 	// ErrMissingPathsLeafsSKUs is sent when the consumer attempts to apply catalog
 	// associations that contain references to paths that are non existence, paths that
 	// are non leaf categories or product SKUs that do not exist.

@@ -33,7 +33,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.56.0"
+var version = "v0.57.0"
 
 const maxDbConnectAttempts = 3
 
@@ -545,20 +545,20 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(stackdm.XCloudTraceContext)
 
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "Accept"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowCredentials: true,
+		// Enable Debugging for testing, consider disabling in production
+		Debug: false,
+	})
+	r.Use(c.Handler)
+
 	// protected routes
 	r.Group(func(r chi.Router) {
-		c := cors.New(cors.Options{
-			AllowedOrigins:   []string{"*"},
-			AllowedHeaders:   []string{"Authorization", "Content-Type", "Accept"},
-			AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
-			AllowCredentials: true,
-			// Enable Debugging for testing, consider disabling in production
-			Debug: false,
-		})
-		r.Use(c.Handler)
 		r.Use(a.AuthenticateMiddleware)
 		r.Use(stackdm.XCloudTraceContext)
-
 		r.Route("/admins", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateAdmin, a.CreateAdminHandler()))
 			r.Get("/", a.Authorization(app.OpListAdmins, a.ListAdminsHandler()))
@@ -626,11 +626,11 @@ func main() {
 
 		r.Route("/carts", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateCart, a.CreateCartHandler()))
-			r.Post("/{id}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
-			r.Get("/{id}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
-			r.Patch("/{id}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
-			r.Delete("/{id}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
-			r.Delete("/{id}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
+			r.Post("/{cart_id}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
+			r.Get("/{cart_id}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
+			r.Patch("/{cart_id}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
+			r.Delete("/{cart_id}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
+			r.Delete("/{cart_id}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
 		})
 
 		r.Route("/categories", func(r chi.Router) {
