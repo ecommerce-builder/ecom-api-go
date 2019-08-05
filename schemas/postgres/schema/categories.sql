@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS categories (
   id        SERIAL PRIMARY KEY,
+  uuid      UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   segment   VARCHAR(512) NOT NULL,
   path      VARCHAR(1024) NOT NULL,
   name      VARCHAR(1024) NOT NULL,

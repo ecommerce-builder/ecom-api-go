@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "DROP FUNCTION IF EXISTS schema_version()" | psql --no-psqlrc ecom_dev
+echo "DROP TABLE IF EXISTS cart_items" | psql --no-psqlrc ecom_dev
 echo "DROP TABLE IF EXISTS carts" | psql --no-psqlrc ecom_dev
 echo "DROP TABLE IF EXISTS addresses" | psql --no-psqlrc ecom_dev
 echo "DROP TABLE IF EXISTS payments" | psql --no-psqlrc ecom_dev
@@ -16,5 +17,6 @@ echo "DROP TABLE IF EXISTS product_images" | psql --no-psqlrc ecom_dev
 echo "DROP TABLE IF EXISTS products" | psql --no-psqlrc ecom_dev
 echo "DROP TABLE IF EXISTS pricing_tiers" | psql --no-psqlrc ecom_dev
 echo "DROP TYPE IF EXISTS payment_t" | psql --no-psqlrc ecom_dev
-echo "DROP TYPE IF EXISTS payment_status_t" | psql --no-psqlrc ecom_dev
 echo "DROP TYPE IF EXISTS address_t" | psql --no-psqlrc ecom_dev
+echo "DROP TYPE IF EXISTS order_status_t" | psql --no-psqlrc ecom_dev
+echo "DROP TYPE IF EXISTS order_payment_status_t" | psql --no-psqlrc ecom_dev

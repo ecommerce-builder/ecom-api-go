@@ -18,6 +18,8 @@ var ErrAssocsAlreadyExist = errors.New("service: associations already exist")
 
 // A Category represents an individual category in the catalog hierarchy.
 type Category struct {
+	Object   string `json:"object"`
+	ID       string `json:"id"`
 	Segment  string `json:"segment"`
 	path     string
 	Name     string `json:"name"`
@@ -205,6 +207,8 @@ type spnTuple struct {
 // BuildTree builds a Tree hierarchy from a Nested Set.
 func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) *Category {
 	context := &Category{
+		Object:  "category",
+		ID:      nestedset[0].UUID,
 		Segment: nestedset[0].Segment,
 		path:    nestedset[0].Path,
 		Name:    nestedset[0].Name,
@@ -241,6 +245,8 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) 
 			})
 		}
 		n := &Category{
+			Object:   "category",
+			ID:       cur.UUID,
 			Segment:  cur.Segment,
 			path:     cur.Path,
 			Name:     cur.Name,

@@ -1,14 +1,14 @@
-CREATE TYPE order_status
+CREATE TYPE order_status_t
   AS ENUM ('incomplete', 'completed');
 
-CREATE TYPE order_payment_status
+CREATE TYPE order_payment_status_t
   AS ENUM ('unpaid', 'paid');
 
 CREATE TABLE IF NOT EXISTS orders (
   id              SERIAL PRIMARY KEY,
   uuid            UUID DEFAULT uuid_generate_v4() UNIQUE,
-  status          order_status DEFAULT 'incomplete',
-  payment         order_payment_status DEFAULT 'unpaid',
+  status          order_status_t DEFAULT 'incomplete',
+  payment         order_payment_status_t DEFAULT 'unpaid',
   customer_id     INTEGER NULL,
   customer_name   VARCHAR(512) NULL DEFAULT NULL,
   customer_email  VARCHAR(512) NULL DEFAULT NULL,

@@ -14,6 +14,9 @@ cat $schemadir/products.sql | psql --no-psqlrc ecom_dev
 echo "Creating carts"
 cat $schemadir/carts.sql | psql --no-psqlrc ecom_dev
 
+echo "Createing cart_items"
+cat $schemadir/cart_items.sql | psql --no-psqlrc ecom_dev
+
 echo "Creating pricing_tiers"
 cat $schemadir/pricing_tiers.sql | psql --no-psqlrc ecom_dev
 
