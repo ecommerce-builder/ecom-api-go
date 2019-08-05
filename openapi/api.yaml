@@ -8,7 +8,7 @@ servers:
     url: https://9e231464.ngrok.io
 info:
   description: Ecom API
-  version: "v0.57.0"
+  version: "v0.57.0-dev"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -164,7 +164,7 @@ paths:
         - bearerAuth: []
       summary: Get cart items
       description: |
-        OpAddItemToCart requires `RoleShopper` privileges.
+        OpGetCartItems requires `RoleShopper` privileges.
       operationId: OpGetCartItems
       tags:
         - Carts
@@ -1163,6 +1163,9 @@ components:
         object:
           type: string
           example: 'cart_item'
+        id:
+          type: string
+          example: '69186b07-075f-42b9-b5cb-d66d9addabf1'
         sku:
           type: string
           example: 'TV-SKU'
