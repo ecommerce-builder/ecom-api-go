@@ -33,7 +33,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.57.0"
+var version = "v0.57.0-dev"
 
 const maxDbConnectAttempts = 3
 
@@ -548,7 +548,7 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type", "Accept"},
-		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 		// Enable Debugging for testing, consider disabling in production
 		Debug: false,

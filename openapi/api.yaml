@@ -1723,7 +1723,7 @@ components:
           example: 409
         code:
           type: string
-          example: "assocs/assocs-already-exist"
+          example: "assocs/assocs-already-exists"
         message:
           type: string
           example: "catalog associations already exist"
@@ -1734,7 +1734,7 @@ components:
           example: 409
         code:
           type: string
-          example: "assocs/assocs-already-exist"
+          example: "assocs/assocs-already-exists"
         message:
           type: string
           example: "catalog associations already exist"

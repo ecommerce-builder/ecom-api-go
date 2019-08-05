@@ -13,7 +13,7 @@ const (
 
 	// ErrCodeAssocsAlreadyExist is sent when the consumer attempts to purge the catalog
 	// before purging the catalog associations.
-	ErrCodeAssocsAlreadyExist string = "assocs/assocs-already-exist"
+	ErrCodeAssocsAlreadyExist string = "assocs/assocs-already-exists"
 
 	// ErrCodeNoCatalog is sent when the consumer attempts to apply catalog associations
 	// before a catalog has been applied.

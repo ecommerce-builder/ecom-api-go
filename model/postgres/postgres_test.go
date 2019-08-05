@@ -156,7 +156,7 @@ func TestGetCategoryByPath(t *testing.T) {
 	defer teardown()
 
 	ctx := context.Background()
-	ns, err := model.GetCatalogByPath(ctx, "a/c/f/j")
+	ns, err := model.GetCatagoryByPath(ctx, "a/c/f/j")
 	if err != nil {
 		t.Errorf("get category by path: %v", err)
 	}
