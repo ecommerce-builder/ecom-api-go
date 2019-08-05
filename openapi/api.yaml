@@ -5,10 +5,10 @@ servers:
   - description: Ecom Test API Service
     url: http://localhost:8080
   - description: Ecom Test API Service Ngrok
-    url: https://ecdfc008.ngrok.io
+    url: https://9e231464.ngrok.io
 info:
   description: Ecom API
-  version: "v0.56.0"
+  version: "v0.57.0"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -74,6 +74,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
+  /carts/{cart_id}:
+    parameters:
+      - name: cart_id
+        required: true
+        in: path
+        description: Cart ID
+        schema:
+          type: string
+          format: uuid
+          example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get a shoping cart including items
+      description: |
+        OpGetCart requires `RoleShopper` privileges.
+      tags:
+        - Carts
+      responses:
+        '200':
+          description: Cart object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: |
+            The cart with the given cart_id could not be found.
+          content:
+            application/json:
+              schema:
+                example: ''
   /carts/{cart_id}/items:
     parameters:
       - name: cart_id
@@ -102,11 +134,31 @@ paths:
               $ref: '#/components/schemas/NewCartItem'
       responses:
         '201':
-          description: CartItem object
+          description: |
+            `CartItem` object
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CartItem'
+        '404':
+          description: |
+            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
+          content:
+            application/json:
+              example: ''
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                cart/cart-item-already-exists:
+                  summary: cart/cart-item-already-exists
+                  value:
+                    status: 409
+                    code: 'cart/cart-item-already-exists'
+                    message: cart item already exists in the cart
     get:
       security:
         - bearerAuth: []
@@ -125,6 +177,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CartItem'
+        '404':
+          description: |
+            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
+          content:
+            application/json:
+              example: ''
     delete:
       security:
         - bearerAuth: []
@@ -1039,7 +1097,18 @@ paths:
         '400':
           description: 'invalid input, object invalid'
         '409':
-          description: a conflict prevented the order being placed
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                cart/cart-item-already-exists:
+                  summary: validate/invalid-request-body
+                  value:
+                    status: 409
+                    code: 'validate/invalid-request-body'
+                    message: For placing guest orders set both contact_name and email
   /sysinfo:
     get:
       security:
@@ -1073,6 +1142,21 @@ components:
         id:
           type: string
           example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+        locked:
+          type: string
+          example: false
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-02T12:02:42.217936Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-02T12:02:42.217936Z'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
     CartItem:
       type: object
       properties:
@@ -1231,6 +1315,10 @@ components:
         - billing_address
         - shipping_address
       properties:
+        cart_id:
+          type: string
+          format: uuid
+          example: '33ed8b80-3ba7-4f31-9364-2559a83258a7'
         customer:
           type: object
           properties:
@@ -1576,7 +1664,7 @@ components:
       properties:
         api_version:
           type: string
-          example: 'v0.56.0'
+          example: 'v0.57.0'
         env:
           type: object
           properties:
@@ -1600,7 +1688,7 @@ components:
                   example: 'disable'
                 schema_version:
                   type: string
-                  example: 'v0.56.0'
+                  example: 'v0.57.0'
             google:
               type: object
               properties:

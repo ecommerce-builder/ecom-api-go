@@ -10,13 +10,27 @@ import (
 )
 
 var (
+	// ErrCartNotFound is returned when attempting an operation on non existing cart.
+	ErrCartNotFound = errors.New("cart not found")
+
 	// ErrCartItemAlreadyExists is returned when attempting to add a
 	// cart item to a cart that already contains that item.
 	ErrCartItemAlreadyExists = errors.New("cart already exists")
 
 	// ErrCartItemNotFound is returned when a cart ID cannot be found.
 	ErrCartItemNotFound = errors.New("cart item not found")
+
+	// ErrCartContainsNoItems occurs when attempting to delete all items.
+	ErrCartContainsNoItems = errors.New("cart contains no items")
 )
+
+// Cart holds the details of a shopping cart.
+type Cart struct {
+	ID       string    `json:"id"`
+	Locked   bool      `json:"locked"`
+	Created  time.Time `json:"created"`
+	Modified time.Time `json:"modified"`
+}
 
 // CartItem structure holds the details individual cart item
 type CartItem struct {
@@ -29,23 +43,36 @@ type CartItem struct {
 }
 
 // CreateCart generates a new random id to be used for subseqent cart calls.
-func (s *Service) CreateCart(ctx context.Context) (*string, error) {
-	strptr, err := s.model.CreateCart(ctx)
+func (s *Service) CreateCart(ctx context.Context) (*Cart, error) {
+	cartRow, err := s.model.CreateCart(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "service: s.model.CreateCart(ctx) failed")
 	}
-	return strptr, nil
+	cart := Cart{
+		ID:       cartRow.UUID,
+		Locked:   cartRow.Locked,
+		Created:  cartRow.Created,
+		Modified: cartRow.Modified,
+	}
+	return &cart, nil
 }
 
 // AddItemToCart adds a single item to a given cart.
-func (s *Service) AddItemToCart(ctx context.Context, id string, sku string, qty int) (*CartItem, error) {
-	log.WithContext(ctx).Debugf("service: s.AddItemToCart(id=%q, sku=%q, qty=%d) started", id, sku, qty)
-	item, err := s.model.AddItemToCart(ctx, id, "default", sku, qty)
+// Returns `ErrCartNotFound` if the cart with `cartID` does not exist.
+func (s *Service) AddItemToCart(ctx context.Context, cartID string, sku string, qty int) (*CartItem, error) {
+	log.WithContext(ctx).Debugf("service: s.AddItemToCart(cartID=%q, sku=%q, qty=%d) started", cartID, sku, qty)
+
+	exists, _ := s.model.IsCartExists(ctx, cartID)
+	if !exists {
+		return nil, ErrCartNotFound
+	}
+
+	item, err := s.model.AddItemToCart(ctx, cartID, "default", sku, qty)
 	if err != nil {
 		if err == postgres.ErrCartItemAlreadyExists {
 			return nil, ErrCartItemAlreadyExists
 		}
-		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, %q, %q, %q, %d) failed: ", id, "default", sku, qty)
+		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, %q, %q, %q, %d) failed: ", cartID, "default", sku, qty)
 	}
 	sitem := CartItem{
 		SKU:       item.SKU,
@@ -67,10 +94,13 @@ func (s *Service) HasCartItems(ctx context.Context, id string) (bool, error) {
 	return has, nil
 }
 
-// GetCartItems get all items in the given cart
-func (s *Service) GetCartItems(ctx context.Context, id string) ([]*CartItem, error) {
-	items, err := s.model.GetCartItems(ctx, id)
+// GetCartItems get all cart items by cart ID.
+func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem, error) {
+	items, err := s.model.GetCartItems(ctx, cartID)
 	if err != nil {
+		if err == postgres.ErrCartNotFound {
+			return nil, ErrCartNotFound
+		}
 		return nil, err
 	}
 
@@ -90,8 +120,8 @@ func (s *Service) GetCartItems(ctx context.Context, id string) ([]*CartItem, err
 }
 
 // UpdateCartItem updates a single item's qty
-func (s *Service) UpdateCartItem(ctx context.Context, id string, sku string, qty int) (*CartItem, error) {
-	item, err := s.model.UpdateItemByCartUUID(ctx, id, sku, qty)
+func (s *Service) UpdateCartItem(ctx context.Context, cartID, sku string, qty int) (*CartItem, error) {
+	item, err := s.model.UpdateItemByCartUUID(ctx, cartID, sku, qty)
 	if err != nil {
 		if err == postgres.ErrCartItemNotFound {
 			return nil, ErrCartItemNotFound
@@ -110,15 +140,27 @@ func (s *Service) UpdateCartItem(ctx context.Context, id string, sku string, qty
 }
 
 // DeleteCartItem deletes a single cart item
-func (s *Service) DeleteCartItem(ctx context.Context, id string, sku string) (count int64, err error) {
-	count, err = s.model.DeleteCartItem(ctx, id, sku)
+func (s *Service) DeleteCartItem(ctx context.Context, cartID, sku string) (count int64, err error) {
+	count, err = s.model.DeleteCartItem(ctx, cartID, sku)
 	if err != nil {
+		if err == postgres.ErrCartNotFound {
+			return 0, ErrCartNotFound
+		}
 		return -1, err
 	}
 	return count, nil
 }
 
 // EmptyCartItems empties the cart of all items but not coupons
-func (s *Service) EmptyCartItems(ctx context.Context, id string) (err error) {
-	return s.model.EmptyCartItems(ctx, id)
+func (s *Service) EmptyCartItems(ctx context.Context, cartID string) error {
+	err := s.model.EmptyCartItems(ctx, cartID)
+	if err != nil {
+		if err == postgres.ErrCartNotFound {
+			return ErrCartNotFound
+		} else if err == postgres.ErrCartContainsNoItems {
+			return ErrCartContainsNoItems
+		}
+		return err
+	}
+	return nil
 }

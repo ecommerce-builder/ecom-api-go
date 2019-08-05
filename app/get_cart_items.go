@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,10 +21,14 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetCartItemsHandler started")
 
-		id := chi.URLParam(r, "id")
-		cartItems, err := a.Service.GetCartItems(ctx, id)
+		cartID := chi.URLParam(r, "cart_id")
+		cartItems, err := a.Service.GetCartItems(ctx, cartID)
 		if err != nil {
-			contextLogger.Errorf("service GetCartItems(%s) error: %v", id, err)
+			if err == service.ErrCartNotFound {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			contextLogger.Errorf("service GetCartItems(cartID=%q) error: %v", cartID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
