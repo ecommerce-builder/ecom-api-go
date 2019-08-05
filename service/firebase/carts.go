@@ -34,6 +34,8 @@ type Cart struct {
 
 // CartItem structure holds the details individual cart item
 type CartItem struct {
+	Object    string    `json:"object"`
+	ID        string    `json:"id"`
 	SKU       string    `json:"sku"`
 	Name      string    `json:"name"`
 	Qty       int       `json:"qty"`
@@ -75,6 +77,8 @@ func (s *Service) AddItemToCart(ctx context.Context, cartID string, sku string, 
 		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, %q, %q, %q, %d) failed: ", cartID, "default", sku, qty)
 	}
 	sitem := CartItem{
+		Object:    "cart_item",
+		ID:        item.UUID,
 		SKU:       item.SKU,
 		Name:      item.Name,
 		Qty:       item.Qty,
@@ -107,6 +111,8 @@ func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem,
 	results := make([]*CartItem, 0, 32)
 	for _, v := range items {
 		i := CartItem{
+			Object:    "cart_item",
+			ID:        v.UUID,
 			SKU:       v.SKU,
 			Name:      v.Name,
 			Qty:       v.Qty,
@@ -129,6 +135,8 @@ func (s *Service) UpdateCartItem(ctx context.Context, cartID, sku string, qty in
 		return nil, err
 	}
 	sitem := CartItem{
+		Object:    "cart_item",
+		ID:        item.UUID,
 		SKU:       item.SKU,
 		Name:      item.Name,
 		Qty:       item.Qty,

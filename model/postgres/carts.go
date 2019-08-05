@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -239,10 +238,8 @@ func (m *PgModel) EmptyCartItems(ctx context.Context, cartUUID string) (err erro
 	if err != nil {
 		return errors.Wrapf(err, "m.HasCartItems(ctx, cartUUID=%q) failed: %v", cartUUID, err)
 	}
-	fmt.Println(hasItems)
 
 	if !hasItems {
-		fmt.Printf("no items")
 		return ErrCartContainsNoItems
 	}
 
