@@ -15,8 +15,13 @@ func (a *App) ListAddressesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListAddressesHandler started")
 
-		id := chi.URLParam(r, "id")
-		addresses, _ := a.Service.GetAddresses(ctx, id)
+		customerID := chi.URLParam(r, "customer_id")
+		addresses, err := a.Service.GetAddresses(ctx, customerID)
+		if err != nil {
+			contextLogger.Errorf("a.Service.GetAddresses(ctx, customerID=%q) error: %v", customerID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
+		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(addresses)
 	}

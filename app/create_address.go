@@ -38,7 +38,7 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 			return
 		}
 
-		id := chi.URLParam(r, "id")
+		customerID := chi.URLParam(r, "customer_id")
 		o := addressRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
@@ -56,9 +56,9 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		address, err := a.Service.CreateAddress(ctx, id, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
+		address, err := a.Service.CreateAddress(ctx, customerID, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
 		if err != nil {
-			contextLogger.Panicf("a.Service.CreateAddress(ctx, %s, ...) failed with error: %v", id, err)
+			contextLogger.Panicf("a.Service.CreateAddress(ctx, customerID=%q, ...) failed with error: %v", customerID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

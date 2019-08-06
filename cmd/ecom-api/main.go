@@ -571,10 +571,10 @@ func main() {
 			r.Get("/{id}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
 			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
 
-			r.Get("/{id}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
-			r.Post("/{id}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
-			r.Post("/{id}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
-			r.Get("/{id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
+			r.Get("/{customer_id}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
+			r.Post("/{customer_id}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
+			r.Post("/{customer_id}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
+			r.Get("/{customer_id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
 		})
 
 		// tiers resource operation all return 501 Not Implemented

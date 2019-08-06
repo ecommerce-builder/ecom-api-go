@@ -25,7 +25,10 @@ type CustomerDevKey struct {
 func (s *Service) GenerateCustomerDevKey(ctx context.Context, customerID string) (*CustomerDevKey, error) {
 	cid, err := s.model.GetCustomerIDByUUID(ctx, customerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.GetCustomerIDByUUID(ctx, %q)", customerID)
+		if err == postgres.ErrCustomerNotFound {
+			return nil, ErrCustomerNotFound
+		}
+		return nil, errors.Wrapf(err, "s.model.GetCustomerIDByUUID(ctx, customerID%q)", customerID)
 	}
 	data := make([]byte, 32)
 	_, err = rand.Read(data)
@@ -66,13 +69,16 @@ func (s *Service) GetCustomerDevKey(ctx context.Context, id string) (*CustomerDe
 }
 
 // ListCustomersDevKeys gets all API Keys for a customer.
-func (s *Service) ListCustomersDevKeys(ctx context.Context, id string) ([]*CustomerDevKey, error) {
-	customerID, err := s.model.GetCustomerIDByUUID(ctx, id)
+func (s *Service) ListCustomersDevKeys(ctx context.Context, customerID string) ([]*CustomerDevKey, error) {
+	cid, err := s.model.GetCustomerIDByUUID(ctx, customerID)
 	if err != nil {
+		if err == postgres.ErrCustomerNotFound {
+			return nil, ErrCustomerNotFound
+		}
 		return nil, err
 	}
 
-	rows, err := s.model.GetCustomerDevKeys(ctx, customerID)
+	rows, err := s.model.GetCustomerDevKeys(ctx, cid)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +87,7 @@ func (s *Service) ListCustomersDevKeys(ctx context.Context, id string) ([]*Custo
 		c := CustomerDevKey{
 			ID:         row.UUID,
 			Key:        row.Key,
-			CustomerID: id,
+			CustomerID: customerID,
 			Created:    row.Created,
 			Modified:   row.Modified,
 		}
