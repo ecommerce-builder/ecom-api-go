@@ -21,10 +21,14 @@ func (a *App) GenerateCustomerDevKeyHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GenerateCustomerDevKeyHandler started")
 
-		id := chi.URLParam(r, "id")
-		cdk, err := a.Service.GenerateCustomerDevKey(ctx, id)
+		customerID := chi.URLParam(r, "customer_id")
+		cdk, err := a.Service.GenerateCustomerDevKey(ctx, customerID)
 		if err != nil {
-			contextLogger.Errorf("service GenerateCustomerAPIKey(ctx, %q) error: %v", id, err)
+			if err == service.ErrCustomerNotFound {
+				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				return
+			}
+			contextLogger.Errorf("service GenerateCustomerAPIKey(ctx, customerID=%q) error: %v", customerID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
