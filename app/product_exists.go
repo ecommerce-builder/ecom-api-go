@@ -15,10 +15,10 @@ func (app *App) ProductExistsHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ProductExistsHandler started")
 
-		sku := chi.URLParam(r, "sku")
-		exists, err := app.Service.ProductExists(ctx, sku)
+		productID := chi.URLParam(r, "product_id")
+		exists, err := app.Service.ProductExists(ctx, productID)
 		if err != nil {
-			contextLogger.Errorf("product exists failed for sku=%q: %v", sku, err)
+			contextLogger.Errorf("product exists failed for productID=%q: %v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

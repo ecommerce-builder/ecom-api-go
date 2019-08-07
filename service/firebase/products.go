@@ -247,10 +247,10 @@ func (s *Service) ListProducts(ctx context.Context) ([]*ProductSlim, error) {
 }
 
 // ProductExists return true if the given product exists.
-func (s *Service) ProductExists(ctx context.Context, sku string) (bool, error) {
-	exists, err := s.model.ProductExists(ctx, sku)
+func (s *Service) ProductExists(ctx context.Context, uuid string) (bool, error) {
+	exists, err := s.model.ProductExists(ctx, uuid)
 	if err != nil {
-		return false, errors.Wrapf(err, "ProductExists(ctx, %q) failed", sku)
+		return false, errors.Wrapf(err, "ProductExists(ctx, uuid=%q) failed", uuid)
 	}
 	return exists, nil
 }

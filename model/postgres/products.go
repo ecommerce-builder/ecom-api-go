@@ -195,8 +195,23 @@ func (m *PgModel) ProductsExist(ctx context.Context, skus []string) ([]string, e
 }
 
 // ProductExists return true if there is a row in the products table with
+// the given UUID.
+func (m *PgModel) ProductExists(ctx context.Context, uuid string) (bool, error) {
+	query := `SELECT id FROM products WHERE uuid = $1`
+	var id int
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "query row context uuid=%q query=%q", uuid, query)
+	}
+	return true, nil
+}
+
+// ProductExistsBySKU return true if there is a row in the products table with
 // the given SKU.
-func (m *PgModel) ProductExists(ctx context.Context, sku string) (bool, error) {
+func (m *PgModel) ProductExistsBySKU(ctx context.Context, sku string) (bool, error) {
 	query := `SELECT id FROM products WHERE sku = $1`
 	var id int
 	err := m.db.QueryRowContext(ctx, query, sku).Scan(&id)
