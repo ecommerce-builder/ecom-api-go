@@ -1,5 +1,6 @@
 .vscode
 *_secret.yaml
+*.swp
 bin/
 certs/
 data/init.sql

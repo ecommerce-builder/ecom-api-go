@@ -7,8 +7,22 @@ servers:
   - description: Ecom Test API Service Ngrok
     url: https://9e231464.ngrok.io
 info:
-  description: Ecom API
-  version: "v0.57.0-dev"
+  description: |
+    # Ecom API
+    Most requests require a JSON Web Token (JWT) aquired by signing into the Firebase Auth that corresponds to the API endpoint.
+
+    ## Authentication
+    API resources are protected by levels of access:
+
+      * None (No JWT required)
+      * `RoleShopper` (JWT contains no custom `role` claim)
+      * `RoleCustomer` (JWT contains a custom claim `"role": "customer"`)
+      * `RoleAdmin` (JWT contains a custom claim `"role": "admin"`)
+      * `RoleSuperUser` (JWT contains a custom claim `"role": "root"`)
+
+    Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
+
+  version: "v0.57.0-dev-1548"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -63,7 +77,7 @@ paths:
         - bearerAuth: []
       summary: Create a new shopping cart
       description: |
-        OpCreateCart requires `RoleShopper` privileges.
+        OpCreateCart requires `RoleShopper` privileges. Creates an empty shopping cart. A shopping cart consists of items, discounts and coupons. The request body contains a unique identifier for the new cart.
       operationId: OpCreateCart
       tags:
         - Carts
@@ -87,9 +101,9 @@ paths:
     get:
       security:
         - bearerAuth: []
-      summary: Get a shoping cart including items
+      summary: Get a shoping cart including items, discounts and coupons
       description: |
-        OpGetCart requires `RoleShopper` privileges.
+        OpGetCart requires `RoleShopper` privileges. Retrives an existing shopping cart with the given cart ID.
       tags:
         - Carts
       responses:
@@ -121,7 +135,7 @@ paths:
         - bearerAuth: []
       summary: Add an item to a cart
       description: |
-        OpAddItemToCart requires `RoleShopper` privileges.
+        OpAddItemToCart requires `RoleShopper` privileges. Adds a new item to the cart returning the cart_item object. Each item has a unique identifier.
       operationId: OpAddItemToCart
       tags:
         - Carts
@@ -170,7 +184,7 @@ paths:
         - Carts
       responses:
         '200':
-          description: List of CartItem objects
+          description: List of cart item objects
           content:
             application/json:
               schema:
@@ -195,22 +209,22 @@ paths:
       responses:
         '204':
           description: No Content
-  /carts/{cart_id}/items/{sku}:
+  /carts/{cart_id}/items/{cart_item_id}:
     parameters:
       - name: cart_id
         required: true
         in: path
-        description: Cart ID
+        description: A unique identifier for the cart.
         schema:
           type: string
           example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
-      - name: sku
+      - name: cart_item_id
         required: true
         in: path
-        description: Product SKU
+        description: A unique identifier for the cart item.
         schema:
           type: string
-          example: 'TV-SKU'
+          example: 'aba8b505-d016-4afc-95bd-1f292ed5a915'
     patch:
       security:
         - bearerAuth: []
@@ -246,6 +260,202 @@ paths:
       responses:
         '204':
           description: No Content
+  /discounts:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create a new discount offer
+      description: |
+        OpCreateDiscount requires `RoleAdmin` privileges.
+      operationId: OpCreateDiscount
+      tags:
+        - Discounts
+      responses:
+        '201':
+          description: Discount object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discount'
+    get:
+      security:
+        - bearerAuth: []
+      summary: List all discounts
+      description: |
+        OpListDiscounts requires `RoleAdmin` privileges.
+      tags:
+        - Discounts
+      responses:
+        '200':
+          description: List of Discount objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Discount'
+  /discounts/{discount_id}:
+    parameters:
+      - name: discount_id
+        required: true
+        in: path
+        description: A unique identifier for the discount.
+        schema:
+          type: string
+          example: '20574b05-29a4-49f6-bf89-fe231c09d8a5'
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get a discount object by `discount_id`
+      description: |
+        OpGetDiscount requires `RoleAdmin` privileges.
+      tags:
+        - Discounts
+      responses:
+        '200':
+          description: Discount object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discount'
+        '404':
+          description: Not Found
+    put:
+      security:
+        - bearerAuth: []
+      summary: Update a discount offer
+      description: |
+        OpUpdateDiscount requires `RoleAdmin` privileges.
+      tags:
+        - Discounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDiscountRequest'
+      responses:
+        '200':
+          description: Discount object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discount'
+              example:
+                type:
+                  object: 'discount'
+                  id: '391c499e-5e58-430a-8d92-a8587cbc3517'
+                  discount_code: 'AUG20'
+                  type: 'percentage'
+                  start_at: '2019-08-05 09:00:00.000000Z'
+                  ends_at: '2019-08-08 18:00:00.000000Z'
+                  amount: 200000
+                  name: 'August Deals'
+                  created: '2019-07-30 14:23:31.756204Z'
+                  modified: '2019-07-04 11:45:28.237506Z'
+        '404':
+          description: Not found
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Delete a discount offer
+      description: |
+        OpDeleteDiscount requires `RoleAdmin` privileges.
+      tags:
+        - Discounts
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /products/{product_id}/discounts:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Apply a discount code to an individual product
+      description: |
+        OpApplyProductDiscount requires `RoleAdmin` privileges. The request body contains a `discount_code` that references the code returned when creating a new Discount object.
+      operationId: OpApplyProductDiscount
+      tags:
+        - Discounts
+      parameters:
+        - name: product_id
+          required: true
+          in: path
+          description: Product SKU
+          schema:
+            type: string
+            example: 'TV-SKU'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppyDiscountRequest'
+      responses:
+        '204':
+          description: Not Content
+        '404':
+          description: Not Found
+  /coupons:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create a new coupon offer
+      description: |
+        OpCreateCoupon requires `RoleAdmin` privileges.
+      operationId: OpCreateCoupon
+      tags:
+        - Coupons
+      responses:
+        '501':
+          description: Not Implemented
+  /catagories/{category_id}/discounts:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Apply a discount code to a bottom level category
+      description: |
+        OpApplyCategoryDiscount requires `RoleAdmin` privileges. The request body contains a `discount_code` that references the code returned when creating a new Discount object.
+      operationId: OpApplyCategoryDiscount
+      tags:
+        - Discounts
+      parameters:
+        - name: category_id
+          required: true
+          in: path
+          description: Category ID
+          schema:
+            type: string
+            format: uuid
+            example: '0baf0ae0-ef99-4200-822d-341f44b79b3f'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppyDiscountRequest'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                discount/discount-applied-to-non-leaf-category:
+                  summary: discount/discount-applied-to-non-leaf-category
+                  value:
+                    status: 409
+                    code: 'discount/discount-applied-to-non-leaf-category'
+                    message: discounts can only be applied to leaf categories
+                discount/discount-leaf-category-zero-products:
+                  summary: discount/discount-leaf-category-zero-products
+                  value:
+                    status: 409
+                    code: 'discount/discount-leaf-category-zero-products'
+                    message: discounts can only be applied to leaf categories containing products
   /admins:
     post:
       security:
@@ -285,7 +495,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: ''
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+  /admins/{admin_id}:
+    parameters:
+      - name: admin_id
+        required: true
+        in: path
+        description: A unique identifier for the administrator.
+        schema:
+          type: string
+          format: uuid
+          example: '2d8661d3-0fac-4b72-8219-90731fb1935d'
     delete:
       security:
         - bearerAuth: []
@@ -352,7 +574,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CategoryNode'
+              $ref: '#/components/schemas/CategoryNodeRequest'
       responses:
         '204':
           description: No Content
@@ -364,6 +586,17 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                cart/cart-item-already-exists:
+                  summary: cart/cart-item-already-exists
+                  value:
+                    status: 409
+                    code: 'cart/cart-item-already-exists'
+                    message: cart item already exists in the cart
     get:
       security:
         - bearerAuth: []
@@ -379,7 +612,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Categories'
+                $ref: '#/components/schemas/CategoriesResponse'
     delete:
       security:
         - bearerAuth: []
@@ -546,6 +779,28 @@ paths:
       summary: Signin with a developer key
       description: |
         OpSignInWithDevKey requires no JWT Web Token.
+
+        Signin with a secret developer key. After you receive the custom token in the response, pass it to Firebase Auth [signInWithCustomToken](https://firebase.google.com/docs/reference/node/firebase.auth.Auth#sign-inwith-custom-token) to sign in the user:
+
+
+        ```javascript
+          firebase.auth().signInWithCustomToken(token).catch(function(error) {
+            // Handle Errors here.
+            var errorCode = error.code;
+            var errorMessage = error.message;
+            // ...
+          });
+        ```
+
+        To sign out a user, call `signOut`:
+
+        ```javascript
+          firebase.auth().signOut().then(function() {
+            // Sign-out successful.
+          }).catch(function(error) {
+            // An error happened.
+          });
+        ```
       operationId: OpSignInWithDevKey
       tags:
         - Developer Keys
@@ -594,9 +849,9 @@ paths:
     get:
       security:
         - bearerAuth: []
-      summary: Get all customer addresses
+      summary: Get all addresses for a given customer
       description: |
-        OpGetCustomersAddresses requires `RoleCustomer` privileges.
+        OpGetCustomersAddresses requires `RoleCustomer` privileges. Retrieves a list of Address objects for the given customer. If called with `RoleCustomer` you must be the customer you intend to retrieve the addresses for. If called with `RoleAdmin` you can retrieve a list of addresses for any customer.
       operationId: OpGetCustomersAddresses
       tags:
         - Addresses
@@ -667,21 +922,22 @@ paths:
       responses:
         '204':
           description: No Content
-  /products/{sku}/pricing:
+  /products/{product_id}/pricing:
     parameters:
-      - name: sku
+      - name: product_id
         required: true
         in: path
-        description: Product SKU
+        description: A unique identifier for the product.
         schema:
           type: string
-          example: 'TV-SKU'
+          format: uuid
+          example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
     get:
       security:
         - bearerAuth: []
       summary: Get tier pricings for a given product
       description: |
-        OpMapPricingBySKU requires `AdminShopper` privileges.
+        OpMapPricingBySKU requires `RoleShopper` privileges.
       operationId: OpMapPricingBySKU
       tags:
         - Pricing
@@ -692,15 +948,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingMap'
-  /products/{sku}/images:
+  /products/{product_id}/images:
     parameters:
-      - name: sku
+      - name: product_id
         required: true
         in: path
-        description: Product SKU
+        description: A unique identifier for the product.
         schema:
           type: string
-          example: 'TV-SKU'
+          format: uuid
+          example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
     post:
       security:
         - bearerAuth: []
@@ -789,19 +1046,19 @@ paths:
       responses:
         '204':
           description: No Content
-  /products/{sku}:
+  /products/{product_id}:
     parameters:
-      - name: sku
+      - name: product_id
         required: true
         in: path
-        description: Product SKU
+        description: A unique identifier for the product.
         schema:
           type: string
-          example: 'TV-SKU'
+          example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
     put:
       security:
         - bearerAuth: []
-      summary: Create or replace a product by product SKU
+      summary: Create or replace a product by product id
       description: |
         OpReplaceProduct requires `RoleAdmin` privileges.
       operationId: OpReplaceProduct
@@ -822,7 +1079,7 @@ paths:
     get:
       security:
         - bearerAuth: []
-      summary: Get a product by its SKU
+      summary: Get a product by product id
       description: |
         OpGetProduct requires `RoleShopper` privileges.
       operationId: OpGetProduct
@@ -864,6 +1121,20 @@ paths:
         '404':
           description: Not Found
   /products:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create a new product
+      description: |
+        OpCreateProduct requires `RoleAdmin` privileges.
+      operationId: OpCreateProduct
+      responses:
+        '200':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
     get:
       security:
         - bearerAuth: []
@@ -905,12 +1176,12 @@ paths:
       responses:
         '501':
           description: Not Implemented
-  /tiers/{tier_ref}:
+  /tiers/{tier_id}:
     parameters:
-      - name: tier_ref
+      - name: tier_id
         required: true
         in: path
-        description: Tier Reference
+        description: A unique identifier for the tier.
         schema:
           type: string
           example: 'trade'
@@ -929,7 +1200,7 @@ paths:
     get:
       security:
         - bearerAuth: []
-      summary: Get a pricing tier by tier reference
+      summary: Get a pricing tier by tier id
       description: |
         OpGetTier requires `RoleShopper` privileges.
       operationId: OpGetTier
@@ -950,7 +1221,22 @@ paths:
       responses:
         '501':
           description: Not Implemented
-  /products/{sku}/tiers/{tier_ref}/pricing:
+  /products/{product_id}/tiers/{tier_id}/pricing:
+    parameters:
+      - name: product_id
+        required: true
+        in: path
+        description: A unique identifier for the product.
+        schema:
+          type: string
+          example: 'TV-SKU'
+      - name: tier_id
+        required: true
+        in: path
+        description: A unique identifier for the tier.
+        schema:
+          type: string
+          example: 'default'
     put:
       security:
         - bearerAuth: []
@@ -960,21 +1246,6 @@ paths:
       operationId: OpUpdateTierPricing
       tags:
         - Pricing
-      parameters:
-        - name: sku
-          required: true
-          in: path
-          description: Product SKU
-          schema:
-            type: string
-            example: 'TV-SKU'
-        - name: tier_ref
-          required: true
-          in: path
-          description: Pricing tier reference
-          schema:
-            type: string
-            example: 'default'
       requestBody:
         content:
           application/json:
@@ -996,21 +1267,6 @@ paths:
       operationId: OpGetTierPricing
       tags:
         - Pricing
-      parameters:
-        - name: sku
-          required: true
-          in: path
-          description: Product SKU
-          schema:
-            type: string
-            example: 'TV-SKU'
-        - name: tier_ref
-          required: true
-          in: path
-          description: Pricing tier reference
-          schema:
-            type: string
-            example: 'default'
       responses:
         '200':
           description: Pricing object
@@ -1027,25 +1283,10 @@ paths:
       operationId: OpDeleteTierPricing
       tags:
         - Pricing
-      parameters:
-        - name: sku
-          required: true
-          in: path
-          description: Product SKU
-          schema:
-            type: string
-            example: 'TV-SKU'
-        - name: tier_ref
-          required: true
-          in: path
-          description: Pricing tier reference
-          schema:
-            type: string
-            example: 'default'
       responses:
         '204':
           description: No Content
-  /products/tiers/{tier_ref}/pricing:
+  /products/tiers/{tier_id}/pricing:
     get:
       security:
         - bearerAuth: []
@@ -1056,10 +1297,10 @@ paths:
       tags:
         - Pricing
       parameters:
-        - name: tier_ref
+        - name: tier_id
           required: true
           in: path
-          description: Pricing tier reference
+          description: A unique identifier for the tier.
           schema:
             type: string
             example: 'default'
@@ -1109,6 +1350,46 @@ paths:
                     status: 409
                     code: 'validate/invalid-request-body'
                     message: For placing guest orders set both contact_name and email
+  /orders/{order_id}/stripecheckout:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Start Stripe checkout session
+      description: |
+        OpStripeCheckout requires `RoleShopper` privileges. Initiates the Stripe checkout process recording an intent to pay against the order with the given `order_id`.
+      operationId: OpStripCheckout
+      tags:
+        - Stripe
+      parameters:
+        - name: order_id
+          required: true
+          in: path
+          description: Order ID
+          schema:
+            type: string
+            example: '100005'
+      responses:
+        '201':
+          description: Stripe Checkout Session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSessionResponse'
+  /stripe-webhook:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Stripe Web Hook callback for fulfillment
+      description: |
+        OpStripeWebhook requires no privileges and is a public endpoint. See the Stripe documentation on [Fulfilling purchases with webhooks](https://stripe.com/docs/payments/checkout/fulfillment#webhooks).
+
+        After OpStripeWebhook is called successfully, the order status is set to `completed` and payment set to `paid`.
+      operationId: StripeWebhook
+      tags:
+        - Stripe
+      responses:
+        '204':
+          description: No Content
   /sysinfo:
     get:
       security:
@@ -1133,6 +1414,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    StripeCheckoutSessionResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'stripe_checkout_session'
+        checkout_session_id:
+          type: string
+          example: 'cs_test_7sKcYwUtBPWVonB6b5aa0UrhwTBrId78Wb9l0GTEduj3rCwmi33EJAEr'
     Cart:
       type: object
       properties:
@@ -1186,6 +1476,80 @@ components:
           type: string
           format: date-time
           example: '2019-08-01T15:37:32.269875Z'
+    UpdateDiscountRequest:
+      type: object
+      required:
+        - type
+        - start
+        - end
+        - amount
+        - name
+      properties:
+        type:
+          type: string
+          enum: [percentage, fixed]
+          example: 'percentage'
+        start:
+          type: string
+          format: date-time
+          example: '2019-08-05 09:00:00.000000Z'
+        end:
+          type: string
+          format: date-time
+          example: '2019-08-08 18:00:00.000000Z'
+        amount:
+          type: integer
+          example: 200000
+        name:
+          type: string
+          example: 'August Deals'
+    Discount:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'discount'
+        id:
+          type: string
+          format: uuid
+          example: '391c499e-5e58-430a-8d92-a8587cbc3517'
+        code:
+          type: string
+          example: 'AUG20'
+        type:
+          type: string
+          enum: [percentage, fixed]
+          example: 'percentage'
+        starts_at:
+          type: string
+          format: date-time
+          example: '2019-08-05 09:00:00.000000Z'
+        ends_at:
+          type: string
+          format: date-time
+          example: '2019-08-08 18:00:00.000000Z'
+        amount:
+          type: integer
+          example: 150000
+        name:
+          type: string
+          example: 'August Special'
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+    AppyDiscountRequest:
+      type: object
+      required:
+        - discount_code
+      properties:
+        discount_id:
+          type: string
+          example: 'AUG20'
     UpdateCartItem:
       type: object
       required:
@@ -1229,16 +1593,10 @@ components:
           example: 'Doe'
     Customer:
       type: object
-      required:
-        - id
-        - uid
-        - role
-        - email
-        - firstname
-        - lastname
-        - created
-        - modified
       properties:
+        object:
+          type: string
+          example: 'customer'
         id:
           type: string
           format: uuid
@@ -1310,7 +1668,35 @@ components:
       properties:
         custom_token:
           type: string
-          example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXJlYmFzZS1hZG1pbnNkay1xbGwzaEB0ZXN0LWRhdGEtb2FrLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6Ly9pZGVudGl0eXRvb2xraXQuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJleHAiOjE1NjQ2MTU1NzYsImlhdCI6MTU2NDYxMTk3Niwic3ViIjoiZmlyZWJhc2UtYWRtaW5zZGstcWxsM2hAdGVzdC1kYXRhLW9hay5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsInVpZCI6IkFIeXJWTUZ5cEdOOVJ1VDF3R0VlcmtvcEdybjEifQ.nIUsoOqfSBZuiYM9oWCwLAg9EGiudjYcgN5xEdn-8fN_SXlEOd3zf0COpA2d8R-Bk3WPD2l-EjMwVg4FH3Wefq8_TTbI_N1d4Ih3e-ksvlsvw-PP8Rye9yx58hEojmSsVk7FccBtvW8upl-GSa2j_sfRT4Sfaa9u1WmUdjMu_-wosZDYnDlMs1p73KN6Fq6NizsfcDVSWDDi3kzLg1ROI8kcqPE_O2N33e8Tm2mgfd9SXQL5XlpbuF963qqvLgq--0fQ37r-7Med2m_emfG93ZhsqYzIlBgSx3EgaZ_msW_Cia37d5UApqvR2RH0udzjRpXvN4Evh3CiSnC696oIeQ","customer":{"id":"7835fa6e-38de-4959-8838-c88ab3e073b3","uid":"AHyrVMFypGN9RuT1wGEerkopGrn1","role":"root","email":"andy+root@andyfusniak.com","firstname":"Andy","lastname":"Fusniak","created":"2019-07-31T14:36:02.918471Z","modified":"2019-07-31T14:36:02.918471Z"}}'
+          example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXJlYmFzZS1hZG1pbnNkay1xbGwzaEB0ZXN0LWRhdGEtb2FrLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6Ly9pZGVudGl0eXRvb2xraXQuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJleHAiOjE1NjQ2MTU1NzYsImlhdCI6MTU2NDYxMTk3Niwic3ViIjoiZmlyZWJhc2UtYWRtaW5zZGstcWxsM2hAdGVzdC1kYXRhLW9hay5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsInVpZCI6IkFIeXJWTUZ5cEdOOVJ1VDF3R0VlcmtvcEdybjEifQ.nIUsoOqfSBZuiYM9oWCwLAg9EGiudjYcgN5xEdn-8fN_SXlEOd3zf0COpA2d8R-Bk3WPD2l-EjMwVg4FH3Wefq8_TTbI_N1d4Ih3e-ksvlsvw-PP8Rye9yx58hEojmSsVk7FccBtvW8upl-GSa2j_sfRT4Sfaa9u1WmUdjMu_-wosZDYnDlMs1p73KN6Fq6NizsfcDVSWDDi3kzLg1ROI8kcqPE_O2N33e8Tm2mgfd9SXQL5XlpbuF963qqvLgq--0fQ37r-7Med2m_emfG93ZhsqYzIlBgSx3EgaZ_msW_Cia37d5UApqvR2RH0udzjRpXvN4Evh3CiSnC696oIeQ'
+        customer:
+          type: object
+          properties:
+            id:
+              type: string
+              example: '7835fa6e-38de-4959-8838-c88ab3e073b3'
+            uid:
+              type: string
+              example: 'AHyrVMFypGN9RuT1wGEerkopGrn1'
+            role:
+              type: string
+              example: 'root'
+            email:
+              type: string
+              format: email
+              example: 'andy+root@andyfusniak.com'
+            firstname:
+              type: string
+              example: 'Andy'
+            lastname:
+              type: string
+              example: 'Fusniak'
+            created:
+              type: string
+              example: '2019-07-31T14:36:02.918471Z'
+            modified:
+              type: string
+              example: '2019-07-31T14:36:02.918471Z'
     NewOrder:
       type: object
       required:
@@ -1447,8 +1833,14 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/AssocProduct'
-    Categories:
+    CategoriesResponse:
       properties:
+        object:
+          type: string
+          example: 'category'
+        id:
+          type: string
+          example: 'c2ebdb86-5cd1-4c4c-8614-017a494ff77b'
         segment:
           type: string
           example: 'wireless-cctv'
@@ -1458,8 +1850,8 @@ components:
         categories:
           type: array
           items:
-            $ref: '#/components/schemas/Categories'
-    CategoryNode:
+            $ref: '#/components/schemas/CategoriesResponse'
+    CategoryNodeRequest:
       required:
         - segment
         - name
@@ -1474,7 +1866,7 @@ components:
         categories:
           type: array
           items:
-            $ref: '#/components/schemas/CategoryNode'
+            $ref: '#/components/schemas/CategoryNodeRequest'
     PricingMap:
       type: object
       additionalProperties:
@@ -1503,10 +1895,13 @@ components:
         object:
           type: string
           example: 'pricing'
+        id:
+          type: string
+          example: b85f6782-c6a8-4188-81ca-c9c1eba45367
         sku:
           type: string
           example: 'TV-SKU'
-        tier_ref:
+        tier_id:
           type: string
           example: 'default'
         unit_price:
@@ -1621,23 +2016,19 @@ components:
         in_the_box:
           type: string
     Product:
-      required:
-        - object
-        - sku
-        - path
-        - name
-        - images
-        - pricing
-        - content
-        - created
-        - modified
       properties:
         object:
           type: string
           example: 'product'
+        id:
+          type: string
+          example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
         sku:
           type: string
           example: 'TV-SKU'
+        ean:
+          type: string
+          example: '883445623'
         path:
           type: string
           example: 'usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system'
@@ -1726,7 +2117,7 @@ components:
           example: "assocs/assocs-already-exists"
         message:
           type: string
-          example: "catalog associations already exist"
+          example: "catalog associations already exists"
     PutAssocsConflictResponse:
       properties:
         status:
@@ -1737,7 +2128,7 @@ components:
           example: "assocs/assocs-already-exists"
         message:
           type: string
-          example: "catalog associations already exist"
+          example: "catalog associations already exists"
         data:
           type: object
           properties:
