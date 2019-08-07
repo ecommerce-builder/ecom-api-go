@@ -99,9 +99,9 @@ func (pd *ProductContent) Scan(value interface{}) error {
 	return fmt.Errorf("scan value failed")
 }
 
-// ErrProductNotFound is returned by GetProduct when the product with
-// the given SKU could not be found in the database.
-var ErrProductNotFound = errors.New("model: product not found")
+// ErrProductNotFound is returned by GetProduct when the query
+// for the product could not be found in the database.
+var ErrProductNotFound = errors.New("product not found")
 
 // CreateProduct creates a new product with the given SKU.
 func (m *PgModel) CreateProduct(ctx context.Context, sku, ean, path, name string, content ProductContent) (*ProductRow, error) {
@@ -121,20 +121,20 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku, ean, path, name string
 	return &p, nil
 }
 
-// GetProduct returns a single product by SKU.
-func (m *PgModel) GetProduct(ctx context.Context, sku string) (*ProductRow, error) {
+// GetProductByUUID returns a single product by UUID.
+func (m *PgModel) GetProductByUUID(ctx context.Context, uuid string) (*ProductRow, error) {
 	query := `
 		SELECT id, uuid, sku, ean, path, name, content, created, modified
 		FROM products
-		WHERE sku = $1
+		WHERE uuid = $1
 	`
 	p := ProductRow{}
-	row := m.db.QueryRowContext(ctx, query, sku)
+	row := m.db.QueryRowContext(ctx, query, uuid)
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProductNotFound
 		}
-		return nil, errors.Wrapf(err, "query scan context sku=%q query=%q", sku, query)
+		return nil, errors.Wrapf(err, "query scan context uuid=%q query=%q", uuid, query)
 	}
 	return &p, nil
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,14 +17,14 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetProductHandler called")
 
-		sku := chi.URLParam(r, "sku")
-		product, err := a.Service.GetProduct(ctx, sku)
+		productID := chi.URLParam(r, "product_id")
+		product, err := a.Service.GetProduct(ctx, productID)
 		if err != nil {
-			if err == postgres.ErrProductNotFound {
+			if err == service.ErrProductNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("app: GetProduct(ctx, %q) error: %+v", sku, err)
+			contextLogger.Errorf("app: GetProduct(ctx, productID=%q) error: %+v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

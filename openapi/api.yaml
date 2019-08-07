@@ -1087,7 +1087,7 @@ paths:
         - Products
       responses:
         '200':
-          description: Product object
+          description: product object
           content:
             application/json:
               schema:
