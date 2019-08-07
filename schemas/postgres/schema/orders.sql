@@ -7,8 +7,8 @@ CREATE TYPE order_payment_status_t
 CREATE TABLE IF NOT EXISTS orders (
   id              SERIAL PRIMARY KEY,
   uuid            UUID DEFAULT uuid_generate_v4() UNIQUE,
-  status          order_status_t DEFAULT 'incomplete',
-  payment         order_payment_status_t DEFAULT 'unpaid',
+  status          order_status_t NOT NULL DEFAULT 'incomplete',
+  payment         order_payment_status_t NOT NULL DEFAULT 'unpaid',
   customer_id     INTEGER NULL,
   customer_name   VARCHAR(512) NULL DEFAULT NULL,
   customer_email  VARCHAR(512) NULL DEFAULT NULL,

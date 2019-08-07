@@ -3,52 +3,72 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 schemadir=$DIR/../schema
 
 echo "Initialising"
-cat $schemadir/init.sql | psql --no-psqlrc ecom_dev
+cat $schemadir/init.sql | psql --no-psqlrc ecom_dev > /dev/null
 
 echo "Creating schema_version() function"
-cat $schemadir/schema_version_function.sql | psql --no-psqlrc ecom_dev
+cat $schemadir/schema_version_function.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating products"
-cat $schemadir/products.sql | psql --no-psqlrc ecom_dev
+echo "Creating products table"
+cat $schemadir/products.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating carts"
-cat $schemadir/carts.sql | psql --no-psqlrc ecom_dev
+echo "Creating shipping table"
+cat $schemadir/shipping.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Createing cart_items"
-cat $schemadir/cart_items.sql | psql --no-psqlrc ecom_dev
 
-echo "Creating pricing_tiers"
-cat $schemadir/pricing_tiers.sql | psql --no-psqlrc ecom_dev
+echo "Creating product_sets table"
+cat $schemadir/product_sets.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating product pricing"
-cat $schemadir/product_pricing.sql | psql --no-psqlrc ecom_dev
 
-echo "Creating product images"
-cat $schemadir/product_images.sql | psql --no-psqlrc ecom_dev
+echo "Creating carts table"
+cat $schemadir/carts.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating categories"
-cat $schemadir/categories.sql | psql --no-psqlrc ecom_dev
+echo "Createing cart_items table"
+cat $schemadir/cart_items.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating pricing_tiers table"
+cat $schemadir/pricing_tiers.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating product pricing table"
+cat $schemadir/product_pricing.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating product images table"
+cat $schemadir/product_images.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating categories table"
+cat $schemadir/categories.sql | psql --no-psqlrc ecom_dev > /dev/null
 
 echo "Creating categories_products (is_leaf function and categories_products table)"
-cat $schemadir/categories_products.sql | psql --no-psqlrc ecom_dev
+cat $schemadir/categories_products.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating categories_leafs (view)"
-cat $schemadir/categories_leafs.sql | psql --no-psqlrc ecom_dev
+echo "Creating categories_leafs view"
+cat $schemadir/categories_leafs.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating customers"
-cat $schemadir/customers.sql | psql --no-psqlrc ecom_dev
+echo "Creating promo_rules table"
+cat $schemadir/promo_rules.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating customers_devkeys"
-cat $schemadir/customers_devkeys.sql | psql --no-psqlrc ecom_dev
+echo "Creating coupons table"
+cat $schemadir/coupons.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating addresses"
-cat $schemadir/addresses.sql | psql --no-psqlrc ecom_dev
+echo "Creating cart_coupons table"
+cat $schemadir/cart_coupons.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating orders"
-cat $schemadir/orders.sql | psql --no-psqlrc ecom_dev
+echo "Creating offers table"
+cat $schemadir/offers.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating order_items"
-cat $schemadir/order_items.sql | psql --no-psqlrc ecom_dev
+echo "Creating customers table"
+cat $schemadir/customers.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating payments"
-cat $schemadir/payments.sql | psql --no-psqlrc ecom_dev
+echo "Creating customers_devkeys table"
+cat $schemadir/customers_devkeys.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating addresses table"
+cat $schemadir/addresses.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating orders table"
+cat $schemadir/orders.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating order_items table"
+cat $schemadir/order_items.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating payments table"
+cat $schemadir/payments.sql | psql --no-psqlrc ecom_dev > /dev/null
