@@ -44,8 +44,8 @@ type ProductContent struct {
 	InTheBox      string   `json:"in_the_box"`
 }
 
-// Product maps to a products row.
-type Product struct {
+// ProductRow maps to a products row.
+type ProductRow struct {
 	id       int
 	UUID     string
 	SKU      string
@@ -104,7 +104,7 @@ func (pd *ProductContent) Scan(value interface{}) error {
 var ErrProductNotFound = errors.New("model: product not found")
 
 // CreateProduct creates a new product with the given SKU.
-func (m *PgModel) CreateProduct(ctx context.Context, sku, ean, path, name string, content ProductContent) (*Product, error) {
+func (m *PgModel) CreateProduct(ctx context.Context, sku, ean, path, name string, content ProductContent) (*ProductRow, error) {
 	query := `
 		INSERT INTO products (
 			sku, ean, path, name, content, created, modified
@@ -113,7 +113,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku, ean, path, name string
 		) RETURNING
 			id, uuid, sku, ean, path, name, content, created, modified
 	`
-	p := Product{}
+	p := ProductRow{}
 	row := m.db.QueryRowContext(ctx, query, sku, ean, path, name, content)
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query scan context sku=%q, query=%q", sku, query)
@@ -122,13 +122,13 @@ func (m *PgModel) CreateProduct(ctx context.Context, sku, ean, path, name string
 }
 
 // GetProduct returns a single product by SKU.
-func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) {
+func (m *PgModel) GetProduct(ctx context.Context, sku string) (*ProductRow, error) {
 	query := `
 		SELECT id, uuid, sku, ean, path, name, content, created, modified
 		FROM products
 		WHERE sku = $1
 	`
-	p := Product{}
+	p := ProductRow{}
 	row := m.db.QueryRowContext(ctx, query, sku)
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
@@ -140,7 +140,7 @@ func (m *PgModel) GetProduct(ctx context.Context, sku string) (*Product, error) 
 }
 
 // GetProducts returns a list of all products in the products table.
-func (m *PgModel) GetProducts(ctx context.Context) ([]*Product, error) {
+func (m *PgModel) GetProducts(ctx context.Context) ([]*ProductRow, error) {
 	query := `
 		SELECT id, uuid, sku, ean, path, name, content, created, modified
 		FROM products
@@ -151,9 +151,9 @@ func (m *PgModel) GetProducts(ctx context.Context) ([]*Product, error) {
 	}
 	defer rows.Close()
 
-	products := make([]*Product, 0, 256)
+	products := make([]*ProductRow, 0, 256)
 	for rows.Next() {
-		var p Product
+		var p ProductRow
 		if err := rows.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
@@ -226,7 +226,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCrea
 		RETURNING
 		  id, uuid, sku, ean, path, name, content, created, modified
 	`
-	p := Product{}
+	p := ProductRow{}
 	row := m.db.QueryRowContext(ctx, query, sku, pu.EAN, pu.Path, pu.Name, pu.Content,
 		pu.EAN, pu.Path, pu.Name, pu.Content, sku)
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
