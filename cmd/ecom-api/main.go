@@ -607,7 +607,7 @@ func main() {
 			r.Put("/{sku}", a.Authorization(app.OpReplaceProduct, a.CreateReplaceProductHandler()))
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
 			r.Get("/{product_id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
-			r.Head("/{sku}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
+			r.Head("/{product_id}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
 			r.Delete("/{sku}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
 			r.Get("/{sku}/pricing", a.Authorization(app.OpMapPricingBySKU, a.PricingMapBySKUHandler()))
