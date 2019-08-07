@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrProductNotFound is returned by GetProduct when the query
+// for the product could not be found in the database.
+var ErrProductNotFound = errors.New("product not found")
+
 // ImageEntry contains the product image data.
 type ImageEntry struct {
 	Path  string `json:"path"`
@@ -40,6 +44,8 @@ type ProductCreate struct {
 
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
+	Object   string                    `json:"object"`
+	ID       string                    `json:"id"`
 	SKU      string                    `json:"sku"`
 	EAN      string                    `json:"ean"`
 	Path     string                    `json:"path"`
@@ -183,27 +189,29 @@ func (s *Service) ProductsExist(ctx context.Context, skus []string) (exists, mis
 }
 
 // GetProduct gets a product given the SKU.
-func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) {
-	p, err := s.model.GetProduct(ctx, sku)
+func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, error) {
+	p, err := s.model.GetProductByUUID(ctx, productID)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
-			return nil, err
+			return nil, ErrProductNotFound
 		}
-		return nil, errors.Wrapf(err, "model: GetProduct(ctx, %q) failed", sku)
+		return nil, errors.Wrapf(err, "model: GetProduct(ctx, productID=%q) failed", productID)
 	}
-	images, err := s.ListProductImages(ctx, sku)
+	images, err := s.ListProductImages(ctx, p.SKU)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", sku)
+		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", p.SKU)
 	}
-	pricing, err := s.PricingMapBySKU(ctx, sku)
+	pricing, err := s.PricingMapBySKU(ctx, p.SKU)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: PricingMapBySKU(ctx, %q)", sku)
+		return nil, errors.Wrapf(err, "service: PricingMapBySKU(ctx, %q)", p.SKU)
 	}
 	return &Product{
-		SKU:  p.SKU,
-		EAN:  p.EAN,
-		Path: p.Path,
-		Name: p.Name,
+		Object: "product",
+		ID:     p.UUID,
+		SKU:    p.SKU,
+		EAN:    p.EAN,
+		Path:   p.Path,
+		Name:   p.Name,
 		Content: ProductContent{
 			Description:   p.Content.Description,
 			Specification: p.Content.Specification,
