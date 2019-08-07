@@ -51,6 +51,18 @@ type Product struct {
 	Modified time.Time                 `json:"modified,omitempty"`
 }
 
+// ProductSlim is a condensed representatio of a product
+type ProductSlim struct {
+	Object   string    `json:"object"`
+	ID       string    `json:"id"`
+	SKU      string    `json:"sku"`
+	EAN      string    `json:"ean"`
+	Path     string    `json:"path"`
+	Name     string    `json:"name"`
+	Created  time.Time `json:"created"`
+	Modified time.Time `json:"modified"`
+}
+
 // ReplaceProduct create a new product if the product SKU does not
 // already exist, or updates it if it does.
 func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCreate) (*Product, error) {
@@ -204,16 +216,26 @@ func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) 
 }
 
 // ListProducts returns a slice of all product SKUS.
-func (s *Service) ListProducts(ctx context.Context) ([]string, error) {
+func (s *Service) ListProducts(ctx context.Context) ([]*ProductSlim, error) {
 	products, err := s.model.GetProducts(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "service: GetProduct")
 	}
-	skus := make([]string, 0, 256)
+	shortProducts := make([]*ProductSlim, 0, len(products))
 	for _, p := range products {
-		skus = append(skus, p.SKU)
+		ps := ProductSlim{
+			Object:   "product_slim",
+			ID:       p.UUID,
+			SKU:      p.SKU,
+			EAN:      p.EAN,
+			Path:     p.Path,
+			Name:     p.Name,
+			Created:  p.Created,
+			Modified: p.Modified,
+		}
+		shortProducts = append(shortProducts, &ps)
 	}
-	return skus, nil
+	return shortProducts, nil
 }
 
 // ProductExists return true if the given product exists.
