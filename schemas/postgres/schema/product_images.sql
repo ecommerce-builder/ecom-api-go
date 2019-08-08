@@ -2,7 +2,6 @@ CREATE TABLE IF NOT EXISTS product_images (
   id          SERIAL PRIMARY KEY,
   product_id  INTEGER NOT NULL,
   uuid        UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
-  sku         VARCHAR(64) NOT NULL,
   w           INTEGER NOT NULL CHECK (w > 0),
   h           INTEGER NOT NULL CHECK (h > 0),
   path        VARCHAR(4096) NOT NULL UNIQUE,
@@ -16,8 +15,7 @@ CREATE TABLE IF NOT EXISTS product_images (
   data        JSONB,
   created     TIMESTAMP NOT NULL DEFAULT NOW(),
   modified    TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (product_id) REFERENCES products (id),
-  FOREIGN KEY (sku) REFERENCES products (sku)
+  FOREIGN KEY (product_id) REFERENCES products (id)
 );
 
 CREATE INDEX IF NOT EXISTS pi_created_idx  ON product_images (created DESC);

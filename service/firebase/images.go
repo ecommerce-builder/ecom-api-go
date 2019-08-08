@@ -12,8 +12,8 @@ import (
 
 // Image represents a product image.
 type Image struct {
+	Object   string    `json:"object"`
 	ID       string    `json:"id"`
-	SKU      string    `json:"sku"`
 	Path     string    `json:"path"`
 	GSURL    string    `json:"gsurl"`
 	Width    uint      `json:"width"`
@@ -24,26 +24,25 @@ type Image struct {
 }
 
 // CreateImageEntry creates a new image entry for a product with the given SKU.
-func (s *Service) CreateImageEntry(ctx context.Context, sku, path string) (*Image, error) {
+func (s *Service) CreateImageEntry(ctx context.Context, productID, path string) (*Image, error) {
 	pc := postgres.CreateImage{
-		SKU:   sku,
-		W:     99999999,
-		H:     99999999,
-		Path:  path,
-		GSURL: fmt.Sprintf("%s%s", "gs://", path),
-		Typ:   "image/jpeg",
-		Ori:   true,
-		Pri:   10,
-		Size:  0,
-		Q:     100,
+		ProductID: productID,
+		W:         99999999,
+		H:         99999999,
+		Path:      path,
+		GSURL:     fmt.Sprintf("%s%s", "gs://", path),
+		Typ:       "image/jpeg",
+		Ori:       true,
+		Pri:       10,
+		Size:      0,
+		Q:         100,
 	}
 	pi, err := s.model.CreateImageEntry(ctx, &pc)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: create image sku=%q, path=%q, entry failed", sku, path)
+		return nil, errors.Wrapf(err, "service: create image productID=%q, path=%q, entry failed", productID, path)
 	}
 	image := Image{
 		ID:       pi.UUID,
-		SKU:      pi.SKU,
 		Path:     pi.Path,
 		GSURL:    pi.GSURL,
 		Width:    pi.W,
@@ -88,7 +87,6 @@ func (s *Service) GetImage(ctx context.Context, id string) (*Image, error) {
 	}
 	image := Image{
 		ID:       pi.UUID,
-		SKU:      pi.SKU,
 		Path:     pi.Path,
 		GSURL:    pi.GSURL,
 		Width:    pi.W,
@@ -110,7 +108,6 @@ func (s *Service) ListProductImages(ctx context.Context, sku string) ([]*Image, 
 	for _, pi := range pilist {
 		image := Image{
 			ID:       pi.UUID,
-			SKU:      pi.SKU,
 			Path:     pi.Path,
 			GSURL:    pi.GSURL,
 			Width:    pi.W,

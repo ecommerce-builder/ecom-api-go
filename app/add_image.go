@@ -5,16 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/go-chi/chi"
 )
-
-type imageResponseBody struct {
-	Object string `json:"object"`
-	*service.Image
-}
 
 // AddImageHandler creates a handler to add an images to a product.
 func (a *App) AddImageHandler() http.HandlerFunc {
@@ -26,10 +20,10 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: AddImageHandler started")
 
-		sku := chi.URLParam(r, "sku")
-		exists, err := a.Service.ProductExists(ctx, sku)
+		productID := chi.URLParam(r, "product_id")
+		exists, err := a.Service.ProductExists(ctx, productID)
 		if err != nil {
-			contextLogger.Errorf("a.Service.ProductExists(ctx, %q) failed: error %v", sku, err)
+			contextLogger.Errorf("a.Service.ProductExists(ctx, productID=%q) failed: error %v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -42,7 +36,7 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 			}{
 				http.StatusConflict,
 				ErrCodeProductSKUNotFound,
-				fmt.Sprintf("product with sku=%s not found", sku),
+				fmt.Sprintf("product of id=%q not found", productID),
 			})
 			return
 		}
@@ -54,7 +48,7 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		}
 		exists, err = a.Service.ImagePathExists(ctx, imageRequestBody.Path)
 		if err != nil {
-			contextLogger.Errorf("service ImageExists(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
+			contextLogger.Errorf("service ImageExists(ctx, path=%q) error: %v", imageRequestBody.Path, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -69,17 +63,13 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 			})
 			return
 		}
-		image, err := a.Service.CreateImageEntry(ctx, sku, imageRequestBody.Path)
+		image, err := a.Service.CreateImageEntry(ctx, productID, imageRequestBody.Path)
 		if err != nil {
-			contextLogger.Errorf("service CreateImageEntry(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
+			contextLogger.Errorf("service CreateImageEntry(ctx, productID=%s, %s) error: %v", imageRequestBody.Path, productID, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		res := imageResponseBody{
-			Object: "image",
-			Image:  image,
-		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(image)
 	}
 }

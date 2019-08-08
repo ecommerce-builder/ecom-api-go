@@ -69,22 +69,21 @@ type ProductSlim struct {
 	Modified time.Time `json:"modified"`
 }
 
-// ReplaceProduct create a new product if the product SKU does not
-// already exist, or updates it if it does.
-func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCreate) (*Product, error) {
+// UpdateProduct update and existing product by ID.
+func (s *Service) UpdateProduct(ctx context.Context, productID string, pc *ProductCreate) (*Product, error) {
 	imagesReq := make([]*postgres.CreateImage, 0, 4)
 	for _, i := range pc.Images {
 		img := postgres.CreateImage{
-			SKU:   sku,
-			W:     999999,
-			H:     999999,
-			Path:  i.Path,
-			Typ:   "image/jpeg",
-			Ori:   true,
-			Pri:   10,
-			Size:  0,
-			Q:     100,
-			GSURL: "gs://" + i.Path,
+			ProductID: productID,
+			W:         999999,
+			H:         999999,
+			Path:      i.Path,
+			Typ:       "image/jpeg",
+			Ori:       true,
+			Pri:       10,
+			Size:      0,
+			Q:         100,
+			GSURL:     "gs://" + i.Path,
 		}
 		imagesReq = append(imagesReq, &img)
 	}
@@ -112,15 +111,14 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 			InTheBox:      pc.Content.InTheBox,
 		},
 	}
-	p, err := s.model.UpdateProduct(ctx, sku, update)
+	p, err := s.model.UpdateProduct(ctx, productID, update)
 	if err != nil {
-		return nil, errors.Wrapf(err, "UpdateProduct(ctx, sku=%q, ...) failed", sku)
+		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%q, ...) failed", productID)
 	}
 	images := make([]*Image, 0, 4)
 	for _, i := range p.Images {
 		img := Image{
 			ID:       i.UUID,
-			SKU:      i.SKU,
 			Path:     i.Path,
 			GSURL:    i.GSURL,
 			Width:    i.W,
@@ -141,6 +139,8 @@ func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCre
 		pricing[TierRef(pr.TierRef)] = &price
 	}
 	return &Product{
+		Object:  "product",
+		ID:      p.UUID,
 		SKU:     p.SKU,
 		EAN:     p.EAN,
 		Path:    p.Path,

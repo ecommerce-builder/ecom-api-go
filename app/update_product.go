@@ -24,18 +24,17 @@ func validateRequestBody(pc *service.ProductCreate) error {
 	return nil
 }
 
-// CreateReplaceProductHandler creates a new product if it does not exist, or
-// updates and existing product.
+// UpdateProductHandler updates an existing product.
 //
 // A separate call must be made to associate the product to the catalog
 // hierarchy.
-func (a *App) CreateReplaceProductHandler() http.HandlerFunc {
+func (a *App) UpdateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: CreateReplaceProductHandler started")
+		contextLogger.Info("App: UpdateProductHandler started")
 
-		sku := chi.URLParam(r, "sku")
+		productID := chi.URLParam(r, "product_id")
 		pc := service.ProductCreate{}
 		if err := json.NewDecoder(r.Body).Decode(&pc); err != nil {
 			http.Error(w, err.Error(), 400)
@@ -54,7 +53,7 @@ func (a *App) CreateReplaceProductHandler() http.HandlerFunc {
 			})
 			return
 		}
-		product, err := a.Service.ReplaceProduct(ctx, sku, &pc)
+		product, err := a.Service.UpdateProduct(ctx, productID, &pc)
 		if err != nil {
 			contextLogger.Errorf("create product failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

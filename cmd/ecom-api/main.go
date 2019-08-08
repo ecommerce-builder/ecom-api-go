@@ -586,7 +586,7 @@ func main() {
 			r.Delete("/{ref}", a.Authorization(app.OpDeleteTier, a.NotImplementedHandler()))
 		})
 
-		r.Route("/products/{sku}/images", func(r chi.Router) {
+		r.Route("/products/{product_id}/images", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpAddImage, a.AddImageHandler()))
 			r.Get("/", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
 			r.Delete("/", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
@@ -604,7 +604,7 @@ func main() {
 		})
 
 		r.Route("/products", func(r chi.Router) {
-			r.Put("/{sku}", a.Authorization(app.OpReplaceProduct, a.CreateReplaceProductHandler()))
+			r.Put("/{product_id}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
 			r.Get("/{product_id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
 			r.Head("/{product_id}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))

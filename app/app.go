@@ -69,11 +69,11 @@ const (
 	OpDeleteAddress         string = "OpDeleteAddress"
 
 	// Products
-	OpReplaceProduct string = "OpReplaceProduct"
-	OpGetProduct     string = "OpGetProduct"
-	OpListProducts   string = "OpListProducts"
-	OpProductExists  string = "OpProductExists"
-	OpDeleteProduct  string = "OpDeleteProduct"
+	OpUpdateProduct string = "OpUpdateProduct"
+	OpGetProduct    string = "OpGetProduct"
+	OpListProducts  string = "OpListProducts"
+	OpProductExists string = "OpProductExists"
+	OpDeleteProduct string = "OpDeleteProduct"
 
 	// Pricing Tiers
 	OpCreateTier string = "OpCreateTier"

@@ -44,6 +44,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// superuser has all privileges. The JWT containing the claims is cryptographically
 		// signed with a claim of "root" so we give maximum privilege.
 		if role == RoleSuperUser {
+			contextLogger.Infof("%s authorized for RoleSuperUser", op)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -60,7 +61,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetTier:
 			next.ServeHTTP(w, r)
 			return
-		case OpListCustomers, OpReplaceProduct, OpDeleteProduct,
+		case OpListCustomers, OpUpdateProduct, OpDeleteProduct,
 			OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo,
 			OpUpdateCatalog, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
