@@ -360,13 +360,13 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCrea
 	return &productFull, nil
 }
 
-// DeleteProduct delete the product with the given SKU returning the nu
-func (m *PgModel) DeleteProduct(ctx context.Context, sku string) error {
+// DeleteProduct delete the product with the given UUID.
+func (m *PgModel) DeleteProduct(ctx context.Context, uuid string) error {
 	query := `
 		DELETE FROM products
-		WHERE sku = $1
+		WHERE uuid = $1
 	`
-	_, err := m.db.ExecContext(ctx, query, sku)
+	_, err := m.db.ExecContext(ctx, query, uuid)
 	if err != nil {
 		return errors.Wrapf(err, "exec context query=%q", query)
 	}

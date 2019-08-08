@@ -255,11 +255,11 @@ func (s *Service) ProductExists(ctx context.Context, uuid string) (bool, error) 
 	return exists, nil
 }
 
-// DeleteProduct deletes the product with the given SKU.
-func (s *Service) DeleteProduct(ctx context.Context, sku string) error {
-	err := s.model.DeleteProduct(ctx, sku)
+// DeleteProduct deletes the product with the given UUID.
+func (s *Service) DeleteProduct(ctx context.Context, uuid string) error {
+	err := s.model.DeleteProduct(ctx, uuid)
 	if err != nil {
-		return errors.Wrapf(err, "delete product sku=%q failed", sku)
+		return errors.Wrapf(err, "delete product uuid=%q failed", uuid)
 	}
 	return nil
 }

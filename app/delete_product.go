@@ -14,13 +14,14 @@ func (a *App) DeleteProductHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteProductHandler started")
 
-		sku := chi.URLParam(r, "sku")
-		if err := a.Service.DeleteProduct(ctx, sku); err != nil {
-			contextLogger.Errorf("a.Service.DeleteProduct(ctx, sku=%q) failed: %v", sku, err)
+		productID := chi.URLParam(r, "product_id")
+		if err := a.Service.DeleteProduct(ctx, productID); err != nil {
+			contextLogger.Errorf("a.Service.DeleteProduct(ctx, productID=%q) failed: %v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.Header().Del("Content-Type")
+		w.Header().Set("Content-Length", "0")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}
 }
