@@ -1058,9 +1058,9 @@ paths:
     put:
       security:
         - bearerAuth: []
-      summary: Create or replace a product by product id
+      summary: Update a product including images and pricing by product id
       description: |
-        OpUpdateProduct requires `RoleAdmin` privileges.
+        OpUpdateProduct requires `RoleAdmin` privileges. OpUpdateProduct updates an existing product or returns a `404 Not Found` is the product is not found.
       operationId: OpUpdateProduct
       tags:
         - Products
@@ -1068,7 +1068,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewProduct'
+              $ref: '#/components/schemas/UpdateProduct'
       responses:
         '201':
           description: Product object
@@ -1986,13 +1986,110 @@ components:
         path:
           type: string
           example: 'images/products/namwa1.jpg'
-    NewProduct:
+    UpdateProduct:
       required:
         - ean
+        - path
+        - name
+        - images
+        - pricing
       properties:
         ean:
           type: string
           example: '5060181650666'
+        path:
+          type: string
+          example: 'water-bottle'
+        name:
+          type: string
+          example: 'Water Bottle'
+        images:
+          type: array
+          items:
+            required:
+              - path
+              - title
+            properties:
+              path:
+                type: string
+                example: 'https://www.example.com/yourfile.jpg'
+              title:
+                type: string
+                example: 'Side view of water bottle'
+        pricing:
+          type: array
+          items:
+            required:
+              - tier_ref
+              - unit_price
+            properties:
+              tier_ref:
+                type: string
+                example: 'default'
+              unit_price:
+                type: integer
+                description: Unit prices are stored as integer to 4 decimal places
+                example: 299500
+        content:
+          type: object
+          required:
+            - meta
+            - videos
+            - manuals
+          properties:
+            meta:
+              type: object
+              required:
+                - title
+                - keywords
+                - description
+              properties:
+                title:
+                  type: string
+                  description: The title of the page when rendered as HTML
+                  example: 'Water Bottle Page'
+                keywords:
+                  type: string
+                  example: 'water, bottle, drink'
+                description:
+                  type: string
+                  example: 'A refreshing drink for all occasions.'
+            videos:
+              type: array
+              items:
+                type: string
+              example:
+                - 'v1'
+                - 'v2'
+                - 'v3'
+            manuals:
+              type: array
+              items:
+                type: string
+              example:
+                - 'm1'
+                - 'm2'
+                - 'm3'
+            software:
+              type: array
+              items:
+                type: string
+              example:
+                - 's1'
+                - 's2'
+                - 's3'
+            summary:
+              type: string
+              example: 'Summary line'
+            specification:
+              type: string
+              example: 'Specification of your product'
+            description:
+              type: string
+              example: 'Your description goes here'
+            in_the_box:
+              type: string
+              example: 'Stuff in the box'
     ProductContent:
       required:
         - meta
