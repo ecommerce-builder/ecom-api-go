@@ -10,25 +10,24 @@ import (
 
 // CreateImage struct contains the data required to store a new product image.
 type CreateImage struct {
-	SKU   string
-	W     uint
-	H     uint
-	Path  string
-	Typ   string
-	Ori   bool
-	Pri   uint
-	Size  uint
-	Q     uint
-	GSURL string
-	Data  interface{}
+	ProductID string
+	W         uint
+	H         uint
+	Path      string
+	Typ       string
+	Ori       bool
+	Pri       uint
+	Size      uint
+	Q         uint
+	GSURL     string
+	Data      interface{}
 }
 
-// Image struct holds a row of the product_images table.
-type Image struct {
+// ImageRow struct holds a row of the product_images table.
+type ImageRow struct {
 	id        uint
 	ProductID uint
 	UUID      string
-	SKU       string
 	W         uint
 	H         uint
 	Path      string
@@ -45,30 +44,30 @@ type Image struct {
 }
 
 // CreateImageEntry writes a new image entry to the product_images table.
-func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateImage) (*Image, error) {
+func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateImage) (*ImageRow, error) {
 	query := `
 		INSERT INTO product_images (
-			product_id, sku,
+			product_id,
 			w, h, path, typ,
 			ori, up,
 			pri, size, q,
 			gsurl, created, modified
 		) VALUES (
-			(SELECT id FROM products WHERE sku = $1), $2,
-			$3, $4, $5, $6,
-			$7, false,
-			$8, $9, $10,
-			$11, NOW(), NOW()
+			(SELECT id FROM products WHERE uuid = $1),
+			$2, $3, $4, $5,
+			$6, false,
+			$7, $8, $9,
+			$10, NOW(), NOW()
 		) RETURNING
-			id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
+			id, product_id, uuid, w, h, path, typ, ori, up, pri, size, q,
 			gsurl, data, created, modified
 	`
-	p := Image{}
-	err := m.db.QueryRowContext(ctx, query, c.SKU, c.SKU,
+	p := ImageRow{}
+	err := m.db.QueryRowContext(ctx, query, c.ProductID,
 		c.W, c.H, c.Path, c.Typ,
 		c.Ori,
 		c.Pri, c.Size, c.Q,
-		c.GSURL).Scan(&p.id, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		c.GSURL).Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateImage) (*Image,
 }
 
 // GetImagesBySKU returns a slice of Images associated to a given product SKU.
-func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*Image, error) {
+func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ImageRow, error) {
 	query := `
 		SELECT
 		  id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
@@ -91,10 +90,10 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*Image, err
 		return nil, err
 	}
 	defer rows.Close()
-	images := make([]*Image, 0, 16)
+	images := make([]*ImageRow, 0, 16)
 	for rows.Next() {
-		p := Image{}
-		err = rows.Scan(&p.id, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		p := ImageRow{}
+		err = rows.Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 		if err != nil {
 			return nil, err
 		}
@@ -122,15 +121,15 @@ func (m *PgModel) ImagePathExists(ctx context.Context, path string) (bool, error
 
 // GetProductImageByUUID returns a ProductImage by the given UUID.
 // If the product is not found returns nil, error indicating not found.
-func (m *PgModel) GetProductImageByUUID(ctx context.Context, uuid string) (*Image, error) {
+func (m *PgModel) GetProductImageByUUID(ctx context.Context, uuid string) (*ImageRow, error) {
 	query := `
 		SELECT id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 		gsurl, data, created, modified
 		FROM product_images
 		WHERE uuid = $1
 	`
-	p := Image{}
-	if err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
+	p := ImageRow{}
+	if err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -152,7 +151,7 @@ func (m *PgModel) ImageUUIDExists(ctx context.Context, uuid string) (bool, error
 
 // ConfirmImageUploaded updates the `up` column to true to indicate the
 // uploaded has taken place.
-func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Image, error) {
+func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*ImageRow, error) {
 	query := `
 		UPDATE product_images
 		SET up = 't', modified = NOW()
@@ -160,8 +159,8 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Image
 		RETURNING id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 		gsurl, data, created, modified
 	`
-	p := Image{}
-	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.ProductID, &p.UUID, &p.SKU, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+	p := ImageRow{}
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, err
 	}

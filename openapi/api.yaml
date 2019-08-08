@@ -1060,8 +1060,8 @@ paths:
         - bearerAuth: []
       summary: Create or replace a product by product id
       description: |
-        OpReplaceProduct requires `RoleAdmin` privileges.
-      operationId: OpReplaceProduct
+        OpUpdateProduct requires `RoleAdmin` privileges.
+      operationId: OpUpdateProduct
       tags:
         - Products
       requestBody:

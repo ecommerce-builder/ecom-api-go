@@ -65,7 +65,7 @@ type ProductFull struct {
 	EAN      string
 	Path     string
 	Name     string
-	Images   []*Image
+	Images   []*ImageRow
 	Pricing  []*ProductPricing
 	Content  ProductContent
 	Created  time.Time
@@ -224,26 +224,22 @@ func (m *PgModel) ProductExistsBySKU(ctx context.Context, sku string) (bool, err
 	return true, nil
 }
 
-// UpdateProduct updates the details of a product with the given SKU.
-func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCreateUpdate) (*ProductFull, error) {
+// UpdateProduct updates the details of a product with the given product id.
+func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *ProductCreateUpdate) (*ProductFull, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 	query := `
-		INSERT INTO products (sku, ean, path, name, content, created, modified)
-		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-		ON CONFLICT (sku)
-		DO UPDATE
+		UPDATE products
 		  SET
-		    ean = $6, path = $7, name = $8, content = $9, modified = NOW()
-		  WHERE excluded.sku = $10
+		    ean = $1, path = $2, name = $3, content = $4, modified = NOW()
+		  WHERE uuid = $5
 		RETURNING
 		  id, uuid, sku, ean, path, name, content, created, modified
 	`
 	p := ProductRow{}
-	row := m.db.QueryRowContext(ctx, query, sku, pu.EAN, pu.Path, pu.Name, pu.Content,
-		pu.EAN, pu.Path, pu.Name, pu.Content, sku)
+	row := m.db.QueryRowContext(ctx, query, pu.EAN, pu.Path, pu.Name, pu.Content, productID)
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "query row context query=%q", query)
@@ -253,8 +249,8 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCrea
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
 	// effect the customer's experience.
-	query = `DELETE FROM product_images WHERE sku=$1`
-	if _, err = tx.ExecContext(ctx, query, sku); err != nil {
+	query = `DELETE FROM product_images WHERE product_id = $1`
+	if _, err = tx.ExecContext(ctx, query, p.id); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "model: delete product_images query=%q", query)
 	}
@@ -263,15 +259,15 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCrea
 	// or pri + 10 for each subseqent row.
 	query = `
 		INSERT INTO product_images (
-			product_id, sku,
+			product_id,
 			w, h, path, typ,
 			ori, up,
 			pri, size, q,
 			gsurl, created, modified
 		) VALUES (
-			(SELECT id FROM products WHERE sku = $1), $2,
-			$3, $4, $5, $6,
-			$7, false,
+			$1,
+			$2, $3, $4, $5,
+			$6, false,
 			(
 				SELECT
 					CASE WHEN COUNT(1) > 0
@@ -280,11 +276,11 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCrea
 				END
 				AS pri
 				FROM product_images
-				WHERE sku=$8
-			), $9, $10,
-			$11, NOW(), NOW()
+				WHERE id = $7
+			), $8, $9,
+			$10, NOW(), NOW()
 		) RETURNING
-		  id, product_id, uuid, sku, w,
+		  id, product_id, uuid, w,
 		  h, path, typ, ori, up, pri, size, q,
 		  gsurl, data, created, modified
 	`
@@ -295,15 +291,15 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCrea
 	}
 	defer stmt1.Close()
 
-	images := make([]*Image, 0)
+	images := make([]*ImageRow, 0)
 	for _, img := range pu.Images {
-		var pi Image
-		row := stmt1.QueryRowContext(ctx, sku, sku,
+		var pi ImageRow
+		row := stmt1.QueryRowContext(ctx, p.id,
 			img.W, img.H, img.Path, img.Typ,
 			img.Ori,
-			sku, img.Size, img.Q,
+			p.id, img.Size, img.Q,
 			img.GSURL)
-		if err := row.Scan(&pi.id, &pi.ProductID, &pi.UUID, &pi.SKU, &pi.W,
+		if err := row.Scan(&pi.id, &pi.ProductID, &pi.UUID, &pi.W,
 			&pi.H, &pi.Path, &pi.Typ, &pi.Ori, &pi.Up, &pi.Pri, &pi.Size, &pi.Q,
 			&pi.GSURL, &pi.Data, &p.Created, &p.Modified); err != nil {
 			tx.Rollback()
@@ -334,7 +330,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, sku string, pu *ProductCrea
 
 	pricing := make([]*ProductPricing, 0, 4)
 	for _, price := range pu.Pricing {
-		row = stmt2.QueryRowContext(ctx, price.TierRef, sku, price.UnitPrice, price.UnitPrice, sku, price.TierRef)
+		row = stmt2.QueryRowContext(ctx, price.TierRef, p.SKU, price.UnitPrice, price.UnitPrice, p.SKU, price.TierRef)
 		var pp ProductPricing
 		if err := row.Scan(&pp.id, &pp.TierRef, &pp.SKU, &pp.UnitPrice, &pp.Created, &pp.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
