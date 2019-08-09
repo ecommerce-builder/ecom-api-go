@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS product_images (
   id          SERIAL PRIMARY KEY,
-  product_id  INTEGER NOT NULL,
   uuid        UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
+  product_id  INTEGER NOT NULL,
   w           INTEGER NOT NULL CHECK (w > 0),
   h           INTEGER NOT NULL CHECK (h > 0),
   path        VARCHAR(4096) NOT NULL UNIQUE,

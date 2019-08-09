@@ -3,7 +3,6 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'address_t') THEN
         CREATE TYPE address_t AS ENUM('shipping', 'billing');
     END IF;
-    --more types here...
 END$$;
 
 CREATE TABLE IF NOT EXISTS addresses (

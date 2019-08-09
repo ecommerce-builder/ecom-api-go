@@ -1,8 +1,13 @@
-CREATE TYPE promo_rules_typ_t
-  AS ENUM ('percentage', 'fixed');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'promo_rules_typ_t') THEN
+        CREATE TYPE promo_rules_typ_t AS ENUM ('percentage', 'fixed');
+    END IF;
 
-CREATE TYPE promo_rules_target_t
-  AS ENUM ('product', 'productset', 'category', 'total', 'shipping');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'promo_rules_target_t') THEN
+        CREATE TYPE promo_rules_target_t AS ENUM ('product', 'productset', 'category', 'total', 'shipping');
+    END IF;
+END$$;
 
 CREATE TABLE IF NOT EXISTS promo_rules (
   id                 SERIAL PRIMARY KEY,
