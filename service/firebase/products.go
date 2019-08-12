@@ -32,8 +32,9 @@ type ProductContent struct {
 	InTheBox      string   `json:"in_the_box"`
 }
 
-// ProductCreate contains fields required for creating a product.
-type ProductCreate struct {
+// ProductCreateUpdate contains fields required for creating a product.
+type ProductCreateUpdate struct {
+	SKU     *string           `json:"sku,omitempty"`
 	EAN     string            `json:"ean"`
 	Path    string            `json:"path"`
 	Name    string            `json:"name"`
@@ -42,19 +43,24 @@ type ProductCreate struct {
 	Content ProductContent    `json:"content"`
 }
 
+type imageListContainer struct {
+	Object string   `json:"object"`
+	Data   []*Image `json:"data"`
+}
+
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	Object   string                    `json:"object"`
-	ID       string                    `json:"id"`
-	SKU      string                    `json:"sku"`
-	EAN      string                    `json:"ean"`
-	Path     string                    `json:"path"`
-	Name     string                    `json:"name"`
-	Images   []*Image                  `json:"images"`
-	Pricing  map[TierRef]*PricingEntry `json:"pricing"`
-	Content  ProductContent            `json:"content"`
-	Created  time.Time                 `json:"created,omitempty"`
-	Modified time.Time                 `json:"modified,omitempty"`
+	Object   string                          `json:"object"`
+	ID       string                          `json:"id"`
+	SKU      string                          `json:"sku"`
+	EAN      string                          `json:"ean"`
+	Path     string                          `json:"path"`
+	Name     string                          `json:"name"`
+	Images   imageListContainer              `json:"images"`
+	Pricing  map[PricingTierID]*PricingEntry `json:"pricing"`
+	Content  ProductContent                  `json:"content"`
+	Created  time.Time                       `json:"created,omitempty"`
+	Modified time.Time                       `json:"modified,omitempty"`
 }
 
 // ProductSlim is a condensed representatio of a product
@@ -69,8 +75,8 @@ type ProductSlim struct {
 	Modified time.Time `json:"modified"`
 }
 
-// UpdateProduct update and existing product by ID.
-func (s *Service) UpdateProduct(ctx context.Context, productID string, pc *ProductCreate) (*Product, error) {
+// CreateUpdateProduct update and existing product by ID.
+func (s *Service) CreateUpdateProduct(ctx context.Context, productID *string, pc *ProductCreateUpdate) (*Product, error) {
 	imagesReq := make([]*postgres.CreateImage, 0, 4)
 	for _, i := range pc.Images {
 		img := postgres.CreateImage{
@@ -90,12 +96,13 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pc *Produ
 	pricingReq := make([]*postgres.ProductPricingEntry, 0, 4)
 	for _, r := range pc.Pricing {
 		item := postgres.ProductPricingEntry{
-			TierRef:   string(r.TierRef),
-			UnitPrice: r.UnitPrice,
+			PricingTierUUID: string(r.PricingTierID),
+			UnitPrice:       r.UnitPrice,
 		}
 		pricingReq = append(pricingReq, &item)
 	}
 	update := &postgres.ProductCreateUpdate{
+		SKU:     pc.SKU,
 		EAN:     pc.EAN,
 		Path:    pc.Path,
 		Name:    pc.Name,
@@ -111,9 +118,12 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pc *Produ
 			InTheBox:      pc.Content.InTheBox,
 		},
 	}
-	p, err := s.model.UpdateProduct(ctx, productID, update)
+	p, err := s.model.CreateUpdateProduct(ctx, productID, update)
 	if err != nil {
-		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%q, ...) failed", productID)
+		if err == postgres.ErrPricingTierNotFound {
+			return nil, ErrPricingTierNotFound
+		}
+		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%v, ...) failed", productID)
 	}
 	images := make([]*Image, 0, 4)
 	for _, i := range p.Images {
@@ -129,23 +139,26 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pc *Produ
 		}
 		images = append(images, &img)
 	}
-	pricing := make(map[TierRef]*PricingEntry)
+	pricing := make(map[PricingTierID]*PricingEntry)
 	for _, pr := range p.Pricing {
 		price := PricingEntry{
 			UnitPrice: pr.UnitPrice,
 			Created:   pr.Created,
 			Modified:  pr.Modified,
 		}
-		pricing[TierRef(pr.TierRef)] = &price
+		pricing[PricingTierID(pr.UUID)] = &price
 	}
 	return &Product{
-		Object:  "product",
-		ID:      p.UUID,
-		SKU:     p.SKU,
-		EAN:     p.EAN,
-		Path:    p.Path,
-		Name:    p.Name,
-		Images:  images,
+		Object: "product",
+		ID:     p.UUID,
+		SKU:    p.SKU,
+		EAN:    p.EAN,
+		Path:   p.Path,
+		Name:   p.Name,
+		Images: imageListContainer{
+			Object: "list",
+			Data:   images,
+		},
 		Pricing: pricing,
 		Content: ProductContent{
 			Meta:          pc.Content.Meta,
@@ -176,32 +189,32 @@ func difference(a, b []string) []string {
 	return ab
 }
 
-// ProductsExist accepts a slice of product SKUs and divides them into
+// ProductsExist accepts a slice of product uuids and divides them into
 // two lists of those that can exist in the system and those that are
 // missing.
-func (s *Service) ProductsExist(ctx context.Context, skus []string) (exists, missing []string, err error) {
-	exists, err = s.model.ProductsExist(ctx, skus)
+func (s *Service) ProductsExist(ctx context.Context, products []string) (exists, missing []string, err error) {
+	exists, err = s.model.ProductsExist(ctx, products)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "service: ProductsExist")
 	}
-	missing = difference(skus, exists)
+	missing = difference(products, exists)
 	return exists, missing, nil
 }
 
 // GetProduct gets a product given the SKU.
 func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, error) {
-	p, err := s.model.GetProductByUUID(ctx, productID)
+	p, err := s.model.GetProduct(ctx, productID)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
 		}
 		return nil, errors.Wrapf(err, "model: GetProduct(ctx, productID=%q) failed", productID)
 	}
-	images, err := s.ListProductImages(ctx, p.SKU)
+	images, err := s.ListProductImages(ctx, p.UUID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", p.SKU)
 	}
-	pricing, err := s.PricingMapBySKU(ctx, p.SKU)
+	pricing, err := s.PricingMapByProductID(ctx, p.UUID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: PricingMapBySKU(ctx, %q)", p.SKU)
 	}
@@ -216,7 +229,10 @@ func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, e
 			Description:   p.Content.Description,
 			Specification: p.Content.Specification,
 		},
-		Images:   images,
+		Images: imageListContainer{
+			Object: "list",
+			Data:   images,
+		},
 		Pricing:  pricing,
 		Created:  p.Created,
 		Modified: p.Modified,
@@ -247,10 +263,13 @@ func (s *Service) ListProducts(ctx context.Context) ([]*ProductSlim, error) {
 }
 
 // ProductExists return true if the given product exists.
-func (s *Service) ProductExists(ctx context.Context, uuid string) (bool, error) {
-	exists, err := s.model.ProductExists(ctx, uuid)
+func (s *Service) ProductExists(ctx context.Context, productID string) (bool, error) {
+	exists, err := s.model.ProductExists(ctx, productID)
 	if err != nil {
-		return false, errors.Wrapf(err, "ProductExists(ctx, uuid=%q) failed", uuid)
+		if err == postgres.ErrProductNotFound {
+			return false, ErrProductNotFound
+		}
+		return false, errors.Wrapf(err, "ProductExists(ctx, productID=%q) failed", productID)
 	}
 	return exists, nil
 }

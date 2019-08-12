@@ -38,6 +38,10 @@ const (
 	// ErrCodeDuplicateImagePath return value is sent when a consumer attempts
 	// add a new product with duplicate image paths.
 	ErrCodeDuplicateImagePath string = "products/duplicate-image-paths"
+
+	// ErrCodePricingTierNotFound is returned when attempting to reference a pricing
+	// tier that does not exist
+	ErrCodePricingTierNotFound string = "pricing/pricing-tier-not-found"
 )
 
 // Cart operation sentinel values.
@@ -69,6 +73,7 @@ const (
 	OpDeleteAddress         string = "OpDeleteAddress"
 
 	// Products
+	OpCreateProduct string = "OpCreateProduct"
 	OpUpdateProduct string = "OpUpdateProduct"
 	OpGetProduct    string = "OpGetProduct"
 	OpListProducts  string = "OpListProducts"
@@ -83,11 +88,11 @@ const (
 	OpDeleteTier string = "OpDeleteTier"
 
 	// Pricing
-	OpGetTierPricing    string = "OpGetTierPricing"
-	OpMapPricingBySKU   string = "OpMapPricingBySKU"
-	OpMapPricingByTier  string = "OpMapPricingByTier"
-	OpUpdateTierPricing string = "OpUpdateTierPricing"
-	OpDeleteTierPricing string = "OpDeleteTierPricing"
+	OpGetTierPricing        string = "OpGetTierPricing"
+	OpMapPricingByProductID string = "OpMapPricingByProductID"
+	OpMapPricingByTier      string = "OpMapPricingByTier"
+	OpUpdateTierPricing     string = "OpUpdateTierPricing"
+	OpDeleteTierPricing     string = "OpDeleteTierPricing"
 
 	// Image
 	OpAddImage               string = "OpAddImage"

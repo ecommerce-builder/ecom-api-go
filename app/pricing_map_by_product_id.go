@@ -9,22 +9,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PricingMapBySKUHandler creates a handler function that returns a
+// PricingMapByProductIDHandler creates a handler function that returns a
 // map of tier refs to PricingEntry.
-func (a *App) PricingMapBySKUHandler() http.HandlerFunc {
+func (a *App) PricingMapByProductIDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: PricingMapBySKUHandler started")
+		contextLogger.Info("App: PricingMapByProductIDHandler started")
 
-		sku := chi.URLParam(r, "sku")
-		pmap, err := a.Service.PricingMapBySKU(ctx, sku)
+		productID := chi.URLParam(r, "product_id")
+		pmap, err := a.Service.PricingMapByProductID(ctx, productID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service PricingMapBySKU(ctx, %s) error: %+v", sku, err)
+			contextLogger.Errorf("service PricingMapByProductID(ctx, productID=%q) error: %+v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

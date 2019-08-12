@@ -163,7 +163,7 @@ func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error
 	sql := `
 		SELECT %s FROM %s
 		WHERE (%s, id) %s (
-			SELECT %s, id FROM customers
+			SELECT %s, id FROM customer
 		 	WHERE uuid = $1
 		)
 		ORDER BY %s %s, id %s

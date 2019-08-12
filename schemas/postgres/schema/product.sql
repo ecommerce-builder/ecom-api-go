@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE IF NOT EXISTS product (
   id            SERIAL PRIMARY KEY,
   uuid          UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
   sku           VARCHAR(64) NOT NULL UNIQUE,
@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS products (
   UNIQUE (sku, ean)
 );
 
-CREATE INDEX IF NOT EXISTS idx_products_created_desc ON products (created DESC);
-CREATE INDEX IF NOT EXISTS idx_products_modified ON products (modified DESC);
+CREATE INDEX IF NOT EXISTS idx_product_created_desc ON product (created DESC);
+CREATE INDEX IF NOT EXISTS idx_product_modified ON product (modified DESC);

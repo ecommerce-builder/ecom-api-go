@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS customers (
+CREATE TABLE IF NOT EXISTS customer (
   id             SERIAL PRIMARY KEY,
   uuid           UUID DEFAULT uuid_generate_v4() UNIQUE,
   uid            VARCHAR(64) NOT NULL UNIQUE,
@@ -10,6 +10,6 @@ CREATE TABLE IF NOT EXISTS customers (
   modified       TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_customers_role_asc ON customers (role ASC);
-CREATE INDEX IF NOT EXISTS idx_customers_created_desc ON customers (created DESC);
-CREATE INDEX IF NOT EXISTS idx_customers_modified ON customers (modified DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_role_asc ON customer (role ASC);
+CREATE INDEX IF NOT EXISTS idx_customer_created_desc ON customer (created DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_modified ON customer (modified DESC);

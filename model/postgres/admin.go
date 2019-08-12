@@ -10,9 +10,11 @@ import (
 func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*CustomerRow, error) {
 	query := `
 		SELECT
-			id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM customers
-		WHERE uuid = $1 AND role='admin'
+		  id, uuid, uid, role, email, firstname, lastname, created, modified
+		FROM
+		  customer
+		WHERE
+		  uuid = $1 AND role = 'admin'
 	`
 	c := CustomerRow{}
 	row := m.db.QueryRowContext(ctx, query, uuid)
@@ -25,9 +27,12 @@ func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*CustomerRow, erro
 // GetAllAdmins returns a slice of Customers who are all of role admin
 func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*CustomerRow, error) {
 	query := `
-		SELECT id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM customers
-		WHERE role = 'admin'
+		SELECT
+		  id, uuid, uid, role, email, firstname, lastname, created, modified
+		FROM
+		 customer
+		WHERE
+		  role = 'admin'
 		ORDER by created DESC
 	`
 	rows, err := m.db.QueryContext(ctx, query)
@@ -52,7 +57,7 @@ func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*CustomerRow, error) {
 
 // IsAdmin returns true is the given customer UUID has a role of admin.
 func (m *PgModel) IsAdmin(ctx context.Context, uuid string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM customers WHERE uuid=$1 AND role='admin') AS exists`
+	query := `SELECT EXISTS(SELECT 1 FROM customer WHERE uuid = $1 AND role = 'admin') AS exists`
 	var exists bool
 	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&exists)
 	if err != nil {
@@ -61,10 +66,10 @@ func (m *PgModel) IsAdmin(ctx context.Context, uuid string) (bool, error) {
 	return exists, nil
 }
 
-// DeleteAdminByUUID deletes the administrator from the customers table
+// DeleteAdminByUUID deletes the administrator from the customer table
 // with the given UUID.
 func (m *PgModel) DeleteAdminByUUID(ctx context.Context, uuid string) error {
-	query := `DELETE FROM customers WHERE uuid = $1 AND role = 'admin'`
+	query := `DELETE FROM customer WHERE uuid = $1 AND role = 'admin'`
 	_, err := m.db.ExecContext(ctx, query, uuid)
 	if err != nil {
 		return errors.Wrapf(err, "exec context query=%q", query)

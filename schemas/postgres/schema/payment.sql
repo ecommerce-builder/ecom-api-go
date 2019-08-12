@@ -5,12 +5,12 @@ BEGIN
     END IF;
 END$$;
 
-CREATE TABLE IF NOT EXISTS payments (
+CREATE TABLE IF NOT EXISTS payment (
   id            SERIAL PRIMARY KEY,
   uuid          UUID DEFAULT uuid_generate_v4() UNIQUE,
   order_id      INTEGER NOT NULL,
   typ           payment_t NOT NULL,
   result        JSONB,
   created       TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (order_id) REFERENCES orders(id)
+  FOREIGN KEY (order_id) REFERENCES "order" (id)
 );

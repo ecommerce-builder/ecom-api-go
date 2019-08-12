@@ -586,15 +586,9 @@ func main() {
 			r.Delete("/{ref}", a.Authorization(app.OpDeleteTier, a.NotImplementedHandler()))
 		})
 
-		r.Route("/products/{product_id}/images", func(r chi.Router) {
-			r.Post("/", a.Authorization(app.OpAddImage, a.AddImageHandler()))
-			r.Get("/", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
-			r.Delete("/", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
-		})
-
 		r.Route("/images", func(r chi.Router) {
-			r.Get("/{id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
-			r.Delete("/{id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
+			r.Get("/{image_id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
+			r.Delete("/{image_id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
 		})
 
 		r.Route("/products/{sku}/tiers/{ref}/pricing", func(r chi.Router) {
@@ -604,13 +598,18 @@ func main() {
 		})
 
 		r.Route("/products", func(r chi.Router) {
+			r.Post("/", a.Authorization((app.OpCreateProduct), a.CreateProductHandler()))
 			r.Put("/{product_id}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
 			r.Get("/{product_id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
 			r.Head("/{product_id}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
 			r.Delete("/{product_id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
-			r.Get("/{sku}/pricing", a.Authorization(app.OpMapPricingBySKU, a.PricingMapBySKUHandler()))
+			r.Post("/{product_id}/images", a.Authorization(app.OpAddImage, a.AddImageHandler()))
+			r.Get("/{product_id}/images", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
+			r.Delete("/{product_id}/images", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
+
+			r.Get("/{product_id}/pricing", a.Authorization(app.OpMapPricingByProductID, a.PricingMapByProductIDHandler()))
 			r.Get("/tiers/{ref}/pricing", a.Authorization(app.OpMapPricingByTier, a.PricingMapByTierHandler()))
 		})
 
