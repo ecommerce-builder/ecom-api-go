@@ -302,6 +302,7 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 		return nil, err
 	}
 	if len(ns) == 0 {
+		log.WithContext(ctx).Debug("s.model.GetCatalogNestedSet(ctx) returned an empty list")
 		return nil, nil
 	}
 	cpas, err := s.model.GetCategoryProductAssocsFull(ctx)

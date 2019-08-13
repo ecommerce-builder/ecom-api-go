@@ -8,14 +8,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GetCatalogHandler creates a handler to return the entire catalog
-func (app *App) GetCatalogHandler() http.HandlerFunc {
+// GetCategoriesHandler creates a handler to return the entire catalog
+func (app *App) GetCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetCatalogHandler called")
 
 		tree, err := app.Service.GetCatalog(ctx)
+		if err != nil {
+			contextLogger.Errorf("service GetCatalog(ctx) error: %+v", errors.WithStack(err))
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
 		if tree == nil {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("{}"))

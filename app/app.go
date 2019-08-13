@@ -112,7 +112,7 @@ const (
 
 	// Catalog and assocations
 	OpUpdateCatalog       string = "OpUpdateCatalog"
-	OpGetCatalog          string = "OpGetCatalog"
+	OpGetCategories       string = "OpGetCategories"
 	OpPurgeCatalog        string = "OpPurgeCatalog"
 	OpGetCatalogAssocs    string = "OpGetCatalogAssocs"
 	OpUpdateCatalogAssocs string = "OpUpdateCatalogAssocs"
