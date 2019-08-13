@@ -14,6 +14,9 @@ var ErrProductPricingNotFound = errors.New("product pricing not found")
 // ErrPricingTierNotFound error
 var ErrPricingTierNotFound = errors.New("pricing tier not found")
 
+// ErrDefaultPricingTierMissing error
+var ErrDefaultPricingTierMissing = errors.New("pricing tier missing")
+
 // ProductPricingRow represents a row in the product_pricing table
 type ProductPricingRow struct {
 	id            int

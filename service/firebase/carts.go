@@ -2,6 +2,7 @@ package firebase
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -36,6 +37,8 @@ type Cart struct {
 type CartItem struct {
 	Object    string    `json:"object"`
 	ID        string    `json:"id"`
+	CartID    string    `json:"cart_id,omitempty"`
+	ProductID string    `json:"product_id"`
 	SKU       string    `json:"sku"`
 	Name      string    `json:"name"`
 	Qty       int       `json:"qty"`
@@ -61,24 +64,34 @@ func (s *Service) CreateCart(ctx context.Context) (*Cart, error) {
 
 // AddItemToCart adds a single item to a given cart.
 // Returns `ErrCartNotFound` if the cart with `cartID` does not exist.
-func (s *Service) AddItemToCart(ctx context.Context, cartID string, sku string, qty int) (*CartItem, error) {
-	log.WithContext(ctx).Debugf("service: s.AddItemToCart(cartID=%q, sku=%q, qty=%d) started", cartID, sku, qty)
+func (s *Service) AddItemToCart(ctx context.Context, cartID, productID string, qty int) (*CartItem, error) {
 
-	exists, _ := s.model.IsCartExists(ctx, cartID)
-	if !exists {
-		return nil, ErrCartNotFound
-	}
+	customerID := ctx.Value("cid").(string)
 
-	item, err := s.model.AddItemToCart(ctx, cartID, "default", sku, qty)
+	fmt.Printf("CustomerID = %#v\n", customerID)
+
+	log.WithContext(ctx).Debugf("service: s.AddItemToCart(cartID=%q, customerID=%q, productID=%q, qty=%d) started", cartID, customerID, productID, qty)
+
+	item, err := s.model.AddItemToCart(ctx, cartID, customerID, productID, qty)
 	if err != nil {
-		if err == postgres.ErrCartItemAlreadyExists {
+		if err == postgres.ErrCartNotFound {
+			return nil, ErrCartNotFound
+		} else if err == postgres.ErrCustomerNotFound {
+			return nil, ErrCustomerNotFound
+		} else if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		} else if err == postgres.ErrDefaultPricingTierMissing {
+			return nil, ErrDefaultPricingTierMissing
+		} else if err == postgres.ErrCartItemAlreadyExists {
 			return nil, ErrCartItemAlreadyExists
 		}
-		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, %q, %q, %q, %d) failed: ", cartID, "default", sku, qty)
+		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, cartID=%q, %q, productID=%q, qty=%d) failed: ", cartID, "default", productID, qty)
 	}
 	sitem := CartItem{
 		Object:    "cart_item",
 		ID:        item.UUID,
+		CartID:    item.CartUUID,
+		ProductID: item.ProductUUID,
 		SKU:       item.SKU,
 		Name:      item.Name,
 		Qty:       item.Qty,
@@ -100,7 +113,9 @@ func (s *Service) HasCartItems(ctx context.Context, id string) (bool, error) {
 
 // GetCartItems get all cart items by cart ID.
 func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem, error) {
-	items, err := s.model.GetCartItems(ctx, cartID)
+	customerUUID := ctx.Value("cid").(string)
+
+	items, err := s.model.GetCartItems(ctx, cartID, customerUUID)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
@@ -113,6 +128,8 @@ func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem,
 		i := CartItem{
 			Object:    "cart_item",
 			ID:        v.UUID,
+			CartID:    v.CartUUID,
+			ProductID: v.ProductUUID,
 			SKU:       v.SKU,
 			Name:      v.Name,
 			Qty:       v.Qty,

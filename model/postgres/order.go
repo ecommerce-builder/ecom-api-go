@@ -60,7 +60,7 @@ func discountMultiplier(disc int) float64 {
 	return float64(10000-disc) / 10000.0
 }
 
-func totalSpend(cartItems []*CartProductItem) (int, int) {
+func totalSpend(cartItems []*CartItemJoinRow) (int, int) {
 	totalExVAT := 0
 	totalVAT := 0
 	for _, i := range cartItems {
@@ -130,9 +130,9 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	}
 	defer rows.Close()
 
-	cartItems := make([]*CartProductItem, 0, 20)
+	cartItems := make([]*CartItemJoinRow, 0, 20)
 	for rows.Next() {
-		c := CartProductItem{}
+		c := CartItemJoinRow{}
 		if err = rows.Scan(&c.id, &c.UUID, &c.SKU, &c.Name, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified); err != nil {
 			return nil, nil, nil, errors.Wrapf(err, "scan cart item %v", c)
 		}

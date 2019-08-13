@@ -35,7 +35,7 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 				Message string `json:"message"`
 			}{
 				http.StatusConflict,
-				ErrCodeProductSKUNotFound,
+				ErrCodeProductNotFound,
 				fmt.Sprintf("product of productID=%q not found", productID),
 			})
 			return

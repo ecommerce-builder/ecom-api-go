@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS cart_item (
   cart_id     INTEGER,
   product_id  INTEGER,
   qty         SMALLINT NOT NULL CHECK (qty >= 1 AND qty < 10000),
-  unit_price  INTEGER NOT NULL CHECK (unit_price >= 0),
   created     TIMESTAMP NOT NULL DEFAULT NOW(),
   modified    TIMESTAMP NOT NULL DEFAULT NOW(),
   UNIQUE (cart_id, product_id),

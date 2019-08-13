@@ -26,8 +26,8 @@ type CategoryProductAssoc struct {
 	id         int
 	categoryID int
 	productID  int
-	Path       string
 	SKU        string
+	Path       string
 	Pri        int
 	Created    time.Time
 	Modified   time.Time
@@ -149,10 +149,12 @@ func (m *PgModel) DeleteCategoryProductAssoc(ctx context.Context, path, sku stri
 func (m *PgModel) GetCategoryProductAssocs(ctx context.Context) ([]*CategoryProductAssoc, error) {
 	query := `
 		SELECT
-		  id, category_id, product_id, path, sku, pri, created, modified
+		  c.id, category_id, product_id, p.path, p.sku, pri, c.created, c.modified
 		FROM
-		  category_product
-		ORDER BY path, pri ASC
+		  category_product AS c
+		INNER JOIN product AS p
+		  ON p.id = c.product_id
+		ORDER BY p.path, pri ASC;
 	`
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {
@@ -179,14 +181,13 @@ func (m *PgModel) GetCategoryProductAssocs(ctx context.Context) ([]*CategoryProd
 func (m *PgModel) GetCategoryProductAssocsFull(ctx context.Context) ([]*CategoryProductAssocFull, error) {
 	query := `
 		SELECT
-		  c.id, category_id, product_id, c.path, p.path, c.sku, p.name,
-		  pri, c.created, .modified
+		  c.id, category_id, product_id, p.path, p.sku, p.name,
+		  pri, c.created, c.modified
 		FROM
-		  category_product AS c,
-		  product AS P
-		WHERE
-		 c.sku = p.sku
-		ORDER BY C.path, pri ASC;
+		  category_product AS c
+		INNER JOIN product AS p
+		  ON p.id = c.product_id
+		ORDER BY p.path, pri ASC;
 	`
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {

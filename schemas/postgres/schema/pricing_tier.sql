@@ -7,3 +7,5 @@ CREATE TABLE IF NOT EXISTS pricing_tier (
   created       TIMESTAMP NOT NULL DEFAULT NOW(),
   modified      TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+INSERT INTO pricing_tier (tier_ref, title, description) VALUES ('default', 'Default tier', 'Default pricing tier');

@@ -7,6 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrDefaultPricingTierMissing error
+var ErrDefaultPricingTierMissing = errors.New("default pricing tier missing")
+
 // PricingTierID for a pricing tier id.
 type PricingTierID string
 

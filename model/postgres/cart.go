@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -46,17 +45,20 @@ type CartItemRow struct {
 	Modified  time.Time
 }
 
-// CartProductItem holds details of the an invidual cart item joined
+// CartItemJoinRow holds details of the an invidual cart item joined
 // with product info.
-type CartProductItem struct {
-	id        int
-	UUID      string
-	SKU       string
-	Name      string
-	Qty       int
-	UnitPrice int
-	Created   time.Time
-	Modified  time.Time
+type CartItemJoinRow struct {
+	id          int
+	UUID        string
+	CartUUID    string
+	productID   string
+	ProductUUID string
+	SKU         string
+	Name        string
+	Qty         int
+	UnitPrice   int
+	Created     time.Time
+	Modified    time.Time
 }
 
 // CreateCart creates a new shopping cart
@@ -90,42 +92,124 @@ func (m *PgModel) IsCartExists(ctx context.Context, cartUUID string) (bool, erro
 	return false, nil
 }
 
-// AddItemToCart adds a new item with sku, qty and unit price
-func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, tierRef, sku string, qty int) (*CartProductItem, error) {
-	item := CartProductItem{}
+// AddItemToCart adds a new item with productUUID and qty.
+func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, productUUID string, qty int) (*CartItemJoinRow, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "db.BeginTx")
+	}
+
+	q1 := `SELECT id FROM cart WHERE uuid = $1`
+	var cartID int
+	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrCartNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for query=%q", q1)
+	}
+
+	q2 := `SELECT id FROM customer WHERE uuid = $1`
+	var customerID int
+	err = tx.QueryRowContext(ctx, q2, customerUUID).Scan(&customerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrCustomerNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for query=%q", q2)
+	}
+
+	q3 := `SELECT id FROM product WHERE uuid = $1`
+	var productID int
+	err = tx.QueryRowContext(ctx, q3, productUUID).Scan(&productID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
+	}
+
+	var pricingTierID int
+	if customerUUID != "" {
+		q4 := `SELECT pricing_tier_id FROM customer WHERE uuid = $1`
+		err = tx.QueryRowContext(ctx, q4, customerUUID).Scan(&pricingTierID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrCustomerNotFound
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "query row context failed for query=%q", q4)
+		}
+	} else {
+		q4 := `SELECT id FROM pricing_tier WHERE tier_ref = 'default'`
+		err = tx.QueryRowContext(ctx, q4).Scan(&pricingTierID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrDefaultPricingTierMissing
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "query row context failed for query=%q", q4)
+		}
+	}
 
 	// check if the item is already in the cart
-	query := `
+	q5 := `
 		SELECT EXISTS(
-		  SELECT 1 FROM cart_item WHERE cart_id=(
-		    SELECT id FROM cart WHERE uuid = $1
-		  ) AND sku=$2
+		  SELECT 1 FROM cart_item WHERE cart_id = $1 AND product_id = $2
 		) AS exists`
 	var exists bool
-	m.db.QueryRowContext(ctx, query, cartUUID, sku).Scan(&exists)
+	tx.QueryRowContext(ctx, q5, cartID, productID).Scan(&exists)
 	if exists == true {
+		tx.Rollback()
 		return nil, ErrCartItemAlreadyExists
 	}
 
-	var unitPriceStr []byte
-	query = `SELECT unit_price FROM product_pricing WHERE tier_ref = $1 AND sku = $2`
-	err := m.db.QueryRowContext(ctx, query, tierRef, sku).Scan(&unitPriceStr)
-	if err != nil {
-		return &item, errors.Wrapf(err, "query scan failed query=%q", query)
+	q6 := `
+		INSERT INTO cart_item
+		  (cart_id, product_id, qty)
+		VALUES
+		  ($1, $2, $3)
+		RETURNING
+		  id
+	`
+	var cartItemID int
+	row := tx.QueryRowContext(ctx, q6, cartID, productID, qty)
+	if err := row.Scan(&cartItemID); err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query scan failed query=%q", q6)
 	}
 
-	unitPrice, _ := strconv.ParseFloat(string(unitPriceStr), 64)
-	query = `
-		INSERT INTO cart_item (cart_id, sku, qty, unit_price)
-		VALUES ((SELECT id FROM cart WHERE uuid = $1), $2, $3, $4)
-		RETURNING
-		  id, uuid, sku, (SELECT name FROM product WHERE sku = $5),
-		  qty, unit_price, created, modified
+	q7 := `
+		SELECT
+		  c.id, c.uuid, c.product_id, p.uuid, sku, name, qty, unit_price, c.created, c.modified
+		FROM cart_item AS c
+		INNER JOIN product AS p
+		  ON p.id = c.product_id
+		LEFT OUTER JOIN product_pricing AS r
+		  ON r.product_id = p.id
+		WHERE
+		  c.id = $1 AND r.pricing_tier_id = $2
+		ORDER BY created ASC
 	`
-	row := m.db.QueryRowContext(ctx, query, cartUUID, sku, qty, unitPrice, sku)
-	if err := row.Scan(&item.id, &item.UUID, &item.SKU, &item.Name, &item.Qty,
-		&item.UnitPrice, &item.Created, &item.Modified); err != nil {
-		return nil, errors.Wrapf(err, "query scan failed query=%q", query)
+	item := CartItemJoinRow{}
+	row = tx.QueryRowContext(ctx, q7, cartItemID, pricingTierID)
+	if err := row.Scan(&item.id, &item.UUID, &item.productID, &item.ProductUUID, &item.SKU, &item.Name,
+		&item.Qty, &item.UnitPrice, &item.Created, &item.Modified); err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query scan failed query=%q", q7)
+	}
+	item.CartUUID = cartUUID
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "tx.Commit")
 	}
 	return &item, nil
 }
@@ -145,47 +229,99 @@ func (m *PgModel) HasCartItems(ctx context.Context, cartUUID string) (bool, erro
 }
 
 // GetCartItems gets all items in the cart
-func (m *PgModel) GetCartItems(ctx context.Context, cartUUID string) ([]*CartProductItem, error) {
-	exists, err := m.IsCartExists(ctx, cartUUID)
+func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID string) ([]*CartItemJoinRow, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.IsCartExists(ctx, cartUUID=%q) failed", cartUUID)
-	}
-	if !exists {
-		return nil, ErrCartNotFound
+		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 
-	query := `
+	q1 := `SELECT id FROM cart WHERE uuid = $1`
+	var cartID int
+	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrCartNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for query=%q", q1)
+	}
+
+	q2 := `SELECT id FROM customer WHERE uuid = $1`
+	var customerID int
+	err = tx.QueryRowContext(ctx, q2, customerUUID).Scan(&customerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrCustomerNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for query=%q", q2)
+	}
+
+	var pricingTierID int
+	if customerUUID != "" {
+		q3 := `SELECT pricing_tier_id FROM customer WHERE uuid = $1`
+		err = tx.QueryRowContext(ctx, q3, customerUUID).Scan(&pricingTierID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrCustomerNotFound
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
+		}
+	} else {
+		q4 := `SELECT id FROM pricing_tier WHERE tier_ref = 'default'`
+		err = tx.QueryRowContext(ctx, q4).Scan(&pricingTierID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrDefaultPricingTierMissing
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "query row context failed for query=%q", q4)
+		}
+	}
+	q5 := `
 		SELECT
-		  c.id, c.uuid, c.product_id, name, qty, unit_price, c.created, c.modified
+		  c.id, c.uuid, c.product_id, c.uuid, sku, name, qty, unit_price, c.created, c.modified
 		FROM cart_item AS c
 		INNER JOIN product AS p
-		  ON c.sku = P.sku
+		  ON p.id = c.product_id
+		LEFT OUTER JOIN product_pricing AS r
+		  ON r.product_id = p.id
 		WHERE
-		  c.cart_id = (SELECT id FROM cart WHERE uuid = $1)
+		  c.cart_id = $1 AND r.pricing_tier_id = $2
 		ORDER BY created ASC
 	`
-	rows, err := m.db.QueryContext(ctx, query, cartUUID)
+	rows, err := tx.QueryContext(ctx, q5, cartID, pricingTierID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	cartItems := make([]*CartProductItem, 0, 20)
+	cartItems := make([]*CartItemJoinRow, 0, 20)
 	for rows.Next() {
-		c := CartProductItem{}
-		if err = rows.Scan(&c.id, &c.UUID, &c.SKU, &c.Name, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified); err != nil {
+		c := CartItemJoinRow{}
+		if err = rows.Scan(&c.id, &c.UUID, &c.productID, &c.ProductUUID, &c.SKU, &c.Name, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified); err != nil {
 			return nil, errors.Wrapf(err, "scan cart item %v", c)
 		}
+		c.CartUUID = cartUUID
 		cartItems = append(cartItems, &c)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrapf(err, "rows err")
 	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "tx.Commit")
+	}
 	return cartItems, nil
 }
 
 // UpdateItemByCartUUID updates the qty of a cart item of the given sku.
-func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*CartProductItem, error) {
+func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*CartItemJoinRow, error) {
 	query := `
 		UPDATE cart_item
 		SET
@@ -196,7 +332,7 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string
 		  id, uuid, sku, (SELECT name FROM product WHERE sku = $4),
 		  qty, unit_price, created, modified
 	`
-	i := CartProductItem{}
+	i := CartItemJoinRow{}
 	row := m.db.QueryRowContext(ctx, query, qty, cartUUID, sku, sku)
 	if err := row.Scan(&i.id, &i.UUID, &i.SKU, &i.Name, &i.Qty, &i.UnitPrice, &i.Created, &i.Modified); err != nil {
 		if err == sql.ErrNoRows {

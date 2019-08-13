@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 // A NestedSetNode represents a single node in the nested set.
@@ -97,9 +96,6 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, er
 		FROM category
 		ORDER BY lft ASC
 	`
-	log.WithContext(ctx).WithFields(log.Fields{
-		"query": query,
-	}).Debug("SQL query")
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query context query=%q", query)
