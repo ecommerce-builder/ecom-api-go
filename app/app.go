@@ -111,7 +111,7 @@ const (
 	OpSignInWithDevKey       string = "OpSignInWithDevKey"
 
 	// Catalog and assocations
-	OpUpdateCatalog       string = "OpUpdateCatalog"
+	OpUpdateCategories    string = "OpUpdateCategories"
 	OpGetCategories       string = "OpGetCategories"
 	OpPurgeCatalog        string = "OpPurgeCatalog"
 	OpGetCatalogAssocs    string = "OpGetCatalogAssocs"

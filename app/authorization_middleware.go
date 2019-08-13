@@ -67,7 +67,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// Operations that required at least RoleAdmin privileges
 		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
 			OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo,
-			OpUpdateCatalog, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
+			OpUpdateCategories, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
 			OpCreateTier, OpListTiers, OpUpdateTier, OpDeleteTier:
 			if role == RoleAdmin {

@@ -6,18 +6,19 @@ import (
 	"net/http"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	log "github.com/sirupsen/logrus"
 )
 
-// UpdateCatalogHandler creates an HTTP handler that updates the catalog.
-func (a *App) UpdateCatalogHandler() http.HandlerFunc {
+// UpdateCategoriesHandler creates an HTTP handler that updates all the categories.
+func (a *App) UpdateCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateCatalogHandler started")
+		contextLogger.Info("App: UpdateCategoriesHandler started")
 
-		cats := firebase.Category{}
-		if err := json.NewDecoder(r.Body).Decode(&cats); err != nil {
+		catRequest := service.CategoryRequest{}
+		if err := json.NewDecoder(r.Body).Decode(&catRequest); err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
@@ -31,7 +32,7 @@ func (a *App) UpdateCatalogHandler() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		if err := a.Service.UpdateCatalog(ctx, &cats); err != nil {
+		if err := a.Service.UpdateCatalog(ctx, &catRequest); err != nil {
 			if err == firebase.ErrAssocsAlreadyExist {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {

@@ -633,7 +633,7 @@ func main() {
 		})
 
 		r.Route("/categories", func(r chi.Router) {
-			r.Put("/", a.Authorization(app.OpUpdateCatalog, a.UpdateCatalogHandler()))
+			r.Put("/", a.Authorization(app.OpUpdateCategories, a.UpdateCategoriesHandler()))
 			r.Get("/", a.Authorization(app.OpGetCategories, a.GetCategoriesHandler()))
 			r.Delete("/", a.Authorization(app.OpPurgeCatalog, a.PurgeCatalogHandler()))
 		})
