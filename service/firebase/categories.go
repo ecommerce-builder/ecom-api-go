@@ -33,12 +33,8 @@ type Category struct {
 	rgt      int
 	depth    int
 	parent   *Category
-	Nodes    *CategoryList `json:"categories"`
-	Products []*struct {
-		SKU  string `json:"sku"`
-		Path string `json:"path"`
-		Name string `json:"name"`
-	} `json:"products"`
+	Nodes    *CategoryList    `json:"categories"`
+	Products *ProductSlimList `json:"products"`
 }
 
 // AddChild attaches a Category to its parent Category.
@@ -207,14 +203,8 @@ func (n *Category) FindNodeByPath(path string) *Category {
 	return context
 }
 
-type spnTuple struct {
-	sku  string
-	path string
-	name string
-}
-
 // BuildTree builds a Tree hierarchy from a Nested Set.
-func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) *Category {
+func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*ProductSlim) *Category {
 	context := &Category{
 		Object:  "category",
 		ID:      nestedset[0].UUID,
@@ -226,35 +216,18 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) 
 			Object: "list",
 			Data:   make([]*Category, 0),
 		},
-		Products: make([]*struct {
-			SKU  string `json:"sku"`
-			Path string `json:"path"`
-			Name string `json:"name"`
-		}, 0),
+		Products: &ProductSlimList{
+			Object: "list",
+			Data:   make([]*ProductSlim, 0),
+		},
 		lft: nestedset[0].Lft,
 		rgt: nestedset[0].Rgt,
 	}
 	for i := 1; i < len(nestedset); i++ {
 		cur := nestedset[i]
-		skus, ok := cmap[cur.Path]
+		products, ok := cmap[cur.Path]
 		if !ok {
-			skus = nil
-		}
-		products := make([]*struct {
-			SKU  string `json:"sku"`
-			Path string `json:"path"`
-			Name string `json:"name"`
-		}, 0)
-		for _, s := range skus {
-			products = append(products, &struct {
-				SKU  string `json:"sku"`
-				Path string `json:"path"`
-				Name string `json:"name"`
-			}{
-				SKU:  s.sku,
-				Path: s.path,
-				Name: s.name,
-			})
+			products = nil
 		}
 		n := &Category{
 			Object:  "category",
@@ -267,9 +240,12 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) 
 				Object: "list",
 				Data:   make([]*Category, 0),
 			},
-			Products: products,
-			lft:      cur.Lft,
-			rgt:      cur.Rgt,
+			Products: &ProductSlimList{
+				Object: "list",
+				Data:   products,
+			},
+			lft: cur.Lft,
+			rgt: cur.Rgt,
 		}
 		context.addChild(n)
 
@@ -302,6 +278,7 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 		return nil, err
 	}
 	if len(ns) == 0 {
+		log.WithContext(ctx).Debug("s.model.GetCatalogNestedSet(ctx) returned an empty list")
 		return nil, nil
 	}
 	cpas, err := s.model.GetCategoryProductAssocsFull(ctx)
@@ -310,12 +287,17 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 	}
 
 	// convert slice into map
-	cmap := make(map[string][]spnTuple)
+	cmap := make(map[string][]*ProductSlim)
 	for _, cpf := range cpas {
-		cmap[cpf.CategoryPath] = append(cmap[cpf.CategoryPath], spnTuple{
-			sku:  cpf.SKU,
-			path: cpf.ProductPath,
-			name: cpf.Name,
+		cmap[cpf.CategoryPath] = append(cmap[cpf.CategoryPath], &ProductSlim{
+			Object:   "product_slim",
+			ID:       cpf.ProductUUID,
+			SKU:      cpf.SKU,
+			EAN:      cpf.EAN,
+			Path:     cpf.ProductPath,
+			Name:     cpf.Name,
+			Created:  cpf.ProductCreated,
+			Modified: cpf.ProductModified,
 		})
 	}
 	tree := BuildTree(ns, cmap)

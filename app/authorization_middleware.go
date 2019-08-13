@@ -58,7 +58,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		switch op {
 		// Operations that don't require any special authorization
 		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem,
-			OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey,
+			OpDeleteCartItem, OpEmptyCartItems, OpGetCategories, OpSignInWithDevKey,
 			OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs,
 			OpGetTierPricing, OpMapPricingByProductID, OpMapPricingByTier, OpGetImage,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetTier:

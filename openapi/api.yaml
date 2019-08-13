@@ -630,8 +630,8 @@ paths:
       - bearerAuth: []
       summary: Get all categories
       description: |
-        OpGetCatalog requires `RoleShopper` privileges.
-      operationId: OpGetCatalog
+        OpGetCategories requires `RoleShopper` privileges.
+      operationId: OpGetCategories
       tags:
       - Categories
       responses:
