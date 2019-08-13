@@ -602,7 +602,50 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CategoryNodeRequest'
+              $ref: '#/components/schemas/CategoryRequest'
+            example:
+              segment: a
+              name: ประเภท A
+              categories:
+              - segment: b
+                name: ประเภท B
+                categories:
+                - segment: e
+                  name: ประเภท E
+                  categories: []
+              - segment: c
+                name: ประเภท C
+                categories:
+                - segment: f
+                  name: ประเภท F
+                  categories:
+                  - segment: i
+                    name: ประเภท I
+                    categories: []
+                  - segment: j
+                    name: ประเภท J
+                    categories:
+                    - segment: m
+                      name: ประเภท M
+                      categories: []
+                    - segment: 'n'
+                      name: ประเภท N
+                      categories: []
+                - segment: g
+                  name: ประเภท G
+                  categories: []
+              - segment: d
+                name: ประเภท D
+                categories:
+                - segment: h
+                  name: ประเภท H
+                  categories:
+                  - segment: k
+                    name: ประเภท K
+                    categories: []
+                  - segment: l
+                    name: ประเภท L
+                    categories: []
       responses:
         '204':
           description: No Content
@@ -630,8 +673,8 @@ paths:
       - bearerAuth: []
       summary: Get all categories
       description: |
-        OpGetCategories requires `RoleShopper` privileges.
-      operationId: OpGetCategories
+        OpGetCatalog requires `RoleShopper` privileges.
+      operationId: OpGetCatalog
       tags:
       - Categories
       responses:
@@ -1889,7 +1932,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Categories'
-    CategoryNodeRequest:
+    CategoryRequest:
       required:
       - segment
       - name
@@ -1904,7 +1947,7 @@ components:
         categories:
           type: array
           items:
-            $ref: '#/components/schemas/CategoryNodeRequest'
+            $ref: '#/components/schemas/CategoryRequest'
     PricingMap:
       type: object
       additionalProperties:

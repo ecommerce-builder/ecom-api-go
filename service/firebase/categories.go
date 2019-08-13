@@ -22,10 +22,21 @@ type CategoryList struct {
 	Data   []*Category `json:"data"`
 }
 
+// CategoryRequest represents the request body for an update categories operation.
+type CategoryRequest struct {
+	Segment string `json:"segment"`
+	Name    string `json:"name"`
+	path    string
+	lft     int
+	rgt     int
+	depth   int
+	Nodes   []*CategoryRequest `json:"categories"`
+}
+
 // A Category represents an individual category in the catalog hierarchy.
 type Category struct {
-	Object   string `json:"object"`
-	ID       string `json:"id"`
+	Object   string `json:"object,omitempty"`
+	ID       string `json:"id,omitempty"`
 	Segment  string `json:"segment"`
 	path     string
 	Name     string `json:"name"`
@@ -34,7 +45,7 @@ type Category struct {
 	depth    int
 	parent   *Category
 	Nodes    *CategoryList    `json:"categories"`
-	Products *ProductSlimList `json:"products"`
+	Products *ProductSlimList `json:"products,omitempty"`
 }
 
 // AddChild attaches a Category to its parent Category.
@@ -55,11 +66,11 @@ func (n *Category) IsLeaf() bool {
 
 // NestedSet uses preorder traversal of the tree to return a
 // slice of NestedSetNodes.
-func (n *Category) NestedSet(ns *[]*postgres.NestedSetNode) {
+func (n *CategoryRequest) NestedSet(ns *[]*postgres.NestedSetNode) {
 	n.preorderTraversalNS(ns)
 }
 
-func (n *Category) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
+func (n *CategoryRequest) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
 	nsn := &postgres.NestedSetNode{
 		Segment: n.Segment,
 		Path:    n.path,
@@ -69,7 +80,7 @@ func (n *Category) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
 		Depth:   n.depth,
 	}
 	*ns = append(*ns, nsn)
-	for _, i := range n.Nodes.Data {
+	for _, i := range n.Nodes {
 		i.preorderTraversalNS(ns)
 	}
 }
@@ -121,9 +132,9 @@ func NewCategory(segment, name string) *Category {
 }
 
 // GenerateNestedSet performs a pre-order tree traversal wiring the tree.
-func (n *Category) GenerateNestedSet(lft, depth int, path string) int {
+func (n *CategoryRequest) GenerateNestedSet(lft, depth int, path string) int {
 	rgt := lft + 1
-	for _, i := range n.Nodes.Data {
+	for _, i := range n.Nodes {
 		if path == "" {
 			rgt = i.GenerateNestedSet(rgt, depth+1, n.Segment)
 		} else {
@@ -145,7 +156,7 @@ func (n *Category) GenerateNestedSet(lft, depth int, path string) int {
 // UpdateCatalog takes a root tree Node and converts it to a nested set
 // representation before calling the model to persist the replacement
 // catalog.
-func (s *Service) UpdateCatalog(ctx context.Context, root *Category) error {
+func (s *Service) UpdateCatalog(ctx context.Context, root *CategoryRequest) error {
 	hasAssocs, err := s.HasCategoryProductAssocs(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "HasCategoryProductAssocs(ctx) error")
