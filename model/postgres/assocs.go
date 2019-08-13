@@ -35,16 +35,20 @@ type CategoryProductAssoc struct {
 
 // CategoryProductAssocFull maps products to leaf nodes in the catalog hierarchy.
 type CategoryProductAssocFull struct {
-	id           int
-	categoryID   int
-	productID    int
-	CategoryPath string
-	ProductPath  string
-	SKU          string
-	Name         string
-	Pri          int
-	Created      time.Time
-	Modified     time.Time
+	id              int
+	categoryID      int
+	productID       int
+	ProductUUID     string
+	CategoryPath    string
+	ProductPath     string
+	SKU             string
+	EAN             string
+	Name            string
+	ProductCreated  time.Time
+	ProductModified time.Time
+	Pri             int
+	Created         time.Time
+	Modified        time.Time
 }
 
 // CreateCategoryProductAssoc links an existing product identified by sku
@@ -181,7 +185,8 @@ func (m *PgModel) GetCategoryProductAssocs(ctx context.Context) ([]*CategoryProd
 func (m *PgModel) GetCategoryProductAssocsFull(ctx context.Context) ([]*CategoryProductAssocFull, error) {
 	query := `
 		SELECT
-		  c.id, category_id, product_id, t.path, p.path, p.sku, p.name,
+		  c.id, category_id, product_id, p.uuid as product_uuid, t.path, p.path, p.sku, p.ean, p.name,
+		  p.created as product_created, p.modified as product_modified,
 		  pri, c.created, c.modified
 		FROM
 		  category_product AS c
@@ -199,7 +204,8 @@ func (m *PgModel) GetCategoryProductAssocsFull(ctx context.Context) ([]*Category
 	cpas := make([]*CategoryProductAssocFull, 0, 32)
 	for rows.Next() {
 		var n CategoryProductAssocFull
-		err = rows.Scan(&n.id, &n.categoryID, &n.productID, &n.CategoryPath, &n.ProductPath, &n.SKU, &n.Name, &n.Pri, &n.Created, &n.Modified)
+		err = rows.Scan(&n.id, &n.categoryID, &n.productID, &n.ProductUUID, &n.CategoryPath, &n.ProductPath,
+			&n.SKU, &n.EAN, &n.Name, &n.ProductCreated, &n.ProductModified, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, errors.Wrapf(err, "model: scan failed")
 		}

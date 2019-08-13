@@ -75,6 +75,12 @@ type ProductSlim struct {
 	Modified time.Time `json:"modified"`
 }
 
+// ProductSlimList is a container for a list of product_slim objects.
+type ProductSlimList struct {
+	Object string         `json:"object"`
+	Data   []*ProductSlim `json:"data"`
+}
+
 // CreateUpdateProduct update and existing product by ID.
 func (s *Service) CreateUpdateProduct(ctx context.Context, productID *string, pc *ProductCreateUpdate) (*Product, error) {
 	imagesReq := make([]*postgres.CreateImage, 0, 4)
