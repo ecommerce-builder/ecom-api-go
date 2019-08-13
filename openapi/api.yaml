@@ -1243,7 +1243,7 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/ProductSlim'
-  /tiers:
+  /pricing-tiers:
     post:
       security:
       - bearerAuth: []
@@ -1259,16 +1259,52 @@ paths:
     get:
       security:
       - bearerAuth: []
-      summary: List pricing tiers
+      summary: List all pricing tiers
       description: |
-        OpListTiers required `RoleAdmin` privileges.
-      operationId: OpListTiers
+        OpListPricingTiers required `RoleAdmin` privileges.
+      operationId: OpListPricingTiers
       tags:
       - Pricing
       responses:
-        '501':
-          description: Not Implemented
-  /tiers/{tier_id}:
+        '200':
+          description: list object containing pricing_tier objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PricingTier'
+                example:
+                  object: list
+                  data:
+                    - object: 'pricing_tier'
+                      id: '96459863-28ed-41a0-919d-90de39ca76e0'
+                      tier_ref: 'default'
+                      title: 'Default tier'
+                      description: 'Default pricing tier'
+                      created: '2019-08-13T17:51:49.45419Z'
+                      modified: '2019-08-13T17:51:49.45419Z'
+                    - object: 'pricing_tier'
+                      id: '23055d5e-e610-4f07-8f8e-b99929e4442b'
+                      tier_ref: 'goldfish'
+                      title: 'Small Wholesale Customer'
+                      description: 'Small company with turn over less than 10k'
+                      created: '2019-08-13T17:51:54.380625Z'
+                      modified: '2019-08-13T17:51:54.380625Z'
+                    - object: 'pricing_tier'
+                      id: '42a954d2-cbfe-4868-b713-319cfcb97b64'
+                      tier_ref: 'seabass'
+                      title: 'Medium-sized Customer'
+                      description: 'Medium-sized company with turn over less than 100k'
+                      created: '2019-08-13T17:51:54.382624Z'
+                      modified: '2019-08-13T17:51:54.382624Z'
+  /pricing-tiers/{tier_id}:
     parameters:
     - name: tier_id
       required: true
@@ -1948,6 +1984,31 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryRequest'
+    PricingTier:
+      properties:
+        object:
+          type: string
+          example: 'pricing_tier'
+        id:
+          type: string
+          example: '96459863-28ed-41a0-919d-90de39ca76e0'
+        tier_ref:
+          type: string
+          example: 'default'
+        title:
+          type: string
+          example: 'Default Tier'
+        description:
+          type: string
+          example: 'Default pricing tier is the fallback pricing tier'
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-13 17:51:49.45419Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-13 17:51:49.45419'
     PricingMap:
       type: object
       additionalProperties:

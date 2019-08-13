@@ -84,11 +84,11 @@ const (
 	OpDeleteProduct string = "OpDeleteProduct"
 
 	// Pricing Tiers
-	OpCreateTier string = "OpCreateTier"
-	OpGetTier    string = "OpGetTier"
-	OpListTiers  string = "OpListTiers"
-	OpUpdateTier string = "OpUpdateTier"
-	OpDeleteTier string = "OpDeleteTier"
+	OpCreateTier       string = "OpCreateTier"
+	OpGetTier          string = "OpGetTier"
+	OpListPricingTiers string = "OpListPricingTiers"
+	OpUpdateTier       string = "OpUpdateTier"
+	OpDeleteTier       string = "OpDeleteTier"
 
 	// Pricing
 	OpGetTierPricing        string = "OpGetTierPricing"

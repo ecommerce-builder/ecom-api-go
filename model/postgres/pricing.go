@@ -44,6 +44,44 @@ type ProductPricingJoinRow struct {
 	Modified        time.Time
 }
 
+// PricingTierRow represents a row in the pricing_tier table.
+type PricingTierRow struct {
+	id          int
+	UUID        string
+	TierRef     string
+	Title       string
+	Description string
+	Created     time.Time
+	Modified    time.Time
+}
+
+// GetPricingTiers returns a list of PricingTierRows.
+func (m *PgModel) GetPricingTiers(ctx context.Context) ([]*PricingTierRow, error) {
+	q1 := "SELECT id, uuid, tier_ref, title, description, created, modified FROM pricing_tier"
+	rows, err := m.db.QueryContext(ctx, q1)
+	if err != nil {
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx) failed")
+	}
+	defer rows.Close()
+
+	tiers := make([]*PricingTierRow, 0, 4)
+	for rows.Next() {
+		var p PricingTierRow
+		if err = rows.Scan(&p.id, &p.UUID, &p.TierRef, &p.Title, &p.Description, &p.Created, &p.Modified); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, ErrPricingTierNotFound
+			}
+			return nil, errors.Wrap(err, "scan failed")
+		}
+		tiers = append(tiers, &p)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows.Err()")
+	}
+
+	return tiers, nil
+}
+
 // GetProductPricing returns a ProductPricing for a given product and pricing tier.
 func (m *PgModel) GetProductPricing(ctx context.Context, productUUID, tierUUID string) (*ProductPricingJoinRow, error) {
 	query := `

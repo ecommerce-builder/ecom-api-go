@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
 )
 
@@ -12,6 +13,9 @@ var ErrDefaultPricingTierMissing = errors.New("default pricing tier missing")
 
 // PricingTierID for a pricing tier id.
 type PricingTierID string
+
+type ProductPricingTier struct {
+}
 
 // ProductPricing contains pricing information for a single SKU and tier ref.
 type ProductPricing struct {
@@ -27,6 +31,43 @@ type PricingEntry struct {
 	UnitPrice int       `json:"unit_price"`
 	Created   time.Time `json:"created"`
 	Modified  time.Time `json:"modified"`
+}
+
+// PricingTier represents a pricing tier such as 'default'.
+type PricingTier struct {
+	Object      string    `json:"object"`
+	ID          string    `json:"id"`
+	TierRef     string    `json:"tier_ref"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Created     time.Time `json:"created"`
+	Modified    time.Time `json:"modified"`
+}
+
+// GetPricingTiers returns a list of PricingTiers.
+func (s *Service) GetPricingTiers(ctx context.Context) ([]*PricingTier, error) {
+	tierRows, err := s.model.GetPricingTiers(ctx)
+	if err != nil {
+		if err == postgres.ErrPricingTierNotFound {
+			return nil, ErrPricingTierNotFound
+		}
+		return nil, errors.Wrapf(err, "s.model.GetPricingTiers(ctx) failed")
+	}
+
+	tiers := make([]*PricingTier, 0, len(tierRows))
+	for _, t := range tierRows {
+		tier := PricingTier{
+			Object:      "pricing_tier",
+			ID:          t.UUID,
+			TierRef:     t.TierRef,
+			Title:       t.Title,
+			Description: t.Description,
+			Created:     t.Created,
+			Modified:    t.Modified,
+		}
+		tiers = append(tiers, &tier)
+	}
+	return tiers, nil
 }
 
 // GetTierPricing returns a ProductPricing for the product with the
