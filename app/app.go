@@ -19,6 +19,9 @@ const (
 	// before a catalog has been applied.
 	ErrCodeNoCatalog string = "catalog/no-catalog"
 
+	// ErrCodeCustomerNotFound is sent if a customer cannot be located
+	ErrCodeCustomerNotFound string = "customer/not-found"
+
 	// ErrCodeCartAlreadyExists is sent when attempting to add a cart item to a cart
 	// and that cart item is already in the cart.
 	ErrCodeCartAlreadyExists string = "cart/cart-item-already-exists"
@@ -32,12 +35,16 @@ const (
 	// are non leaf categories or product SKUs that do not exist.
 	ErrMissingPathsLeafsSKUs string = "assocs/missing-paths-leafs-skus"
 
-	// ErrCodeProductSKUNotFound indicates the product with given SKU could not be found.
-	ErrCodeProductSKUNotFound string = "products/product-sku-not-found"
+	// ErrCodeProductNotFound indicates the product with given SKU could not be found.
+	ErrCodeProductNotFound string = "product/product-not-found"
 
 	// ErrCodeDuplicateImagePath return value is sent when a consumer attempts
 	// add a new product with duplicate image paths.
-	ErrCodeDuplicateImagePath string = "products/duplicate-image-paths"
+	ErrCodeDuplicateImagePath string = "product/duplicate-image-paths"
+
+	// ErrCodePricingTierNotFound is returned when attempting to reference a pricing
+	// tier that does not exist
+	ErrCodePricingTierNotFound string = "pricing/pricing-tier-not-found"
 )
 
 // Cart operation sentinel values.
@@ -69,6 +76,7 @@ const (
 	OpDeleteAddress         string = "OpDeleteAddress"
 
 	// Products
+	OpCreateProduct string = "OpCreateProduct"
 	OpUpdateProduct string = "OpUpdateProduct"
 	OpGetProduct    string = "OpGetProduct"
 	OpListProducts  string = "OpListProducts"
@@ -83,11 +91,11 @@ const (
 	OpDeleteTier string = "OpDeleteTier"
 
 	// Pricing
-	OpGetTierPricing    string = "OpGetTierPricing"
-	OpMapPricingBySKU   string = "OpMapPricingBySKU"
-	OpMapPricingByTier  string = "OpMapPricingByTier"
-	OpUpdateTierPricing string = "OpUpdateTierPricing"
-	OpDeleteTierPricing string = "OpDeleteTierPricing"
+	OpGetTierPricing        string = "OpGetTierPricing"
+	OpMapPricingByProductID string = "OpMapPricingByProductID"
+	OpMapPricingByTier      string = "OpMapPricingByTier"
+	OpUpdateTierPricing     string = "OpUpdateTierPricing"
+	OpDeleteTierPricing     string = "OpDeleteTierPricing"
 
 	// Image
 	OpAddImage               string = "OpAddImage"

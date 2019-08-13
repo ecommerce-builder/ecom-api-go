@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS order_items (
+CREATE TABLE IF NOT EXISTS order_item (
   id               SERIAL PRIMARY KEY,
   uuid             UUID DEFAULT uuid_generate_v4() UNIQUE,
   order_id         INTEGER NOT NULL,
@@ -11,6 +11,6 @@ CREATE TABLE IF NOT EXISTS order_items (
   tax_code         VARCHAR(32) NULL DEFAULT NULL,
   vat              INTEGER NOT NULL CHECK (vat >= 0),
   created          TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (order_id) REFERENCES orders(id)
+  FOREIGN KEY (order_id) REFERENCES "order" (id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS order_items_idx ON order_items (order_id, sku);
+CREATE UNIQUE INDEX IF NOT EXISTS order_item_idx ON order_item (order_id, sku);

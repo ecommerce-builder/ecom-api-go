@@ -20,7 +20,7 @@ type CustomerDevKey struct {
 	Modified   time.Time
 }
 
-// CustomerDevKeyFull contains fields from the customers_devkeys joined to customers.
+// CustomerDevKeyFull contains fields from the customer_devkey joined to customer.
 type CustomerDevKeyFull struct {
 	id           int
 	UUID         string
@@ -34,7 +34,7 @@ type CustomerDevKeyFull struct {
 // CreateCustomerDevKey generates a customer developer key using bcrypt.
 func (m *PgModel) CreateCustomerDevKey(ctx context.Context, customerID int, key string) (*CustomerDevKey, error) {
 	query := `
-		INSERT INTO customers_devkeys (
+		INSERT INTO customer_devkey (
 			key, hash, customer_id, created, modified
 		) VALUES (
 			$1, $2, $3, NOW(), NOW()
@@ -55,7 +55,7 @@ func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*Cu
 	query := `
 		SELECT
 		  id, uuid, key, hash, customer_id, created, modified
-		FROM customers_devkeys
+		FROM customer_devkey
 		WHERE customer_id = $1
 	`
 	rows, err := m.db.QueryContext(ctx, query, customerID)
@@ -83,8 +83,8 @@ func (m *PgModel) GetCustomerDevKeys(ctx context.Context, customerID int) ([]*Cu
 func (m *PgModel) GetCustomerDevKey(ctx context.Context, uuid string) (*CustomerDevKeyFull, error) {
 	query := `
 		SELECT A.id, A.uuid, key, hash, customer_id, C.uuid, A.created, A.modified
-		FROM customers_devkeys AS A
-		INNER JOIN customers AS C ON A.customer_id = C.id
+		FROM customer_devkey AS A
+		INNER JOIN customer AS C ON A.customer_id = C.id
 		WHERE
 			  A.uuid = $1
 	`
@@ -102,8 +102,8 @@ func (m *PgModel) GetCustomerDevKeyByDevKey(ctx context.Context, key string) (*C
 		SELECT
 		  A.id as id, A.uuid as uuid, key, hash,
 		  C.uuid as customer_uuid, A.created as created, A.modified as modified
-		FROM customers_devkeys AS A
-		INNER JOIN customers AS C ON A.customer_id = C.id
+		FROM customer_devkey AS A
+		INNER JOIN customer AS C ON A.customer_id = C.id
 		WHERE key = $1
 	`
 	row := CustomerDevKeyFull{}

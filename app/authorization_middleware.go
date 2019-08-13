@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"crypto/subtle"
 	"net/http"
 
@@ -41,11 +42,13 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 		}
 
+		ctx2 := context.WithValue(ctx, "cid", cid)
+
 		// superuser has all privileges. The JWT containing the claims is cryptographically
 		// signed with a claim of "root" so we give maximum privilege.
 		if role == RoleSuperUser {
 			contextLogger.Infof("%s authorized for RoleSuperUser", op)
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		}
 
@@ -57,17 +60,18 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem,
 			OpDeleteCartItem, OpEmptyCartItems, OpGetCatalog, OpSignInWithDevKey,
 			OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs,
-			OpGetTierPricing, OpMapPricingBySKU, OpMapPricingByTier, OpGetImage,
+			OpGetTierPricing, OpMapPricingByProductID, OpMapPricingByTier, OpGetImage,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetTier:
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
-		case OpListCustomers, OpUpdateProduct, OpDeleteProduct,
+		// Operations that required at least RoleAdmin privileges
+		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
 			OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo,
 			OpUpdateCatalog, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
 			OpCreateTier, OpListTiers, OpUpdateTier, OpDeleteTier:
 			if role == RoleAdmin {
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
 			w.WriteHeader(http.StatusForbidden) // 403 Forbidden
@@ -75,7 +79,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		case OpCreateCustomer:
 			// Only anonymous users can create a new customer account
 			if role == RoleShopper {
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
 			unauthorized(w)
@@ -84,14 +88,14 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			// Check the JWT Claim's customer UUID and safely compare it to the customer UUID in the route
 			// Anonymous signin results in automatic rejection. These operations are reserved for customers.
 			if role == RoleAdmin {
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
 
 			if role == RoleCustomer {
 				contextLogger.Debugf("URL id %s", chi.URLParam(r, "id"))
 				if subtle.ConstantTimeCompare([]byte(cid), []byte(chi.URLParam(r, "id"))) == 1 {
-					next.ServeHTTP(w, r)
+					next.ServeHTTP(w, r.WithContext(ctx2))
 					return
 				}
 			}
@@ -101,7 +105,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		case OpDeleteCustomerDevKey:
 			if role == RoleAdmin {
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
 			unauthorized(w)
@@ -114,7 +118,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if role == RoleAdmin {
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
 
@@ -132,7 +136,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if subtle.ConstantTimeCompare([]byte(cid), []byte(*ocid)) == 1 {
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
 			unauthorized(w)

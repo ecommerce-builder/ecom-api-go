@@ -12,8 +12,8 @@ import (
 // AddItemToCartHandler creates a handler to add an item to a given cart
 func (a *App) AddItemToCartHandler() http.HandlerFunc {
 	type itemRequestBody struct {
-		SKU string `json:"sku"`
-		Qty int    `json:"qty"`
+		ProductID string `json:"product_id"`
+		Qty       int    `json:"qty"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -27,10 +27,38 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		item, err := a.Service.AddItemToCart(ctx, cartID, o.SKU, o.Qty)
+		item, err := a.Service.AddItemToCart(ctx, cartID, o.ProductID, o.Qty)
 		if err != nil {
 			if err == service.ErrCartNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				return
+			} else if err == service.ErrCustomerNotFound {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeCustomerNotFound,
+					"The customerID inside the JWT did not match any customers in the system",
+				})
+				return
+			} else if err == service.ErrProductNotFound {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeProductNotFound,
+					"failed to add product with given id to the cart as the product cannot be found",
+				})
+				return
+			} else if err == service.ErrDefaultPricingTierMissing {
+				contextLogger.Error("ErrDefaultPricingTierMissing")
+				w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 				return
 			} else if err == service.ErrCartItemAlreadyExists {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
@@ -45,7 +73,8 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 				})
 				return
 			}
-			contextLogger.Errorf("service AddItemToCart(cartID=%q, sku=%q, qty=%d) failed with error: %v", cartID, o.SKU, o.Qty, err)
+
+			contextLogger.Errorf("service AddItemToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %v", cartID, o.ProductID, o.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

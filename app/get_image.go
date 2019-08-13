@@ -1,10 +1,10 @@
 package app
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,14 +16,14 @@ func (a *App) GetImageHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetImageHandler called")
 
-		id := chi.URLParam(r, "id")
-		image, err := a.Service.GetImage(ctx, id)
+		imageID := chi.URLParam(r, "image_id")
+		image, err := a.Service.GetImage(ctx, imageID)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if err == service.ErrImageNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service: GetImage(ctx, %q) error: %+v", id, err)
+			contextLogger.Errorf("service: GetImage(ctx, imageID=%q) error: %+v", imageID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

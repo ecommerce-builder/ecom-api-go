@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS categories (
+CREATE TABLE IF NOT EXISTS category (
   id        SERIAL PRIMARY KEY,
   uuid      UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   segment   VARCHAR(512) NOT NULL,

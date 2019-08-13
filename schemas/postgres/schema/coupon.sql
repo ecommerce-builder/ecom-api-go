@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS coupons (
+CREATE TABLE IF NOT EXISTS coupon (
   id             SERIAL PRIMARY KEY,
   uuid           UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   coupon_code    VARCHAR(64) NOT NULL UNIQUE,
@@ -8,5 +8,5 @@ CREATE TABLE IF NOT EXISTS coupons (
   spend_count    INTEGER NOT NULL DEFAULT 0 CHECK (spend_count >= 0),
   created        TIMESTAMP NOT NULL DEFAULT NOW(),
   modified       TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (promo_rule_id) REFERENCES promo_rules (id)
+  FOREIGN KEY (promo_rule_id) REFERENCES promo_rule (id)
 );

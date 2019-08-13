@@ -13,7 +13,7 @@ import (
 // could not be found in the database.
 var ErrCustomerNotFound = errors.New("model: customer not found")
 
-// CustomerRow holds details of a single row from the customers table.
+// CustomerRow holds details of a single row from the customer table.
 type CustomerRow struct {
 	id        int
 	UUID      string
@@ -50,7 +50,7 @@ type PaginationQuery struct {
 // CreateCustomer creates a new customer
 func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*CustomerRow, error) {
 	query := `
-		INSERT INTO customers (
+		INSERT INTO customer (
 			uid, role, email, firstname, lastname
 		) VALUES (
 			$1, $2, $3, $4, $5
@@ -66,9 +66,9 @@ func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstnam
 	return &c, nil
 }
 
-// GetCustomers gets the next size customers starting at page page
+// GetCustomers gets the next size customer starting at page page
 func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
-	q := NewQuery("customers", map[string]bool{
+	q := NewQuery("customer", map[string]bool{
 		"id":        true,
 		"uuid":      false,
 		"uid":       false,
@@ -164,7 +164,7 @@ func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*
 	query := `
 		SELECT
 			id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM customers
+		FROM customer
 		WHERE uuid = $1
 	`
 	c := CustomerRow{}
@@ -183,7 +183,7 @@ func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*Custome
 	query := `
 		SELECT
 			id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM customers
+		FROM customer
 		WHERE id = $1
 	`
 	c := CustomerRow{}
@@ -201,7 +201,7 @@ func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*Custome
 // primary key.
 func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error) {
 	var id int
-	query := `SELECT id FROM customers WHERE uuid = $1`
+	query := `SELECT id FROM customer WHERE uuid = $1`
 	row := m.db.QueryRowContext(ctx, query, customerUUID)
 	err := row.Scan(&id)
 	if err != nil {

@@ -52,7 +52,7 @@ type Address struct {
 func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*Address, error) {
 	a := Address{}
 	query := `
-		INSERT INTO addresses (
+		INSERT INTO address (
 			customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
@@ -74,7 +74,7 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 		SELECT
 		  id, uuid, customer_id, typ, contact_name, addr1, addr2,
 		  city, county, postcode, country, created, modified
-		FROM addresses
+		FROM address
 		WHERE uuid = $1
 	`
 	row := m.db.QueryRowContext(ctx, query, uuid)
@@ -112,7 +112,7 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, uuid string) (*string, error) {
 	query := `
 		SELECT C.uuid
-		FROM customers AS C, addresses AS A
+		FROM customer AS C, address AS A
 		WHERE A.customer_id = C.id AND A.uuid = $1
 	`
 	var customerUUID string
@@ -131,7 +131,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address,
 		SELECT
 			id, uuid, customer_id, typ, contact_name, addr1,
 			addr2, city, county, postcode, country, created, modified
-		FROM addresses
+		FROM address
 		WHERE customer_id = $1
 		ORDER BY created DESC
 	`
@@ -160,14 +160,14 @@ func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address,
 func (m *PgModel) UpdateAddressByUUID(ctx context.Context, UUID string) (*Address, error) {
 	// TO BE DONE
 	//
-	//query := `UPDATE addresses SET`
+	//query := `UPDATE address SET`
 	addr := Address{}
 	return &addr, nil
 }
 
 // DeleteAddressByUUID deletes an address by uuid
 func (m *PgModel) DeleteAddressByUUID(ctx context.Context, UUID string) error {
-	query := `DELETE FROM addresses WHERE uuid = $1`
+	query := `DELETE FROM address WHERE uuid = $1`
 	_, err := m.db.ExecContext(ctx, query, UUID)
 	if err != nil {
 		return errors.Wrapf(err, "exec context query=%q", query)

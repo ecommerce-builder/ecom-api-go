@@ -60,9 +60,15 @@ type AssocProduct struct {
 	Modified time.Time `json:"modified"`
 }
 
+// AssocProductListContainer is a container for a list of assoc_product objects
+type AssocProductListContainer struct {
+	Object string          `json:"object"`
+	Data   []*AssocProduct `json:"data"`
+}
+
 // Assoc details a catalog association including products.
 type Assoc struct {
-	Products []AssocProduct `json:"products"`
+	Products *AssocProductListContainer `json:"products"`
 }
 
 // GetCategoryAssocs returns all of the category product associations
@@ -75,7 +81,10 @@ func (s *Service) GetCategoryAssocs(ctx context.Context) (map[string]*Assoc, err
 	for _, v := range cpo {
 		if _, ok := assocs[v.Path]; !ok {
 			assocs[v.Path] = &Assoc{
-				Products: make([]AssocProduct, 0),
+				Products: &AssocProductListContainer{
+					Object: "list",
+					Data:   make([]*AssocProduct, 0),
+				},
 			}
 		}
 		p := AssocProduct{
@@ -83,7 +92,7 @@ func (s *Service) GetCategoryAssocs(ctx context.Context) (map[string]*Assoc, err
 			Created:  v.Created,
 			Modified: v.Modified,
 		}
-		assocs[v.Path].Products = append(assocs[v.Path].Products, p)
+		assocs[v.Path].Products.Data = append(assocs[v.Path].Products.Data, &p)
 	}
 	return assocs, nil
 }

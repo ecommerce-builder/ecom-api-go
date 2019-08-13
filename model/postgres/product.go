@@ -14,12 +14,13 @@ import (
 
 // ProductPricingEntry contains a tier reference and unit price pair
 type ProductPricingEntry struct {
-	TierRef   string
-	UnitPrice float64
+	PricingTierUUID string
+	UnitPrice       int
 }
 
 // ProductCreateUpdate contains the data required to update an existing product.
 type ProductCreateUpdate struct {
+	SKU     *string
 	EAN     string
 	Path    string
 	Name    string
@@ -44,7 +45,7 @@ type ProductContent struct {
 	InTheBox      string   `json:"in_the_box"`
 }
 
-// ProductRow maps to a products row.
+// ProductRow maps to a product row.
 type ProductRow struct {
 	id       int
 	UUID     string
@@ -57,7 +58,7 @@ type ProductRow struct {
 	Modified time.Time
 }
 
-// ProductFull maps to a products row joined to product_images rows
+// ProductFull represents a product row joined with a product_image row
 type ProductFull struct {
 	id       int
 	UUID     string
@@ -66,7 +67,7 @@ type ProductFull struct {
 	Path     string
 	Name     string
 	Images   []*ImageRow
-	Pricing  []*ProductPricing
+	Pricing  []*ProductPricingRow
 	Content  ProductContent
 	Created  time.Time
 	Modified time.Time
@@ -103,47 +104,34 @@ func (pd *ProductContent) Scan(value interface{}) error {
 // for the product could not be found in the database.
 var ErrProductNotFound = errors.New("product not found")
 
-// CreateProduct creates a new product with the given SKU.
-func (m *PgModel) CreateProduct(ctx context.Context, sku, ean, path, name string, content ProductContent) (*ProductRow, error) {
+// GetProduct returns a ProductRow by product id.
+func (m *PgModel) GetProduct(ctx context.Context, productID string) (*ProductRow, error) {
 	query := `
-		INSERT INTO products (
-			sku, ean, path, name, content, created, modified
-		) VALUES (
-			$1, $2, $3, $4, $5, NOW(), NOW()
-		) RETURNING
-			id, uuid, sku, ean, path, name, content, created, modified
+		SELECT
+		  id, uuid, sku, ean, path, name, content, created, modified
+		FROM
+		  product
+		WHERE
+		  uuid = $1
 	`
 	p := ProductRow{}
-	row := m.db.QueryRowContext(ctx, query, sku, ean, path, name, content)
-	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
-		return nil, errors.Wrapf(err, "query scan context sku=%q, query=%q", sku, query)
-	}
-	return &p, nil
-}
-
-// GetProductByUUID returns a single product by UUID.
-func (m *PgModel) GetProductByUUID(ctx context.Context, uuid string) (*ProductRow, error) {
-	query := `
-		SELECT id, uuid, sku, ean, path, name, content, created, modified
-		FROM products
-		WHERE uuid = $1
-	`
-	p := ProductRow{}
-	row := m.db.QueryRowContext(ctx, query, uuid)
+	row := m.db.QueryRowContext(ctx, query, productID)
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProductNotFound
 		}
-		return nil, errors.Wrapf(err, "query scan context uuid=%q query=%q", uuid, query)
+		return nil, errors.Wrapf(err, "query scan context productID=%q query=%q", productID, query)
 	}
 	return &p, nil
 }
 
-// GetProducts returns a list of all products in the products table.
+// GetProducts returns a list of all products in the product table.
 func (m *PgModel) GetProducts(ctx context.Context) ([]*ProductRow, error) {
 	query := `
-		SELECT id, uuid, sku, ean, path, name, content, created, modified
-		FROM products
+		SELECT
+		  id, uuid, sku, ean, path, name, content, created, modified
+		FROM
+		  product
 	`
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {
@@ -165,17 +153,21 @@ func (m *PgModel) GetProducts(ctx context.Context) ([]*ProductRow, error) {
 	return products, nil
 }
 
-// ProductsExist accepts a slice of product SKU strings and returns only
-// those that can be found in the products table.
-func (m *PgModel) ProductsExist(ctx context.Context, skus []string) ([]string, error) {
+// ProductsExist accepts a slice of product uuids strings and returns only
+// those that can be found in the product table.
+func (m *PgModel) ProductsExist(ctx context.Context, products []string) ([]string, error) {
 	query := `
-		SELECT sku FROM products
-		WHERE sku = ANY($1::varchar[])
+		SELECT
+		  uuid
+		FROM
+		  product
+		WHERE
+		  uuid = ANY($1::varchar[])
 	`
 	// TODO: sanitise skus
-	rows, err := m.db.QueryContext(ctx, query, "{"+strings.Join(skus, ",")+"}")
+	rows, err := m.db.QueryContext(ctx, query, "{"+strings.Join(products, ",")+"}")
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx,..) query=%q, skus=%v", query, skus)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx,..) query=%q, products=%v", query, products)
 	}
 	defer rows.Close()
 
@@ -194,25 +186,25 @@ func (m *PgModel) ProductsExist(ctx context.Context, skus []string) ([]string, e
 	return found, nil
 }
 
-// ProductExists return true if there is a row in the products table with
-// the given UUID.
-func (m *PgModel) ProductExists(ctx context.Context, uuid string) (bool, error) {
-	query := `SELECT id FROM products WHERE uuid = $1`
+// ProductExists return true if there is a row in the product table with
+// the given product UUID.
+func (m *PgModel) ProductExists(ctx context.Context, productUUID string) (bool, error) {
+	query := `SELECT id FROM product WHERE uuid = $1`
 	var id int
-	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&id)
+	err := m.db.QueryRowContext(ctx, query, productUUID).Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return false, nil
+			return false, ErrProductNotFound
 		}
-		return false, errors.Wrapf(err, "query row context uuid=%q query=%q", uuid, query)
+		return false, errors.Wrapf(err, "query row context productUUID=%q query=%q", productUUID, query)
 	}
 	return true, nil
 }
 
-// ProductExistsBySKU return true if there is a row in the products table with
+// ProductExistsBySKU return true if there is a row in the product table with
 // the given SKU.
 func (m *PgModel) ProductExistsBySKU(ctx context.Context, sku string) (bool, error) {
-	query := `SELECT id FROM products WHERE sku = $1`
+	query := `SELECT id FROM product WHERE sku = $1`
 	var id int
 	err := m.db.QueryRowContext(ctx, query, sku).Scan(&id)
 	if err != nil {
@@ -224,41 +216,59 @@ func (m *PgModel) ProductExistsBySKU(ctx context.Context, sku string) (bool, err
 	return true, nil
 }
 
-// UpdateProduct updates the details of a product with the given product id.
-func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *ProductCreateUpdate) (*ProductFull, error) {
+// CreateUpdateProduct updates the details of a product with the given product id.
+func (m *PgModel) CreateUpdateProduct(ctx context.Context, productID *string, pu *ProductCreateUpdate) (*ProductFull, error) {
+
+	fmt.Printf("%#v\n", pu)
+	fmt.Println("-------------")
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
-	query := `
-		UPDATE products
-		  SET
-		    ean = $1, path = $2, name = $3, content = $4, modified = NOW()
-		  WHERE uuid = $5
-		RETURNING
-		  id, uuid, sku, ean, path, name, content, created, modified
-	`
+
+	var q1 string
+	var row *sql.Row
+	if productID == nil {
+		q1 = `
+			INSERT INTO product
+			  (sku, ean, path, name, content, created, modified)
+			VALUES
+			  ($1, $2, $3, $4, $5, NOW(), NOW())
+			RETURNING
+			  id, uuid, sku, ean, path, name, content, created, modified`
+		row = tx.QueryRowContext(ctx, q1, *pu.SKU, pu.EAN, pu.Path, pu.Name, pu.Content)
+	} else {
+		q1 = `
+			UPDATE product
+			SET
+			  ean = $1, path = $2, name = $3, content = $4, modified = NOW()
+			WHERE
+			  uuid = $5
+			RETURNING
+			  id, uuid, sku, ean, path, name, content, created, modified`
+		row = tx.QueryRowContext(ctx, q1, pu.EAN, pu.Path, pu.Name, pu.Content, *productID)
+	}
+
 	p := ProductRow{}
-	row := m.db.QueryRowContext(ctx, query, pu.EAN, pu.Path, pu.Name, pu.Content, productID)
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "query row context query=%q", query)
+		return nil, errors.Wrapf(err, "query row context query=%q", q1)
 	}
 
 	// Delete all existing products. This is not the most efficient
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
 	// effect the customer's experience.
-	query = `DELETE FROM product_images WHERE product_id = $1`
-	if _, err = tx.ExecContext(ctx, query, p.id); err != nil {
+	q2 := `DELETE FROM product_image WHERE product_id = $1`
+	if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "model: delete product_images query=%q", query)
+		return nil, errors.Wrapf(err, "model: delete product_image query=%q", q2)
 	}
 
 	// The inner sub select uses a pri of 10 if now rows exist for the given product
 	// or pri + 10 for each subseqent row.
-	query = `
-		INSERT INTO product_images (
+	q3 := `
+		INSERT INTO product_image (
 			product_id,
 			w, h, path, typ,
 			ori, up,
@@ -275,7 +285,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 					ELSE 10
 				END
 				AS pri
-				FROM product_images
+				FROM product_image
 				WHERE id = $7
 			), $8, $9,
 			$10, NOW(), NOW()
@@ -284,17 +294,17 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 		  h, path, typ, ori, up, pri, size, q,
 		  gsurl, data, created, modified
 	`
-	stmt1, err := tx.PrepareContext(ctx, query)
+	stmt3, err := tx.PrepareContext(ctx, q3)
 	if err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "tx prepare for query=%q", query)
+		return nil, errors.Wrapf(err, "tx prepare for query=%q", q3)
 	}
-	defer stmt1.Close()
+	defer stmt3.Close()
 
 	images := make([]*ImageRow, 0)
 	for _, img := range pu.Images {
 		var pi ImageRow
-		row := stmt1.QueryRowContext(ctx, p.id,
+		row := stmt3.QueryRowContext(ctx, p.id,
 			img.W, img.H, img.Path, img.Typ,
 			img.Ori,
 			p.id, img.Size, img.Q,
@@ -309,30 +319,54 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	}
 
 	// insert or update product pricing matrix (uses and 'upsert' with ON CONFLICT)
-	query = `
-		INSERT INTO product_pricing (tier_ref, sku, unit_price, created, modified)
-		VALUES ($1, $2, $3, NOW(), NOW())
-		ON CONFLICT (tier_ref, sku)
+	q4 := `
+		SELECT id
+		FROM pricing_tier
+		WHERE uuid = $1
+	`
+	stmt4, err := tx.PrepareContext(ctx, q4)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "tx prepare for query=%q", q4)
+	}
+	defer stmt4.Close()
+
+	q5 := `
+		INSERT INTO product_pricing
+		  (pricing_tier_id, product_id, unit_price, created, modified)
+		VALUES
+		  ($1, $2, $3, NOW(), NOW())
+		ON CONFLICT (pricing_tier_id, product_id)
 		DO UPDATE
 		  SET
 		    unit_price = $4, modified = NOW()
 		  WHERE
-		    excluded.sku = $5 AND excluded.tier_ref = $6
+		    excluded.product_id = $5 AND excluded.pricing_tier_id = $6
 		RETURNING
-		  id, tier_ref, sku, unit_price, created, modified
+		  id, uuid, pricing_tier_id, product_id, unit_price, created, modified
 	`
-	stmt2, err := tx.PrepareContext(ctx, query)
+	stmt5, err := tx.PrepareContext(ctx, q5)
 	if err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "tx prepare for query=%q", query)
+		return nil, errors.Wrapf(err, "tx prepare for query=%q", q5)
 	}
-	defer stmt1.Close()
+	defer stmt5.Close()
 
-	pricing := make([]*ProductPricing, 0, 4)
-	for _, price := range pu.Pricing {
-		row = stmt2.QueryRowContext(ctx, price.TierRef, p.SKU, price.UnitPrice, price.UnitPrice, p.SKU, price.TierRef)
-		var pp ProductPricing
-		if err := row.Scan(&pp.id, &pp.TierRef, &pp.SKU, &pp.UnitPrice, &pp.Created, &pp.Modified); err != nil {
+	pricing := make([]*ProductPricingRow, 0, 4)
+	for _, r := range pu.Pricing {
+		var pricingTierID int
+		if err := stmt4.QueryRowContext(ctx, r.PricingTierUUID).Scan(&pricingTierID); err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrPricingTierNotFound
+			}
+			tx.Rollback()
+		}
+
+		row = stmt5.QueryRowContext(ctx, pricingTierID, p.id, r.UnitPrice,
+			r.UnitPrice, p.id, pricingTierID)
+		var pp ProductPricingRow
+		if err := row.Scan(&pp.id, &pp.UUID, &pp.pricingTierID, &pp.productID, &pp.UnitPrice, &pp.Created, &pp.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
 		pricing = append(pricing, &pp)
@@ -357,14 +391,47 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 }
 
 // DeleteProduct delete the product with the given UUID.
-func (m *PgModel) DeleteProduct(ctx context.Context, uuid string) error {
-	query := `
-		DELETE FROM products
-		WHERE uuid = $1
-	`
-	_, err := m.db.ExecContext(ctx, query, uuid)
+func (m *PgModel) DeleteProduct(ctx context.Context, productUUID string) error {
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
+		return errors.Wrap(err, "db.BeginTx")
+	}
+
+	query := `SELECT id FROM product WHERE uuid = $1`
+	var productID int
+	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrProductNotFound
+		}
+		tx.Rollback()
+		return errors.Wrapf(err, "query row context failed for query=%q", query)
+	}
+
+	query = "DELETE FROM product_pricing WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, query, productID)
+	if err != nil {
+		tx.Rollback()
 		return errors.Wrapf(err, "exec context query=%q", query)
+	}
+
+	query = "DELETE FROM category_product WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, query, productID)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "exec context query=%q", query)
+	}
+
+	query = "DELETE FROM product WHERE id = $1"
+	_, err = tx.ExecContext(ctx, query, productID)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "exec context query=%q", query)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return errors.Wrap(err, "tx.Commit")
 	}
 	return nil
 }

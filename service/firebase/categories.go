@@ -16,6 +16,12 @@ import (
 // already exist.
 var ErrAssocsAlreadyExist = errors.New("service: associations already exist")
 
+// CategoryList is a container for a list of category objects
+type CategoryList struct {
+	Object string      `json:"object"`
+	Data   []*Category `json:"data"`
+}
+
 // A Category represents an individual category in the catalog hierarchy.
 type Category struct {
 	Object   string `json:"object"`
@@ -27,7 +33,7 @@ type Category struct {
 	rgt      int
 	depth    int
 	parent   *Category
-	Nodes    []*Category `json:"categories"`
+	Nodes    *CategoryList `json:"categories"`
 	Products []*struct {
 		SKU  string `json:"sku"`
 		Path string `json:"path"`
@@ -38,7 +44,7 @@ type Category struct {
 // AddChild attaches a Category to its parent Category.
 func (n *Category) AddChild(c *Category) {
 	c.parent = n
-	n.Nodes = append(n.Nodes, c)
+	n.Nodes.Data = append(n.Nodes.Data, c)
 }
 
 // IsRoot returns true for the root node only.
@@ -48,7 +54,7 @@ func (n *Category) IsRoot() bool {
 
 // IsLeaf return true if the node is a leaf node.
 func (n *Category) IsLeaf() bool {
-	return len(n.Nodes) == 0
+	return len(n.Nodes.Data) == 0
 }
 
 // NestedSet uses preorder traversal of the tree to return a
@@ -67,7 +73,7 @@ func (n *Category) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
 		Depth:   n.depth,
 	}
 	*ns = append(*ns, nsn)
-	for _, i := range n.Nodes {
+	for _, i := range n.Nodes.Data {
 		i.preorderTraversalNS(ns)
 	}
 }
@@ -83,7 +89,7 @@ func (n *Category) PreorderTraversalPrint(w io.Writer) {
 func (n *Category) preorderTraversalWrite(w io.Writer) {
 	fmt.Fprintf(w, "segment: %s\t path: %q\tname: %q\tlft: %d\t rgt: %d\t depth %d\n", n.Segment, n.path, n.Name, n.lft, n.rgt, n.depth)
 
-	for _, i := range n.Nodes {
+	for _, i := range n.Nodes.Data {
 		i.preorderTraversalWrite(w)
 	}
 }
@@ -111,14 +117,17 @@ func NewCategory(segment, name string) *Category {
 		rgt:     -1,
 		depth:   -1,
 		parent:  nil,
-		Nodes:   make([]*Category, 0),
+		Nodes: &CategoryList{
+			Object: "list",
+			Data:   make([]*Category, 0),
+		},
 	}
 }
 
 // GenerateNestedSet performs a pre-order tree traversal wiring the tree.
 func (n *Category) GenerateNestedSet(lft, depth int, path string) int {
 	rgt := lft + 1
-	for _, i := range n.Nodes {
+	for _, i := range n.Nodes.Data {
 		if path == "" {
 			rgt = i.GenerateNestedSet(rgt, depth+1, n.Segment)
 		} else {
@@ -159,18 +168,18 @@ func (s *Service) UpdateCatalog(ctx context.Context, root *Category) error {
 }
 
 func (n *Category) addChild(c *Category) {
-	n.Nodes = append(n.Nodes, c)
+	n.Nodes.Data = append(n.Nodes.Data, c)
 }
 
 func (n *Category) hasChildren() bool {
-	return len(n.Nodes) > 0
+	return len(n.Nodes.Data) > 0
 }
 
 func (n *Category) findNode(segment string) *Category {
 	if !n.hasChildren() {
 		return nil
 	}
-	for _, node := range n.Nodes {
+	for _, node := range n.Nodes.Data {
 		if node.Segment == segment {
 			return node
 		}
@@ -213,7 +222,10 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) 
 		path:    nestedset[0].Path,
 		Name:    nestedset[0].Name,
 		parent:  nil,
-		Nodes:   make([]*Category, 0),
+		Nodes: &CategoryList{
+			Object: "list",
+			Data:   make([]*Category, 0),
+		},
 		Products: make([]*struct {
 			SKU  string `json:"sku"`
 			Path string `json:"path"`
@@ -245,13 +257,16 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]spnTuple) 
 			})
 		}
 		n := &Category{
-			Object:   "category",
-			ID:       cur.UUID,
-			Segment:  cur.Segment,
-			path:     cur.Path,
-			Name:     cur.Name,
-			parent:   context,
-			Nodes:    make([]*Category, 0),
+			Object:  "category",
+			ID:      cur.UUID,
+			Segment: cur.Segment,
+			path:    cur.Path,
+			Name:    cur.Name,
+			parent:  context,
+			Nodes: &CategoryList{
+				Object: "list",
+				Data:   make([]*Category, 0),
+			},
 			Products: products,
 			lft:      cur.Lft,
 			rgt:      cur.Rgt,
@@ -281,7 +296,7 @@ func (s *Service) HasCatalog(ctx context.Context) (bool, error) {
 
 // GetCatalog returns the catalog as a hierarchy of nodes.
 func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
-	log.WithContext(ctx).Debug("Service: GetCatalog called")
+	log.WithContext(ctx).Debug("Service: GetCatalog started")
 	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
 		return nil, err

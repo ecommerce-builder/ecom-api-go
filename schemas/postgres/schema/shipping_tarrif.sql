@@ -1,4 +1,4 @@
-CREATE TABLE shipping_tarrifs (
+CREATE TABLE shipping_tarrif (
   id             SERIAL PRIMARY KEY,
   uuid           UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   country_code   VARCHAR(16) NOT NULL,

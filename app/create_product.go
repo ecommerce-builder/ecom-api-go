@@ -2,39 +2,19 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
-func validateRequestBody(pc *service.ProductCreateUpdate) error {
-	imagemap := make(map[string]bool)
-	for _, img := range pc.Images {
-		if _, found := imagemap[img.Path]; found {
-			return fmt.Errorf("duplicate image path %s", img.Path)
-		}
-		imagemap[img.Path] = true
-	}
-
-	// TODO: make sure the new path is not already taken by another
-	// product other than this one.
-	return nil
-}
-
-// UpdateProductHandler updates an existing product.
-//
-// A separate call must be made to associate the product to the catalog
-// hierarchy.
-func (a *App) UpdateProductHandler() http.HandlerFunc {
+// CreateProductHandler creates a new product
+func (a *App) CreateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateProductHandler started")
+		contextLogger.Info("App: CreateProductHandler called")
 
-		productID := chi.URLParam(r, "product_id")
 		pc := service.ProductCreateUpdate{}
 		if err := json.NewDecoder(r.Body).Decode(&pc); err != nil {
 			http.Error(w, err.Error(), 400)
@@ -53,13 +33,28 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 			})
 			return
 		}
-		product, err := a.Service.CreateUpdateProduct(ctx, &productID, &pc)
+		defer r.Body.Close()
+
+		product, err := a.Service.CreateUpdateProduct(ctx, nil, &pc)
 		if err != nil {
-			contextLogger.Errorf("update product failed: %+v", err)
+			if err == service.ErrPricingTierNotFound {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodePricingTierNotFound,
+					"pricing tier could not be found",
+				})
+				return
+			}
+			contextLogger.Errorf("create product failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		w.WriteHeader(http.StatusOK) // 201 OK
+		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(product)
 	}
 }

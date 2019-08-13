@@ -7,41 +7,41 @@ import (
 	"github.com/pkg/errors"
 )
 
-// SKU for a product
-type SKU string
+// ErrDefaultPricingTierMissing error
+var ErrDefaultPricingTierMissing = errors.New("default pricing tier missing")
 
-// TierRef for a pricing tier reference.
-type TierRef string
+// PricingTierID for a pricing tier id.
+type PricingTierID string
 
 // ProductPricing contains pricing information for a single SKU and tier ref.
 type ProductPricing struct {
-	SKU       SKU       `json:"sku,omitempty"`
-	TierRef   TierRef   `json:"tier_ref,omitempty"`
-	UnitPrice float64   `json:"unit_price"`
-	Created   time.Time `json:"created"`
-	Modified  time.Time `json:"modified"`
+	ProductID     string        `json:"product_id,omitempty"`
+	PricingTierID PricingTierID `json:"pricing_tier_id,omitempty"`
+	UnitPrice     int           `json:"unit_price"`
+	Created       time.Time     `json:"created"`
+	Modified      time.Time     `json:"modified"`
 }
 
 // PricingEntry represents a single pricing entry
 type PricingEntry struct {
-	UnitPrice float64   `json:"unit_price"`
+	UnitPrice int       `json:"unit_price"`
 	Created   time.Time `json:"created"`
 	Modified  time.Time `json:"modified"`
 }
 
 // GetTierPricing returns a ProductPricing for the product with the
 // given SKU and tier ref.
-func (s *Service) GetTierPricing(ctx context.Context, sku, ref string) (*ProductPricing, error) {
-	p, err := s.model.GetProductPricingBySKUAndTier(ctx, sku, ref)
+func (s *Service) GetTierPricing(ctx context.Context, productID, pricingTierID string) (*ProductPricing, error) {
+	p, err := s.model.GetProductPricing(ctx, productID, pricingTierID)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetProductPricingBySKUAndTier failed")
 	}
 	pricing := ProductPricing{
-		TierRef:   TierRef(p.TierRef),
-		SKU:       SKU(p.SKU),
-		UnitPrice: p.UnitPrice,
-		Created:   p.Created,
-		Modified:  p.Modified,
+		PricingTierID: PricingTierID(p.PricingTierUUID),
+		ProductID:     p.ProductUUID,
+		UnitPrice:     p.UnitPrice,
+		Created:       p.Created,
+		Modified:      p.Modified,
 	}
 	return &pricing, nil
 }
@@ -52,78 +52,78 @@ type ProductTierPricing struct {
 	UnitPrice float64 `json:"unit_price"`
 }
 
-// PricingMapBySKU returns a map of tier to PricingEntrys.
-func (s *Service) PricingMapBySKU(ctx context.Context, sku string) (map[TierRef]*PricingEntry, error) {
-	plist, err := s.model.GetProductPricingBySKU(ctx, sku)
+// PricingMapByProductID returns a map of pricing tier id to PricingEntrys.
+func (s *Service) PricingMapByProductID(ctx context.Context, productID string) (map[PricingTierID]*PricingEntry, error) {
+	plist, err := s.model.GetProductPricingByProductUUID(ctx, productID)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetProductPricingBySKU failed")
+		return nil, errors.Wrap(err, "GetProductPricingByProductUUID failed")
 	}
-	pmap := make(map[TierRef]*PricingEntry)
+	pmap := make(map[PricingTierID]*PricingEntry)
 	for _, p := range plist {
 		ptp := PricingEntry{
 			UnitPrice: p.UnitPrice,
 			Created:   p.Created,
 			Modified:  p.Modified,
 		}
-		if _, ok := pmap[TierRef(p.TierRef)]; !ok {
-			pmap[TierRef(p.TierRef)] = &ptp
+		if _, ok := pmap[PricingTierID(p.PricingTierUUID)]; !ok {
+			pmap[PricingTierID(p.TierRef)] = &ptp
 		}
 	}
 	return pmap, nil
 }
 
 // PricingMapByTier returns a map of SKU to PricingEntrys.
-func (s *Service) PricingMapByTier(ctx context.Context, ref string) (map[SKU]*PricingEntry, error) {
-	plist, err := s.model.GetProductPricingByTier(ctx, ref)
+func (s *Service) PricingMapByTier(ctx context.Context, ref string) (map[string]*PricingEntry, error) {
+	plist, err := s.model.GetProductPricingID(ctx, ref)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetProductPricingByTier failed")
 	}
-	pmap := make(map[SKU]*PricingEntry)
+	pmap := make(map[string]*PricingEntry)
 	for _, p := range plist {
 		ptp := PricingEntry{
 			UnitPrice: p.UnitPrice,
 			Created:   p.Created,
 			Modified:  p.Modified,
 		}
-		if _, ok := pmap[SKU(p.SKU)]; !ok {
-			pmap[SKU(p.SKU)] = &ptp
+		if _, ok := pmap[p.UUID]; !ok {
+			pmap[p.UUID] = &ptp
 		}
 	}
 	return pmap, nil
 }
 
-// ErrTierPricingNotFound is where no tier pricing could be found
+// ErrPricingTierNotFound is where no tier pricing could be found
 // for the given sku and tier ref.
-var ErrTierPricingNotFound = errors.New("service: tier pricing not found")
+var ErrPricingTierNotFound = errors.New("service: tier pricing not found")
 
 // UpdateTierPricing updates the tier pricing for the given sku and tier ref.
 // If the produt pricing is not found returns nil, nil.
-func (s *Service) UpdateTierPricing(ctx context.Context, sku, tierRef string, unitPrice float64) (*ProductPricing, error) {
-	p, err := s.model.GetProductPricingBySKUAndTier(ctx, sku, tierRef)
+func (s *Service) UpdateTierPricing(ctx context.Context, productID, pricingTierID string, unitPrice float64) (*ProductPricing, error) {
+	p, err := s.model.GetProductPricing(ctx, productID, pricingTierID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "GetProductPricingBySKUAndTier(ctx, %q, %q) failed", sku, tierRef)
+		return nil, errors.Wrapf(err, "GetProductPricingBySKUAndTier(ctx, %q, %q) failed", productID, pricingTierID)
 	}
 	if p == nil {
-		return nil, ErrTierPricingNotFound
+		return nil, ErrPricingTierNotFound
 	}
-	p, err = s.model.UpdateTierPricing(ctx, sku, tierRef, unitPrice)
+	p, err = s.model.UpdateTierPricing(ctx, productID, pricingTierID, unitPrice)
 	if err != nil {
-		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %.4f) failed", sku, tierRef, unitPrice)
+		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %.4f) failed", productID, pricingTierID, unitPrice)
 	}
 	pricing := ProductPricing{
-		SKU:       SKU(p.SKU),
-		TierRef:   TierRef(p.TierRef),
-		UnitPrice: p.UnitPrice,
-		Created:   p.Created,
-		Modified:  p.Modified,
+		ProductID:     p.ProductUUID,
+		PricingTierID: PricingTierID(p.PricingTierUUID),
+		UnitPrice:     p.UnitPrice,
+		Created:       p.Created,
+		Modified:      p.Modified,
 	}
 	return &pricing, nil
 }
 
 // DeleteTierPricing deletes a tier pricing by SKU and tier ref.
-func (s *Service) DeleteTierPricing(ctx context.Context, sku, tierRef string) error {
-	if err := s.model.DeleteProductPricingBySKUAndTier(ctx, sku, tierRef); err != nil {
-		return errors.Wrapf(err, "DeleteProductPricingBySKUAndTier(ctx, %q, %q) failed", sku, tierRef)
+func (s *Service) DeleteTierPricing(ctx context.Context, productID, pricingTierID string) error {
+	if err := s.model.DeleteProductPricing(ctx, productID, pricingTierID); err != nil {
+		return errors.Wrapf(err, "DeleteProductPricingBySKUAndTier(ctx, %q, %q) failed", productID, pricingTierID)
 	}
 	return nil
 }

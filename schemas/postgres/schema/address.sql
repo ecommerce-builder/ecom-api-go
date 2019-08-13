@@ -3,10 +3,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'address_t') THEN
         CREATE TYPE address_t AS ENUM('shipping', 'billing');
     END IF;
-    --more types here...
 END$$;
 
-CREATE TABLE IF NOT EXISTS addresses (
+CREATE TABLE IF NOT EXISTS address (
   id              SERIAL PRIMARY KEY,
   uuid            UUID DEFAULT uuid_generate_v4() UNIQUE,
   customer_id     INTEGER NOT NULL,
@@ -20,9 +19,9 @@ CREATE TABLE IF NOT EXISTS addresses (
   country         CHAR(2) NOT NULL,
   created         TIMESTAMP NOT NULL DEFAULT NOW(),
   modified        TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (customer_id) REFERENCES customers(id)
+  FOREIGN KEY (customer_id) REFERENCES customer (id)
 );
 
-CREATE INDEX IF NOT EXISTS created_idx  ON addresses (created DESC);
-CREATE INDEX IF NOT EXISTS modified_idx ON addresses (modified DESC);
+CREATE INDEX IF NOT EXISTS created_idx  ON address (created DESC);
+CREATE INDEX IF NOT EXISTS modified_idx ON address (modified DESC);
 

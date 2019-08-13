@@ -1,7 +1,7 @@
-CREATE TABLE IF NOT EXISTS product_images (
+CREATE TABLE IF NOT EXISTS product_image (
   id          SERIAL PRIMARY KEY,
-  product_id  INTEGER NOT NULL,
   uuid        UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
+  product_id  INTEGER NOT NULL,
   w           INTEGER NOT NULL CHECK (w > 0),
   h           INTEGER NOT NULL CHECK (h > 0),
   path        VARCHAR(4096) NOT NULL UNIQUE,
@@ -15,13 +15,13 @@ CREATE TABLE IF NOT EXISTS product_images (
   data        JSONB,
   created     TIMESTAMP NOT NULL DEFAULT NOW(),
   modified    TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (product_id) REFERENCES products (id)
+  FOREIGN KEY (product_id) REFERENCES product (id)
 );
 
-CREATE INDEX IF NOT EXISTS pi_created_idx  ON product_images (created DESC);
-CREATE INDEX IF NOT EXISTS pi_modified_idx ON product_images (modified DESC);
-CREATE INDEX IF NOT EXISTS pi_w_idx  ON product_images (w ASC);
-CREATE INDEX IF NOT EXISTS pi_h_idx ON product_images (h ASC);
-CREATE INDEX IF NOT EXISTS pi_h_pri ON product_images (pri ASC);
-CREATE INDEX IF NOT EXISTS pi_up ON product_images(up ASC);
-CREATE INDEX IF NOT EXISTS pi_size_idx ON product_images (size DESC);
+CREATE INDEX IF NOT EXISTS pi_created_idx  ON product_image (created DESC);
+CREATE INDEX IF NOT EXISTS pi_modified_idx ON product_image (modified DESC);
+CREATE INDEX IF NOT EXISTS pi_w_idx  ON product_image (w ASC);
+CREATE INDEX IF NOT EXISTS pi_h_idx ON product_image (h ASC);
+CREATE INDEX IF NOT EXISTS pi_h_pri ON product_image (pri ASC);
+CREATE INDEX IF NOT EXISTS pi_up ON product_image (up ASC);
+CREATE INDEX IF NOT EXISTS pi_size_idx ON product_image (size DESC);

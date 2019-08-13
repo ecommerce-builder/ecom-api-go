@@ -16,9 +16,9 @@ import (
 // the given ID could not be found in the database.
 var ErrOrderNotFound = errors.New("model: order not found")
 
-// ErrOrderItemsNotFound is returned by when the order items
+// ErrOrderItemsNotFound is returned by when the order item
 // associated to an order could not be found in the database.
-var ErrOrderItemsNotFound = errors.New("model: order items not found")
+var ErrOrderItemsNotFound = errors.New("model: order item not found")
 
 // orderAddress holds the JSONB field of the OrderRow shipping and billing columns.
 type orderAddress struct {
@@ -60,7 +60,7 @@ func discountMultiplier(disc int) float64 {
 	return float64(10000-disc) / 10000.0
 }
 
-func totalSpend(cartItems []*CartProductItem) (int, int) {
+func totalSpend(cartItems []*CartItemJoinRow) (int, int) {
 	totalExVAT := 0
 	totalVAT := 0
 	for _, i := range cartItems {
@@ -91,7 +91,7 @@ type OrderRow struct {
 	Modified      time.Time
 }
 
-// OrderItemRow holds a single row of data from the order_items table.
+// OrderItemRow holds a single row of data from the order_item table.
 type OrderItemRow struct {
 	id        int
 	UUID      string
@@ -120,7 +120,7 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	query := `
 		SELECT
 		  C.id, C.uuid, C.sku, P.name, qty, unit_price, C.created, C.modified
-		FROM carts AS C JOIN products as P
+		FROM cart AS C JOIN product as P
 		  ON c.sku = p.sku
 		WHERE C.uuid = $1
 	`
@@ -130,9 +130,9 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	}
 	defer rows.Close()
 
-	cartItems := make([]*CartProductItem, 0, 20)
+	cartItems := make([]*CartItemJoinRow, 0, 20)
 	for rows.Next() {
-		c := CartProductItem{}
+		c := CartItemJoinRow{}
 		if err = rows.Scan(&c.id, &c.UUID, &c.SKU, &c.Name, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified); err != nil {
 			return nil, nil, nil, errors.Wrapf(err, "scan cart item %v", c)
 		}
@@ -148,7 +148,7 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 		query = `
 			SELECT
 			  id, uuid, uid, role, email, firstname, lastname, created, modified
-			FROM customers
+			FROM customer
 			WHERE
 			  uuid = $1
 		`
@@ -159,7 +159,7 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	}
 
 	query = `
-		INSERT INTO orders (
+		INSERT INTO order (
 			status, payment, customer_id, customer_name, customer_email, stripe_pi, ship_tb,
 			billing, shipping, currency, total_ex_vat, vat_total, total_inc_vat,
 			created, modified
@@ -191,7 +191,7 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	}
 
 	query = `
-		INSERT INTO order_items (
+		INSERT INTO order_item (
 		  order_id, sku, name, qty, unit_price, discount, tax_code, vat, created
 		) VALUES (
 		  $1, $2, $3, $4, $5, $6, $7, $8, NOW()
@@ -238,7 +238,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 		  id,  uuid, status, payment, customer_id, customer_name, customer_email, stripe_pi,
 		  ship_tb, billing, shipping, currency, total_ex_vat, vat_total,
 		  total_inc_vat, created, modified
-		FROM orders
+		FROM order
 		WHERE uuid = $1
 	`
 	o := OrderRow{}
@@ -255,7 +255,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 	query = `
 		SELECT
 		  id, uuid, order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat, created
-		FROM order_items
+		FROM order_item
 		WHERE order_id = $1
 	`
 	rows, err := tx.QueryContext(ctx, query, o.id)
@@ -291,7 +291,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 // existing order and updates the modified timestamp.
 func (m *PgModel) SetStripePaymentIntent(ctx context.Context, orderID, pi string) error {
 	query := `
-		UPDATE orders
+		UPDATE order
 		SET stripe_pi = $1, modified = NOW()
 		WHERE uuid = $2
 	`
@@ -311,7 +311,7 @@ func (m *PgModel) RecordPayment(ctx context.Context, orderID, pi string, body []
 	}
 
 	query := `
-		UPDATE orders
+		UPDATE order
 		SET status = 'completed', payment = 'paid', modified = NOW()
 		WHERE uuid = $1 AND stripe_pi = $2
 		RETURNING id
@@ -323,7 +323,7 @@ func (m *PgModel) RecordPayment(ctx context.Context, orderID, pi string, body []
 	}
 
 	query = `
-		INSERT INTO payments (
+		INSERT INTO payment (
 		  order_id, typ, result, created
 		) VALUES (
 		  $1, 'stripe', $2, NOW()

@@ -2,13 +2,16 @@ package firebase
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
 )
+
+// ErrImageNotFound is returned when any query
+// for an image has no results in the resultset.
+var ErrImageNotFound = errors.New("image not found")
 
 // Image represents a product image.
 type Image struct {
@@ -24,7 +27,7 @@ type Image struct {
 }
 
 // CreateImageEntry creates a new image entry for a product with the given SKU.
-func (s *Service) CreateImageEntry(ctx context.Context, productID, path string) (*Image, error) {
+func (s *Service) CreateImageEntry(ctx context.Context, productID *string, path string) (*Image, error) {
 	pc := postgres.CreateImage{
 		ProductID: productID,
 		W:         99999999,
@@ -39,9 +42,10 @@ func (s *Service) CreateImageEntry(ctx context.Context, productID, path string) 
 	}
 	pi, err := s.model.CreateImageEntry(ctx, &pc)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: create image productID=%q, path=%q, entry failed", productID, path)
+		return nil, errors.Wrapf(err, "service: create image productID=%q, path=%q, entry failed", *productID, path)
 	}
 	image := Image{
+		Object:   "image",
 		ID:       pi.UUID,
 		Path:     pi.Path,
 		GSURL:    pi.GSURL,
@@ -77,15 +81,16 @@ func (s *Service) ImagePathExists(ctx context.Context, path string) (bool, error
 }
 
 // GetImage returns an image by the given ID.
-func (s *Service) GetImage(ctx context.Context, id string) (*Image, error) {
-	pi, err := s.model.GetProductImageByUUID(ctx, id)
+func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) {
+	pi, err := s.model.GetProductImageByUUID(ctx, imageID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, err
+		if err == postgres.ErrImageNotFound {
+			return nil, ErrImageNotFound
 		}
-		return nil, errors.Wrapf(err, "service: GetProductImageByUUID(ctx, %q) failed", id)
+		return nil, errors.Wrapf(err, "service: GetProductImageByUUID(ctx, imageID=%q) failed", imageID)
 	}
 	image := Image{
+		Object:   "image",
 		ID:       pi.UUID,
 		Path:     pi.Path,
 		GSURL:    pi.GSURL,
@@ -99,14 +104,18 @@ func (s *Service) GetImage(ctx context.Context, id string) (*Image, error) {
 }
 
 // ListProductImages return a slice of Images.
-func (s *Service) ListProductImages(ctx context.Context, sku string) ([]*Image, error) {
-	pilist, err := s.model.GetImagesBySKU(ctx, sku)
+func (s *Service) ListProductImages(ctx context.Context, productID string) ([]*Image, error) {
+	pilist, err := s.model.GetImages(ctx, productID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q) failed", sku)
+		if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		}
+		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, productID=%q) failed", productID)
 	}
 	images := make([]*Image, 0, 8)
 	for _, pi := range pilist {
 		image := Image{
+			Object:   "image",
 			ID:       pi.UUID,
 			Path:     pi.Path,
 			GSURL:    pi.GSURL,
@@ -131,9 +140,12 @@ func (s *Service) DeleteImage(ctx context.Context, id string) error {
 
 // DeleteAllProductImages deletes all images associated to the product
 // with the given SKU.
-func (s *Service) DeleteAllProductImages(ctx context.Context, sku string) error {
-	if _, err := s.model.DeleteAllProductImages(ctx, sku); err != nil {
-		return errors.Wrapf(err, "service: DeleteAllProductImages(ctx, %q)", sku)
+func (s *Service) DeleteAllProductImages(ctx context.Context, productID string) error {
+	if err := s.model.DeleteAllProductImages(ctx, productID); err != nil {
+		if err == postgres.ErrProductNotFound {
+			return ErrProductNotFound
+		}
+		return errors.Wrapf(err, "service: DeleteAllProductImages(ctx, productID=%q)", productID)
 	}
 	return nil
 }

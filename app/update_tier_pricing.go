@@ -47,7 +47,7 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 		}
 		pricing, err := a.Service.UpdateTierPricing(ctx, sku, ref, req.UnitPrice)
 		if err != nil {
-			if err == service.ErrTierPricingNotFound {
+			if err == service.ErrPricingTierNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				return
 			}
