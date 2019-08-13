@@ -83,11 +83,20 @@ paths:
       - Carts
       responses:
         '201':
-          description: Cart object
+          description: cart object
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
+              example:
+                object: cart
+                id: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+                locked: false
+                created: '2019-08-02T12:02:42.217936Z'
+                modified: 2019-08-02T12:02:42.217936Z'
+                items:
+                  object: 'list'
+                  data: []
   /carts/{cart_id}:
     parameters:
     - name: cart_id
@@ -1490,9 +1499,15 @@ components:
           format: date-time
           example: '2019-08-02T12:02:42.217936Z'
         items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CartItem'
+          type: object
+          properties:
+            object:
+              type: string
+              example: 'list'
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CartItem'
     CartItem:
       type: object
       properties:
