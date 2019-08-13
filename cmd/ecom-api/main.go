@@ -577,11 +577,12 @@ func main() {
 			r.Get("/{customer_id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
 		})
 
-		// tiers resource operation all return 501 Not Implemented
-		r.Route("/tiers", func(r chi.Router) {
+		// pricing tiers resource operation all return 501 Not Implemented
+		// apart from OpListPricingTiers
+		r.Route("/pricing-tiers", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateTier, a.NotImplementedHandler()))
 			r.Get("/{ref}", a.Authorization(app.OpGetTier, a.NotImplementedHandler()))
-			r.Get("/", a.Authorization(app.OpListTiers, a.NotImplementedHandler()))
+			r.Get("/", a.Authorization(app.OpListPricingTiers, a.ListPricingTiersHandler()))
 			r.Put("/{ref}", a.Authorization(app.OpUpdateTier, a.NotImplementedHandler()))
 			r.Delete("/{ref}", a.Authorization(app.OpDeleteTier, a.NotImplementedHandler()))
 		})
