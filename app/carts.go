@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
@@ -123,6 +124,21 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 		contextLogger.Info("app: GetCartItemsHandler started")
 
 		cartID := chi.URLParam(r, "cart_id")
+
+		if IsValidUUID(cartID) == false {
+			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
+				"cart_id is not a valid UUID v4",
+			})
+			return
+		}
+
 		cartItems, err := a.Service.GetCartItems(ctx, cartID)
 		if err != nil {
 			if err == service.ErrCartNotFound {
@@ -142,11 +158,18 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 	}
 }
 
+// IsValidUUID checks for a valid UUID v4.
+func IsValidUUID(uuid string) bool {
+	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
+	return r.MatchString(uuid)
+}
+
 // UpdateCartItemHandler creates a handler to add an item to a given cart
 func (a *App) UpdateCartItemHandler() http.HandlerFunc {
 	type qtyRequestBody struct {
 		Qty int `json:"qty"`
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
@@ -154,6 +177,7 @@ func (a *App) UpdateCartItemHandler() http.HandlerFunc {
 
 		cartID := chi.URLParam(r, "cart_id")
 		productID := chi.URLParam(r, "product_id")
+
 		o := qtyRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
