@@ -320,27 +320,105 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 	return cartItems, nil
 }
 
-// UpdateItemByCartUUID updates the qty of a cart item of the given sku.
-func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string, qty int) (*CartItemJoinRow, error) {
-	query := `
+// UpdateItemByCartUUID updates the qty of a cart item of the given product id.
+func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, customerUUID, productUUID string, qty int) (*CartItemJoinRow, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "db.BeginTx")
+	}
+
+	q1 := `SELECT id FROM cart WHERE uuid = $1`
+	var cartID int
+	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrCartNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for q1=%q", q1)
+	}
+
+	q2 := "SELECT id FROM product WHERE uuid = $1"
+	var productID int
+	if err = tx.QueryRowContext(ctx, q2, productUUID).Scan(&productID); err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for q2=%q", q2)
+	}
+
+	var pricingTierID int
+	if customerUUID != "" {
+		q3 := `SELECT pricing_tier_id FROM customer WHERE uuid = $1`
+		err = tx.QueryRowContext(ctx, q3, customerUUID).Scan(&pricingTierID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrCustomerNotFound
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
+		}
+	} else {
+		q3 := `SELECT id FROM pricing_tier WHERE tier_ref = 'default'`
+		err = tx.QueryRowContext(ctx, q3).Scan(&pricingTierID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrDefaultPricingTierMissing
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
+		}
+	}
+
+	q4 := `
 		UPDATE cart_item
 		SET
 		  qty = $1, modified = NOW()
 		WHERE
-		  cart_id = (SELECT id FROM cart WHERE uuid = $2) AND sku = $3
-		RETURNING
-		  id, uuid, sku, (SELECT name FROM product WHERE sku = $4),
-		  qty, unit_price, created, modified
+		  cart_id = $2 AND product_id = $3
+		RETURNING id
 	`
-	i := CartItemJoinRow{}
-	row := m.db.QueryRowContext(ctx, query, qty, cartUUID, sku, sku)
-	if err := row.Scan(&i.id, &i.UUID, &i.SKU, &i.Name, &i.Qty, &i.UnitPrice, &i.Created, &i.Modified); err != nil {
+	var cartItemID int
+	row := tx.QueryRowContext(ctx, q4, qty, cartID, productID)
+	if err := row.Scan(&cartItemID); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrCartItemNotFound
 		}
-		return nil, errors.Wrapf(err, "query row scan query=%q", query)
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for q4=%q", q4)
 	}
-	return &i, nil
+
+	q5 := `
+		SELECT
+		  c.id, c.uuid, c.product_id, p.uuid, sku, name, qty, unit_price, c.created, c.modified
+		FROM cart_item AS c
+		INNER JOIN product AS p
+		  ON p.id = c.product_id
+		LEFT OUTER JOIN product_pricing AS r
+		  ON r.product_id = p.id
+		WHERE
+		  c.id = $1 AND r.pricing_tier_id = $2
+		ORDER BY created ASC
+	`
+	item := CartItemJoinRow{}
+	row = tx.QueryRowContext(ctx, q5, cartItemID, pricingTierID)
+	if err := row.Scan(&item.id, &item.UUID, &item.productID, &item.ProductUUID, &item.SKU, &item.Name,
+		&item.Qty, &item.UnitPrice, &item.Created, &item.Modified); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCartItemNotFound
+		}
+		return nil, errors.Wrapf(err, "query row scan failed for q5=%q", q5)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "tx.Commit")
+	}
+	return &item, nil
 }
 
 // DeleteCartItem deletes a single cart item. Return `ErrCartNotFound` if

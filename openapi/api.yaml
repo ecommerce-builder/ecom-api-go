@@ -22,7 +22,7 @@ info:
 
     Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
 
-  version: "v0.57.0-dev-1733"
+  version: "v0.57.0-dev-1809"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -229,6 +229,19 @@ paths:
       responses:
         '204':
           description: No Content
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                cart/cart-contains-no-items:
+                  summary: cart/cart-contains-no-items
+                  value:
+                    status: 409
+                    code: 'cart/cart-contains-no-items'
+                    message: OpEmptyCartItems cannot be called if a cart contains no items
   /carts/{cart_id}/items/{cart_item_id}:
     parameters:
     - name: cart_id
