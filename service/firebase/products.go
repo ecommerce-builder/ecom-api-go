@@ -198,12 +198,12 @@ func difference(a, b []string) []string {
 // ProductsExist accepts a slice of product uuids and divides them into
 // two lists of those that can exist in the system and those that are
 // missing.
-func (s *Service) ProductsExist(ctx context.Context, products []string) (exists, missing []string, err error) {
-	exists, err = s.model.ProductsExist(ctx, products)
+func (s *Service) ProductsExist(ctx context.Context, productIDs []string) (exists, missing []string, err error) {
+	exists, err = s.model.ProductsExist(ctx, productIDs)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "service: ProductsExist")
 	}
-	missing = difference(products, exists)
+	missing = difference(productIDs, exists)
 	return exists, missing, nil
 }
 

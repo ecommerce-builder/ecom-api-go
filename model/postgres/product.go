@@ -155,19 +155,19 @@ func (m *PgModel) GetProducts(ctx context.Context) ([]*ProductRow, error) {
 
 // ProductsExist accepts a slice of product uuids strings and returns only
 // those that can be found in the product table.
-func (m *PgModel) ProductsExist(ctx context.Context, products []string) ([]string, error) {
+func (m *PgModel) ProductsExist(ctx context.Context, productIDs []string) ([]string, error) {
 	query := `
 		SELECT
 		  uuid
 		FROM
 		  product
 		WHERE
-		  uuid = ANY($1::varchar[])
+		  uuid = ANY($1::UUID[])
 	`
 	// TODO: sanitise skus
-	rows, err := m.db.QueryContext(ctx, query, "{"+strings.Join(products, ",")+"}")
+	rows, err := m.db.QueryContext(ctx, query, "{"+strings.Join(productIDs, ",")+"}")
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx,..) query=%q, products=%v", query, products)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx,..) query=%q, products=%v", query, productIDs)
 	}
 	defer rows.Close()
 

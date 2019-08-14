@@ -16,6 +16,9 @@ import (
 // already exist.
 var ErrAssocsAlreadyExist = errors.New("service: associations already exist")
 
+// ErrCategoriesEmpty error
+var ErrCategoriesEmpty = errors.New("service: categories empty")
+
 // CategoryList is a container for a list of category objects
 type CategoryList struct {
 	Object string      `json:"object"`
@@ -286,11 +289,11 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 	log.WithContext(ctx).Debug("Service: GetCatalog started")
 	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "s.model.GetCatalogNestedSet(ctx) failed")
 	}
 	if len(ns) == 0 {
 		log.WithContext(ctx).Debug("s.model.GetCatalogNestedSet(ctx) returned an empty list")
-		return nil, nil
+		return nil, ErrCategoriesEmpty
 	}
 	cpas, err := s.model.GetCategoryProductAssocsFull(ctx)
 	if err != nil {

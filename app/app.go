@@ -30,10 +30,10 @@ const (
 	// already empty.
 	ErrCodeCartContainsNoItems string = "cart/cart-contains-no-items"
 
-	// ErrMissingPathsLeafsSKUs is sent when the consumer attempts to apply catalog
+	// ErrMissingPathsLeafsProductIDs is sent when the consumer attempts to apply catalog
 	// associations that contain references to paths that are non existence, paths that
 	// are non leaf categories or product SKUs that do not exist.
-	ErrMissingPathsLeafsSKUs string = "assocs/missing-paths-leafs-skus"
+	ErrMissingPathsLeafsProductIDs string = "assocs/missing-paths-leafs-product-ids"
 
 	// ErrCodeProductNotFound indicates the product with given SKU could not be found.
 	ErrCodeProductNotFound string = "product/product-not-found"
@@ -110,13 +110,13 @@ const (
 	OpDeleteCustomerDevKey   string = "OpDeleteCustomerDevKey"
 	OpSignInWithDevKey       string = "OpSignInWithDevKey"
 
-	// Catalog and assocations
-	OpUpdateCategories    string = "OpUpdateCategories"
-	OpGetCategories       string = "OpGetCategories"
-	OpPurgeCatalog        string = "OpPurgeCatalog"
-	OpGetCatalogAssocs    string = "OpGetCatalogAssocs"
-	OpUpdateCatalogAssocs string = "OpUpdateCatalogAssocs"
-	OpPurgeCatalogAssocs  string = "OpPurgeCatalogAssocs"
+	// Category and assocations
+	OpUpdateCategories            string = "OpUpdateCategories"
+	OpGetCategories               string = "OpGetCategories"
+	OpPurgeCatalog                string = "OpPurgeCatalog"
+	OpGetCategoryProductAssocs    string = "OpGetCategoryProductAssocs"
+	OpUpdateCategoryProductAssocs string = "OpUpdateCategoryProductAssocs"
+	OpPurgeCategoryAssocs         string = "OpPurgeCategoryAssocs"
 
 	// Stripe
 	OpStripeCheckout string = "OpStripeCheckout"

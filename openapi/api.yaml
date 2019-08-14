@@ -5,7 +5,7 @@ servers:
 - description: Ecom Test API Service
   url: http://localhost:8080
 - description: Ecom Test API Service Ngrok
-  url: https://9f14a333.ngrok.io
+  url: https://a7c46957.ngrok.io
 info:
   description: |
     # Ecom API
@@ -696,21 +696,41 @@ paths:
       responses:
         '204':
           description: No Content
-  /associations:
+  /categories/assocs/products:
     put:
+      parameters:
+      - in: header
+        name: X-Keyed-By
+        schema:
+          type: string
+          enum: ['id', 'path']
+          default: 'path'
+        required: false
+        description: Indicates that the request body keys are either category `id` or category `path` values. If the header is not set the default expected request body is expected to be keyed by category `id`.
       security:
       - bearerAuth: []
-      summary: Replace all product to category associations
+      summary: Replace all category to product associations
       description: |
-        OpUpdateCatalogAssocs requires `RoleAdmin` privileges.
-      operationId: OpUpdateCatalogAssocs
+        The request body is a map of string to object values. The key of this map is either a category id or a category path, determined by setting the `X-Keyed-By` header to `id` or `path` respectively.
+
+        `X-Keyed-By: id` is currently not implemented and returns a 501 Not Implemented status code. You should use `X-Keyed-By: path` and pass category path strings as keys to the request body.
+
+        To get a list of all products, including product id and SKUs, use the OpListProducts operation.
+
+        OpUpdateCatalogProductAssocs requires `RoleAdmin` privileges.
+      operationId: OpUpdateCatalogProductAssocs
       tags:
       - Associations
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AssociationsRequest'
+              $ref: '#/components/schemas/AssocProductIDRequest'
+            example:
+              a/b/e:
+                products:
+                - product_id: 'e0130bb0-5996-451f-95a0-e5c5afa207d7'
+                - product_id: '60230435-5ad9-4a27-9b52-dec2944fdfb1'
       responses:
         '204':
           description: No Content
@@ -727,12 +747,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/PutAssocsConflict'
     get:
+      parameters:
+      - in: query
+        name: key
+        schema:
+          type: string
+          enum: ['id', 'path']
+          default: 'id'
+        required: false
+        description: Return the category to product associations keyed by either category `id` or category `path`.
       security:
       - bearerAuth: []
-      summary: Get all product to category associations
+      summary: Get all category to product associations
       description: |
-        OpGetCatalogAssocs requires `RoleShopper` privileges.
-      operationId: OpGetCatalogAssocs
+        OpGetCatalogProductAssocs requires `RoleShopper` privileges.
+      operationId: OpGetCatalogProductAssocs
       tags:
         - Associations
       responses:
@@ -745,7 +774,7 @@ paths:
     delete:
       security:
       - bearerAuth: []
-      summary: Purge all product to category associations
+      summary: Purge all category to product associations
       description: |
         OpPurgeCatalogAssocs requires `RoleAdmin` privileges.
       operationId: OpPurgeCatalogAssocs
@@ -1932,15 +1961,20 @@ components:
           type: string
           format: date-time
           example: '2019-07-30T13:57:23.269373Z'
-    AssociationsRequest:
+    AssocProductIDRequest:
       type: object
       additionalProperties:
-        type: object
         properties:
           products:
             type: array
             items:
-              $ref: '#/components/schemas/AssocProduct'
+              required:
+              - product_id
+              properties:
+                sku:
+                  type: string
+                  format: uuid
+                  example: 'e0130bb0-5996-451f-95a0-e5c5afa207d7'
     Associations:
       type: object
       additionalProperties:
