@@ -285,7 +285,7 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 	}
 	q5 := `
 		SELECT
-		  c.id, c.uuid, c.product_id, c.uuid, sku, name, qty, unit_price, c.created, c.modified
+		  c.id, c.uuid, c.product_id, p.uuid as product_uuid, sku, name, qty, unit_price, c.created, c.modified
 		FROM cart_item AS c
 		INNER JOIN product AS p
 		  ON p.id = c.product_id
