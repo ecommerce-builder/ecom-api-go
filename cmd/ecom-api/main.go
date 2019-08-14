@@ -629,7 +629,7 @@ func main() {
 			r.Post("/{cart_id}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
 			r.Get("/{cart_id}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
 			r.Patch("/{cart_id}/items/{sku}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
-			r.Delete("/{cart_id}/items/{sku}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
+			r.Delete("/{cart_id}/items/{product_id}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
 			r.Delete("/{cart_id}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
 		})
 

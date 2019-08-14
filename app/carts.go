@@ -19,7 +19,7 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: AddItemToCartHandler started")
+		contextLogger.Info("app: AddItemToCartHandler started")
 
 		cartID := chi.URLParam(r, "cart_id")
 		o := itemRequestBody{}
@@ -120,7 +120,7 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetCartItemsHandler started")
+		contextLogger.Info("app: GetCartItemsHandler started")
 
 		cartID := chi.URLParam(r, "cart_id")
 		cartItems, err := a.Service.GetCartItems(ctx, cartID)
@@ -143,14 +143,14 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 }
 
 // UpdateCartItemHandler creates a handler to add an item to a given cart
-func (app *App) UpdateCartItemHandler() http.HandlerFunc {
+func (a *App) UpdateCartItemHandler() http.HandlerFunc {
 	type qtyRequestBody struct {
 		Qty int `json:"qty"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateCartItemHandler started")
+		contextLogger.Info("app: UpdateCartItemHandler started")
 
 		cartID := chi.URLParam(r, "cart_id")
 		sku := chi.URLParam(r, "sku")
@@ -160,7 +160,7 @@ func (app *App) UpdateCartItemHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		item, err := app.Service.UpdateCartItem(ctx, cartID, sku, o.Qty)
+		item, err := a.Service.UpdateCartItem(ctx, cartID, sku, o.Qty)
 		if err != nil {
 			if err == service.ErrCartItemNotFound {
 				w.WriteHeader(http.StatusNotFound)
@@ -180,29 +180,38 @@ func (a *App) DeleteCartItemHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeleteCartItemHandler started")
+		contextLogger.Info("app: DeleteCartItemHandler started")
 
 		cartID := chi.URLParam(r, "cart_id")
-		sku := chi.URLParam(r, "sku")
-		count, err := a.Service.DeleteCartItem(ctx, cartID, sku)
-		if err != nil {
+		productID := chi.URLParam(r, "product_id")
+		if err := a.Service.DeleteCartItem(ctx, cartID, productID); err != nil {
 			if err == service.ErrCartNotFound {
-				w.WriteHeader(http.StatusNotFound)
+				contextLogger.Debugf("app: Cart (cartID=%q) not found", cartID)
+				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				return
+			} else if err == service.ErrProductNotFound {
+				contextLogger.Debugf("app: Product (productID=%q) not found", productID)
+				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				return
+			} else if err == service.ErrCartItemNotFound {
+				contextLogger.Debugf("app: Product (productID=%q) in cart (cartID=%q) not found", productID, cartID)
+				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusNotFound,
+					ErrCodeCartItemNotFound,
+					"product is not in this cart",
+				})
 				return
 			}
-			contextLogger.Errorf("service DeleteCartItem(ctx, cartID=%q, sku=%q) error: %v", cartID, sku, err)
+			contextLogger.Errorf("app: DeleteCartItem(ctx, cartID=%q, productID=%q) error: %v", cartID, productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		if count == 0 {
-			w.WriteHeader(http.StatusNotFound) // 404 Not Found
-			return
-		}
-		if err != nil {
-			contextLogger.Errorf("DeleteCartItem(ctx, cartID=%q, sku=%q) failed: %v", cartID, sku, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
+
 		w.Header().Del("Content-Type")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}
@@ -213,7 +222,7 @@ func (a *App) EmptyCartItemsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: EmptyCartItemsHandler started")
+		contextLogger.Info("app: EmptyCartItemsHandler started")
 
 		cartID := chi.URLParam(r, "cart_id")
 		if err := a.Service.EmptyCartItems(ctx, cartID); err != nil {

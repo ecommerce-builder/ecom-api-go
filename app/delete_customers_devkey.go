@@ -3,7 +3,6 @@ package app
 import (
 	"net/http"
 
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,14 +13,7 @@ func (a *App) DeleteCustomerDevKeyHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteCustomerDevKeyHandler started")
 
-		id := chi.URLParam(r, "id")
-		sku := chi.URLParam(r, "sku")
-		count, _ := a.Service.DeleteCartItem(ctx, id, sku)
-		if count == 0 {
-			w.WriteHeader(http.StatusNotFound) // 404 Not Found
-			return
-		}
-		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
+		w.WriteHeader(http.StatusNotImplemented) // 501 Not Implemented
+		return
 	}
 }

@@ -30,6 +30,11 @@ const (
 	// already empty.
 	ErrCodeCartContainsNoItems string = "cart/cart-contains-no-items"
 
+	// ErrCodeCartItemNotFound is sent when attempting to delete or update a product
+	// in a given cart. The cart and product are found but the product is not in
+	// the cart items.
+	ErrCodeCartItemNotFound string = "cart/cart-item-not-found"
+
 	// ErrMissingPathsLeafsProductIDs is sent when the consumer attempts to apply catalog
 	// associations that contain references to paths that are non existence, paths that
 	// are non leaf categories or product SKUs that do not exist.
