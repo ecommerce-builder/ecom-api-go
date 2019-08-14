@@ -142,11 +142,17 @@ func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem,
 	return results, nil
 }
 
-// UpdateCartItem updates a single item's qty
-func (s *Service) UpdateCartItem(ctx context.Context, cartID, sku string, qty int) (*CartItem, error) {
-	item, err := s.model.UpdateItemByCartUUID(ctx, cartID, sku, qty)
+// UpdateCartItem updates a cart item quantity.
+func (s *Service) UpdateCartItem(ctx context.Context, cartID, productID string, qty int) (*CartItem, error) {
+	customerUUID := ctx.Value("cid").(string)
+
+	item, err := s.model.UpdateItemByCartUUID(ctx, cartID, customerUUID, productID, qty)
 	if err != nil {
-		if err == postgres.ErrCartItemNotFound {
+		if err == postgres.ErrCartNotFound {
+			return nil, ErrCartNotFound
+		} else if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		} else if err == postgres.ErrCartItemNotFound {
 			return nil, ErrCartItemNotFound
 		}
 		return nil, err
