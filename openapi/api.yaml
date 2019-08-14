@@ -208,9 +208,15 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CartItem'
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CartItem'
         '404':
           description: |
             The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
