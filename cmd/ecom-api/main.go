@@ -637,17 +637,15 @@ func main() {
 			r.Put("/", a.Authorization(app.OpUpdateCategories, a.UpdateCategoriesHandler()))
 			r.Get("/", a.Authorization(app.OpGetCategories, a.GetCategoriesHandler()))
 			r.Delete("/", a.Authorization(app.OpPurgeCatalog, a.PurgeCatalogHandler()))
+
+			r.Put("/assocs/products", a.Authorization(app.OpUpdateCategoryProductAssocs, a.UpdateCategoryProductAssocsHandler()))
+			r.Get("/assocs/products", a.Authorization(app.OpGetCategoryProductAssocs, a.GetCategoryProductAssocsHandler()))
+			r.Delete("/assocs/products", a.Authorization(app.OpPurgeCategoryAssocs, a.PurgeCategoryAssocsHandler()))
 		})
 
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpPlaceOrder, a.PlaceOrderHandler()))
 			r.Post("/{id}/stripecheckout", a.Authorization(app.OpStripeCheckout, a.StripeCheckoutHandler(stripeSuccessURL, stripeCancelURL)))
-		})
-
-		r.Route("/associations", func(r chi.Router) {
-			r.Put("/", a.Authorization(app.OpUpdateCatalogAssocs, a.UpdateCatalogProductAssocsHandler()))
-			r.Get("/", a.Authorization(app.OpGetCatalogAssocs, a.GetCatalogAssocsHandler()))
-			r.Delete("/", a.Authorization(app.OpPurgeCatalogAssocs, a.PurgeCatalogAssocsHandler()))
 		})
 
 		r.Route("/sysinfo", func(r chi.Router) {

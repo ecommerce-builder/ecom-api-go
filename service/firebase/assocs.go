@@ -28,20 +28,20 @@ func (s *Service) CreateCategoryProductAssocs(ctx context.Context, cpas map[stri
 }
 
 // CreateCategoryProductAssoc associates an existing product to a catalog entry.
-func (s *Service) CreateCategoryProductAssoc(ctx context.Context, path, sku string) (*CategoryProductAssoc, error) {
-	cpa, err := s.model.CreateCategoryProductAssoc(ctx, path, sku)
-	if err != nil {
-		return nil, errors.Wrapf(err, "service: create catalog product assoc sku=%q", sku)
-	}
-	scpa := CategoryProductAssoc{
-		Path:     cpa.Path,
-		SKU:      cpa.SKU,
-		Pri:      cpa.Pri,
-		Created:  cpa.Created,
-		Modified: cpa.Modified,
-	}
-	return &scpa, nil
-}
+// func (s *Service) CreateCategoryProductAssoc(ctx context.Context, path, sku string) (*CategoryProductAssoc, error) {
+// 	cpa, err := s.model.CreateCategoryProductAssoc(ctx, path, sku)
+// 	if err != nil {
+// 		return nil, errors.Wrapf(err, "service: create catalog product assoc sku=%q", sku)
+// 	}
+// 	scpa := CategoryProductAssoc{
+// 		Path:     cpa.Path,
+// 		SKU:      cpa.SKU,
+// 		Pri:      cpa.Pri,
+// 		Created:  cpa.Created,
+// 		Modified: cpa.Modified,
+// 	}
+// 	return &scpa, nil
+// }
 
 // HasCategoryProductAssocs returns true if any catalog product associations
 // exist.
@@ -60,39 +60,45 @@ type AssocProduct struct {
 	Modified time.Time `json:"modified"`
 }
 
-// AssocProductListContainer is a container for a list of assoc_product objects
-type AssocProductListContainer struct {
-	Object string          `json:"object"`
-	Data   []*AssocProduct `json:"data"`
-}
-
 // Assoc details a catalog association including products.
 type Assoc struct {
-	Products *AssocProductListContainer `json:"products"`
+	Products *ProductSlimList `json:"products"`
 }
 
-// GetCategoryAssocs returns all of the category product associations
-func (s *Service) GetCategoryAssocs(ctx context.Context) (map[string]*Assoc, error) {
+// GetCategoryProductAssocs returns all of the category product associations
+// keyed by key. key has a value of either `id` or `path`
+func (s *Service) GetCategoryProductAssocs(ctx context.Context, key string) (map[string]*Assoc, error) {
 	cpo, err := s.model.GetCategoryProductAssocs(ctx)
 	if err != nil {
 		return nil, err
 	}
 	assocs := make(map[string]*Assoc)
 	for _, v := range cpo {
-		if _, ok := assocs[v.Path]; !ok {
-			assocs[v.Path] = &Assoc{
-				Products: &AssocProductListContainer{
+		var k string
+		if key == "id" {
+			k = v.CategoryUUID
+		} else {
+			k = v.CategoryPath
+		}
+		if _, ok := assocs[k]; !ok {
+			assocs[k] = &Assoc{
+				Products: &ProductSlimList{
 					Object: "list",
-					Data:   make([]*AssocProduct, 0),
+					Data:   make([]*ProductSlim, 0),
 				},
 			}
 		}
-		p := AssocProduct{
-			SKU:      v.SKU,
-			Created:  v.Created,
-			Modified: v.Modified,
+		p := ProductSlim{
+			Object:   "product_slim",
+			ID:       v.ProductUUID,
+			SKU:      v.ProductSKU,
+			EAN:      v.ProductEAN,
+			Path:     v.ProductPath,
+			Name:     v.ProductName,
+			Created:  v.ProductCreated,
+			Modified: v.ProductModified,
 		}
-		assocs[v.Path].Products.Data = append(assocs[v.Path].Products.Data, &p)
+		assocs[k].Products.Data = append(assocs[k].Products.Data, &p)
 	}
 	return assocs, nil
 }

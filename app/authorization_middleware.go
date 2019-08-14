@@ -59,14 +59,14 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// Operations that don't require any special authorization
 		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem,
 			OpDeleteCartItem, OpEmptyCartItems, OpGetCategories, OpSignInWithDevKey,
-			OpProductExists, OpGetProduct, OpListProducts, OpGetCatalogAssocs,
+			OpProductExists, OpGetProduct, OpListProducts, OpGetCategoryProductAssocs,
 			OpGetTierPricing, OpMapPricingByProductID, OpMapPricingByTier, OpGetImage,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetTier:
 			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		// Operations that required at least RoleAdmin privileges
 		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
-			OpPurgeCatalogAssocs, OpUpdateCatalogAssocs, OpSystemInfo,
+			OpPurgeCategoryAssocs, OpUpdateCategoryProductAssocs, OpSystemInfo,
 			OpUpdateCategories, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
 			OpCreateTier, OpListPricingTiers, OpUpdateTier, OpDeleteTier:

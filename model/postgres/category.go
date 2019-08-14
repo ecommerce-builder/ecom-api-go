@@ -7,6 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrCategoryNotFound error
+var ErrCategoryNotFound = errors.New("postgres: category not found")
+
 // A NestedSetNode represents a single node in the nested set.
 type NestedSetNode struct {
 	id       int
