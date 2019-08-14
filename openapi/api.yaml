@@ -287,7 +287,7 @@ paths:
                   type: integer
                   example: 3
       responses:
-        '201':
+        '200':
           description: CartItem object
           content:
             application/json:
