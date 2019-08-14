@@ -230,13 +230,22 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*ProductSl
 			Object: "list",
 			Data:   make([]*Category, 0),
 		},
-		Products: &ProductSlimList{
-			Object: "list",
-			Data:   make([]*ProductSlim, 0),
-		},
 		lft: nestedset[0].Lft,
 		rgt: nestedset[0].Rgt,
 	}
+
+	// If the tree is just a single node there could be products
+	// attached to it. Otherwise, products can't be attached
+	// to non-leafs.
+	if context.lft == context.rgt-1 {
+		context.Products = &ProductSlimList{
+			Object: "list",
+			Data:   make([]*ProductSlim, 0),
+		}
+	} else {
+		context.Products = nil
+	}
+
 	for i := 1; i < len(nestedset); i++ {
 		cur := nestedset[i]
 		products, ok := cmap[cur.Path]
@@ -254,12 +263,39 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*ProductSl
 				Object: "list",
 				Data:   make([]*Category, 0),
 			},
-			Products: &ProductSlimList{
-				Object: "list",
-				Data:   products,
-			},
 			lft: cur.Lft,
 			rgt: cur.Rgt,
+		}
+
+		// if the current node is a leaf node we either need
+		// to attach a container with products
+		//
+		// "object": "list"
+		// "data": [
+		//   {}, {}, {}, ...
+		// ]
+		//
+		// or attach a container with an empty list
+		//
+		// "object": "list"
+		// "data": []
+		//
+		// If it's not a leaf node we set Products slice to nil
+		// and the json omitempty will not render it to the client
+		if cur.Lft == cur.Rgt-1 {
+			if products != nil {
+				n.Products = &ProductSlimList{
+					Object: "list",
+					Data:   products,
+				}
+			} else {
+				n.Products = &ProductSlimList{
+					Object: "list",
+					Data:   make([]*ProductSlim, 0, 0),
+				}
+			}
+		} else {
+			n.Products = nil
 		}
 		context.addChild(n)
 
@@ -284,15 +320,15 @@ func (s *Service) HasCatalog(ctx context.Context) (bool, error) {
 	return has, nil
 }
 
-// GetCatalog returns the catalog as a hierarchy of nodes.
+// GetCatalog returns a tree of all categories as a hierarchy of nodes.
 func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
-	log.WithContext(ctx).Debug("Service: GetCatalog started")
+	log.WithContext(ctx).Debug("service: GetCatalog started")
 	ns, err := s.model.GetCatalogNestedSet(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "s.model.GetCatalogNestedSet(ctx) failed")
 	}
 	if len(ns) == 0 {
-		log.WithContext(ctx).Debug("s.model.GetCatalogNestedSet(ctx) returned an empty list")
+		log.WithContext(ctx).Debug("service: s.model.GetCatalogNestedSet(ctx) returned an empty list")
 		return nil, ErrCategoriesEmpty
 	}
 	cpas, err := s.model.GetCategoryProductAssocsFull(ctx)
