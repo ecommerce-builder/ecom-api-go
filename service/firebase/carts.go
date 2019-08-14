@@ -90,7 +90,6 @@ func (s *Service) AddItemToCart(ctx context.Context, cartID, productID string, q
 	sitem := CartItem{
 		Object:    "cart_item",
 		ID:        item.UUID,
-		CartID:    item.CartUUID,
 		ProductID: item.ProductUUID,
 		SKU:       item.SKU,
 		Name:      item.Name,
@@ -128,7 +127,6 @@ func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem,
 		i := CartItem{
 			Object:    "cart_item",
 			ID:        v.UUID,
-			CartID:    v.CartUUID,
 			ProductID: v.ProductUUID,
 			SKU:       v.SKU,
 			Name:      v.Name,
@@ -160,6 +158,7 @@ func (s *Service) UpdateCartItem(ctx context.Context, cartID, productID string, 
 	sitem := CartItem{
 		Object:    "cart_item",
 		ID:        item.UUID,
+		ProductID: item.ProductUUID,
 		SKU:       item.SKU,
 		Name:      item.Name,
 		Qty:       item.Qty,
