@@ -165,15 +165,18 @@ func (s *Service) UpdateCartItem(ctx context.Context, cartID, sku string, qty in
 }
 
 // DeleteCartItem deletes a single cart item
-func (s *Service) DeleteCartItem(ctx context.Context, cartID, sku string) (count int64, err error) {
-	count, err = s.model.DeleteCartItem(ctx, cartID, sku)
-	if err != nil {
+func (s *Service) DeleteCartItem(ctx context.Context, cartID, productID string) error {
+	if err := s.model.DeleteCartItem(ctx, cartID, productID); err != nil {
 		if err == postgres.ErrCartNotFound {
-			return 0, ErrCartNotFound
+			return ErrCartNotFound
+		} else if err == postgres.ErrProductNotFound {
+			return ErrProductNotFound
+		} else if err == postgres.ErrCartItemNotFound {
+			return ErrCartItemNotFound
 		}
-		return -1, err
+		return errors.Wrapf(err, "s.model.DeleteCartItem(ctx, cartID=%q, productID=%q) failed", cartID, productID)
 	}
-	return count, nil
+	return nil
 }
 
 // EmptyCartItems empties the cart of all items but not coupons

@@ -343,25 +343,60 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, sku string
 	return &i, nil
 }
 
-// DeleteCartItem deletes a single cart item.
-func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, sku string) (count int64, err error) {
-	exists, err := m.IsCartExists(ctx, cartUUID)
+// DeleteCartItem deletes a single cart item. Return `ErrCartNotFound` if
+// the cart cannot be found, or `ErrProductNotFound` if the product is not
+// in the product table. If the product is not in the cart it returns
+/// `ErrCartItemNotFound`.
+func (m *PgModel) DeleteCartItem(ctx context.Context, cartUUID, productUUID string) error {
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, errors.Wrapf(err, "m.IsCartExists(ctx, cartUUID=%q) failed", cartUUID)
+		return errors.Wrap(err, "db.BeginTx")
 	}
-	if !exists {
-		return 0, ErrCartNotFound
+
+	q1 := "SELECT id FROM cart WHERE uuid = $1"
+	var cartID int
+	if err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID); err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrCartNotFound
+		}
+		tx.Rollback()
+		return errors.Wrapf(err, "query row context failed for q1=%q", q1)
 	}
-	query := `DELETE FROM cart_item WHERE cart_id = (SELECT id FROM cart WHERE uuid = $1) AND sku = $2`
-	res, err := m.db.ExecContext(ctx, query, cartUUID, sku)
+
+	q2 := "SELECT id FROM product WHERE uuid = $1"
+	var productID int
+	if err = tx.QueryRowContext(ctx, q2, productUUID).Scan(&productID); err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrProductNotFound
+		}
+		tx.Rollback()
+		return errors.Wrapf(err, "query row context failed for q2=%q", q2)
+	}
+
+	q3 := "SELECT id FROM cart_item WHERE cart_id = $1 AND product_id = $2"
+	var cartItemID int
+	if err = tx.QueryRowContext(ctx, q3, cartID, productID).Scan(&cartItemID); err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrCartItemNotFound
+		}
+		tx.Rollback()
+		return errors.Wrapf(err, "query row context failed for q3=%q", q3)
+	}
+
+	q4 := "DELETE FROM cart_item WHERE id = $1"
+	_, err = tx.ExecContext(ctx, q4, cartItemID)
 	if err != nil {
-		return -1, errors.Wrapf(err, "exec context query=%q", query)
+		return errors.Wrapf(err, "exec context q4=%q", q4)
 	}
-	count, err = res.RowsAffected()
-	if err != nil {
-		return -1, errors.Wrap(err, "rows affected")
+
+	if err = tx.Commit(); err != nil {
+		return errors.Wrap(err, "tx.Commit")
 	}
-	return count, nil
+
+	return nil
 }
 
 // EmptyCartItems empty the cart of all items. Does not affect coupons.
