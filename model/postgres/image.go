@@ -14,42 +14,79 @@ var ErrImageNotFound = errors.New("image not found")
 
 // CreateImage struct contains the data required to store a new product image.
 type CreateImage struct {
-	ProductID *string
-	W         uint
-	H         uint
-	Path      string
-	Typ       string
-	Ori       bool
-	Pri       uint
-	Size      uint
-	Q         uint
-	GSURL     string
-	Data      interface{}
+	W     int
+	H     int
+	Path  string
+	Typ   string
+	Ori   bool
+	Pri   int
+	Size  int
+	Q     int
+	GSURL string
+	Data  interface{}
 }
 
 // ImageRow struct holds a row of the product_image table.
 type ImageRow struct {
-	id        uint
-	ProductID uint
+	id        int
 	UUID      string
-	W         uint
-	H         uint
+	productID int
+	W         int
+	H         int
 	Path      string
 	Typ       string
 	Ori       bool
 	Up        bool
-	Pri       uint
-	Size      uint
-	Q         uint
+	Pri       int
+	Size      int
+	Q         int
 	GSURL     string
 	Data      interface{}
 	Created   time.Time
 	Modified  time.Time
 }
 
+// ImageJoinRow struct holds a row of the product_image table.
+type ImageJoinRow struct {
+	id          int
+	UUID        string
+	productID   int
+	ProductUUID string
+	W           int
+	H           int
+	Path        string
+	Typ         string
+	Ori         bool
+	Up          bool
+	Pri         int
+	Size        int
+	Q           int
+	GSURL       string
+	Data        interface{}
+	Created     time.Time
+	Modified    time.Time
+}
+
 // CreateImageEntry writes a new image entry to the product_image table.
-func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateImage) (*ImageRow, error) {
-	query := `
+func (m *PgModel) CreateImageEntry(ctx context.Context, productUUID string, c *CreateImage) (*ImageJoinRow, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "db.BeginTx")
+	}
+
+	q1 := "SELECT id FROM product WHERE uuid = $1"
+	var productID int
+	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context failed for q1=%q", q1)
+	}
+
+	q2 := `
 		INSERT INTO product_image (
 			product_id,
 			w, h, path, typ,
@@ -57,67 +94,71 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, c *CreateImage) (*ImageR
 			pri, size, q,
 			gsurl, created, modified
 		) VALUES (
-			(SELECT id FROM product WHERE uuid = $1),
+			$1,
 			$2, $3, $4, $5,
 			$6, false,
 			$7, $8, $9,
 			$10, NOW(), NOW()
 		) RETURNING
-			id, product_id, uuid, w, h, path, typ, ori, up, pri, size, q,
+			id, uuid, product_id, (SELECT uuid FROM product WHERE id = $11), w, h, path, typ, ori, up, pri, size, q,
 			gsurl, data, created, modified
 	`
-	p := ImageRow{}
-	err := m.db.QueryRowContext(ctx, query, c.ProductID,
+	p := ImageJoinRow{}
+	err = tx.QueryRowContext(ctx, q2, productID,
 		c.W, c.H, c.Path, c.Typ,
 		c.Ori,
 		c.Pri, c.Size, c.Q,
-		c.GSURL).Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		c.GSURL, productID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "tx.Commit")
+	}
 	return &p, nil
 }
 
 // GetImages returns a slice of Images associated to a given product SKU.
-func (m *PgModel) GetImages(ctx context.Context, productUUID string) ([]*ImageRow, error) {
+func (m *PgModel) GetImages(ctx context.Context, productUUID string) ([]*ImageJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 
-	query := `
-		SELECT id FROM product WHERE uuid = $1
-	`
+	q1 := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
-	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
+	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
 			return nil, ErrProductNotFound
 		}
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "query row context failed for query=%q", query)
+		return nil, errors.Wrapf(err, "query row context failed for q1=%q", q1)
 	}
 
-	query = `
+	q2 := `
 		SELECT
-		  id, product_id, uuid, w, h, path, typ, ori, up, pri, size, q,
-		  gsurl, data, created, modified
-		FROM product_image
+		  i.id, uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
+		  gsurl, data, i.created, i.modified
+		FROM product_image AS i
+		INNER JOIN product AS p
+		  ON p.id = i.product_id
 		WHERE product_id = $1
 		ORDER BY pri ASC
 	`
-	rows, err := tx.QueryContext(ctx, query, productID)
+	rows, err := tx.QueryContext(ctx, q2, productID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	images := make([]*ImageRow, 0, 16)
+	images := make([]*ImageJoinRow, 0, 4)
 	for rows.Next() {
-		p := ImageRow{}
-		err = rows.Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		p := ImageJoinRow{}
+		err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +192,7 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ImageRow, 
 	images := make([]*ImageRow, 0, 16)
 	for rows.Next() {
 		p := ImageRow{}
-		err = rows.Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		err = rows.Scan(&p.id, &p.productID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 		if err != nil {
 			return nil, err
 		}
@@ -177,18 +218,19 @@ func (m *PgModel) ImagePathExists(ctx context.Context, path string) (bool, error
 	return true, nil
 }
 
-// GetProductImageByUUID returns a ProductImage by the given UUID.
-// If the product is not found returns nil, error indicating not found.
-func (m *PgModel) GetProductImageByUUID(ctx context.Context, imageUUID string) (*ImageRow, error) {
+// GetProductImage returns a ImageJoinRow for the given image uuid.
+func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*ImageJoinRow, error) {
 	query := `
 		SELECT
-		  id, product_id, uuid, w, h, path, typ, ori, up, pri, size, q,
-		  gsurl, data, created, modified
-		FROM product_image
-		WHERE uuid = $1
+		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
+		  gsurl, data, i.created, i.modified
+		FROM product_image AS i
+		INNER JOIN product AS p
+		  ON p.id = i.product_id
+		WHERE i.uuid = $1
 	`
-	p := ImageRow{}
-	if err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
+	p := ImageJoinRow{}
+	if err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrImageNotFound
 		}
@@ -222,16 +264,16 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Image
 		gsurl, data, created, modified
 	`
 	p := ImageRow{}
-	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.ProductID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&p.id, &p.productID, &p.UUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 	if err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-// DeleteProductImageByUUID deletes an image entry row from the product_image
+// DeleteProductImage deletes an image entry row from the product_image
 // table by UUID.
-func (m *PgModel) DeleteProductImageByUUID(ctx context.Context, uuid string) (int64, error) {
+func (m *PgModel) DeleteProductImage(ctx context.Context, uuid string) (int64, error) {
 	query := `
 		DELETE FROM product_image
 		WHERE uuid = $1

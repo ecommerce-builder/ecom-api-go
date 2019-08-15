@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func validateRequestBody(pc *service.ProductCreateUpdate) error {
+func validateProductUpdateRequestBody(pc *service.ProductUpdateRequestBody) error {
 	imagemap := make(map[string]bool)
 	for _, img := range pc.Images {
 		if _, found := imagemap[img.Path]; found {
@@ -35,12 +35,12 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 		contextLogger.Info("App: UpdateProductHandler started")
 
 		productID := chi.URLParam(r, "product_id")
-		pc := service.ProductCreateUpdate{}
-		if err := json.NewDecoder(r.Body).Decode(&pc); err != nil {
+		pu := service.ProductUpdateRequestBody{}
+		if err := json.NewDecoder(r.Body).Decode(&pu); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		if err := validateRequestBody(&pc); err != nil {
+		if err := validateProductUpdateRequestBody(&pu); err != nil {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
@@ -53,7 +53,7 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 			})
 			return
 		}
-		product, err := a.Service.CreateUpdateProduct(ctx, &productID, &pc)
+		product, err := a.Service.UpdateProduct(ctx, productID, &pu)
 		if err != nil {
 			contextLogger.Errorf("update product failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS product_image (
   product_id  INTEGER NOT NULL,
   w           INTEGER NOT NULL CHECK (w > 0),
   h           INTEGER NOT NULL CHECK (h > 0),
-  path        VARCHAR(4096) NOT NULL UNIQUE,
+  path        VARCHAR(4096) NOT NULL,
   typ         VARCHAR(64) NOT NULL DEFAULT 'image/jpeg',
   ori         BOOLEAN NOT NULL,
   up          BOOLEAN NOT NULL DEFAULT false,

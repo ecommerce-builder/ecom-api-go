@@ -63,7 +63,7 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 			})
 			return
 		}
-		image, err := a.Service.CreateImageEntry(ctx, &productID, imageRequestBody.Path)
+		image, err := a.Service.CreateImageEntry(ctx, productID, imageRequestBody.Path)
 		if err != nil {
 			contextLogger.Errorf("service CreateImageEntry(ctx, productID=%s, %s) error: %v", imageRequestBody.Path, productID, err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -7,9 +7,7 @@ CREATE TABLE IF NOT EXISTS product (
   name          VARCHAR(1024) NOT NULL,
   content       JSONB,
   created       TIMESTAMP NOT NULL DEFAULT NOW(),
-  modified      TIMESTAMP NOT NULL DEFAULT NOW(),
-  UNIQUE (id, sku),
-  UNIQUE (sku, ean)
+  modified      TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_product_created_desc ON product (created DESC);

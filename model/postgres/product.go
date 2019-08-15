@@ -18,9 +18,20 @@ type ProductPricingEntry struct {
 	UnitPrice       int
 }
 
-// ProductCreateUpdate contains the data required to update an existing product.
-type ProductCreateUpdate struct {
-	SKU     *string
+// ProductCreate contains the data required to createa a new product.
+type ProductCreate struct {
+	SKU     string
+	EAN     string
+	Path    string
+	Name    string
+	Images  []*CreateImage
+	Pricing []*ProductPricingEntry
+	Content ProductContent
+}
+
+// ProductUpdate contains the data required to update an existing product.
+type ProductUpdate struct {
+	SKU     string
 	EAN     string
 	Path    string
 	Name    string
@@ -66,7 +77,7 @@ type ProductFull struct {
 	EAN      string
 	Path     string
 	Name     string
-	Images   []*ImageRow
+	Images   []*ImageJoinRow
 	Pricing  []*ProductPricingRow
 	Content  ProductContent
 	Created  time.Time
@@ -216,8 +227,170 @@ func (m *PgModel) ProductExistsBySKU(ctx context.Context, sku string) (bool, err
 	return true, nil
 }
 
-// CreateUpdateProduct updates the details of a product with the given product id.
-func (m *PgModel) CreateUpdateProduct(ctx context.Context, productID *string, pu *ProductCreateUpdate) (*ProductFull, error) {
+// CreateProduct updates the details of a product with the given product id.
+func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*ProductFull, error) {
+
+	fmt.Printf("%#v\n", pu)
+	fmt.Println("-------------")
+
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "db.BeginTx")
+	}
+
+	q1 := `
+		INSERT INTO product
+		  (sku, ean, path, name, content, created, modified)
+		VALUES
+		  ($1, $2, $3, $4, $5, NOW(), NOW())
+		RETURNING
+		  id, uuid, sku, ean, path, name, content, created, modified
+	`
+	p := ProductRow{}
+	row := tx.QueryRowContext(ctx, q1, pu.SKU, pu.EAN, pu.Path, pu.Name, pu.Content)
+	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "query row context query=%q", q1)
+	}
+
+	// Delete all existing products. This is not the most efficient
+	// way, but is easier that comparing the state of a list of new
+	// images with the underlying database. Product updates don't
+	// effect the customer's experience.
+	q2 := `DELETE FROM product_image WHERE product_id = $1`
+	if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "model: delete product_image query=%q", q2)
+	}
+
+	// The inner sub select uses a pri of 10 if now rows exist for the given product
+	// or pri + 10 for each subseqent row.
+	q3 := `
+		INSERT INTO product_image (
+			product_id,
+			w, h, path, typ,
+			ori, up,
+			pri, size, q,
+			gsurl, created, modified
+		) VALUES (
+			$1,
+			$2, $3, $4, $5,
+			$6, false,
+			(
+				SELECT
+					CASE WHEN COUNT(1) > 0
+					THEN MAX(pri)+10
+					ELSE 10
+				END
+				AS pri
+				FROM product_image
+				WHERE id = $7
+			), $8, $9,
+			$10, NOW(), NOW()
+		) RETURNING
+		  id, uuid, product_id, w,
+		  h, path, typ, ori, up, pri, size, q,
+		  gsurl, data, created, modified
+	`
+	stmt3, err := tx.PrepareContext(ctx, q3)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "tx prepare for query=%q", q3)
+	}
+	defer stmt3.Close()
+
+	images := make([]*ImageJoinRow, 0)
+	for _, img := range pu.Images {
+		var pi ImageJoinRow
+		row := stmt3.QueryRowContext(ctx, p.id,
+			img.W, img.H, img.Path, img.Typ,
+			img.Ori,
+			p.id, img.Size, img.Q,
+			img.GSURL)
+		if err := row.Scan(&pi.id, &pi.UUID, &pi.productID, &pi.W,
+			&pi.H, &pi.Path, &pi.Typ, &pi.Ori, &pi.Up, &pi.Pri, &pi.Size, &pi.Q,
+			&pi.GSURL, &pi.Data, &p.Created, &p.Modified); err != nil {
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "row.Scan failed")
+		}
+		pi.ProductUUID = p.UUID
+		images = append(images, &pi)
+	}
+
+	// insert or update product pricing matrix (uses and 'upsert' with ON CONFLICT)
+	q4 := `
+		SELECT id
+		FROM pricing_tier
+		WHERE uuid = $1
+	`
+	stmt4, err := tx.PrepareContext(ctx, q4)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "tx prepare for query=%q", q4)
+	}
+	defer stmt4.Close()
+
+	q5 := `
+		INSERT INTO product_pricing
+		  (pricing_tier_id, product_id, unit_price, created, modified)
+		VALUES
+		  ($1, $2, $3, NOW(), NOW())
+		ON CONFLICT (pricing_tier_id, product_id)
+		DO UPDATE
+		  SET
+		    unit_price = $4, modified = NOW()
+		  WHERE
+		    excluded.product_id = $5 AND excluded.pricing_tier_id = $6
+		RETURNING
+		  id, uuid, pricing_tier_id, product_id, unit_price, created, modified
+	`
+	stmt5, err := tx.PrepareContext(ctx, q5)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "tx prepare for query=%q", q5)
+	}
+	defer stmt5.Close()
+
+	pricing := make([]*ProductPricingRow, 0, 4)
+	for _, r := range pu.Pricing {
+		var pricingTierID int
+		if err := stmt4.QueryRowContext(ctx, r.PricingTierUUID).Scan(&pricingTierID); err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrPricingTierNotFound
+			}
+			tx.Rollback()
+		}
+
+		row = stmt5.QueryRowContext(ctx, pricingTierID, p.id, r.UnitPrice,
+			r.UnitPrice, p.id, pricingTierID)
+		var pp ProductPricingRow
+		if err := row.Scan(&pp.id, &pp.UUID, &pp.pricingTierID, &pp.productID, &pp.UnitPrice, &pp.Created, &pp.Modified); err != nil {
+			return nil, errors.Wrap(err, "scan failed")
+		}
+		pricing = append(pricing, &pp)
+	}
+	productFull := ProductFull{
+		id:       p.id,
+		UUID:     p.UUID,
+		SKU:      p.SKU,
+		EAN:      p.EAN,
+		Path:     p.Path,
+		Name:     p.Name,
+		Images:   images,
+		Pricing:  pricing,
+		Content:  p.Content,
+		Created:  p.Created,
+		Modified: p.Modified,
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "tx.Commit")
+	}
+	return &productFull, nil
+}
+
+// UpdateProduct updates the details of a product with the given product id.
+func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *ProductUpdate) (*ProductFull, error) {
 
 	fmt.Printf("%#v\n", pu)
 	fmt.Println("-------------")
@@ -226,28 +399,15 @@ func (m *PgModel) CreateUpdateProduct(ctx context.Context, productID *string, pu
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 
-	var q1 string
-	var row *sql.Row
-	if productID == nil {
-		q1 = `
-			INSERT INTO product
-			  (sku, ean, path, name, content, created, modified)
-			VALUES
-			  ($1, $2, $3, $4, $5, NOW(), NOW())
-			RETURNING
-			  id, uuid, sku, ean, path, name, content, created, modified`
-		row = tx.QueryRowContext(ctx, q1, *pu.SKU, pu.EAN, pu.Path, pu.Name, pu.Content)
-	} else {
-		q1 = `
-			UPDATE product
-			SET
-			  ean = $1, path = $2, name = $3, content = $4, modified = NOW()
-			WHERE
-			  uuid = $5
-			RETURNING
-			  id, uuid, sku, ean, path, name, content, created, modified`
-		row = tx.QueryRowContext(ctx, q1, pu.EAN, pu.Path, pu.Name, pu.Content, *productID)
-	}
+	q1 := `
+		UPDATE product
+		SET
+		  ean = $1, path = $2, name = $3, content = $4, modified = NOW()
+		WHERE
+		  uuid = $5
+		RETURNING
+		  id, uuid, sku, ean, path, name, content, created, modified`
+	row := tx.QueryRowContext(ctx, q1, pu.EAN, pu.Path, pu.Name, pu.Content, productID)
 
 	p := ProductRow{}
 	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Content, &p.Created, &p.Modified); err != nil {
@@ -301,15 +461,15 @@ func (m *PgModel) CreateUpdateProduct(ctx context.Context, productID *string, pu
 	}
 	defer stmt3.Close()
 
-	images := make([]*ImageRow, 0)
+	images := make([]*ImageJoinRow, 0)
 	for _, img := range pu.Images {
-		var pi ImageRow
+		var pi ImageJoinRow
 		row := stmt3.QueryRowContext(ctx, p.id,
 			img.W, img.H, img.Path, img.Typ,
 			img.Ori,
 			p.id, img.Size, img.Q,
 			img.GSURL)
-		if err := row.Scan(&pi.id, &pi.ProductID, &pi.UUID, &pi.W,
+		if err := row.Scan(&pi.id, &pi.productID, &pi.UUID, &pi.W,
 			&pi.H, &pi.Path, &pi.Typ, &pi.Ori, &pi.Up, &pi.Pri, &pi.Size, &pi.Q,
 			&pi.GSURL, &pi.Data, &p.Created, &p.Modified); err != nil {
 			tx.Rollback()

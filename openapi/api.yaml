@@ -2111,6 +2111,10 @@ components:
         id:
           type: string
           example: 'e2a1b7ff-a00a-4d7c-a2dd-86e8ea749ed1'
+        product_id:
+          type: string
+          format: uuid
+          example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
         sku:
           type: string
           example: 'USB32GBSP'
@@ -2207,16 +2211,12 @@ components:
               type: object
               required:
               - title
-              - keywords
               - description
               properties:
                 title:
                   type: string
                   description: The title of the page when rendered as HTML
                   example: 'Water Bottle Page'
-                keywords:
-                  type: string
-                  example: 'water, bottle, drink'
                 description:
                   type: string
                   example: 'A refreshing drink for all occasions.'
@@ -2244,9 +2244,6 @@ components:
               - 's1'
               - 's2'
               - 's3'
-            summary:
-              type: string
-              example: 'Summary line'
             specification:
               type: string
               example: 'Specification of your product'
@@ -2312,16 +2309,12 @@ components:
               type: object
               required:
               - title
-              - keywords
               - description
               properties:
                 title:
                   type: string
                   description: The title of the page when rendered as HTML
                   example: 'Water Bottle Page'
-                keywords:
-                  type: string
-                  example: 'water, bottle, drink'
                 description:
                   type: string
                   example: 'A refreshing drink for all occasions.'
@@ -2349,9 +2342,6 @@ components:
               - 's1'
               - 's2'
               - 's3'
-            summary:
-              type: string
-              example: 'Summary line'
             specification:
               type: string
               example: 'Specification of your product'
@@ -2432,9 +2422,15 @@ components:
           type: string
           example: 'Green Feathers Wireless Bird Box Camera & USB Recording Kit'
         images:
-          type: array
-          items:
-            $ref: '#/components/schemas/Image'
+          type: object
+          properties:
+            object:
+              type: string
+              example: 'list'
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Image'
         pricing:
           type: object
         content:

@@ -15,45 +15,49 @@ var ErrImageNotFound = errors.New("image not found")
 
 // Image represents a product image.
 type Image struct {
-	Object   string    `json:"object"`
-	ID       string    `json:"id"`
-	Path     string    `json:"path"`
-	GSURL    string    `json:"gsurl"`
-	Width    uint      `json:"width"`
-	Height   uint      `json:"height"`
-	Size     uint      `json:"size"`
-	Created  time.Time `json:"created"`
-	Modified time.Time `json:"modified"`
+	Object    string    `json:"object"`
+	ID        string    `json:"id"`
+	ProductID string    `json:"product_id"`
+	Path      string    `json:"path"`
+	GSURL     string    `json:"gsurl"`
+	Width     int       `json:"width"`
+	Height    int       `json:"height"`
+	Size      int       `json:"size"`
+	Created   time.Time `json:"created"`
+	Modified  time.Time `json:"modified"`
 }
 
 // CreateImageEntry creates a new image entry for a product with the given SKU.
-func (s *Service) CreateImageEntry(ctx context.Context, productID *string, path string) (*Image, error) {
+func (s *Service) CreateImageEntry(ctx context.Context, productID string, path string) (*Image, error) {
 	pc := postgres.CreateImage{
-		ProductID: productID,
-		W:         99999999,
-		H:         99999999,
-		Path:      path,
-		GSURL:     fmt.Sprintf("%s%s", "gs://", path),
-		Typ:       "image/jpeg",
-		Ori:       true,
-		Pri:       10,
-		Size:      0,
-		Q:         100,
+		W:     99999999,
+		H:     99999999,
+		Path:  path,
+		GSURL: fmt.Sprintf("%s%s", "gs://", path),
+		Typ:   "image/jpeg",
+		Ori:   true,
+		Pri:   10,
+		Size:  0,
+		Q:     100,
 	}
-	pi, err := s.model.CreateImageEntry(ctx, &pc)
+	pi, err := s.model.CreateImageEntry(ctx, productID, &pc)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: create image productID=%q, path=%q, entry failed", *productID, path)
+		if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		}
+		return nil, errors.Wrapf(err, "service: create image productID=%q, path=%q, entry failed", productID, path)
 	}
 	image := Image{
-		Object:   "image",
-		ID:       pi.UUID,
-		Path:     pi.Path,
-		GSURL:    pi.GSURL,
-		Width:    pi.W,
-		Height:   pi.H,
-		Size:     pi.Size,
-		Created:  pi.Created,
-		Modified: pi.Modified,
+		Object:    "image",
+		ID:        pi.UUID,
+		ProductID: pi.ProductUUID,
+		Path:      pi.Path,
+		GSURL:     pi.GSURL,
+		Width:     pi.W,
+		Height:    pi.H,
+		Size:      pi.Size,
+		Created:   pi.Created,
+		Modified:  pi.Modified,
 	}
 	return &image, nil
 }
@@ -82,23 +86,24 @@ func (s *Service) ImagePathExists(ctx context.Context, path string) (bool, error
 
 // GetImage returns an image by the given ID.
 func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) {
-	pi, err := s.model.GetProductImageByUUID(ctx, imageID)
+	pi, err := s.model.GetProductImage(ctx, imageID)
 	if err != nil {
 		if err == postgres.ErrImageNotFound {
 			return nil, ErrImageNotFound
 		}
-		return nil, errors.Wrapf(err, "service: GetProductImageByUUID(ctx, imageID=%q) failed", imageID)
+		return nil, errors.Wrapf(err, "service: GetProductImage(ctx, imageID=%q) failed", imageID)
 	}
 	image := Image{
-		Object:   "image",
-		ID:       pi.UUID,
-		Path:     pi.Path,
-		GSURL:    pi.GSURL,
-		Width:    pi.W,
-		Height:   pi.H,
-		Size:     pi.Size,
-		Created:  pi.Created,
-		Modified: pi.Modified,
+		Object:    "image",
+		ID:        pi.UUID,
+		ProductID: pi.ProductUUID,
+		Path:      pi.Path,
+		GSURL:     pi.GSURL,
+		Width:     pi.W,
+		Height:    pi.H,
+		Size:      pi.Size,
+		Created:   pi.Created,
+		Modified:  pi.Modified,
 	}
 	return &image, nil
 }
@@ -115,15 +120,16 @@ func (s *Service) ListProductImages(ctx context.Context, productID string) ([]*I
 	images := make([]*Image, 0, 8)
 	for _, pi := range pilist {
 		image := Image{
-			Object:   "image",
-			ID:       pi.UUID,
-			Path:     pi.Path,
-			GSURL:    pi.GSURL,
-			Width:    pi.W,
-			Height:   pi.H,
-			Size:     pi.Size,
-			Created:  pi.Created,
-			Modified: pi.Modified,
+			Object:    "image",
+			ID:        pi.UUID,
+			ProductID: pi.ProductUUID,
+			Path:      pi.Path,
+			GSURL:     pi.GSURL,
+			Width:     pi.W,
+			Height:    pi.H,
+			Size:      pi.Size,
+			Created:   pi.Created,
+			Modified:  pi.Modified,
 		}
 		images = append(images, &image)
 	}
@@ -131,9 +137,9 @@ func (s *Service) ListProductImages(ctx context.Context, productID string) ([]*I
 }
 
 // DeleteImage delete the image with the given ID.
-func (s *Service) DeleteImage(ctx context.Context, id string) error {
-	if _, err := s.model.DeleteProductImageByUUID(ctx, id); err != nil {
-		return errors.Wrapf(err, "service: DeleteProductImageByUUID(ctx, uuid=%q)", id)
+func (s *Service) DeleteImage(ctx context.Context, imageID string) error {
+	if err := s.model.DeleteProduct(ctx, imageID); err != nil {
+		return errors.Wrapf(err, "service: DeleteProductImage(ctx, imageID=%q)", imageID)
 	}
 	return nil
 }
