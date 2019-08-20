@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS product_price (
+CREATE TABLE IF NOT EXISTS price (
   id               SERIAL PRIMARY KEY,
   uuid             UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
   product_id       INTEGER,

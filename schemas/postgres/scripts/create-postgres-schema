@@ -11,6 +11,9 @@ cat $schemadir/schema_version_function.sql | psql --no-psqlrc ecom_dev > /dev/nu
 echo "Creating products table"
 cat $schemadir/product.sql | psql --no-psqlrc ecom_dev > /dev/null
 
+echo "Creating inventory table"
+cat $schemadir/inventory.sql | psql --no-psqlrc ecom_dev > /dev/null
+
 echo "Creating shipping_tarrif table"
 cat $schemadir/shipping_tarrif.sql | psql --no-psqlrc ecom_dev > /dev/null
 
@@ -26,8 +29,8 @@ cat $schemadir/cart_item.sql | psql --no-psqlrc ecom_dev > /dev/null
 echo "Creating price_list table"
 cat $schemadir/price_list.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating product_price table"
-cat $schemadir/product_price.sql | psql --no-psqlrc ecom_dev > /dev/null
+echo "Creating price table"
+cat $schemadir/price.sql | psql --no-psqlrc ecom_dev > /dev/null
 
 echo "Creating product images table"
 cat $schemadir/product_image.sql | psql --no-psqlrc ecom_dev > /dev/null

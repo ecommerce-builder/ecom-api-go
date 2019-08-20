@@ -19,7 +19,8 @@ echo "DROP VIEW IF EXISTS category_leaf" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS category_product" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS category" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP FUNCTION IF EXISTS is_leaf(p text)" | psql --no-psqlrc ecom_dev > /dev/null
-echo "DROP TABLE IF EXISTS product_price" | psql --no-psqlrc ecom_dev > /dev/null
+echo "DROP TABLE IF EXISTS price" | psql --no-psqlrc ecom_dev > /dev/null
+echo "DROP TABLE IF EXISTS inventory" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS product_image" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS product" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS price_list" | psql --no-psqlrc ecom_dev > /dev/null
