@@ -21,7 +21,7 @@ func (a *App) ListProductImagesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListProductImagesHandler started")
 
-		productID := chi.URLParam(r, "product_id")
+		productID := chi.URLParam(r, "id")
 		products, err := a.Service.ListProductImages(ctx, productID)
 		if err != nil {
 			contextLogger.Errorf("service ListProductImages(ctx, productID=%q) error: %+v", productID, err)

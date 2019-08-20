@@ -22,7 +22,7 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: AddItemToCartHandler started")
 
-		cartID := chi.URLParam(r, "cart_id")
+		cartID := chi.URLParam(r, "id")
 		o := itemRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
 			http.Error(w, err.Error(), 400)
@@ -57,8 +57,8 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 					"failed to add product with given id to the cart as the product cannot be found",
 				})
 				return
-			} else if err == service.ErrDefaultPricingTierMissing {
-				contextLogger.Error("ErrDefaultPricingTierMissing")
+			} else if err == service.ErrDefaultPriceListMissing {
+				contextLogger.Error("ErrDefaultPriceListMissing")
 				w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 				return
 			} else if err == service.ErrCartItemAlreadyExists {
@@ -123,7 +123,7 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: GetCartItemsHandler started")
 
-		cartID := chi.URLParam(r, "cart_id")
+		cartID := chi.URLParam(r, "id")
 
 		if IsValidUUID(cartID) == false {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
@@ -175,7 +175,7 @@ func (a *App) UpdateCartItemHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: UpdateCartItemHandler started")
 
-		cartID := chi.URLParam(r, "cart_id")
+		cartID := chi.URLParam(r, "id")
 		productID := chi.URLParam(r, "product_id")
 
 		o := qtyRequestBody{}
@@ -224,7 +224,7 @@ func (a *App) DeleteCartItemHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: DeleteCartItemHandler started")
 
-		cartID := chi.URLParam(r, "cart_id")
+		cartID := chi.URLParam(r, "id")
 		productID := chi.URLParam(r, "product_id")
 		if err := a.Service.DeleteCartItem(ctx, cartID, productID); err != nil {
 			if err == service.ErrCartNotFound {
@@ -266,7 +266,7 @@ func (a *App) EmptyCartItemsHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: EmptyCartItemsHandler started")
 
-		cartID := chi.URLParam(r, "cart_id")
+		cartID := chi.URLParam(r, "id")
 		if err := a.Service.EmptyCartItems(ctx, cartID); err != nil {
 			if err == service.ErrCartNotFound {
 				w.WriteHeader(http.StatusNotFound)

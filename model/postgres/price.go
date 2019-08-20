@@ -8,17 +8,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrProductPricingNotFound error.
-var ErrProductPricingNotFound = errors.New("product pricing not found")
+// ErrPriceNotFound error.
+var ErrPriceNotFound = errors.New("price not found")
 
-// ErrPricingTierNotFound error
-var ErrPricingTierNotFound = errors.New("pricing tier not found")
-
-// ErrDefaultPricingTierMissing error
-var ErrDefaultPricingTierMissing = errors.New("pricing tier missing")
-
-// ProductPricingRow represents a row in the product_pricing table
-type ProductPricingRow struct {
+// PriceRow represents a row in the price table
+type PriceRow struct {
 	id            int
 	UUID          string
 	pricingTierID int
@@ -28,95 +22,57 @@ type ProductPricingRow struct {
 	Modified      time.Time
 }
 
-// ProductPricingJoinRow represents a 3-way join between pricing_products,
-// products and pricing_tier.
-type ProductPricingJoinRow struct {
-	id              int
-	UUID            string
-	productID       int
-	ProductUUID     string
-	SKU             string
-	pricingTierID   *int
-	PricingTierUUID string
-	TierRef         string
-	UnitPrice       int
-	Created         time.Time
-	Modified        time.Time
+// PriceJoinRow represents a 3-way join between price,
+// product and price_list.
+type PriceJoinRow struct {
+	id            int
+	UUID          string
+	productID     int
+	ProductUUID   string
+	SKU           string
+	priceListID   *int
+	PriceListUUID string
+	PriceListCode string
+	UnitPrice     int
+	Created       time.Time
+	Modified      time.Time
 }
 
-// PricingTierRow represents a row in the pricing_tier table.
-type PricingTierRow struct {
-	id          int
-	UUID        string
-	TierRef     string
-	Title       string
-	Description string
-	Created     time.Time
-	Modified    time.Time
-}
-
-// GetPricingTiers returns a list of PricingTierRows.
-func (m *PgModel) GetPricingTiers(ctx context.Context) ([]*PricingTierRow, error) {
-	q1 := "SELECT id, uuid, tier_ref, title, description, created, modified FROM pricing_tier"
-	rows, err := m.db.QueryContext(ctx, q1)
-	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx) failed")
-	}
-	defer rows.Close()
-
-	tiers := make([]*PricingTierRow, 0, 4)
-	for rows.Next() {
-		var p PricingTierRow
-		if err = rows.Scan(&p.id, &p.UUID, &p.TierRef, &p.Title, &p.Description, &p.Created, &p.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrPricingTierNotFound
-			}
-			return nil, errors.Wrap(err, "scan failed")
-		}
-		tiers = append(tiers, &p)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows.Err()")
-	}
-
-	return tiers, nil
-}
-
-// GetProductPricing returns a ProductPricing for a given product and pricing tier.
-func (m *PgModel) GetProductPricing(ctx context.Context, productUUID, tierUUID string) (*ProductPricingJoinRow, error) {
+// GetPrices returns a Price for a given product and price list.
+func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID string) (*PriceJoinRow, error) {
 	query := `
 		SELECT
-                  R.id, R.uuid, P.uuid AS product_uuid, T.uuid AS pricing_tier_uuid, unit_price, R.created, R.modified
+                  r.id, r.uuid, p.id, p.uuid AS product_uuid, p.sku, price_list_id, t.uuid AS price_list_uuid, t.price_list_code, unit_price, r.created, r.modified
                 FROM
-                  product_pricing R
-		JOIN product P
-		  ON P.id = R.product_id
-		JOIN pricing_tier T
-		  ON T.id = R.pricing_tier_id
+                  price r
+		JOIN product p
+		  ON p.id = r.product_id
+		JOIN price_list t
+		  ON t.id = r.price_list_id
                 WHERE
-                  P.uuid = $1 AND T.uuid = $2;
+                  p.uuid = $1 AND t.uuid = $2;
 	`
-	p := ProductPricingJoinRow{}
-	if err := m.db.QueryRowContext(ctx, query, productUUID, tierUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.SKU, &p.pricingTierID, &p.PricingTierUUID, &p.TierRef, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+	p := PriceJoinRow{}
+	if err := m.db.QueryRowContext(ctx, query, productUUID, priceListUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.SKU, &p.priceListID, &p.PriceListUUID, &p.PriceListCode, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrProductPricingNotFound
+			return nil, ErrPriceNotFound
 		}
-		return nil, errors.Wrapf(err, " m.db.QueryRowContext(ctx, %q, productUUID=%q, tierUUID=%q).Scan(...)", query, productUUID, tierUUID)
+		return nil, errors.Wrapf(err, " m.db.QueryRowContext(ctx, %q, productUUID=%q, tierUUID=%q).Scan(...)", query, productUUID, priceListUUID)
 	}
 	return &p, nil
 }
 
-// GetProductPricingByProductUUID returns a list of ProductPricings for a given product.
-func (m *PgModel) GetProductPricingByProductUUID(ctx context.Context, productUUID string) ([]*ProductPricingJoinRow, error) {
+// GetProductPricesByProductUUID returns a list of Prices for a given product.
+func (m *PgModel) GetProductPricesByProductUUID(ctx context.Context, productUUID string) ([]*PriceJoinRow, error) {
 	query := `
 		SELECT
 		  r.id, r.uuid AS uuid, p.id AS product_id, p.uuid as product_uuid, p.sku,
-		  t.id as pricing_tier_id, t.uuid as pricing_tier_uuid, t.tier_ref, r.unit_price, r.created, r.modified
+		  t.id as price_list_id, t.uuid as price_list_uuid, t.price_list_code, r.unit_price, r.created, r.modified
 		FROM product AS p
 		LEFT OUTER JOIN product_pricing AS r
 		  ON p.id = r.product_id
-		LEFT OUTER JOIN pricing_tier AS t
-		  ON t.id = r.pricing_tier_id
+		LEFT OUTER JOIN price_list AS t
+		  ON t.id = r.price_list_id
 		WHERE p.uuid = $1
 		ORDER BY t.tier_ref
 	`
@@ -125,13 +81,13 @@ func (m *PgModel) GetProductPricingByProductUUID(ctx context.Context, productUUI
 		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, query=%q, productUUID=%q)", query, productUUID)
 	}
 	defer rows.Close()
-	pricing := make([]*ProductPricingJoinRow, 0, 8)
+	pricing := make([]*PriceJoinRow, 0, 8)
 	for rows.Next() {
-		var p ProductPricingJoinRow
+		var p PriceJoinRow
 		if err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.SKU,
-			&p.pricingTierID, &p.PricingTierUUID, &p.TierRef, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+			&p.priceListID, &p.PriceListUUID, &p.PriceListCode, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 			if err == sql.ErrNoRows {
-				return nil, ErrProductPricingNotFound
+				return nil, ErrPriceNotFound
 			}
 			return nil, errors.Wrap(err, "scan failed")
 		}
@@ -144,29 +100,32 @@ func (m *PgModel) GetProductPricingByProductUUID(ctx context.Context, productUUI
 	// If only one row is returned and the pricing tier id is nil
 	// then there are no entries to return.
 	if len(pricing) == 1 {
-		if pricing[0].pricingTierID == nil {
+		if pricing[0].priceListID == nil {
 			return nil, nil
 		}
 	}
 	return pricing, nil
 }
 
-// GetProductPricingBySKU returns a list of ProductPricing items for a given SKU.
-func (m *PgModel) GetProductPricingBySKU(ctx context.Context, sku string) ([]*ProductPricingRow, error) {
+// TODO: fix this up
+//
+
+// GetProductPricingBySKU returns a list of Price items for a given SKU.
+func (m *PgModel) GetProductPriceByProductUUID(ctx context.Context, productUUID string) ([]*PriceRow, error) {
 	query := `
-		SELECT id, pricing_tier_id, product_id, unit_price, created, modified
-		FROM product_pricing
+		SELECT id, price_list_id, product_id, unit_price, created, modified
+		FROM price
 		WHERE sku = $1
 		ORDER BY tier_ref ASC
 	`
-	rows, err := m.db.QueryContext(ctx, query, sku)
+	rows, err := m.db.QueryContext(ctx, query, productUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, %q)", query, sku)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, productUUID%q)", query, productUUID)
 	}
 	defer rows.Close()
-	pricing := make([]*ProductPricingRow, 0, 8)
+	pricing := make([]*PriceRow, 0, 8)
 	for rows.Next() {
-		var p ProductPricingRow
+		var p PriceRow
 		if err = rows.Scan(&p.id, &p.pricingTierID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
@@ -178,42 +137,42 @@ func (m *PgModel) GetProductPricingBySKU(ctx context.Context, sku string) ([]*Pr
 	return pricing, nil
 }
 
-// GetProductPricingID returns a list of ProductPricing items for a given tier id.
-func (m *PgModel) GetProductPricingID(ctx context.Context, pricingTierID string) ([]*ProductPricingRow, error) {
+// GetProductPriceByPriceListID returns a list of Price items for a given price list id.
+func (m *PgModel) GetProductPriceByPriceListID(ctx context.Context, pricingListID string) ([]*PriceRow, error) {
 	query := `
 		SELECT
-		  id, uuid, pricing_tier_id, product_id, unit_price, created, modified
-		FROM product_pricing
+		  id, uuid, price_list_id, product_id, unit_price, created, modified
+		FROM price
 		WHERE uuid = $1
 	`
-	rows, err := m.db.QueryContext(ctx, query, pricingTierID)
+	rows, err := m.db.QueryContext(ctx, query, pricingListID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, %q, %q)", query, pricingTierID)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, query=%q, pricingListID=%q)", query, pricingListID)
 	}
 	defer rows.Close()
-	pricing := make([]*ProductPricingRow, 0, 8)
+	prices := make([]*PriceRow, 0, 8)
 	for rows.Next() {
-		var p ProductPricingRow
+		var p PriceRow
 		if err = rows.Scan(&p.id, &p.pricingTierID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
-		pricing = append(pricing, &p)
+		prices = append(prices, &p)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "rows.Err()")
 	}
-	return pricing, nil
+	return prices, nil
 }
 
-// UpdateTierPricing updates the product pricing with the new unit price
-// by product uuid and pricing tier uuid.
-func (m *PgModel) UpdateTierPricing(ctx context.Context, productUUID, pricingTierUUID string, unitPrice float64) (*ProductPricingJoinRow, error) {
+// UpdatePrice updates the product price with the new unit price
+// by product uuid and price list uuid.
+func (m *PgModel) UpdateTierPricing(ctx context.Context, productUUID, priceListUUID string, unitPrice float64) (*PriceJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 
-	query := `SELECT id FROM product WHERE uuid = $1`
+	query := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
 	if err != nil {
@@ -225,29 +184,29 @@ func (m *PgModel) UpdateTierPricing(ctx context.Context, productUUID, pricingTie
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
 
-	query = `SELECT id FROM pricing_tier WHERE uuid = $1`
-	var pricingTierID int
-	err = tx.QueryRowContext(ctx, query, pricingTierUUID).Scan(&pricingTierID)
+	query = "SELECT id FROM price_list WHERE uuid = $1"
+	var priceListID int
+	err = tx.QueryRowContext(ctx, query, priceListUUID).Scan(&priceListID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
-			return nil, ErrPricingTierNotFound
+			return nil, ErrPriceListNotFound
 		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
 
 	query = `
-		UPDATE product_pricing
+		UPDATE price
 		SET
 		  unit_price = $1, modified = NOW()
 		WHERE
-		  product_id = $2 AND pricing_tier_id = $3
+		  product_id = $2 AND price_list_id = $3
 		RETURNING
-		  id, uuid, pricing_tier_id, tier_ref as (select tier_ref FROM pricing_tiers WHERE id = $4) product_id, unit_price, created, modified
+		  id, uuid, price_list_id, price_list_code as (SELECT price_list_code FROM price_list WHERE id = $4) product_id, unit_price, created, modified
 	`
-	p := ProductPricingJoinRow{}
-	if err := tx.QueryRowContext(ctx, query, unitPrice, productID, pricingTierID, pricingTierID).Scan(&p.id, &p.UUID, &p.pricingTierID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+	p := PriceJoinRow{}
+	if err := tx.QueryRowContext(ctx, query, unitPrice, productID, priceListID, priceListID).Scan(&p.id, &p.UUID, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 		return nil, errors.Wrap(err, "UpdateTierPricing QueryRowContext failed")
 	}
 
@@ -257,14 +216,14 @@ func (m *PgModel) UpdateTierPricing(ctx context.Context, productUUID, pricingTie
 	return &p, nil
 }
 
-// DeleteProductPricing deletes a tier pricing by product uuid and pricing tier uuid.
-func (m *PgModel) DeleteProductPricing(ctx context.Context, productUUID, pricingTierUUID string) error {
+// DeleteProductPrices deletes a tier pricing by product uuid and pricing tier uuid.
+func (m *PgModel) DeleteProductPrices(ctx context.Context, productUUID, priceListUUID string) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "db.BeginTx")
 	}
 
-	query := `SELECT id FROM product WHERE uuid = $1`
+	query := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
 	if err != nil {
@@ -276,24 +235,20 @@ func (m *PgModel) DeleteProductPricing(ctx context.Context, productUUID, pricing
 		return errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
 
-	query = `SELECT id FROM pricing_tier WHERE uuid = $1`
-	var pricingTierID int
-	err = tx.QueryRowContext(ctx, query, pricingTierUUID).Scan(&pricingTierID)
+	query = "SELECT id FROM price_list WHERE uuid = $1"
+	var priceListID int
+	err = tx.QueryRowContext(ctx, query, priceListUUID).Scan(&priceListID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
-			return ErrPricingTierNotFound
+			return ErrPriceListNotFound
 		}
 		tx.Rollback()
 		return errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
 
-	query = `
-		DELETE FROM product_pricing
-		WHERE
-		  product_id = $1 AND pricing_tier_id = $2
-	`
-	if _, err := m.db.ExecContext(ctx, query, productID, pricingTierID); err != nil {
+	query = "DELETE FROM price WHERE product_id = $1 AND price_list_id = $2"
+	if _, err := m.db.ExecContext(ctx, query, productID, priceListID); err != nil {
 		tx.Rollback()
 		return errors.Wrapf(err, "exec context query=%q", query)
 	}

@@ -14,7 +14,7 @@ func (a *App) DeleteProductHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteProductHandler started")
 
-		productID := chi.URLParam(r, "product_id")
+		productID := chi.URLParam(r, "id")
 		if err := a.Service.DeleteProduct(ctx, productID); err != nil {
 			contextLogger.Errorf("a.Service.DeleteProduct(ctx, productID=%q) failed: %v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

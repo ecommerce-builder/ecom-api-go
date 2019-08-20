@@ -34,8 +34,8 @@ type ProductImageRequestBody struct {
 
 // ProductPricingRequestBody represents a product pricing entry to be added to updated.
 type ProductPricingRequestBody struct {
-	PricingTierID string `json:"pricing_tier_id"`
-	UnitPrice     int    `json:"unit_price"`
+	PriceListID string `json:"price_list_id"`
+	UnitPrice   int    `json:"unit_price"`
 }
 
 // ProductCreateRequestBody contains fields required for creating a product.
@@ -45,7 +45,7 @@ type ProductCreateRequestBody struct {
 	Path    string                       `json:"path"`
 	Name    string                       `json:"name"`
 	Images  []*ProductImageRequestBody   `json:"images"`
-	Pricing []*ProductPricingRequestBody `json:"pricing"`
+	Pricing []*ProductPricingRequestBody `json:"prices"`
 	Content ProductContent               `json:"content"`
 }
 
@@ -56,7 +56,7 @@ type ProductUpdateRequestBody struct {
 	Path    string                     `json:"path"`
 	Name    string                     `json:"name"`
 	Images  []*ProductImageRequestBody `json:"images"`
-	Pricing []*ProductPricing          `json:"pricing"`
+	Pricing []*Price                   `json:"prices"`
 	Content ProductContent             `json:"content"`
 }
 
@@ -67,17 +67,17 @@ type imageListContainer struct {
 
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	Object   string                          `json:"object"`
-	ID       string                          `json:"id"`
-	SKU      string                          `json:"sku"`
-	EAN      string                          `json:"ean"`
-	Path     string                          `json:"path"`
-	Name     string                          `json:"name"`
-	Images   imageListContainer              `json:"images"`
-	Pricing  map[PricingTierID]*PricingEntry `json:"pricing"`
-	Content  ProductContent                  `json:"content"`
-	Created  time.Time                       `json:"created,omitempty"`
-	Modified time.Time                       `json:"modified,omitempty"`
+	Object   string                 `json:"object"`
+	ID       string                 `json:"id"`
+	SKU      string                 `json:"sku"`
+	EAN      string                 `json:"ean"`
+	Path     string                 `json:"path"`
+	Name     string                 `json:"name"`
+	Images   imageListContainer     `json:"images"`
+	Prices   map[PriceListID]*Price `json:"prices"`
+	Content  ProductContent         `json:"content"`
+	Created  time.Time              `json:"created,omitempty"`
+	Modified time.Time              `json:"modified,omitempty"`
 }
 
 // ProductSlim is a condensed representatio of a product
@@ -115,11 +115,11 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 		}
 		imagesReq = append(imagesReq, &img)
 	}
-	pricingReq := make([]*postgres.ProductPricingEntry, 0, 4)
+	pricingReq := make([]*postgres.PriceEntry, 0, 4)
 	for _, r := range pc.Pricing {
-		item := postgres.ProductPricingEntry{
-			PricingTierUUID: string(r.PricingTierID),
-			UnitPrice:       r.UnitPrice,
+		item := postgres.PriceEntry{
+			PriceListUUID: string(r.PriceListID),
+			UnitPrice:     r.UnitPrice,
 		}
 		pricingReq = append(pricingReq, &item)
 	}
@@ -142,8 +142,8 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 	}
 	p, err := s.model.CreateProduct(ctx, create)
 	if err != nil {
-		if err == postgres.ErrPricingTierNotFound {
-			return nil, ErrPricingTierNotFound
+		if err == postgres.ErrPriceListNotFound {
+			return nil, ErrPriceListNotFound
 		}
 		return nil, errors.Wrap(err, "CreateProduct(ctx) failed")
 	}
@@ -163,14 +163,14 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 		}
 		images = append(images, &img)
 	}
-	pricing := make(map[PricingTierID]*PricingEntry)
+	prices := make(map[PriceListID]*Price)
 	for _, pr := range p.Pricing {
-		price := PricingEntry{
+		price := Price{
 			UnitPrice: pr.UnitPrice,
 			Created:   pr.Created,
 			Modified:  pr.Modified,
 		}
-		pricing[PricingTierID(pr.UUID)] = &price
+		prices[PriceListID(pr.UUID)] = &price
 	}
 	return &Product{
 		Object: "product",
@@ -183,7 +183,7 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 			Object: "list",
 			Data:   images,
 		},
-		Pricing: pricing,
+		Prices: prices,
 		Content: ProductContent{
 			Meta:          pc.Content.Meta,
 			Videos:        pc.Content.Videos,
@@ -215,11 +215,11 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 		}
 		imagesReq = append(imagesReq, &img)
 	}
-	pricingReq := make([]*postgres.ProductPricingEntry, 0, 4)
+	pricingReq := make([]*postgres.PriceEntry, 0, 4)
 	for _, r := range pu.Pricing {
-		item := postgres.ProductPricingEntry{
-			PricingTierUUID: string(r.PricingTierID),
-			UnitPrice:       r.UnitPrice,
+		item := postgres.PriceEntry{
+			PriceListUUID: string(r.PriceListID),
+			UnitPrice:     r.UnitPrice,
 		}
 		pricingReq = append(pricingReq, &item)
 	}
@@ -242,8 +242,8 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	}
 	p, err := s.model.UpdateProduct(ctx, productID, update)
 	if err != nil {
-		if err == postgres.ErrPricingTierNotFound {
-			return nil, ErrPricingTierNotFound
+		if err == postgres.ErrPriceListNotFound {
+			return nil, ErrPriceListNotFound
 		}
 		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%v, ...) failed", productID)
 	}
@@ -262,14 +262,14 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 		}
 		images = append(images, &img)
 	}
-	pricing := make(map[PricingTierID]*PricingEntry)
+	prices := make(map[PriceListID]*Price)
 	for _, pr := range p.Pricing {
-		price := PricingEntry{
+		price := Price{
 			UnitPrice: pr.UnitPrice,
 			Created:   pr.Created,
 			Modified:  pr.Modified,
 		}
-		pricing[PricingTierID(pr.UUID)] = &price
+		prices[PriceListID(pr.UUID)] = &price
 	}
 	return &Product{
 		Object: "product",
@@ -282,7 +282,7 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 			Object: "list",
 			Data:   images,
 		},
-		Pricing: pricing,
+		Prices: prices,
 		Content: ProductContent{
 			Meta:          pu.Content.Meta,
 			Videos:        pu.Content.Videos,
@@ -337,9 +337,9 @@ func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, e
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", p.SKU)
 	}
-	pricing, err := s.PricingMapByProductID(ctx, p.UUID)
+	prices, err := s.PricingMapByProductID(ctx, p.UUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: PricingMapBySKU(ctx, %q)", p.SKU)
+		return nil, errors.Wrapf(err, "service: PricingMapByProductID(ctx, productID=%q)", p.UUID)
 	}
 	return &Product{
 		Object: "product",
@@ -356,7 +356,7 @@ func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, e
 			Object: "list",
 			Data:   images,
 		},
-		Pricing:  pricing,
+		Prices:   prices,
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil

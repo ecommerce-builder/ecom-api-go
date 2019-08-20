@@ -1,40 +1,33 @@
 package app
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
-// GetTierPricingHandler creates a handler function that returns a
-// product's pricing by SKU and tier ref.
-func (a *App) GetTierPricingHandler() http.HandlerFunc {
+// GetPriceListHandler creates a handler function that returns a
+// price list.
+func (a *App) GetPriceListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetTierPricingHandler called")
+		contextLogger.Info("App: GetPriceListHandler called")
 
-		sku := chi.URLParam(r, "sku")
-		ref := chi.URLParam(r, "ref")
-		pricing, err := a.Service.GetTierPricing(ctx, sku, ref)
+		priceListID := chi.URLParam(r, "id")
+		priceList, err := a.Service.GetPriceList(ctx, priceListID)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if err == service.ErrPriceListNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service GetProductTierPricing(ctx, %s, %s) error: %+v", sku, ref, err)
+			contextLogger.Errorf("app: a.Service.GetPriceList(ctx, priceListID=%q)", priceListID)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
-
-		res := pricingResponseBody{
-			Object:         "pricing",
-			ProductPricing: pricing,
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(priceList)
 	}
 }

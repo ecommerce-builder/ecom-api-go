@@ -5,17 +5,27 @@ import (
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
-// UpdatePriceListHandler creates a handler function that updates
-// as price list with the given price list id.
-func (a *App) UpdatePriceListHandler() http.HandlerFunc {
+func validateCreatePriceListRequest(requestBody *service.PriceListCreate) (bool, string) {
+	if requestBody.PriceListCode == "" {
+		return false, "price_list_code attribute is required"
+	}
+
+	if len(requestBody.PriceListCode) < 3 || len(requestBody.PriceListCode) > 16 {
+		return false, "price_list_code attribute must be between 3 and 16 characters in length"
+	}
+
+	return true, ""
+}
+
+// CreatePriceListHandler creates a new product
+func (a *App) CreatePriceListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdatePriceListHandler started")
+		contextLogger.Info("App: CreatePriceListHandler called")
 
 		requestBody := service.PriceListCreate{}
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
@@ -38,13 +48,9 @@ func (a *App) UpdatePriceListHandler() http.HandlerFunc {
 			return
 		}
 
-		priceListID := chi.URLParam(r, "id")
-		priceList, err := a.Service.UpdatePriceList(ctx, priceListID, &requestBody)
+		priceList, err := a.Service.CreatePriceList(ctx, &requestBody)
 		if err != nil {
-			if err == service.ErrPriceListNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				return
-			} else if err == service.ErrPriceListCodeTaken {
+			if err == service.ErrPriceListCodeTaken {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -58,7 +64,7 @@ func (a *App) UpdatePriceListHandler() http.HandlerFunc {
 				return
 			}
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(priceList)
 	}
 }

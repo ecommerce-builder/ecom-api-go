@@ -34,7 +34,7 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: UpdateProductHandler started")
 
-		productID := chi.URLParam(r, "product_id")
+		productID := chi.URLParam(r, "id")
 		pu := service.ProductUpdateRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&pu); err != nil {
 			http.Error(w, err.Error(), 400)

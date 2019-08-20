@@ -16,7 +16,7 @@ func (a *App) DeleteImageHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteImageHandler started")
 
-		imageID := chi.URLParam(r, "image_id")
+		imageID := chi.URLParam(r, "id")
 		exists, err := a.Service.ImageUUIDExists(ctx, imageID)
 		if err != nil {
 			contextLogger.Errorf("ImageUUIDExists(ctx, imageID=%q) failed: %v", imageID, err)

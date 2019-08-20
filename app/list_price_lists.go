@@ -8,29 +8,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ListPricingTiersHandler creates a handler function that returns a
-// list of pricing tiers.
-func (a *App) ListPricingTiersHandler() http.HandlerFunc {
-	type listPricingTiersResponse struct {
-		Object string                 `json:"object"`
-		Data   []*service.PricingTier `json:"data"`
+// ListPriceListsHandler creates a handler function that returns a
+// list of price lists.
+func (a *App) ListPriceListsHandler() http.HandlerFunc {
+	type listPriceListsResponse struct {
+		Object string               `json:"object"`
+		Data   []*service.PriceList `json:"data"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListPricingTiersHandler started")
+		contextLogger.Info("App: ListPriceListsHandler started")
 
-		tiers, err := a.Service.GetPricingTiers(ctx)
+		priceLists, err := a.Service.GetPriceLists(ctx)
 		if err != nil {
-			contextLogger.Errorf("service GetPricingTiers(ctx) error: %+v", err)
+			contextLogger.Errorf("service GetPricingLists(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 
-		list := listPricingTiersResponse{
+		list := listPriceListsResponse{
 			Object: "list",
-			Data:   tiers,
+			Data:   priceLists,
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(&list)

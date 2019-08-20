@@ -16,7 +16,7 @@ func (a *App) ListCustomersDevKeysHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListCustomersDevKeysHandler started")
 
-		customerID := chi.URLParam(r, "customer_id")
+		customerID := chi.URLParam(r, "id")
 		apiKeys, err := a.Service.ListCustomersDevKeys(ctx, customerID)
 		if err != nil {
 			if err == service.ErrCustomerNotFound {

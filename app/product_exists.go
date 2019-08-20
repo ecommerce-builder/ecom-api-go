@@ -15,7 +15,7 @@ func (app *App) ProductExistsHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ProductExistsHandler started")
 
-		productID := chi.URLParam(r, "product_id")
+		productID := chi.URLParam(r, "id")
 		exists, err := app.Service.ProductExists(ctx, productID)
 		if err != nil {
 			contextLogger.Errorf("product exists failed for productID=%q: %v", productID, err)

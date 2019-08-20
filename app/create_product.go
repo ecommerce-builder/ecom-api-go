@@ -55,7 +55,7 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 
 		product, err := a.Service.CreateProduct(ctx, &pc)
 		if err != nil {
-			if err == service.ErrPricingTierNotFound {
+			if err == service.ErrPriceListNotFound {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -63,8 +63,8 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodePricingTierNotFound,
-					"pricing tier could not be found",
+					ErrCodePriceListNotFound,
+					"price list could not be found",
 				})
 				return
 			}

@@ -12,10 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ProductPricingEntry contains a tier reference and unit price pair
-type ProductPricingEntry struct {
-	PricingTierUUID string
-	UnitPrice       int
+// PriceEntry contains a tier reference and unit price pair
+type PriceEntry struct {
+	PriceListUUID string
+	UnitPrice     int
 }
 
 // ProductCreate contains the data required to createa a new product.
@@ -25,7 +25,7 @@ type ProductCreate struct {
 	Path    string
 	Name    string
 	Images  []*CreateImage
-	Pricing []*ProductPricingEntry
+	Pricing []*PriceEntry
 	Content ProductContent
 }
 
@@ -36,7 +36,7 @@ type ProductUpdate struct {
 	Path    string
 	Name    string
 	Images  []*CreateImage
-	Pricing []*ProductPricingEntry
+	Pricing []*PriceEntry
 	Content ProductContent
 }
 
@@ -78,7 +78,7 @@ type ProductFull struct {
 	Path     string
 	Name     string
 	Images   []*ImageJoinRow
-	Pricing  []*ProductPricingRow
+	Pricing  []*PriceRow
 	Content  ProductContent
 	Created  time.Time
 	Modified time.Time
@@ -229,10 +229,6 @@ func (m *PgModel) ProductExistsBySKU(ctx context.Context, sku string) (bool, err
 
 // CreateProduct updates the details of a product with the given product id.
 func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*ProductFull, error) {
-
-	fmt.Printf("%#v\n", pu)
-	fmt.Println("-------------")
-
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
@@ -257,7 +253,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*Produc
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
 	// effect the customer's experience.
-	q2 := `DELETE FROM product_image WHERE product_id = $1`
+	q2 := "DELETE FROM product_image WHERE product_id = $1"
 	if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "model: delete product_image query=%q", q2)
@@ -318,11 +314,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*Produc
 	}
 
 	// insert or update product pricing matrix (uses and 'upsert' with ON CONFLICT)
-	q4 := `
-		SELECT id
-		FROM pricing_tier
-		WHERE uuid = $1
-	`
+	q4 := "SELECT id FROM price_list WHERE uuid = $1"
 	stmt4, err := tx.PrepareContext(ctx, q4)
 	if err != nil {
 		tx.Rollback()
@@ -331,18 +323,18 @@ func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*Produc
 	defer stmt4.Close()
 
 	q5 := `
-		INSERT INTO product_pricing
-		  (pricing_tier_id, product_id, unit_price, created, modified)
+		INSERT INTO price
+		  (price_list_id, product_id, unit_price, created, modified)
 		VALUES
 		  ($1, $2, $3, NOW(), NOW())
-		ON CONFLICT (pricing_tier_id, product_id)
+		ON CONFLICT (price_list_id, product_id)
 		DO UPDATE
 		  SET
 		    unit_price = $4, modified = NOW()
 		  WHERE
-		    excluded.product_id = $5 AND excluded.pricing_tier_id = $6
+		    excluded.product_id = $5 AND excluded.price_list_id = $6
 		RETURNING
-		  id, uuid, pricing_tier_id, product_id, unit_price, created, modified
+		  id, uuid, price_list_id, product_id, unit_price, created, modified
 	`
 	stmt5, err := tx.PrepareContext(ctx, q5)
 	if err != nil {
@@ -351,20 +343,20 @@ func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*Produc
 	}
 	defer stmt5.Close()
 
-	pricing := make([]*ProductPricingRow, 0, 4)
+	pricing := make([]*PriceRow, 0, 4)
 	for _, r := range pu.Pricing {
-		var pricingTierID int
-		if err := stmt4.QueryRowContext(ctx, r.PricingTierUUID).Scan(&pricingTierID); err != nil {
+		var priceListID int
+		if err := stmt4.QueryRowContext(ctx, r.PriceListUUID).Scan(&priceListID); err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
-				return nil, ErrPricingTierNotFound
+				return nil, ErrPriceListNotFound
 			}
 			tx.Rollback()
 		}
 
-		row = stmt5.QueryRowContext(ctx, pricingTierID, p.id, r.UnitPrice,
-			r.UnitPrice, p.id, pricingTierID)
-		var pp ProductPricingRow
+		row = stmt5.QueryRowContext(ctx, priceListID, p.id, r.UnitPrice,
+			r.UnitPrice, p.id, priceListID)
+		var pp PriceRow
 		if err := row.Scan(&pp.id, &pp.UUID, &pp.pricingTierID, &pp.productID, &pp.UnitPrice, &pp.Created, &pp.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
@@ -391,9 +383,6 @@ func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*Produc
 
 // UpdateProduct updates the details of a product with the given product id.
 func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *ProductUpdate) (*ProductFull, error) {
-
-	fmt.Printf("%#v\n", pu)
-	fmt.Println("-------------")
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
@@ -419,7 +408,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
 	// effect the customer's experience.
-	q2 := `DELETE FROM product_image WHERE product_id = $1`
+	q2 := "DELETE FROM product_image WHERE product_id = $1"
 	if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "model: delete product_image query=%q", q2)
@@ -479,11 +468,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	}
 
 	// insert or update product pricing matrix (uses and 'upsert' with ON CONFLICT)
-	q4 := `
-		SELECT id
-		FROM pricing_tier
-		WHERE uuid = $1
-	`
+	q4 := "SELECT id FROM price_list WHERE uuid = $1"
 	stmt4, err := tx.PrepareContext(ctx, q4)
 	if err != nil {
 		tx.Rollback()
@@ -493,17 +478,17 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 
 	q5 := `
 		INSERT INTO product_pricing
-		  (pricing_tier_id, product_id, unit_price, created, modified)
+		  (price_list_id, product_id, unit_price, created, modified)
 		VALUES
 		  ($1, $2, $3, NOW(), NOW())
-		ON CONFLICT (pricing_tier_id, product_id)
+		ON CONFLICT (price_list_id, product_id)
 		DO UPDATE
 		  SET
 		    unit_price = $4, modified = NOW()
 		  WHERE
-		    excluded.product_id = $5 AND excluded.pricing_tier_id = $6
+		    excluded.product_id = $5 AND excluded.price_list_id = $6
 		RETURNING
-		  id, uuid, pricing_tier_id, product_id, unit_price, created, modified
+		  id, uuid, price_list_id, product_id, unit_price, created, modified
 	`
 	stmt5, err := tx.PrepareContext(ctx, q5)
 	if err != nil {
@@ -512,20 +497,20 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	}
 	defer stmt5.Close()
 
-	pricing := make([]*ProductPricingRow, 0, 4)
+	pricing := make([]*PriceRow, 0, 4)
 	for _, r := range pu.Pricing {
 		var pricingTierID int
-		if err := stmt4.QueryRowContext(ctx, r.PricingTierUUID).Scan(&pricingTierID); err != nil {
+		if err := stmt4.QueryRowContext(ctx, r.PriceListUUID).Scan(&pricingTierID); err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
-				return nil, ErrPricingTierNotFound
+				return nil, ErrPriceListNotFound
 			}
 			tx.Rollback()
 		}
 
 		row = stmt5.QueryRowContext(ctx, pricingTierID, p.id, r.UnitPrice,
 			r.UnitPrice, p.id, pricingTierID)
-		var pp ProductPricingRow
+		var pp PriceRow
 		if err := row.Scan(&pp.id, &pp.UUID, &pp.pricingTierID, &pp.productID, &pp.UnitPrice, &pp.Created, &pp.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
@@ -557,7 +542,7 @@ func (m *PgModel) DeleteProduct(ctx context.Context, productUUID string) error {
 		return errors.Wrap(err, "db.BeginTx")
 	}
 
-	query := `SELECT id FROM product WHERE uuid = $1`
+	query := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
 	if err != nil {

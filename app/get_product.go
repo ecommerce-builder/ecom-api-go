@@ -17,7 +17,7 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetProductHandler called")
 
-		productID := chi.URLParam(r, "product_id")
+		productID := chi.URLParam(r, "id")
 		product, err := a.Service.GetProduct(ctx, productID)
 		if err != nil {
 			if err == service.ErrProductNotFound {

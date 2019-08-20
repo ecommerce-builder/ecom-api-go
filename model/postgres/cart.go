@@ -99,7 +99,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 
-	q1 := `SELECT id FROM cart WHERE uuid = $1`
+	q1 := "SELECT id FROM cart WHERE uuid = $1"
 	var cartID int
 	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
 	if err != nil {
@@ -111,7 +111,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", q1)
 	}
 
-	q2 := `SELECT id FROM customer WHERE uuid = $1`
+	q2 := "SELECT id FROM customer WHERE uuid = $1"
 	var customerID int
 	err = tx.QueryRowContext(ctx, q2, customerUUID).Scan(&customerID)
 	if err != nil {
@@ -123,7 +123,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", q2)
 	}
 
-	q3 := `SELECT id FROM product WHERE uuid = $1`
+	q3 := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, q3, productUUID).Scan(&productID)
 	if err != nil {
@@ -135,10 +135,10 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
 	}
 
-	var pricingTierID int
+	var priceListID int
 	if customerUUID != "" {
-		q4 := `SELECT pricing_tier_id FROM customer WHERE uuid = $1`
-		err = tx.QueryRowContext(ctx, q4, customerUUID).Scan(&pricingTierID)
+		q4 := "SELECT price_list_id FROM customer WHERE uuid = $1"
+		err = tx.QueryRowContext(ctx, q4, customerUUID).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
@@ -148,12 +148,12 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q4)
 		}
 	} else {
-		q4 := `SELECT id FROM pricing_tier WHERE tier_ref = 'default'`
-		err = tx.QueryRowContext(ctx, q4).Scan(&pricingTierID)
+		q4 := "SELECT id FROM price_list WHERE price_list_code = 'default'"
+		err = tx.QueryRowContext(ctx, q4).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
-				return nil, ErrDefaultPricingTierMissing
+				return nil, ErrDefaultPriceListMissing
 			}
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q4)
@@ -196,11 +196,11 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 		LEFT OUTER JOIN product_pricing AS r
 		  ON r.product_id = p.id
 		WHERE
-		  c.id = $1 AND r.pricing_tier_id = $2
+		  c.id = $1 AND r.price_list_id = $2
 		ORDER BY created ASC
 	`
 	item := CartItemJoinRow{}
-	row = tx.QueryRowContext(ctx, q7, cartItemID, pricingTierID)
+	row = tx.QueryRowContext(ctx, q7, cartItemID, priceListID)
 	if err := row.Scan(&item.id, &item.UUID, &item.productID, &item.ProductUUID, &item.SKU, &item.Name,
 		&item.Qty, &item.UnitPrice, &item.Created, &item.Modified); err != nil {
 		tx.Rollback()
@@ -235,7 +235,7 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 
-	q1 := `SELECT id FROM cart WHERE uuid = $1`
+	q1 := "SELECT id FROM cart WHERE uuid = $1"
 	var cartID int
 	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
 	if err != nil {
@@ -247,7 +247,7 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", q1)
 	}
 
-	q2 := `SELECT id FROM customer WHERE uuid = $1`
+	q2 := "SELECT id FROM customer WHERE uuid = $1"
 	var customerID int
 	err = tx.QueryRowContext(ctx, q2, customerUUID).Scan(&customerID)
 	if err != nil {
@@ -259,10 +259,10 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", q2)
 	}
 
-	var pricingTierID int
+	var priceListID int
 	if customerUUID != "" {
-		q3 := `SELECT pricing_tier_id FROM customer WHERE uuid = $1`
-		err = tx.QueryRowContext(ctx, q3, customerUUID).Scan(&pricingTierID)
+		q3 := "SELECT price_list_id FROM customer WHERE uuid = $1"
+		err = tx.QueryRowContext(ctx, q3, customerUUID).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
@@ -272,12 +272,12 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
 		}
 	} else {
-		q4 := `SELECT id FROM pricing_tier WHERE tier_ref = 'default'`
-		err = tx.QueryRowContext(ctx, q4).Scan(&pricingTierID)
+		q4 := "SELECT id FROM price_list WHERE price_list_code = 'default'"
+		err = tx.QueryRowContext(ctx, q4).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
-				return nil, ErrDefaultPricingTierMissing
+				return nil, ErrDefaultPriceListMissing
 			}
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q4)
@@ -292,10 +292,10 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 		LEFT OUTER JOIN product_pricing AS r
 		  ON r.product_id = p.id
 		WHERE
-		  c.cart_id = $1 AND r.pricing_tier_id = $2
+		  c.cart_id = $1 AND r.price_list_id = $2
 		ORDER BY created ASC
 	`
-	rows, err := tx.QueryContext(ctx, q5, cartID, pricingTierID)
+	rows, err := tx.QueryContext(ctx, q5, cartID, priceListID)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +327,7 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, customerUU
 		return nil, errors.Wrap(err, "db.BeginTx")
 	}
 
-	q1 := `SELECT id FROM cart WHERE uuid = $1`
+	q1 := "SELECT id FROM cart WHERE uuid = $1"
 	var cartID int
 	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
 	if err != nil {
@@ -350,10 +350,10 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, customerUU
 		return nil, errors.Wrapf(err, "query row context failed for q2=%q", q2)
 	}
 
-	var pricingTierID int
+	var priceListID int
 	if customerUUID != "" {
-		q3 := `SELECT pricing_tier_id FROM customer WHERE uuid = $1`
-		err = tx.QueryRowContext(ctx, q3, customerUUID).Scan(&pricingTierID)
+		q3 := "SELECT price_list_id FROM customer WHERE uuid = $1"
+		err = tx.QueryRowContext(ctx, q3, customerUUID).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
@@ -363,12 +363,12 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, customerUU
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
 		}
 	} else {
-		q3 := `SELECT id FROM pricing_tier WHERE tier_ref = 'default'`
-		err = tx.QueryRowContext(ctx, q3).Scan(&pricingTierID)
+		q3 := "SELECT id FROM price_list WHERE price_list_code = 'default'"
+		err = tx.QueryRowContext(ctx, q3).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
-				return nil, ErrDefaultPricingTierMissing
+				return nil, ErrDefaultPriceListMissing
 			}
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
@@ -402,11 +402,11 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, customerUU
 		LEFT OUTER JOIN product_pricing AS r
 		  ON r.product_id = p.id
 		WHERE
-		  c.id = $1 AND r.pricing_tier_id = $2
+		  c.id = $1 AND r.price_list_id = $2
 		ORDER BY created ASC
 	`
 	item := CartItemJoinRow{}
-	row = tx.QueryRowContext(ctx, q5, cartItemID, pricingTierID)
+	row = tx.QueryRowContext(ctx, q5, cartItemID, priceListID)
 	if err := row.Scan(&item.id, &item.UUID, &item.productID, &item.ProductUUID, &item.SKU, &item.Name,
 		&item.Qty, &item.UnitPrice, &item.Created, &item.Modified); err != nil {
 		if err == sql.ErrNoRows {

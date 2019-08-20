@@ -80,8 +80,8 @@ func (s *Service) AddItemToCart(ctx context.Context, cartID, productID string, q
 			return nil, ErrCustomerNotFound
 		} else if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
-		} else if err == postgres.ErrDefaultPricingTierMissing {
-			return nil, ErrDefaultPricingTierMissing
+		} else if err == postgres.ErrDefaultPriceListMissing {
+			return nil, ErrDefaultPriceListMissing
 		} else if err == postgres.ErrCartItemAlreadyExists {
 			return nil, ErrCartItemAlreadyExists
 		}
