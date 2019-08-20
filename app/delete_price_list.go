@@ -35,7 +35,7 @@ func (a *App) DeletePriceListHandler() http.HandlerFunc {
 				})
 				return
 			}
-			contextLogger.Errorf("service DeletePriceList(ctx, productLidID=%q) error: %+v", priceListID, err)
+			contextLogger.Errorf("app: a.Service.DeletePriceList(ctx, priceListID=%q) error: %+v", priceListID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

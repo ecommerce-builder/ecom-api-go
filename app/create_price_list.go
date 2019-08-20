@@ -33,8 +33,8 @@ func (a *App) CreatePriceListHandler() http.HandlerFunc {
 			return
 		}
 
-		ok, message := validateCreatePriceListRequest(&requestBody)
-		if !ok {
+		valid, message := validateCreatePriceListRequest(&requestBody)
+		if !valid {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`

@@ -110,6 +110,12 @@ const (
 	OpUpdateTierPricing     string = "OpUpdateTierPricing"
 	OpDeleteTierPricing     string = "OpDeleteTierPricing"
 
+	// Promotion Rules
+	OpCreatePromoRule string = "OpCreatePromoRule"
+	OpGetPromoRule    string = "OpGetPromoRule"
+	OpListPromoRules  string = "OpListPromoRules"
+	OpDeletePromoRule string = "OpDeletePromoRule"
+
 	// Image
 	OpAddImage               string = "OpAddImage"
 	OpGetImage               string = "OpGetImage"

@@ -18,7 +18,7 @@ func (a *App) PricingMapByProductIDHandler() http.HandlerFunc {
 		contextLogger.Info("App: PricingMapByProductIDHandler started")
 
 		productID := chi.URLParam(r, "id")
-		pmap, err := a.Service.PricingMapByProductID(ctx, productID)
+		pmap, err := a.Service.PriceMap(ctx, productID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)

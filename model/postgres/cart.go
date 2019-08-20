@@ -148,7 +148,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q4)
 		}
 	} else {
-		q4 := "SELECT id FROM price_list WHERE price_list_code = 'default'"
+		q4 := "SELECT id FROM price_list WHERE code = 'default'"
 		err = tx.QueryRowContext(ctx, q4).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -193,7 +193,7 @@ func (m *PgModel) AddItemToCart(ctx context.Context, cartUUID, customerUUID, pro
 		FROM cart_item AS c
 		INNER JOIN product AS p
 		  ON p.id = c.product_id
-		LEFT OUTER JOIN product_pricing AS r
+		LEFT OUTER JOIN price AS r
 		  ON r.product_id = p.id
 		WHERE
 		  c.id = $1 AND r.price_list_id = $2
@@ -272,7 +272,7 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
 		}
 	} else {
-		q4 := "SELECT id FROM price_list WHERE price_list_code = 'default'"
+		q4 := "SELECT id FROM price_list WHERE code = 'default'"
 		err = tx.QueryRowContext(ctx, q4).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -285,11 +285,11 @@ func (m *PgModel) GetCartItems(ctx context.Context, cartUUID, customerUUID strin
 	}
 	q5 := `
 		SELECT
-		  c.id, c.uuid, c.product_id, p.uuid as product_uuid, sku, name, qty, unit_price, c.created, c.modified
+		  c.id, c.uuid, c.product_id, p.uuid as product_uuid, sku, name, c.qty, unit_price, c.created, c.modified
 		FROM cart_item AS c
 		INNER JOIN product AS p
 		  ON p.id = c.product_id
-		LEFT OUTER JOIN product_pricing AS r
+		LEFT OUTER JOIN price AS r
 		  ON r.product_id = p.id
 		WHERE
 		  c.cart_id = $1 AND r.price_list_id = $2
@@ -363,7 +363,7 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, customerUU
 			return nil, errors.Wrapf(err, "query row context failed for query=%q", q3)
 		}
 	} else {
-		q3 := "SELECT id FROM price_list WHERE price_list_code = 'default'"
+		q3 := "SELECT id FROM price_list WHERE code = 'default'"
 		err = tx.QueryRowContext(ctx, q3).Scan(&priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -399,7 +399,7 @@ func (m *PgModel) UpdateItemByCartUUID(ctx context.Context, cartUUID, customerUU
 		FROM cart_item AS c
 		INNER JOIN product AS p
 		  ON p.id = c.product_id
-		LEFT OUTER JOIN product_pricing AS r
+		LEFT OUTER JOIN price AS r
 		  ON r.product_id = p.id
 		WHERE
 		  c.id = $1 AND r.price_list_id = $2

@@ -28,5 +28,5 @@ echo "DROP TYPE IF EXISTS payment_t" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TYPE IF EXISTS address_t" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TYPE IF EXISTS order_status_t" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TYPE IF EXISTS order_payment_status_t" | psql --no-psqlrc ecom_dev > /dev/null
-echo "DROP TYPE IF EXISTS promo_rule_typ_t" | psql --no-psqlrc ecom_dev > /dev/null
+echo "DROP TYPE IF EXISTS promo_rule_type_t" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TYPE IF EXISTS promo_rule_target_t" | psql --no-psqlrc ecom_dev > /dev/null

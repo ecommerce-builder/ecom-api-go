@@ -97,7 +97,7 @@ func (a *App) CreateCartHandler() http.HandlerFunc {
 
 		cart, err := a.Service.CreateCart(ctx)
 		if err != nil {
-			contextLogger.Errorf("failed to create cart: %v", err)
+			contextLogger.Errorf("app: failed to create cart: %v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -124,7 +124,6 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 		contextLogger.Info("app: GetCartItemsHandler started")
 
 		cartID := chi.URLParam(r, "id")
-
 		if IsValidUUID(cartID) == false {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {

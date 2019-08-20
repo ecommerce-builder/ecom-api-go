@@ -587,6 +587,13 @@ func main() {
 			r.Delete("/{id}", a.Authorization(app.OpDeletePriceList, a.DeletePriceListHandler()))
 		})
 
+		r.Route("/promo-rules", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreatePromoRule, a.CreatePromoRuleHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetPromoRule, a.GetPromoRuleHandler()))
+			r.Get("/", a.Authorization(app.OpListPromoRules, a.ListPromoRulesHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeletePromoRule, a.DeletePromoRuleHandler()))
+		})
+
 		r.Route("/images", func(r chi.Router) {
 			r.Get("/{image_id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
 			r.Delete("/{image_id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))

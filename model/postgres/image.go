@@ -124,7 +124,7 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, productUUID string, c *C
 func (m *PgModel) GetImages(ctx context.Context, productUUID string) ([]*ImageJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "db.BeginTx")
+		return nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
 	q1 := "SELECT id FROM product WHERE uuid = $1"
@@ -136,18 +136,18 @@ func (m *PgModel) GetImages(ctx context.Context, productUUID string) ([]*ImageJo
 			return nil, ErrProductNotFound
 		}
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "query row context failed for q1=%q", q1)
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
 	q2 := `
 		SELECT
-		  i.id, uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
+		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
 		  gsurl, data, i.created, i.modified
 		FROM product_image AS i
 		INNER JOIN product AS p
 		  ON p.id = i.product_id
 		WHERE product_id = $1
-		ORDER BY pri ASC
+		ORDER BY i.pri ASC
 	`
 	rows, err := tx.QueryContext(ctx, q2, productID)
 	if err != nil {
@@ -157,19 +157,19 @@ func (m *PgModel) GetImages(ctx context.Context, productUUID string) ([]*ImageJo
 
 	images := make([]*ImageJoinRow, 0, 4)
 	for rows.Next() {
-		p := ImageJoinRow{}
-		err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		i := ImageJoinRow{}
+		err = rows.Scan(&i.id, &i.UUID, &i.productID, &i.ProductUUID, &i.W, &i.H, &i.Path, &i.Typ, &i.Ori, &i.Up, &i.Pri, &i.Size, &i.Q, &i.GSURL, &i.Data, &i.Created, &i.Modified)
 		if err != nil {
 			return nil, err
 		}
-		images = append(images, &p)
+		images = append(images, &i)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "tx.Commit")
+		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
 	}
 	return images, nil
 }

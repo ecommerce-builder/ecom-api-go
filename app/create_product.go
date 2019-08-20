@@ -28,15 +28,13 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: CreateProductHandler called")
+		contextLogger.Info("app: CreateProductHandler called")
 
 		pc := service.ProductCreateRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&pc); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
-		fmt.Printf("%#v\n", pc)
 
 		if err := validateProductCreateRequestBody(&pc); err != nil {
 			w.WriteHeader(http.StatusConflict) // 409 Conflict

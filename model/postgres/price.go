@@ -9,17 +9,19 @@ import (
 )
 
 // ErrPriceNotFound error.
-var ErrPriceNotFound = errors.New("price not found")
+var ErrPriceNotFound = errors.New("postgres: price not found")
 
 // PriceRow represents a row in the price table
 type PriceRow struct {
-	id            int
-	UUID          string
-	pricingTierID int
-	productID     int
-	UnitPrice     int
-	Created       time.Time
-	Modified      time.Time
+	id           int
+	UUID         string
+	productID    int
+	priceListID  int
+	Qty          int
+	CurrencyCode string
+	UnitPrice    int
+	Created      time.Time
+	Modified     time.Time
 }
 
 // PriceJoinRow represents a 3-way join between price,
@@ -38,11 +40,11 @@ type PriceJoinRow struct {
 	Modified      time.Time
 }
 
-// GetPrices returns a Price for a given product and price list.
-func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID string) (*PriceJoinRow, error) {
+// GetPricesByPriceList returns a Price for a given product and price list.
+func (m *PgModel) GetPricesByPriceList(ctx context.Context, productUUID, priceListUUID string) (*PriceJoinRow, error) {
 	query := `
 		SELECT
-                  r.id, r.uuid, p.id, p.uuid AS product_uuid, p.sku, price_list_id, t.uuid AS price_list_uuid, t.price_list_code, unit_price, r.created, r.modified
+                  r.id, r.uuid, p.id, p.uuid AS product_uuid, p.sku, price_list_id, t.uuid AS price_list_uuid, t.code, unit_price, r.created, r.modified
                 FROM
                   price r
 		JOIN product p
@@ -62,23 +64,27 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 	return &p, nil
 }
 
-// GetProductPricesByProductUUID returns a list of Prices for a given product.
-func (m *PgModel) GetProductPricesByProductUUID(ctx context.Context, productUUID string) ([]*PriceJoinRow, error) {
-	query := `
+// GetPrices returns a list of prices for a given product.
+func (m *PgModel) GetPrices(ctx context.Context, productUUID string) ([]*PriceJoinRow, error) {
+	// TODO:
+	// 1. Transaction
+	// 2. check for missing product
+
+	q2 := `
 		SELECT
 		  r.id, r.uuid AS uuid, p.id AS product_id, p.uuid as product_uuid, p.sku,
-		  t.id as price_list_id, t.uuid as price_list_uuid, t.price_list_code, r.unit_price, r.created, r.modified
+		  t.id as price_list_id, t.uuid as price_list_uuid, t.code, r.unit_price, r.created, r.modified
 		FROM product AS p
-		LEFT OUTER JOIN product_pricing AS r
+		LEFT OUTER JOIN price AS r
 		  ON p.id = r.product_id
 		LEFT OUTER JOIN price_list AS t
 		  ON t.id = r.price_list_id
 		WHERE p.uuid = $1
-		ORDER BY t.tier_ref
+		ORDER BY t.code
 	`
-	rows, err := m.db.QueryContext(ctx, query, productUUID)
+	rows, err := m.db.QueryContext(ctx, q2, productUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, query=%q, productUUID=%q)", query, productUUID)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, q2=%q, productUUID=%q)", q2, productUUID)
 	}
 	defer rows.Close()
 	pricing := make([]*PriceJoinRow, 0, 8)
@@ -110,13 +116,13 @@ func (m *PgModel) GetProductPricesByProductUUID(ctx context.Context, productUUID
 // TODO: fix this up
 //
 
-// GetProductPricingBySKU returns a list of Price items for a given SKU.
-func (m *PgModel) GetProductPriceByProductUUID(ctx context.Context, productUUID string) ([]*PriceRow, error) {
+// GetProductPrices returns a list of prices for a given product.
+func (m *PgModel) GetProductPrices(ctx context.Context, productUUID string) ([]*PriceRow, error) {
 	query := `
 		SELECT id, price_list_id, product_id, unit_price, created, modified
 		FROM price
 		WHERE sku = $1
-		ORDER BY tier_ref ASC
+		ORDER BY id ASC
 	`
 	rows, err := m.db.QueryContext(ctx, query, productUUID)
 	if err != nil {
@@ -126,7 +132,7 @@ func (m *PgModel) GetProductPriceByProductUUID(ctx context.Context, productUUID 
 	pricing := make([]*PriceRow, 0, 8)
 	for rows.Next() {
 		var p PriceRow
-		if err = rows.Scan(&p.id, &p.pricingTierID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+		if err = rows.Scan(&p.id, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
 		pricing = append(pricing, &p)
@@ -137,23 +143,23 @@ func (m *PgModel) GetProductPriceByProductUUID(ctx context.Context, productUUID 
 	return pricing, nil
 }
 
-// GetProductPriceByPriceListID returns a list of Price items for a given price list id.
-func (m *PgModel) GetProductPriceByPriceListID(ctx context.Context, pricingListID string) ([]*PriceRow, error) {
+// GetProductPriceByPriceList returns a list of Price items for a given price list id.
+func (m *PgModel) GetProductPriceByPriceList(ctx context.Context, priceListUUID string) ([]*PriceRow, error) {
 	query := `
 		SELECT
 		  id, uuid, price_list_id, product_id, unit_price, created, modified
 		FROM price
 		WHERE uuid = $1
 	`
-	rows, err := m.db.QueryContext(ctx, query, pricingListID)
+	rows, err := m.db.QueryContext(ctx, query, priceListUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, query=%q, pricingListID=%q)", query, pricingListID)
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, query=%q, priceListID=%q)", query, priceListUUID)
 	}
 	defer rows.Close()
 	prices := make([]*PriceRow, 0, 8)
 	for rows.Next() {
 		var p PriceRow
-		if err = rows.Scan(&p.id, &p.pricingTierID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+		if err = rows.Scan(&p.id, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
 		prices = append(prices, &p)
@@ -166,7 +172,7 @@ func (m *PgModel) GetProductPriceByPriceListID(ctx context.Context, pricingListI
 
 // UpdatePrice updates the product price with the new unit price
 // by product uuid and price list uuid.
-func (m *PgModel) UpdateTierPricing(ctx context.Context, productUUID, priceListUUID string, unitPrice float64) (*PriceJoinRow, error) {
+func (m *PgModel) UpdatePrice(ctx context.Context, productUUID, priceListUUID string, unitPrice float64) (*PriceJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
@@ -203,7 +209,7 @@ func (m *PgModel) UpdateTierPricing(ctx context.Context, productUUID, priceListU
 		WHERE
 		  product_id = $2 AND price_list_id = $3
 		RETURNING
-		  id, uuid, price_list_id, price_list_code as (SELECT price_list_code FROM price_list WHERE id = $4) product_id, unit_price, created, modified
+		  id, uuid, price_list_id, code as (SELECT code FROM price_list WHERE id = $4) product_id, unit_price, created, modified
 	`
 	p := PriceJoinRow{}
 	if err := tx.QueryRowContext(ctx, query, unitPrice, productID, priceListID, priceListID).Scan(&p.id, &p.UUID, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {

@@ -57,7 +57,7 @@ func (s *Service) CreatePriceList(ctx context.Context, p *PriceListCreate) (*Pri
 	return &priceList, nil
 }
 
-// GetPriceList return a single price list.
+// GetPriceList returns a single price list.
 func (s *Service) GetPriceList(ctx context.Context, priceListID string) (*PriceList, error) {
 	row, err := s.model.GetPriceList(ctx, priceListID)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *Service) GetPriceList(ctx context.Context, priceListID string) (*PriceL
 
 // GetPriceLists returns a list of PriceLists.
 func (s *Service) GetPriceLists(ctx context.Context) ([]*PriceList, error) {
-	row, err := s.model.GetPriceLists(ctx)
+	rows, err := s.model.GetPriceLists(ctx)
 	if err != nil {
 		if err == postgres.ErrPriceListNotFound {
 			return nil, ErrPriceListNotFound
@@ -88,9 +88,9 @@ func (s *Service) GetPriceLists(ctx context.Context) ([]*PriceList, error) {
 		return nil, errors.Wrapf(err, "s.model.GetPriceLists(ctx) failed")
 	}
 
-	tiers := make([]*PriceList, 0, len(row))
-	for _, t := range row {
-		tier := PriceList{
+	priceLists := make([]*PriceList, 0, len(rows))
+	for _, t := range rows {
+		pl := PriceList{
 			Object:        "price_list",
 			ID:            t.UUID,
 			PriceListCode: t.Code,
@@ -99,9 +99,9 @@ func (s *Service) GetPriceLists(ctx context.Context) ([]*PriceList, error) {
 			Created:       t.Created,
 			Modified:      t.Modified,
 		}
-		tiers = append(tiers, &tier)
+		priceLists = append(priceLists, &pl)
 	}
-	return tiers, nil
+	return priceLists, nil
 }
 
 // UpdatePriceList updates a price list with a new price list code, name

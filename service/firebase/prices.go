@@ -32,7 +32,7 @@ type Price struct {
 // GetProductPrice returns a ProductPrice for the product with the
 // given product id and price list id.
 func (s *Service) GetProductPrice(ctx context.Context, productID, priceListID string) (*Price, error) {
-	p, err := s.model.GetPrices(ctx, productID, priceListID)
+	p, err := s.model.GetPricesByPriceList(ctx, productID, priceListID)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetProductPricingBySKUAndTier failed")
 	}
@@ -52,9 +52,9 @@ type ProductTierPricing struct {
 	UnitPrice float64 `json:"unit_price"`
 }
 
-// PricingMapByProductID returns a map of pricing tier id to PricingEntrys.
-func (s *Service) PricingMapByProductID(ctx context.Context, productID string) (map[PriceListID]*Price, error) {
-	plist, err := s.model.GetProductPricesByProductUUID(ctx, productID)
+// PriceMap returns a map of pricing list id to price.
+func (s *Service) PriceMap(ctx context.Context, productID string) (map[PriceListID]*Price, error) {
+	plist, err := s.model.GetPrices(ctx, productID)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetProductPricingByProductUUID failed")
 	}
@@ -74,7 +74,7 @@ func (s *Service) PricingMapByProductID(ctx context.Context, productID string) (
 
 // PriceMapByPriceList returns a map of product ids to Price.
 func (s *Service) PriceMapByPriceList(ctx context.Context, priceListID string) (map[string]*Price, error) {
-	plist, err := s.model.GetProductPriceByPriceListID(ctx, priceListID)
+	plist, err := s.model.GetProductPriceByPriceList(ctx, priceListID)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetProductPricingByTier failed")
 	}
@@ -95,14 +95,14 @@ func (s *Service) PriceMapByPriceList(ctx context.Context, priceListID string) (
 // UpdateTierPricing updates the tier pricing for the given sku and tier ref.
 // If the produt pricing is not found returns nil, nil.
 func (s *Service) UpdateTierPricing(ctx context.Context, productID, priceListID string, unitPrice float64) (*Price, error) {
-	p, err := s.model.GetPrices(ctx, productID, priceListID)
+	p, err := s.model.GetPricesByPriceList(ctx, productID, priceListID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "GetProductPricingBySKUAndTier(ctx, %q, %q) failed", productID, priceListID)
 	}
 	if p == nil {
 		return nil, ErrPriceListNotFound
 	}
-	p, err = s.model.UpdateTierPricing(ctx, productID, priceListID, unitPrice)
+	p, err = s.model.UpdatePrice(ctx, productID, priceListID, unitPrice)
 	if err != nil {
 		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %.4f) failed", productID, priceListID, unitPrice)
 	}
