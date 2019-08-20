@@ -157,67 +157,67 @@ INSERT INTO category_product (category_id, product_id, pri) VALUES (3, 2, 20);
 INSERT INTO category_product (category_id, product_id, pri) VALUES (3, 4, 30);
 
 
--- product pricing tier
-INSERT INTO pricing_tier (tier_ref, title, description)
+-- price_list
+INSERT INTO price_list (price_list_code, name, description)
   VALUES('goldfish', 'Small Wholesale Customer', 'Small company with turn over less than 10k');
-INSERT INTO pricing_tier (tier_ref, title, description)
+INSERT INTO price_list (price_list_code, name, description)
   VALUES('seabass', 'Medium-sized Customer', 'Medium-sized company with turn over less than 100k');
 
 
--- product pricing
+-- product_price
 -- default
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price)
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price)
     VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'default'),
-    (SELECT id FROM product WHERE sku = 'WATER-SKU'), 20417);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'default'),
-    (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 395833);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'default'),
-    (SELECT id FROM product WHERE sku = 'TV-SKU'), 2066250);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'default'),
-    (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 241583);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'default'),
-    (SELECT id FROM product WHERE sku = 'DESK-SKU'), 2987083);
+    (SELECT id FROM price_list WHERE price_list_code = 'default'),
+    (SELECT id FROM product WHERE sku = 'WATER-SKU'), 1, 20417);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'default'),
+    (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 1, 395833);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'default'),
+    (SELECT id FROM product WHERE sku = 'TV-SKU'), 1, 2066250);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'default'),
+    (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 1, 241583);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'default'),
+    (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1, 2987083);
 
 -- goldfish
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price)
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price)
     VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'goldfish'),
-    (SELECT id FROM product WHERE sku = 'WATER-SKU'), 14500);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'goldfish'),
-    (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 152900);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'goldfish'),
-    (SELECT id FROM product WHERE sku = 'TV-SKU'), 1245700);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'goldfish'),
-    (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 145300);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'goldfish'),
-    (SELECT id FROM product WHERE sku = 'DESK-SKU'), 2248200);
+    (SELECT id FROM price_list WHERE price_list_code = 'goldfish'),
+    (SELECT id FROM product WHERE sku = 'WATER-SKU'), 1, 14500);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'goldfish'),
+    (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 1, 152900);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'goldfish'),
+    (SELECT id FROM product WHERE sku = 'TV-SKU'), 1, 1245700);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'goldfish'),
+    (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 1, 145300);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'goldfish'),
+    (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1, 2248200);
 
 -- seabass
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price)
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price)
     VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'seabass'),
-    (SELECT id FROM product WHERE sku = 'WATER-SKU'), 12900);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'seabass'),
-    (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 122900);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'seabass'),
-    (SELECT id FROM product WHERE sku = 'TV-SKU'), 995700);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'seabass'),
-    (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 125300);
-INSERT INTO product_pricing (pricing_tier_id, product_id, unit_price) VALUES(
-    (SELECT id FROM pricing_tier WHERE tier_ref = 'seabass'),
-    (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1984200);
+    (SELECT id FROM price_list WHERE price_list_code = 'seabass'),
+    (SELECT id FROM product WHERE sku = 'WATER-SKU'), 1, 12900);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'seabass'),
+    (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 1, 122900);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'seabass'),
+    (SELECT id FROM product WHERE sku = 'TV-SKU'), 1, 995700);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'seabass'),
+    (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 1, 125300);
+INSERT INTO product_price (price_list_id, product_id, qty, unit_price) VALUES(
+    (SELECT id FROM price_list WHERE price_list_code = 'seabass'),
+    (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1, 1984200);
 
 INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
   VALUES ('GB', 'free_delivery', 'Standard Delivery (3-5 working days)', 24583, 'T20');

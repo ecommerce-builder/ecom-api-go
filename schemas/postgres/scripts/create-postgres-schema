@@ -23,11 +23,11 @@ cat $schemadir/cart.sql | psql --no-psqlrc ecom_dev > /dev/null
 echo "Createing cart_items table"
 cat $schemadir/cart_item.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating pricing_tiers table"
-cat $schemadir/pricing_tier.sql | psql --no-psqlrc ecom_dev > /dev/null
+echo "Creating price_list table"
+cat $schemadir/price_list.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating product pricing table"
-cat $schemadir/product_pricing.sql | psql --no-psqlrc ecom_dev > /dev/null
+echo "Creating product_price table"
+cat $schemadir/product_price.sql | psql --no-psqlrc ecom_dev > /dev/null
 
 echo "Creating product images table"
 cat $schemadir/product_image.sql | psql --no-psqlrc ecom_dev > /dev/null
