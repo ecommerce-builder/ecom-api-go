@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS product_image (
+CREATE TABLE IF NOT EXISTS image (
   id          SERIAL PRIMARY KEY,
   uuid        UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
   product_id  INTEGER NOT NULL,
@@ -18,10 +18,10 @@ CREATE TABLE IF NOT EXISTS product_image (
   FOREIGN KEY (product_id) REFERENCES product (id)
 );
 
-CREATE INDEX IF NOT EXISTS pi_created_idx  ON product_image (created DESC);
-CREATE INDEX IF NOT EXISTS pi_modified_idx ON product_image (modified DESC);
-CREATE INDEX IF NOT EXISTS pi_w_idx  ON product_image (w ASC);
-CREATE INDEX IF NOT EXISTS pi_h_idx ON product_image (h ASC);
-CREATE INDEX IF NOT EXISTS pi_h_pri ON product_image (pri ASC);
-CREATE INDEX IF NOT EXISTS pi_up ON product_image (up ASC);
-CREATE INDEX IF NOT EXISTS pi_size_idx ON product_image (size DESC);
+CREATE INDEX IF NOT EXISTS pi_created_idx  ON image (created DESC);
+CREATE INDEX IF NOT EXISTS pi_modified_idx ON image (modified DESC);
+CREATE INDEX IF NOT EXISTS pi_w_idx  ON image (w ASC);
+CREATE INDEX IF NOT EXISTS pi_h_idx ON image (h ASC);
+CREATE INDEX IF NOT EXISTS pi_h_pri ON image (pri ASC);
+CREATE INDEX IF NOT EXISTS pi_up ON image (up ASC);
+CREATE INDEX IF NOT EXISTS pi_size_idx ON image (size DESC);

@@ -11,7 +11,7 @@ import (
 
 type pricingResponseBody struct {
 	Object string `json:"object"`
-	*service.ProductPricing
+	*service.Price
 }
 
 // UpdateTierPricingHandler creates a handler function that updates
@@ -45,10 +45,22 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
-		pricing, err := a.Service.UpdateTierPricing(ctx, sku, ref, req.UnitPrice)
+		price, err := a.Service.UpdateTierPricing(ctx, sku, ref, req.UnitPrice)
 		if err != nil {
-			if err == service.ErrPricingTierNotFound {
+			if err == service.ErrPriceListNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				return
+			} else if err == service.ErrPriceListCodeTaken {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodePriceListCodeTaken,
+					"price list is already in use",
+				})
 				return
 			}
 			contextLogger.Errorf("service UpdateTierPricing(ctx, %s, %s) error: %+v", sku, ref, err)
@@ -57,8 +69,8 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 		}
 
 		res := pricingResponseBody{
-			Object:         "pricing",
-			ProductPricing: pricing,
+			Object: "pricing",
+			Price:  price,
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(res)

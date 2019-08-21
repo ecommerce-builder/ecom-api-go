@@ -17,14 +17,14 @@ func (a *App) PricingMapByTierHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: PricingMapByTierHandler started")
 
-		ref := chi.URLParam(r, "ref")
-		pmap, err := a.Service.PricingMapByTier(ctx, ref)
+		priceListID := chi.URLParam(r, "id")
+		pmap, err := a.Service.PriceMapByPriceList(ctx, priceListID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service PricingMapByTierHandler(ctx, %s) error: %+v", ref, err)
+			contextLogger.Errorf("app: a.Service.PriceMapByPriceList(ctx, priceListID=%q) error: %+v", priceListID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

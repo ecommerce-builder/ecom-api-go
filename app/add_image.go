@@ -20,7 +20,7 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: AddImageHandler started")
 
-		productID := chi.URLParam(r, "product_id")
+		productID := chi.URLParam(r, "id")
 		exists, err := a.Service.ProductExists(ctx, productID)
 		if err != nil {
 			contextLogger.Errorf("a.Service.ProductExists(ctx, productID=%q) failed: error %v", productID, err)

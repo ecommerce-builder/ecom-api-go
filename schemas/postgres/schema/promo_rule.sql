@@ -1,7 +1,7 @@
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'promo_rule_typ_t') THEN
-        CREATE TYPE promo_rule_typ_t AS ENUM ('percentage', 'fixed');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'promo_rule_type_t') THEN
+        CREATE TYPE promo_rule_type_t AS ENUM ('percentage', 'fixed');
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'promo_rule_target_t') THEN
@@ -16,11 +16,12 @@ CREATE TABLE IF NOT EXISTS promo_rule (
   product_set_id     INTEGER NULL DEFAULT NULL,
   category_id        INTEGER NULL DEFAULT NULL,
   shipping_tarrif_id INTEGER NULL DEFAULT NULL,
+  name               VARCHAR(255) NOT NULL DEFAULT '',
   starts_at          TIMESTAMP NULL,
   ends_at            TIMESTAMP NULL,
   amount             INTEGER NOT NULL CHECK (amount >= 0),
   total_threshold    INTEGER CHECK (total_threshold >= 0),
-  typ                promo_rule_typ_t NOT NULL,
+  type               promo_rule_type_t NOT NULL,
   target             promo_rule_target_t NOT NULL,
   created            TIMESTAMP NOT NULL DEFAULT NOW(),
   modified           TIMESTAMP NOT NULL DEFAULT NOW(),

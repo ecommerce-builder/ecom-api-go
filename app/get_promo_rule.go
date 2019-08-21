@@ -9,26 +9,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GetProductHandler returns a handler function that gets a product by SKU
-// containing product and image data.
-func (a *App) GetProductHandler() http.HandlerFunc {
+// GetPromoRuleHandler creates a handler function that returns a
+// price list.
+func (a *App) GetPromoRuleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetProductHandler called")
+		contextLogger.Info("App: GetPromoRuleHandler called")
 
-		productID := chi.URLParam(r, "id")
-		product, err := a.Service.GetProduct(ctx, productID)
+		promoRuleID := chi.URLParam(r, "id")
+		promoRule, err := a.Service.GetPromoRule(ctx, promoRuleID)
 		if err != nil {
-			if err == service.ErrProductNotFound {
+			if err == service.ErrPromoRuleNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("app: GetProduct(ctx, productID=%q) error: %+v", productID, err)
+			contextLogger.Errorf("app: a.Service.GetPromoRule(ctx, promoRuleID=%q)", promoRuleID)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(*product)
+		json.NewEncoder(w).Encode(&promoRule)
 	}
 }

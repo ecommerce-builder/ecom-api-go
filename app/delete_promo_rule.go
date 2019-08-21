@@ -8,21 +8,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DeleteAllProductImagesHandler create a handler that deletes all images for the
-// product with the given SKU.
-func (a *App) DeleteAllProductImagesHandler() http.HandlerFunc {
+// DeletePromoRuleHandler creates a handler function that deletes
+// a price list by id.
+func (a *App) DeletePromoRuleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeleteAllProductImagesHandler started")
+		contextLogger.Info("App: DeletePromoRuleHandler started")
 
-		productID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteAllProductImages(ctx, productID); err != nil {
-			if err == service.ErrProductNotFound {
+		promoRuleID := chi.URLParam(r, "id")
+		if err := a.Service.DeletePromoRule(ctx, promoRuleID); err != nil {
+			if err == service.ErrPromoRuleNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				return
 			}
-			contextLogger.Errorf("DeleteAllProductImages(ctx, productID=%q) failed: %v", productID, err)
+			contextLogger.Errorf("app: a.Service.DeletePromoRule(ctx, promoRuleID=%q) error: %+v", promoRuleID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

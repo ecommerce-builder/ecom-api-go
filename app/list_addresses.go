@@ -15,7 +15,7 @@ func (a *App) ListAddressesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListAddressesHandler started")
 
-		customerID := chi.URLParam(r, "customer_id")
+		customerID := chi.URLParam(r, "id")
 		addresses, err := a.Service.GetAddresses(ctx, customerID)
 		if err != nil {
 			contextLogger.Errorf("a.Service.GetAddresses(ctx, customerID=%q) error: %v", customerID, err)

@@ -17,24 +17,19 @@ func (a *App) GetTierPricingHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetTierPricingHandler called")
 
-		sku := chi.URLParam(r, "sku")
-		ref := chi.URLParam(r, "ref")
-		pricing, err := a.Service.GetTierPricing(ctx, sku, ref)
+		productID := chi.URLParam(r, "id")
+		ref := ""
+		price, err := a.Service.GetProductPrice(ctx, productID, ref)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service GetProductTierPricing(ctx, %s, %s) error: %+v", sku, ref, err)
+			contextLogger.Errorf("service GetProductPrice(ctx, %q, %q) error: %+v", productID, ref, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-
-		res := pricingResponseBody{
-			Object:         "pricing",
-			ProductPricing: pricing,
-		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(price)
 	}
 }

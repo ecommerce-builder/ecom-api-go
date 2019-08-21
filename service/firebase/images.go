@@ -108,8 +108,8 @@ func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) 
 	return &image, nil
 }
 
-// ListProductImages return a slice of Images.
-func (s *Service) ListProductImages(ctx context.Context, productID string) ([]*Image, error) {
+// GetProductImages return a slice of Images.
+func (s *Service) GetProductImages(ctx context.Context, productID string) ([]*Image, error) {
 	pilist, err := s.model.GetImages(ctx, productID)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
@@ -117,6 +117,7 @@ func (s *Service) ListProductImages(ctx context.Context, productID string) ([]*I
 		}
 		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, productID=%q) failed", productID)
 	}
+
 	images := make([]*Image, 0, 8)
 	for _, pi := range pilist {
 		image := Image{

@@ -16,7 +16,7 @@ func (a *App) GetImageHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetImageHandler called")
 
-		imageID := chi.URLParam(r, "image_id")
+		imageID := chi.URLParam(r, "id")
 		image, err := a.Service.GetImage(ctx, imageID)
 		if err != nil {
 			if err == service.ErrImageNotFound {

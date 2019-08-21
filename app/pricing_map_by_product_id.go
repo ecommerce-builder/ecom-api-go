@@ -10,15 +10,15 @@ import (
 )
 
 // PricingMapByProductIDHandler creates a handler function that returns a
-// map of tier refs to PricingEntry.
+// map of tier refs to PriceEntry.
 func (a *App) PricingMapByProductIDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: PricingMapByProductIDHandler started")
 
-		productID := chi.URLParam(r, "product_id")
-		pmap, err := a.Service.PricingMapByProductID(ctx, productID)
+		productID := chi.URLParam(r, "id")
+		pmap, err := a.Service.PriceMap(ctx, productID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)

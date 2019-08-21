@@ -571,20 +571,27 @@ func main() {
 			r.Get("/{id}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
 			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
 
-			r.Get("/{customer_id}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
-			r.Post("/{customer_id}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
-			r.Post("/{customer_id}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
-			r.Get("/{customer_id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
+			r.Get("/{id}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
+			r.Post("/{id}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
+			r.Post("/{id}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
+			r.Get("/{id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
 		})
 
-		// pricing tiers resource operation all return 501 Not Implemented
+		// price list resource operation all return 501 Not Implemented
 		// apart from OpListPricingTiers
-		r.Route("/pricing-tiers", func(r chi.Router) {
-			r.Post("/", a.Authorization(app.OpCreateTier, a.NotImplementedHandler()))
-			r.Get("/{ref}", a.Authorization(app.OpGetTier, a.NotImplementedHandler()))
-			r.Get("/", a.Authorization(app.OpListPricingTiers, a.ListPricingTiersHandler()))
-			r.Put("/{ref}", a.Authorization(app.OpUpdateTier, a.NotImplementedHandler()))
-			r.Delete("/{ref}", a.Authorization(app.OpDeleteTier, a.NotImplementedHandler()))
+		r.Route("/price-lists", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreatePriceList, a.CreatePriceListHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetPriceList, a.GetPriceListHandler()))
+			r.Get("/", a.Authorization(app.OpListPriceLists, a.ListPriceListsHandler()))
+			r.Put("/{id}", a.Authorization(app.OpUpdatePriceList, a.UpdatePriceListHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeletePriceList, a.DeletePriceListHandler()))
+		})
+
+		r.Route("/promo-rules", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreatePromoRule, a.CreatePromoRuleHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetPromoRule, a.GetPromoRuleHandler()))
+			r.Get("/", a.Authorization(app.OpListPromoRules, a.ListPromoRulesHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeletePromoRule, a.DeletePromoRuleHandler()))
 		})
 
 		r.Route("/images", func(r chi.Router) {
@@ -592,26 +599,26 @@ func main() {
 			r.Delete("/{image_id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
 		})
 
-		r.Route("/products/{sku}/tiers/{ref}/pricing", func(r chi.Router) {
+		r.Route("/products/{id}/tiers/{tier_id}/pricing", func(r chi.Router) {
 			r.Put("/", a.Authorization(app.OpUpdateTierPricing, a.UpdateTierPricingHandler()))
 			r.Get("/", a.Authorization(app.OpGetTierPricing, a.GetTierPricingHandler()))
-			r.Delete("/", a.Authorization(app.OpDeleteTierPricing, a.DeleteTierPricingHandler()))
+			r.Delete("/", a.Authorization(app.OpDeleteTierPricing, a.NotImplementedHandler()))
 		})
 
 		r.Route("/products", func(r chi.Router) {
 			r.Post("/", a.Authorization((app.OpCreateProduct), a.CreateProductHandler()))
-			r.Put("/{product_id}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
+			r.Put("/{id}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
-			r.Get("/{product_id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
-			r.Head("/{product_id}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
-			r.Delete("/{product_id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
+			r.Head("/{id}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
-			r.Post("/{product_id}/images", a.Authorization(app.OpAddImage, a.AddImageHandler()))
-			r.Get("/{product_id}/images", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
-			r.Delete("/{product_id}/images", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
+			r.Post("/{id}/images", a.Authorization(app.OpAddImage, a.AddImageHandler()))
+			r.Get("/{d}/images", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
+			r.Delete("/{id}/images", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
 
-			r.Get("/{product_id}/pricing", a.Authorization(app.OpMapPricingByProductID, a.PricingMapByProductIDHandler()))
-			r.Get("/tiers/{ref}/pricing", a.Authorization(app.OpMapPricingByTier, a.PricingMapByTierHandler()))
+			r.Get("/{id}/pricing", a.Authorization(app.OpMapPricingByProductID, a.PricingMapByProductIDHandler()))
+			r.Get("/tiers/{id}/pricing", a.Authorization(app.OpMapPricingByTier, a.PricingMapByTierHandler()))
 		})
 
 		r.Route("/devkeys", func(r chi.Router) {
@@ -626,11 +633,11 @@ func main() {
 
 		r.Route("/carts", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateCart, a.CreateCartHandler()))
-			r.Post("/{cart_id}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
-			r.Get("/{cart_id}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
-			r.Patch("/{cart_id}/items/{product_id}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
-			r.Delete("/{cart_id}/items/{product_id}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
-			r.Delete("/{cart_id}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
+			r.Post("/{id}/items", a.Authorization(app.OpAddItemToCart, a.AddItemToCartHandler()))
+			r.Get("/{id}/items", a.Authorization(app.OpGetCartItems, a.GetCartItemsHandler()))
+			r.Patch("/{id}/items/{product_id}", a.Authorization(app.OpUpdateCartItem, a.UpdateCartItemHandler()))
+			r.Delete("/{id}/items/{product_id}", a.Authorization(app.OpDeleteCartItem, a.DeleteCartItemHandler()))
+			r.Delete("/{id}/items", a.Authorization(app.OpEmptyCartItems, a.EmptyCartItemsHandler()))
 		})
 
 		r.Route("/categories", func(r chi.Router) {
@@ -638,9 +645,12 @@ func main() {
 			r.Get("/", a.Authorization(app.OpGetCategories, a.GetCategoriesHandler()))
 			r.Delete("/", a.Authorization(app.OpPurgeCatalog, a.PurgeCatalogHandler()))
 
-			r.Put("/assocs/products", a.Authorization(app.OpUpdateCategoryProductAssocs, a.UpdateCategoryProductAssocsHandler()))
-			r.Get("/assocs/products", a.Authorization(app.OpGetCategoryProductAssocs, a.GetCategoryProductAssocsHandler()))
-			r.Delete("/assocs/products", a.Authorization(app.OpPurgeCategoryAssocs, a.PurgeCategoryAssocsHandler()))
+		})
+
+		r.Route("/products-categories", func(r chi.Router) {
+			r.Put("/", a.Authorization(app.OpUpdateCategoryProductAssocs, a.UpdateCategoryProductAssocsHandler()))
+			r.Get("/", a.Authorization(app.OpGetCategoryProductAssocs, a.GetCategoryProductAssocsHandler()))
+			r.Delete("/", a.Authorization(app.OpPurgeCategoryAssocs, a.PurgeCategoryAssocsHandler()))
 		})
 
 		r.Route("/orders", func(r chi.Router) {

@@ -47,9 +47,17 @@ const (
 	// add a new product with duplicate image paths.
 	ErrCodeDuplicateImagePath string = "product/duplicate-image-paths"
 
-	// ErrCodePricingTierNotFound is returned when attempting to reference a pricing
-	// tier that does not exist
-	ErrCodePricingTierNotFound string = "pricing/pricing-tier-not-found"
+	// ErrCodePriceListNotFound is returned when attempting to reference a price
+	// list that does not exist
+	ErrCodePriceListNotFound string = "price-list/price-list-not-found"
+
+	// ErrCodePriceListCodeTaken is returned when attempting to add a new price list
+	// with a price list code that is already in use.
+	ErrCodePriceListCodeTaken string = "price-list/price-list-code-taken"
+
+	// ErrCodePriceListInUse is returned when attempting to delete a price list
+	// that is already being referenced by prices.
+	ErrCodePriceListInUse string = "price-list/price-list-in-use"
 )
 
 // Cart operation sentinel values.
@@ -88,12 +96,12 @@ const (
 	OpProductExists string = "OpProductExists"
 	OpDeleteProduct string = "OpDeleteProduct"
 
-	// Pricing Tiers
-	OpCreateTier       string = "OpCreateTier"
-	OpGetTier          string = "OpGetTier"
-	OpListPricingTiers string = "OpListPricingTiers"
-	OpUpdateTier       string = "OpUpdateTier"
-	OpDeleteTier       string = "OpDeleteTier"
+	// Price Lists
+	OpCreatePriceList string = "OpCreatePriceList"
+	OpGetPriceList    string = "OpGetPriceList"
+	OpListPriceLists  string = "OpListPricingPriceLists"
+	OpUpdatePriceList string = "OpUpdatePriceList"
+	OpDeletePriceList string = "OpDeletePriceList"
 
 	// Pricing
 	OpGetTierPricing        string = "OpGetTierPricing"
@@ -101,6 +109,12 @@ const (
 	OpMapPricingByTier      string = "OpMapPricingByTier"
 	OpUpdateTierPricing     string = "OpUpdateTierPricing"
 	OpDeleteTierPricing     string = "OpDeleteTierPricing"
+
+	// Promotion Rules
+	OpCreatePromoRule string = "OpCreatePromoRule"
+	OpGetPromoRule    string = "OpGetPromoRule"
+	OpListPromoRules  string = "OpListPromoRules"
+	OpDeletePromoRule string = "OpDeletePromoRule"
 
 	// Image
 	OpAddImage               string = "OpAddImage"

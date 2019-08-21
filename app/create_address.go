@@ -38,7 +38,7 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 			return
 		}
 
-		customerID := chi.URLParam(r, "customer_id")
+		customerID := chi.URLParam(r, "id")
 		o := addressRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {

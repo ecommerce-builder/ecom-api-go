@@ -21,7 +21,7 @@ func (a *App) GenerateCustomerDevKeyHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GenerateCustomerDevKeyHandler started")
 
-		customerID := chi.URLParam(r, "customer_id")
+		customerID := chi.URLParam(r, "id")
 		cdk, err := a.Service.GenerateCustomerDevKey(ctx, customerID)
 		if err != nil {
 			if err == service.ErrCustomerNotFound {

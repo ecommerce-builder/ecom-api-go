@@ -77,7 +77,7 @@ paths:
       - bearerAuth: []
       summary: Create a new shopping cart
       description: |
-        OpCreateCart requires `RoleShopper` privileges. Creates an empty shopping cart. A shopping cart consists of items, discounts and coupons. The request body contains a unique identifier for the new cart.
+        OpCreateCart requires `RoleShopper` privileges. Creates an empty shopping cart. A shopping cart consists of items, offers and coupons. The request body contains a unique identifier for the new cart.
       operationId: OpCreateCart
       tags:
       - Carts
@@ -97,12 +97,12 @@ paths:
                 items:
                   object: 'list'
                   data: []
-  /carts/{cart_id}:
+  /carts/{id}:
     parameters:
-    - name: cart_id
+    - name: id
       required: true
       in: path
-      description: Cart ID
+      description: A unique identifier for the cart.
       schema:
         type: string
         format: uuid
@@ -110,7 +110,7 @@ paths:
     get:
       security:
       - bearerAuth: []
-      summary: Get a shoping cart including items, offers and coupons
+      summary: Get a shoping cart including cart items, cart offers and cart coupons
       description: |
         OpGetCart requires `RoleShopper` privileges. Retrives an existing shopping cart with the given cart ID.
       tags:
@@ -129,25 +129,81 @@ paths:
             application/json:
               schema:
                 example: ''
-  /carts/{cart_id}/items:
+  /carts/{id}/items:
     parameters:
-    - name: cart_id
+    - name: id
       required: true
       in: path
-      description: Cart ID
+      description: A unique identifier for the cart.
       schema:
         type: string
         format: uuid
         example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get cart items
+      description: |
+        OpGetCartItems requires `RoleShopper` privileges.
+      operationId: OpGetCartItems
+      tags:
+      - Cart Items
+      responses:
+        '200':
+          description: List of cart item objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CartItem'
+        '404':
+          description: |
+            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
+          content:
+            application/json:
+              example: ''
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Empty the entire cart
+      description: |
+        OpEmptyCartItems requires `RoleShopper` privileges.
+      operationId: OpEmptyCartItems
+      tags:
+      - Cart Items
+      responses:
+        '204':
+          description: No Content
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                cart/cart-contains-no-items:
+                  summary: cart/cart-contains-no-items
+                  value:
+                    status: 409
+                    code: 'cart/cart-contains-no-items'
+                    message: OpEmptyCartItems cannot be called if a cart contains no items
+  /carts-items:
     post:
       security:
       - bearerAuth: []
-      summary: Add an item to a cart
+      summary: Place an item into a cart
       description: |
-        OpAddItemToCart requires `RoleShopper` privileges. Adds a new item to the cart returning the cart_item object. Each item has a unique identifier.
+        OpAddItemToCart requires `RoleShopper` privileges. Places an new item to the cart returning the cart_item object. Each item has a unique identifier.
       operationId: OpAddItemToCart
       tags:
-      - Carts
+      - Cart Items
       requestBody:
         description: New CartItem
         required: true
@@ -156,9 +212,14 @@ paths:
             schema:
               type: object
               required:
+              - cart_id
               - product_id
               - qty
               properties:
+                cart_id:
+                  type: string
+                  format: uuid
+                  example: 'd9b210a3-0a0a-485f-8851-0ca77cee02f8'
                 product_id:
                   type: string
                   format: uuid
@@ -193,71 +254,9 @@ paths:
                     status: 409
                     code: 'cart/cart-item-already-exists'
                     message: cart item already exists in the cart
-    get:
-      security:
-      - bearerAuth: []
-      summary: Get cart items
-      description: |
-        OpGetCartItems requires `RoleShopper` privileges.
-      operationId: OpGetCartItems
-      tags:
-      - Carts
-      responses:
-        '200':
-          description: List of cart item objects
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  object:
-                    type: string
-                    example: 'list'
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/CartItem'
-        '404':
-          description: |
-            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
-          content:
-            application/json:
-              example: ''
-    delete:
-      security:
-      - bearerAuth: []
-      summary: Empty the entire cart
-      description: |
-        OpEmptyCartItems requires `RoleShopper` privileges.
-      operationId: OpEmptyCartItems
-      tags:
-      - Carts
-      responses:
-        '204':
-          description: No Content
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                cart/cart-contains-no-items:
-                  summary: cart/cart-contains-no-items
-                  value:
-                    status: 409
-                    code: 'cart/cart-contains-no-items'
-                    message: OpEmptyCartItems cannot be called if a cart contains no items
-  /carts/{cart_id}/items/{cart_item_id}:
+  /carts-items/{id}:
     parameters:
-    - name: cart_id
-      required: true
-      in: path
-      description: A unique identifier for the cart.
-      schema:
-        type: string
-        example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
-    - name: cart_item_id
+    - name: id
       required: true
       in: path
       description: A unique identifier for the cart item.
@@ -272,7 +271,7 @@ paths:
         OpUpdateCartItem requires `RoleShopper` privileges.
       operationId: OpUpdateCartItem
       tags:
-      - Carts
+      - Cart Items
       requestBody:
         description: New quantity for cart item
         required: true
@@ -301,129 +300,225 @@ paths:
         OpDeleteCartItem requires `RoleShopper` privileges.
       operationId: OpDeleteCartItem
       tags:
-      - Carts
+      - Cart Items
       responses:
         '204':
           description: No Content
-  /discounts:
-    post:
-      security:
-      - bearerAuth: []
-      summary: Create a new discount offer
-      description: |
-        OpCreateDiscount requires `RoleAdmin` privileges.
-      operationId: OpCreateDiscount
-      tags:
-      - Discounts
-      responses:
-        '201':
-          description: Discount object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Discount'
+  /carts/{id}/coupons:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the cart.
+      schema:
+        type: string
+        format: uuid
+        example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
     get:
       security:
       - bearerAuth: []
-      summary: List all discounts
+      summary: Get cart coupons
       description: |
-        OpListDiscounts requires `RoleAdmin` privileges.
+        OpGetCartCoupons requires `RoleShopper` privileges.
+      operationId: OpGetCartCoupons
       tags:
-      - Discounts
+      - Cart Coupons
       responses:
         '200':
-          description: List of Discount objects
+          description: List of cart coupon objects
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Discount'
-  /discounts/{discount_id}:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CartCoupon'
+        '404':
+          description: |
+            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
+          content:
+            application/json:
+              example: ''
+  /carts-coupons:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Apply a coupon to the cart
+      description: |
+        OpApplyCouponToCart requires `RoleShopper` privileges.
+      operationId: OpApplyCouponToCart
+      tags:
+      - Cart Coupons
+      requestBody:
+        description: Coupon association
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - cart_id
+              - coupon_id
+              properties:
+                cart_id:
+                  type: string
+                  format: uuid
+                  example: 'd9b210a3-0a0a-485f-8851-0ca77cee02f8'
+                product_id:
+                  type: string
+                  format: uuid
+                  example: '3342dc39-58ec-4cd5-a99e-0d602c600741'
+      responses:
+        '200':
+          description: cart coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartCoupon'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                cart/coupon-already-in-cart:
+                  summary: cart/coupon-already-applied-to-cart
+                  value:
+                    status: 409
+                    code: 'cart/coupon-already-applied-to-cart'
+                    message: the coupon has already been applied to the cart
+                cart/coupon-not-found:
+                  summary: cart/coupon-not-found
+                  value:
+                    status: 409
+                    code: 'cart/coupon-not-found'
+                    message: the coupon could not be found
+                cart/coupon-not-valid:
+                  summary: cart/coupon-not-valid
+                  value:
+                    status: 409
+                    code: 'cart/coupon-not-valid'
+                    message: coupon is not a valid coupon
+  /carts-coupons/{id}:
     parameters:
-    - name: discount_id
+    - name: id
       required: true
       in: path
-      description: A unique identifier for the discount.
+      description: A unique identifier for the cart coupon.
+      schema:
+        type: string
+        example: '5db8fd80-a7ac-470b-ba10-1d3d051bea72'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Unapply a coupon from the cart
+      description: |
+        OpUnapplyCartCoupon requires `RoleAdmin` privileges.
+      tags:
+      - Cart Coupons
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /offers:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new offer
+      description: |
+        OpCreateOffer requires `RoleAdmin` privileges.
+      operationId: OpCreateOffer
+      tags:
+      - Offers
+      responses:
+        '201':
+          description: offer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+
+    get:
+      security:
+      - bearerAuth: []
+      summary: List all offers
+      description: |
+        OpListDiscounts requires `RoleAdmin` privileges.
+      tags:
+      - Offers
+      responses:
+        '200':
+          description: List of offer objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Offer'
+  /offers/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the offer.
       schema:
         type: string
         example: '20574b05-29a4-49f6-bf89-fe231c09d8a5'
     get:
       security:
       - bearerAuth: []
-      summary: Get a discount object by `discount_id`
+      summary: Get an offer
       description: |
-        OpGetDiscount requires `RoleAdmin` privileges.
+        OpGetOffer requires `RoleAdmin` privileges.
       tags:
-      - Discounts
+      - Offers
       responses:
         '200':
-          description: Discount object
+          description: Offer object
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Discount'
+                $ref: '#/components/schemas/Offer'
         '404':
           description: Not Found
-    put:
-      security:
-      - bearerAuth: []
-      summary: Update a discount offer
-      description: |
-        OpUpdateDiscount requires `RoleAdmin` privileges.
-      tags:
-      - Discounts
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DiscountUpdateRequest'
-      responses:
-        '200':
-          description: Discount object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Discount'
-              example:
-                type:
-                  object: 'discount'
-                  id: '391c499e-5e58-430a-8d92-a8587cbc3517'
-                  discount_code: 'AUG20'
-                  type: 'percentage'
-                  start_at: '2019-08-05 09:00:00.000000Z'
-                  ends_at: '2019-08-08 18:00:00.000000Z'
-                  amount: 200000
-                  name: 'August Deals'
-                  created: '2019-07-30 14:23:31.756204Z'
-                  modified: '2019-07-04 11:45:28.237506Z'
-        '404':
-          description: Not found
     delete:
       security:
       - bearerAuth: []
-      summary: Delete a discount offer
+      summary: Delete an offer
       description: |
-        OpDeleteDiscount requires `RoleAdmin` privileges.
+        OpDeleteOffer requires `RoleAdmin` privileges.
       tags:
-      - Discounts
+      - Offers
       responses:
         '204':
           description: No Content
         '404':
           description: Not Found
-  /products/{product_id}/discounts:
+  /products/{id}/offers:
     post:
       security:
       - bearerAuth: []
-      summary: Apply a discount code to an individual product
+      summary: Apply an offer to an individual product
       description: |
-        OpApplyProductDiscount requires `RoleAdmin` privileges. The request body contains a `discount_code` that references the code returned when creating a new Discount object.
-      operationId: OpApplyProductDiscount
+        OpApplyProductOffer requires `RoleAdmin` privileges. The request body contains a `offer_id` that references the id returned when creating a new offer object.
+      operationId: OpApplyProductOffer
       tags:
-      - Discounts
+      - Offers
       parameters:
-      - name: product_id
+      - name: id
         required: true
         in: path
         description: Product SKU
@@ -434,7 +529,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DiscountApplyRequest'
+              $ref: '#/components/schemas/OfferApplyRequest'
       responses:
         '204':
           description: Not Content
@@ -453,21 +548,138 @@ paths:
       responses:
         '501':
           description: Not Implemented
-  /catagories/{category_id}/discounts:
+  /coupons/{id}:
+    delete:
+      parameters:
+      - name: id
+        required: true
+        in: path
+        description: A unique identifier for the offer.
+        schema:
+          type: string
+          example: '20574b05-29a4-49f6-bf89-fe231c09d8a5'
+      security:
+      - bearerAuth: []
+      summary: Void a coupon
+      description: |
+        OpVoidCoupon requires `RoleAdmin` privileges.
+      operationId: OpVoidCoupon
+      tags:
+      - Coupons
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /promo-rules:
     post:
       security:
       - bearerAuth: []
-      summary: Apply a discount code to a bottom level category
+      summary: Create a new promotion rule
       description: |
-        OpApplyCategoryDiscount requires `RoleAdmin` privileges. The request body contains a `discount_code` that references the code returned when creating a new Discount object.
-      operationId: OpApplyCategoryDiscount
+        OpCreatePromoRule requires `RoleAdmin` privileges.
+      operationId: OpCreatePromoRule
       tags:
-      - Discounts
+      - Promotion Rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoRuleCreateRequest'
+      responses:
+        '201':
+          description: promo_rule object
+          content:
+            applicatio/json:
+              schema:
+                $ref: '#/components/schemas/PromoRule'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of all promotion rules
+      description: |
+        OpListPromoRules requires `RoleAdmin` privileges.
+      operationId: OpListPromoRules
+      tags:
+      - Promotion Rules
+      responses:
+        '200':
+          description: list of promo_list objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PromoRule'
+  /promo-rules/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the promo rule.
+      schema:
+        type: string
+        format: uuid
+        example: 'd8f3d5d4-9143-4ec0-87fe-0753afecaa87'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a promotion rules
+      description: |
+        OpGetPromoRule requires `RoleAdmin` privileges.
+      operationId: OpGetPromoRule
+      tags:
+      - Promotion Rules
+      responses:
+        '200':
+          description: promo_rule object
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PromoRule'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a promotion rules
+      description: |
+        OpDeletePromoRule requires `RoleAdmin` privileges.
+      operationId: OpDeletePromoRule
+      tags:
+      - Promotion Rules
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /catagories/{id}/offer:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Apply an offer code to a category
+      description: |
+        OpApplyCategoryOffer requires `RoleAdmin` privileges. The request body contains a `offer_id` that references the id returned when creating an offer object.
+      operationId: OpApplyCategoryOffer
+      tags:
+      - Offers
       parameters:
-      - name: category_id
+      - name: id
         required: true
         in: path
-        description: Category ID
+        description: A unique identifier for the category.
         schema:
           type: string
           format: uuid
@@ -476,7 +688,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DiscountApplyRequest'
+              $ref: '#/components/schemas/OfferApplyRequest'
       responses:
         '204':
           description: No Content
@@ -489,12 +701,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                discount/discount-applied-to-non-leaf-category:
-                  summary: discount/discount-applied-to-non-leaf-category
-                  value:
-                    status: 409
-                    code: 'discount/discount-applied-to-non-leaf-category'
-                    message: discounts can only be applied to leaf categories
                 discount/discount-leaf-category-zero-products:
                   summary: discount/discount-leaf-category-zero-products
                   value:
@@ -543,9 +749,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Customer'
-  /admins/{admin_id}:
+  /admins/{id}:
     parameters:
-    - name: admin_id
+    - name: id
       required: true
       in: path
       description: A unique identifier for the administrator.
@@ -567,7 +773,7 @@ paths:
           description: No content
   /customers:
     post:
-      summary: Sign up a new customer
+      summary: Create and sign up a new customer
       description: |
         Sign up a new customer creates a new customer with the role of `RoleCustomer`.
         ### Auth
@@ -715,7 +921,7 @@ paths:
       responses:
         '204':
           description: No Content
-  /categories/assocs/products:
+  /products-categories:
     put:
       parameters:
       - in: header
@@ -736,10 +942,10 @@ paths:
 
         To get a list of all products, including product id and SKUs, use the OpListProducts operation.
 
-        OpUpdateCatalogProductAssocs requires `RoleAdmin` privileges.
-      operationId: OpUpdateCatalogProductAssocs
+        OpUpdateProductsCategories requires `RoleAdmin` privileges.
+      operationId: OpUpdateProductsCategories
       tags:
-      - Associations
+      - Products Categories
       requestBody:
         content:
           application/json:
@@ -777,12 +983,12 @@ paths:
         description: Return the category to product associations keyed by either category `id` or category `path`.
       security:
       - bearerAuth: []
-      summary: Get all category to product associations
+      summary: Get all product to category associations
       description: |
-        OpGetCatalogProductAssocs requires `RoleShopper` privileges.
-      operationId: OpGetCatalogProductAssocs
+        OpGetProductsCategories requires `RoleShopper` privileges.
+      operationId: OpGetProductsCategories
       tags:
-        - Associations
+        - Products Categories
       responses:
         '200':
           description: Associations object
@@ -798,11 +1004,11 @@ paths:
         OpPurgeCatalogAssocs requires `RoleAdmin` privileges.
       operationId: OpPurgeCatalogAssocs
       tags:
-      - Associations
+      - Products Categories
       responses:
         '204':
           description: No Content
-  /customers/{customer_id}:
+  /customers/{id}:
     get:
       security:
       - bearerAuth: []
@@ -813,7 +1019,7 @@ paths:
       tags:
       - Customers
       parameters:
-      - name: customer_id
+      - name: id
         required: true
         in: path
         description: Customer ID
@@ -827,9 +1033,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Customer'
-  /customers/{customer_id}/devkeys:
+  /customers/{id}/devkeys:
     parameters:
-    - name: customer_id
+    - name: id
       required: true
       in: path
       description: Customer ID
@@ -870,7 +1076,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/DevKey'
-  /devkeys/{dev_key_id}:
+  /devkeys/{id}:
     delete:
       security:
       - bearerAuth: []
@@ -881,7 +1087,7 @@ paths:
       tags:
       - Developer Keys
       parameters:
-      - name: dev_key_id
+      - name: id
         required: true
         in: path
         description: Developer Key ID
@@ -935,9 +1141,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignInDevKeyCustomToken'
-  /customers/{customer_id}/addresses:
+  /customers/{id}/addresses:
     parameters:
-    - name: customer_id
+    - name: id
       required: true
       in: path
       description: Customer ID
@@ -983,12 +1189,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Address'
-  /addresses/{address_id}:
+  /addresses/{id}:
     parameters:
-    - name: address_id
+    - name: id
       required: true
       in: path
-      description: Address ID
+      description: A unique identfier for the address.
       schema:
         type: string
         example: 'e3afa4f4-c5de-4e0f-8c37-5be677cfde6a'
@@ -1041,9 +1247,9 @@ paths:
       responses:
         '204':
           description: No Content
-  /products/{product_id}/pricing:
+  /products/{id}/prices:
     parameters:
-    - name: product_id
+    - name: id
       required: true
       in: path
       description: A unique identifier for the product.
@@ -1052,14 +1258,23 @@ paths:
         format: uuid
         example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
     get:
+      parameters:
+      - name: price_list_id
+        required: false
+        in: query
+        description: filter for only a single price list
+        schema:
+          type: string
+          format: uuid
+          example: '72ae053a-e63d-4a8e-8a0b-ac43e9ca89d1'
       security:
       - bearerAuth: []
-      summary: Get tier pricings for a given product
+      summary: Get all prices for a given product
       description: |
         OpMapPricingByProductID requires `RoleShopper` privileges.
       operationId: OpMapPricingBySKU
       tags:
-      - Pricing
+      - Prices
       responses:
         '200':
           description: PricingMap
@@ -1067,9 +1282,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingMap'
-  /products/{product_id}/images:
+  /products/{id}/images:
     parameters:
-    - name: product_id
+    - name: id
       required: true
       in: path
       description: A unique identifier for the product.
@@ -1134,12 +1349,12 @@ paths:
       responses:
         '204':
           description: No Content
-  /images/{image_id}:
+  /images/{id}:
     parameters:
-    - name: image_id
+    - name: id
       required: true
       in: path
-      description: Image ID
+      description: A unique identifier for the image.
       schema:
         type: string
         example: '390d6786-0ff7-43e7-844b-af816589a045'
@@ -1171,9 +1386,9 @@ paths:
       responses:
         '204':
           description: No Content
-  /products/{product_id}:
+  /products/{id}:
     parameters:
-    - name: product_id
+    - name: id
       required: true
       in: path
       description: A unique identifier for the product.
@@ -1291,31 +1506,46 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/ProductSlim'
-  /pricing-tiers:
+  /price-lists:
     post:
       security:
       - bearerAuth: []
-      summary: Add a new pricing tier
+      summary: Create a new price list
       description: |
-        OpCreateTier requires `RoleAdmin` privileges.
-      operationId: OpCreateTier
+        OpCreatePriceList requires `RoleAdmin` privileges.
+      operationId: OpCreatePriceList
       tags:
-      - Pricing
+      - Price Lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceListRequest'
       responses:
-        '501':
-          description: Not Implemented
+        '201':
+          description: promo_rule object
+          content:
+            applicatio/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       security:
       - bearerAuth: []
-      summary: List all pricing tiers
+      summary: List all price lists
       description: |
-        OpListPricingTiers required `RoleAdmin` privileges.
-      operationId: OpListPricingTiers
+        OpListPriceLists required `RoleAdmin` privileges.
+      operationId: OpListPriceLists
       tags:
-      - Pricing
+      - Price Lists
       responses:
         '200':
-          description: list object containing pricing_tier objects
+          description: list of price_list objects
           content:
             application/json:
               schema:
@@ -1327,101 +1557,141 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PricingTier'
+                      $ref: '#/components/schemas/PriceList'
                 example:
                   object: list
                   data:
-                    - object: 'pricing_tier'
+                    - object: 'price_list'
                       id: '96459863-28ed-41a0-919d-90de39ca76e0'
-                      tier_ref: 'default'
-                      title: 'Default tier'
-                      description: 'Default pricing tier'
+                      price_list_code: 'default'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
+                      name: 'Default tier'
+                      description: 'Default price list'
                       created: '2019-08-13T17:51:49.45419Z'
                       modified: '2019-08-13T17:51:49.45419Z'
-                    - object: 'pricing_tier'
+                    - object: 'price_list'
                       id: '23055d5e-e610-4f07-8f8e-b99929e4442b'
-                      tier_ref: 'goldfish'
-                      title: 'Small Wholesale Customer'
+                      price_list_code: 'goldfish'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
+                      name: 'Small Wholesale Customer'
                       description: 'Small company with turn over less than 10k'
                       created: '2019-08-13T17:51:54.380625Z'
                       modified: '2019-08-13T17:51:54.380625Z'
-                    - object: 'pricing_tier'
+                    - object: 'price_list'
                       id: '42a954d2-cbfe-4868-b713-319cfcb97b64'
-                      tier_ref: 'seabass'
-                      title: 'Medium-sized Customer'
+                      price_list_code: 'seabass'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
+                      name: 'Medium-sized Customer'
                       description: 'Medium-sized company with turn over less than 100k'
                       created: '2019-08-13T17:51:54.382624Z'
                       modified: '2019-08-13T17:51:54.382624Z'
-  /pricing-tiers/{tier_id}:
+  /price-lists/{id}:
     parameters:
-    - name: tier_id
+    - name: id
       required: true
       in: path
-      description: A unique identifier for the tier.
+      description: A unique identifier for the price list.
       schema:
         type: string
-        example: 'trade'
+        format: uuid
+        example: '72ae053a-e63d-4a8e-8a0b-ac43e9ca89d1'
     put:
       security:
       - bearerAuth: []
-      summary: Update a pricing tier
+      summary: Update a price list
       description: |
-        OpUpdateTier requires `RoleAdmin` privileges.
-      operationId: OpUpdateTier
+        OpUpdatePriceList requires `RoleAdmin` privileges.
+      operationId: OpUpdatePriceList
       tags:
-      - Pricing
+      - Price Lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceListRequest'
       responses:
-        '501':
-          description: Not Implemented
+        '200':
+          description: price_list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
     get:
       security:
       - bearerAuth: []
-      summary: Get a pricing tier by tier id
+      summary: Get a price list by price list id
       description: |
-        OpGetTier requires `RoleShopper` privileges.
-      operationId: OpGetTier
+        OpGetPriceList requires `RoleShopper` privileges.
+      operationId: OpGetPriceList
       tags:
-      - Pricing
+      - Price Lists
       responses:
-        '501':
-          description: Not Implemented
+        '200':
+          description: price_list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
+        '404':
+          description: Not Found
     delete:
       security:
       - bearerAuth: []
-      summary: Delete a pricing tier
+      summary: Delete a price list
       description: |
-        OpDeleteTier requires `RoleAdmin` privileges.
-      operationId: OpDeleteTier
+        OpDeletePriceList requires `RoleAdmin` privileges.
+      operationId: OpDeletePriceList
       tags:
-      - Pricing
+      - Price Lists
       responses:
-        '501':
-          description: Not Implemented
-  /products/{product_id}/tiers/{tier_id}/pricing:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                price-list/price-list-in-use:
+                  summary: validate/invalid-request-body
+                  value:
+                    status: 409
+                    code: 'price-list/price-list-in-use'
+                    message: price list is already in use
+  /products/{id}/price-lists/{price_list_id}:
     parameters:
-    - name: product_id
+    - name: id
       required: true
       in: path
       description: A unique identifier for the product.
       schema:
         type: string
         example: 'TV-SKU'
-    - name: tier_id
+    - name: price_list_id
       required: true
       in: path
-      description: A unique identifier for the tier.
+      description: A unique identifier for the price list.
       schema:
         type: string
         example: 'default'
     put:
       security:
       - bearerAuth: []
-      summary: Update a product pricing by product SKU and pricing tier reference
+      summary: Update a product price
       description: |
         OpUpdateTierPricing requires `RoleAdmin` privileges.
       operationId: OpUpdateTierPricing
       tags:
-      - Pricing
+      - Prices
       requestBody:
         content:
           application/json:
@@ -1443,12 +1713,12 @@ paths:
     get:
       security:
       - bearerAuth: []
-      summary: Get a product pricing by product SKU and pricing tier reference
+      summary: Get a product price list
       description: |
         OpGetTierPricing requires `RoleShopper` privileges.
       operationId: OpGetTierPricing
       tags:
-      - Pricing
+      - Prices
       responses:
         '200':
           description: Pricing object
@@ -1459,16 +1729,16 @@ paths:
     delete:
       security:
       - bearerAuth: []
-      summary: Delete a product pricing by product SKU and pricing tier reference
+      summary: Delete a product price by product SKU and price list reference
       description: |
         OpDeleteTierPricing requires `RoleAdmin` privileges.
       operationId: OpDeleteTierPricing
       tags:
-      - Pricing
+      - Prices
       responses:
         '204':
           description: No Content
-  /products/tiers/{tier_id}/pricing:
+  /products/tiers/{id}/pricing:
     get:
       security:
       - bearerAuth: []
@@ -1477,9 +1747,9 @@ paths:
         OpMapPricingByTier requires `RoleShopper` privileges.
       operationId: OpMapPricingByTier
       tags:
-      - Pricing
+      - Prices
       parameters:
-      - name: tier_id
+      - name: id
         required: true
         in: path
         description: A unique identifier for the tier.
@@ -1532,7 +1802,7 @@ paths:
                     status: 409
                     code: 'validate/invalid-request-body'
                     message: For placing guest orders set both contact_name and email
-  /orders/{order_id}/stripecheckout:
+  /orders/{id}/stripecheckout:
     post:
       security:
       - bearerAuth: []
@@ -1543,10 +1813,10 @@ paths:
       tags:
       - Stripe
       parameters:
-      - name: order_id
+      - name: id
         required: true
         in: path
-        description: Order ID
+        description: A unique identifier for the order.
         schema:
           type: string
           example: '100005'
@@ -1668,64 +1938,114 @@ components:
           type: string
           format: date-time
           example: '2019-08-01T15:37:32.269875Z'
-    DiscountUpdateRequest:
-      type: object
-      required:
-      - type
-      - start
-      - end
-      - amount
-      - name
-      properties:
-        type:
-          type: string
-          enum: [percentage, fixed]
-          example: 'percentage'
-        starts_at:
-          type: string
-          format: date-time
-          example: '2019-08-05 09:00:00.000000Z'
-        ends_at:
-          type: string
-          format: date-time
-          example: '2019-08-08 18:00:00.000000Z'
-        amount:
-          type: integer
-          example: 200000
-        name:
-          type: string
-          example: 'August Deals'
-    Discount:
+    CartCoupon:
       type: object
       properties:
         object:
           type: string
-          example: 'discount'
+          example: 'cart_coupon'
+        id:
+          type: string
+          format: uuid
+          example: '5db8fd80-a7ac-470b-ba10-1d3d051bea72'
+        coupon_id:
+          type: string
+          format: uuid
+          example: '97578732-a3aa-4002-b3f0-7ab12fedd375'
+        cart_id:
+          type: string
+          format: uuid
+          example: 'b00be0e2-9c5c-42e1-a4f9-9f2e6d6434ef'
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-19 18:27:29.662209+00Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-19 18:27:29.662209+00Z'
+    PromoRuleCreateRequest:
+      type: object
+      required:
+      - name
+      - amount
+      - type
+      - target
+      properties:
+        name:
+          type: string
+          example: 'Summer specials'
+        starts_at:
+          type: string
+          format: date-time
+          example: '2019-08-20T21:30:21.984856Z'
+        ends_at:
+          type: string
+          format: date-time
+          example: '2019-09-20T21:30:21.984856Z'
+        amount:
+          type: integer
+          example: 1000
+        total_threshold:
+          type: integer
+          example: 199500
+        type:
+          type: string
+          enum: ['percentage', 'fixed']
+          example: 'percentage'
+        target:
+          type: string
+          enum: ['product', 'productset', 'category', 'total', 'shipping']
+          example: 'category'
+    PromoRule:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'promo_rule'
+        id:
+          type: string
+          format: uuid
+          example: 'd8f3d5d4-9143-4ec0-87fe-0753afecaa87'
+        name:
+          type: string
+          example: 'Summer specials'
+        starts_at:
+          type: string
+          format: date-time
+          example: '2019-08-20T21:30:21.984856Z'
+        ends_at:
+          type: string
+          format: date-time
+          example: '2019-09-20T21:30:21.984856Z'
+        amount:
+          type: integer
+          example: 1000
+        total_threshold:
+          type: integer
+          example: 199500
+        type:
+          type: string
+          enum: ['percentage', 'fixed']
+          example: 'percentage'
+        target:
+          type: string
+          enum: ['product', 'productset', 'category', 'total', 'shipping']
+          example: 'category'
+    Offer:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'offer'
         id:
           type: string
           format: uuid
           example: '391c499e-5e58-430a-8d92-a8587cbc3517'
-        code:
+        promo_rule_id:
           type: string
-          example: 'AUG20'
-        type:
-          type: string
-          enum: [percentage, fixed]
-          example: 'percentage'
-        starts_at:
-          type: string
-          format: date-time
-          example: '2019-08-05 09:00:00.000000Z'
-        ends_at:
-          type: string
-          format: date-time
-          example: '2019-08-08 18:00:00.000000Z'
-        amount:
-          type: integer
-          example: 150000
-        name:
-          type: string
-          example: 'August Special'
+          format: uuid
+          example: 'd7962641-1713-4ab2-93b6-ea7c3ac72afa'
         created:
           type: string
           format: date-time
@@ -1734,7 +2054,7 @@ components:
           type: string
           format: date-time
           example: '2019-07-30 14:23:31.756204Z'
-    DiscountApplyRequest:
+    OfferApplyRequest:
       type: object
       required:
       - discount_id
@@ -2037,18 +2357,58 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryRequest'
-    PricingTier:
+    PriceListRequest:
+      required:
+      - price_list_code
+      - currency_code
+      - strategy
+      - inc_tax
+      - name
+      - description
+      properties:
+        price_list_code:
+          type: string
+          example: 'default'
+        currency_code:
+          type: string
+          enum: ['GBP', 'EUR', 'USD']
+          example: 'GBP'
+        strategy:
+          type: string
+          enum: ['simple', 'volume', 'tiered']
+          example: 'simple'
+        inc_tax:
+          type: boolean
+          example: false
+        name:
+          type: string
+          example: 'Default Tier'
+        description:
+          type: string
+          example: 'Default pricing tier is the fallback pricing tier'
+    PriceList:
       properties:
         object:
           type: string
-          example: 'pricing_tier'
+          example: 'price_list'
         id:
           type: string
           example: '96459863-28ed-41a0-919d-90de39ca76e0'
-        tier_ref:
+        price_list_code:
           type: string
           example: 'default'
-        title:
+        currency_code:
+          type: string
+          enum: ['GBP', 'EUR', 'USD']
+          example: 'GBP'
+        strategy:
+          type: string
+          enum: ['simple', 'volume', 'tiered']
+          example: 'simple'
+        inc_tax:
+          type: boolean
+          example: false
+        name:
           type: string
           example: 'Default Tier'
         description:
@@ -2189,10 +2549,10 @@ components:
           type: array
           items:
             required:
-              - pricing_tier_id
+              - price_list_id
               - unit_price
             properties:
-              pricing_tier_id:
+              price_list_id:
                 type: string
                 format: uuid
                 example: '2b66dcf0-d2bf-45e4-8947-6ec29b603f42'
@@ -2200,59 +2560,6 @@ components:
                 type: integer
                 description: Unit prices are stored as integer to 4 decimal places
                 example: 19950
-        content:
-          type: object
-          required:
-          - meta
-          - videos
-          - manuals
-          properties:
-            meta:
-              type: object
-              required:
-              - title
-              - description
-              properties:
-                title:
-                  type: string
-                  description: The title of the page when rendered as HTML
-                  example: 'Water Bottle Page'
-                description:
-                  type: string
-                  example: 'A refreshing drink for all occasions.'
-            videos:
-              type: array
-              items:
-                type: string
-              example:
-              - 'v1'
-              - 'v2'
-              - 'v3'
-            manuals:
-              type: array
-              items:
-                type: string
-              example:
-              - 'm1'
-              - 'm2'
-              - 'm3'
-            software:
-              type: array
-              items:
-                type: string
-              example:
-              - 's1'
-              - 's2'
-              - 's3'
-            specification:
-              type: string
-              example: 'Specification of your product'
-            description:
-              type: string
-              example: 'Your description goes here'
-            in_the_box:
-              type: string
-              example: 'Stuff in the box'
     ProductUpdateRequest:
       required:
       - ean
@@ -2287,10 +2594,10 @@ components:
           type: array
           items:
             required:
-              - pricing_tier_id
+              - price_list_id
               - unit_price
             properties:
-              pricing_tier_id:
+              price_list_id:
                 type: string
                 format: uuid
                 example: '2b66dcf0-d2bf-45e4-8947-6ec29b603f42'
@@ -2351,28 +2658,6 @@ components:
             in_the_box:
               type: string
               example: 'Stuff in the box'
-    ProductContent:
-      properties:
-        meta:
-          type: object
-          required:
-          - title
-          - description
-          properties:
-            title:
-              type: string
-            description:
-              type: string
-        videos:
-          type: string
-        manuals:
-          type: string
-        software:
-          type: string
-        description:
-          type: string
-        in_the_box:
-          type: string
     ProductSlim:
       properties:
         object:
@@ -2433,8 +2718,6 @@ components:
                 $ref: '#/components/schemas/Image'
         pricing:
           type: object
-        content:
-          $ref: '#/components/schemas/ProductContent'
     SystemConfig:
       properties:
         object:
