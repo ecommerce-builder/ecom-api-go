@@ -26,7 +26,7 @@ type CreateImage struct {
 	Data  interface{}
 }
 
-// ImageRow struct holds a row of the product_image table.
+// ImageRow struct holds a row of the image table.
 type ImageRow struct {
 	id        int
 	UUID      string
@@ -46,7 +46,7 @@ type ImageRow struct {
 	Modified  time.Time
 }
 
-// ImageJoinRow struct holds a row of the product_image table.
+// ImageJoinRow struct holds a row of the image table.
 type ImageJoinRow struct {
 	id          int
 	UUID        string
@@ -67,7 +67,7 @@ type ImageJoinRow struct {
 	Modified    time.Time
 }
 
-// CreateImageEntry writes a new image entry to the product_image table.
+// CreateImageEntry writes a new image entry to the image table.
 func (m *PgModel) CreateImageEntry(ctx context.Context, productUUID string, c *CreateImage) (*ImageJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -87,7 +87,7 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, productUUID string, c *C
 	}
 
 	q2 := `
-		INSERT INTO product_image (
+		INSERT INTO image (
 			product_id,
 			w, h, path, typ,
 			ori, up,
@@ -143,7 +143,7 @@ func (m *PgModel) GetImages(ctx context.Context, productUUID string) ([]*ImageJo
 		SELECT
 		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
 		  gsurl, data, i.created, i.modified
-		FROM product_image AS i
+		FROM image AS i
 		INNER JOIN product AS p
 		  ON p.id = i.product_id
 		WHERE product_id = $1
@@ -180,7 +180,7 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ImageRow, 
 		SELECT
 		  id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
 		  gsurl, data, created, modified
-		FROM product_image
+		FROM image
 		WHERE sku = $1
 		ORDER BY pri ASC
 	`
@@ -207,7 +207,7 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ImageRow, 
 // ImagePathExists return true if the image with the given path exists in
 // the database.
 func (m *PgModel) ImagePathExists(ctx context.Context, path string) (bool, error) {
-	query := `SELECT id FROM product_image WHERE path = $1`
+	query := `SELECT id FROM image WHERE path = $1`
 	var id int
 	if err := m.db.QueryRowContext(ctx, query, path).Scan(&id); err != nil {
 		if err == sql.ErrNoRows {
@@ -224,7 +224,7 @@ func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*Image
 		SELECT
 		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
 		  gsurl, data, i.created, i.modified
-		FROM product_image AS i
+		FROM image AS i
 		INNER JOIN product AS p
 		  ON p.id = i.product_id
 		WHERE i.uuid = $1
@@ -242,7 +242,7 @@ func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*Image
 // ImageUUIDExists return true if the image with the given UUID exists in
 // the database.
 func (m *PgModel) ImageUUIDExists(ctx context.Context, uuid string) (bool, error) {
-	query := `SELECT id FROM product_image WHERE uuid = $1`
+	query := `SELECT id FROM image WHERE uuid = $1`
 	var id int
 	if err := m.db.QueryRowContext(ctx, query, uuid).Scan(&id); err != nil {
 		if err == sql.ErrNoRows {
@@ -257,7 +257,7 @@ func (m *PgModel) ImageUUIDExists(ctx context.Context, uuid string) (bool, error
 // uploaded has taken place.
 func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*ImageRow, error) {
 	query := `
-		UPDATE product_image
+		UPDATE image
 		SET up = 't', modified = NOW()
 		WHERE uuid = $1
 		RETURNING id, product_id, uuid, sku, w, h, path, typ, ori, up, pri, size, q,
@@ -271,11 +271,11 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Image
 	return &p, nil
 }
 
-// DeleteProductImage deletes an image entry row from the product_image
+// DeleteProductImage deletes an image entry row from the image
 // table by UUID.
 func (m *PgModel) DeleteProductImage(ctx context.Context, uuid string) (int64, error) {
 	query := `
-		DELETE FROM product_image
+		DELETE FROM image
 		WHERE uuid = $1
 	`
 	res, err := m.db.ExecContext(ctx, query, uuid)
@@ -289,7 +289,7 @@ func (m *PgModel) DeleteProductImage(ctx context.Context, uuid string) (int64, e
 	return count, nil
 }
 
-// DeleteAllProductImages Images deletes all images from the product_image table
+// DeleteAllProductImages Images deletes all images from the image table
 //  associated to the product with the given uuid.
 func (m *PgModel) DeleteAllProductImages(ctx context.Context, productUUID string) error {
 	tx, err := m.db.BeginTx(ctx, nil)
@@ -310,7 +310,7 @@ func (m *PgModel) DeleteAllProductImages(ctx context.Context, productUUID string
 	}
 
 	q2 := `
-		DELETE FROM product_image
+		DELETE FROM image
 		WHERE product_id = $1
 	`
 	_, err = m.db.ExecContext(ctx, q2, productID)

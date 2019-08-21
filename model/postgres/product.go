@@ -47,7 +47,7 @@ type ProductRow struct {
 	Modified time.Time
 }
 
-// ProductJoinRow represents a product row joined with a product_image row
+// ProductJoinRow represents a product row joined with a image row
 type ProductJoinRow struct {
 	id       int
 	UUID     string
@@ -199,16 +199,16 @@ func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*Produc
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
 	// effect the customer's experience.
-	q2 := "DELETE FROM product_image WHERE product_id = $1"
+	q2 := "DELETE FROM image WHERE product_id = $1"
 	if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "model: delete product_image query=%q", q2)
+		return nil, errors.Wrapf(err, "model: delete image query=%q", q2)
 	}
 
 	// The inner sub select uses a pri of 10 if now rows exist for the given product
 	// or pri + 10 for each subseqent row.
 	q3 := `
-		INSERT INTO product_image (
+		INSERT INTO image (
 			product_id,
 			w, h, path, typ,
 			ori, up,
@@ -225,7 +225,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, pu *ProductCreate) (*Produc
 					ELSE 10
 				END
 				AS pri
-				FROM product_image
+				FROM image
 				WHERE id = $7
 			), $8, $9,
 			$10, NOW(), NOW()
@@ -353,16 +353,16 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
 	// effect the customer's experience.
-	q2 := "DELETE FROM product_image WHERE product_id = $1"
+	q2 := "DELETE FROM image WHERE product_id = $1"
 	if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "model: delete product_image query=%q", q2)
+		return nil, errors.Wrapf(err, "model: delete image query=%q", q2)
 	}
 
 	// The inner sub select uses a pri of 10 if now rows exist for the given product
 	// or pri + 10 for each subseqent row.
 	q3 := `
-		INSERT INTO product_image (
+		INSERT INTO image (
 			product_id,
 			w, h, path, typ,
 			ori, up,
@@ -379,7 +379,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 					ELSE 10
 				END
 				AS pri
-				FROM product_image
+				FROM image
 				WHERE id = $7
 			), $8, $9,
 			$10, NOW(), NOW()
