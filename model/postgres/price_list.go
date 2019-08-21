@@ -22,18 +22,21 @@ var ErrPriceListInUse = errors.New("postgres: price list has associated prices")
 
 // PriceListRow represents a row in the price_list table.
 type PriceListRow struct {
-	id          int
-	UUID        string
-	Code        string
-	Name        string
-	Description string
-	Created     time.Time
-	Modified    time.Time
+	id           int
+	UUID         string
+	Code         string
+	CurrencyCode string
+	Strategy     string
+	IncTax       bool
+	Name         string
+	Description  string
+	Created      time.Time
+	Modified     time.Time
 }
 
 // CreatePriceList writes a new price list row to the price_list table
 // returning a PriceListRow.
-func (m *PgModel) CreatePriceList(ctx context.Context, code, name, description string) (*PriceListRow, error) {
+func (m *PgModel) CreatePriceList(ctx context.Context, code, currencyCode, strategy string, incTax bool, name, description string) (*PriceListRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
@@ -51,14 +54,14 @@ func (m *PgModel) CreatePriceList(ctx context.Context, code, name, description s
 	}
 
 	q2 := `
-		INSERT INTO price_list (code, name, description)
-		VALUES ($1, $2, $3)
+		INSERT INTO price_list (code, currency_code, strategy, inc_tax, name, description)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING
-		  id, uuid, code, name, description, created, modified
+		  id, uuid, code, currency_code, strategy, inc_tax, name, description, created, modified
 	`
 	p := PriceListRow{}
-	row := tx.QueryRowContext(ctx, q2, code, name, description)
-	if err := row.Scan(&p.id, &p.UUID, &p.Code, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
+	row := tx.QueryRowContext(ctx, q2, code, currencyCode, strategy, incTax, name, description)
+	if err := row.Scan(&p.id, &p.UUID, &p.Code, &p.CurrencyCode, &p.Strategy, &p.IncTax, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "query row context q2=%q", q2)
 	}
@@ -73,12 +76,12 @@ func (m *PgModel) CreatePriceList(ctx context.Context, code, name, description s
 func (m *PgModel) GetPriceList(ctx context.Context, priceListUUID string) (*PriceListRow, error) {
 	q1 := `
 		SELECT
-		  id, uuid, code, name, description, created, modified
+		  id, uuid, code, currency_code, strategy, inc_tax, name, description, created, modified
 		FROM price_list WHERE uuid = $1
 	`
 	p := PriceListRow{}
 	row := m.db.QueryRowContext(ctx, q1, priceListUUID)
-	if err := row.Scan(&p.id, &p.UUID, &p.Code, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
+	if err := row.Scan(&p.id, &p.UUID, &p.Code, &p.CurrencyCode, &p.Strategy, &p.IncTax, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrPriceListNotFound
 		}
@@ -89,7 +92,12 @@ func (m *PgModel) GetPriceList(ctx context.Context, priceListUUID string) (*Pric
 
 // GetPriceLists returns a list of price lists.
 func (m *PgModel) GetPriceLists(ctx context.Context) ([]*PriceListRow, error) {
-	q1 := "SELECT id, uuid, code, name, description, created, modified FROM price_list"
+	q1 := `
+		SELECT
+		  id, uuid, code, currency_code, strategy, inc_tax, name,
+		  description, created, modified
+		FROM price_list
+	`
 	rows, err := m.db.QueryContext(ctx, q1)
 	if err != nil {
 		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx) failed")
@@ -99,7 +107,7 @@ func (m *PgModel) GetPriceLists(ctx context.Context) ([]*PriceListRow, error) {
 	tiers := make([]*PriceListRow, 0, 4)
 	for rows.Next() {
 		var p PriceListRow
-		if err = rows.Scan(&p.id, &p.UUID, &p.Code, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
+		if err = rows.Scan(&p.id, &p.UUID, &p.Code, &p.CurrencyCode, &p.Strategy, &p.IncTax, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, ErrPriceListNotFound
 			}
@@ -114,7 +122,7 @@ func (m *PgModel) GetPriceLists(ctx context.Context) ([]*PriceListRow, error) {
 }
 
 // UpdatePriceList updates a price list by price list uuid
-func (m *PgModel) UpdatePriceList(ctx context.Context, priceListUUID, code, name, description string) (*PriceListRow, error) {
+func (m *PgModel) UpdatePriceList(ctx context.Context, priceListUUID, code, currencyCode, strategy string, incTax bool, name, description string) (*PriceListRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "model: db.BeginTx")
@@ -147,14 +155,16 @@ func (m *PgModel) UpdatePriceList(ctx context.Context, priceListUUID, code, name
 
 	q3 := `
 		UPDATE price_list
-		SET code = $1, name = $2, description = $3, modified = NOW()
-		WHERE id = $4
+		SET
+		  code = $1, currency_code = $2, strategy = $3, inc_tax = $4,
+		  name = $5, description = $6, modified = NOW()
+		WHERE id = $7
 		RETURNING
-		  id, uuid, code, name, description, created, modified
+		  id, uuid, code, currency_code, strategy, inc_tax, name, description, created, modified
 	`
 	p := PriceListRow{}
-	row := tx.QueryRowContext(ctx, q3, code, name, description, priceListID)
-	if err := row.Scan(&p.id, &p.UUID, &p.Code, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
+	row := tx.QueryRowContext(ctx, q3, code, currencyCode, strategy, incTax, name, description, priceListID)
+	if err := row.Scan(&p.id, &p.UUID, &p.Code, &p.CurrencyCode, &p.Strategy, &p.IncTax, &p.Name, &p.Description, &p.Created, &p.Modified); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "model: query row context q3=%q", q3)
 	}

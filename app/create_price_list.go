@@ -17,6 +17,18 @@ func validateCreatePriceListRequest(requestBody *service.PriceListCreate) (bool,
 		return false, "price_list_code attribute must be between 3 and 16 characters in length"
 	}
 
+	if requestBody.CurrencyCode != "GBP" &&
+		requestBody.CurrencyCode != "EUR" &&
+		requestBody.CurrencyCode != "USD" {
+		return false, "currency_code attribute must be a value of GBP, EUR or USD"
+	}
+
+	if requestBody.Strategy != "simple" &&
+		requestBody.Strategy != "volume" &&
+		requestBody.Strategy != "tiered" {
+		return false, "strategy attribute must be a value of simple, volume or tiered"
+	}
+
 	return true, ""
 }
 

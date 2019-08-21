@@ -57,6 +57,9 @@ func (a *App) UpdatePriceListHandler() http.HandlerFunc {
 				})
 				return
 			}
+			contextLogger.Errorf("app: a.Service.UpdatePriceList(ctx, priceListID=%q, p=%v) %+v", priceListID, requestBody, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(priceList)

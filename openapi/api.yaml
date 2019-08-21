@@ -1516,9 +1516,24 @@ paths:
       operationId: OpCreatePriceList
       tags:
       - Price Lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceListRequest'
       responses:
-        '501':
-          description: Not Implemented
+        '201':
+          description: promo_rule object
+          content:
+            applicatio/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       security:
       - bearerAuth: []
@@ -1549,6 +1564,9 @@ paths:
                     - object: 'price_list'
                       id: '96459863-28ed-41a0-919d-90de39ca76e0'
                       price_list_code: 'default'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
                       name: 'Default tier'
                       description: 'Default price list'
                       created: '2019-08-13T17:51:49.45419Z'
@@ -1556,6 +1574,9 @@ paths:
                     - object: 'price_list'
                       id: '23055d5e-e610-4f07-8f8e-b99929e4442b'
                       price_list_code: 'goldfish'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
                       name: 'Small Wholesale Customer'
                       description: 'Small company with turn over less than 10k'
                       created: '2019-08-13T17:51:54.380625Z'
@@ -1563,6 +1584,9 @@ paths:
                     - object: 'price_list'
                       id: '42a954d2-cbfe-4868-b713-319cfcb97b64'
                       price_list_code: 'seabass'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
                       name: 'Medium-sized Customer'
                       description: 'Medium-sized company with turn over less than 100k'
                       created: '2019-08-13T17:51:54.382624Z'
@@ -1586,9 +1610,18 @@ paths:
       operationId: OpUpdatePriceList
       tags:
       - Price Lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceListRequest'
       responses:
-        '501':
-          description: Not Implemented
+        '200':
+          description: price_list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
     get:
       security:
       - bearerAuth: []
@@ -1599,8 +1632,14 @@ paths:
       tags:
       - Price Lists
       responses:
-        '501':
-          description: Not Implemented
+        '200':
+          description: price_list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
+        '404':
+          description: Not Found
     delete:
       security:
       - bearerAuth: []
@@ -1611,8 +1650,23 @@ paths:
       tags:
       - Price Lists
       responses:
-        '501':
-          description: Not Implemented
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                price-list/price-list-in-use:
+                  summary: validate/invalid-request-body
+                  value:
+                    status: 409
+                    code: 'price-list/price-list-in-use'
+                    message: price list is already in use
   /products/{id}/price-lists/{price_list_id}:
     parameters:
     - name: id
@@ -2303,6 +2357,35 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryRequest'
+    PriceListRequest:
+      required:
+      - price_list_code
+      - currency_code
+      - strategy
+      - inc_tax
+      - name
+      - description
+      properties:
+        price_list_code:
+          type: string
+          example: 'default'
+        currency_code:
+          type: string
+          enum: ['GBP', 'EUR', 'USD']
+          example: 'GBP'
+        strategy:
+          type: string
+          enum: ['simple', 'volume', 'tiered']
+          example: 'simple'
+        inc_tax:
+          type: boolean
+          example: false
+        name:
+          type: string
+          example: 'Default Tier'
+        description:
+          type: string
+          example: 'Default pricing tier is the fallback pricing tier'
     PriceList:
       properties:
         object:
@@ -2314,6 +2397,17 @@ components:
         price_list_code:
           type: string
           example: 'default'
+        currency_code:
+          type: string
+          enum: ['GBP', 'EUR', 'USD']
+          example: 'GBP'
+        strategy:
+          type: string
+          enum: ['simple', 'volume', 'tiered']
+          example: 'simple'
+        inc_tax:
+          type: boolean
+          example: false
         name:
           type: string
           example: 'Default Tier'
@@ -2466,59 +2560,6 @@ components:
                 type: integer
                 description: Unit prices are stored as integer to 4 decimal places
                 example: 19950
-        content:
-          type: object
-          required:
-          - meta
-          - videos
-          - manuals
-          properties:
-            meta:
-              type: object
-              required:
-              - title
-              - description
-              properties:
-                title:
-                  type: string
-                  description: The title of the page when rendered as HTML
-                  example: 'Water Bottle Page'
-                description:
-                  type: string
-                  example: 'A refreshing drink for all occasions.'
-            videos:
-              type: array
-              items:
-                type: string
-              example:
-              - 'v1'
-              - 'v2'
-              - 'v3'
-            manuals:
-              type: array
-              items:
-                type: string
-              example:
-              - 'm1'
-              - 'm2'
-              - 'm3'
-            software:
-              type: array
-              items:
-                type: string
-              example:
-              - 's1'
-              - 's2'
-              - 's3'
-            specification:
-              type: string
-              example: 'Specification of your product'
-            description:
-              type: string
-              example: 'Your description goes here'
-            in_the_box:
-              type: string
-              example: 'Stuff in the box'
     ProductUpdateRequest:
       required:
       - ean
@@ -2617,28 +2658,6 @@ components:
             in_the_box:
               type: string
               example: 'Stuff in the box'
-    ProductContent:
-      properties:
-        meta:
-          type: object
-          required:
-          - title
-          - description
-          properties:
-            title:
-              type: string
-            description:
-              type: string
-        videos:
-          type: string
-        manuals:
-          type: string
-        software:
-          type: string
-        description:
-          type: string
-        in_the_box:
-          type: string
     ProductSlim:
       properties:
         object:
@@ -2699,8 +2718,6 @@ components:
                 $ref: '#/components/schemas/Image'
         pricing:
           type: object
-        content:
-          $ref: '#/components/schemas/ProductContent'
     SystemConfig:
       properties:
         object:

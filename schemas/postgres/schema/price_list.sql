@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS price_list (
   currency_code  CHAR(3) NOT NULL DEFAULT 'GBP',
   strategy       price_list_strategy_t NOT NULL DEFAULT 'simple',
   inc_tax        BOOL NOT NULL DEFAULT false,
-  name           VARCHAR(256) NOT NULL UNIQUE,
+  name           VARCHAR(256) NOT NULL,
   description    VARCHAR(256) NULL,
   created        TIMESTAMP NOT NULL DEFAULT NOW(),
   modified       TIMESTAMP NOT NULL DEFAULT NOW()

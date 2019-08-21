@@ -23,6 +23,9 @@ type PriceList struct {
 	Object        string    `json:"object"`
 	ID            string    `json:"id"`
 	PriceListCode string    `json:"price_list_code"`
+	CurrencyCode  string    `json:"currency_code"`
+	Strategy      string    `json:"strategy"`
+	IncTax        bool      `json:"inc_tax"`
 	Name          string    `json:"name"`
 	Description   string    `json:"description"`
 	Created       time.Time `json:"created"`
@@ -32,13 +35,16 @@ type PriceList struct {
 // PriceListCreate request body for creating a new price list.
 type PriceListCreate struct {
 	PriceListCode string `json:"price_list_code"`
+	CurrencyCode  string `json:"currency_code"`
+	Strategy      string `json:"strategy"`
+	IncTax        bool   `json:"inc_tax"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
 }
 
 // CreatePriceList creates a new price list returning the newly created price list.
 func (s *Service) CreatePriceList(ctx context.Context, p *PriceListCreate) (*PriceList, error) {
-	row, err := s.model.CreatePriceList(ctx, p.PriceListCode, p.Name, p.Description)
+	row, err := s.model.CreatePriceList(ctx, p.PriceListCode, p.CurrencyCode, p.Strategy, p.IncTax, p.Name, p.Description)
 	if err != nil {
 		if err == postgres.ErrPriceListCodeTaken {
 			return nil, ErrPriceListCodeTaken
@@ -49,6 +55,9 @@ func (s *Service) CreatePriceList(ctx context.Context, p *PriceListCreate) (*Pri
 		Object:        "price_list",
 		ID:            row.UUID,
 		PriceListCode: row.Code,
+		CurrencyCode:  row.CurrencyCode,
+		Strategy:      row.Strategy,
+		IncTax:        row.IncTax,
 		Name:          row.Name,
 		Description:   row.Description,
 		Created:       row.Created,
@@ -70,6 +79,9 @@ func (s *Service) GetPriceList(ctx context.Context, priceListID string) (*PriceL
 		Object:        "price_list",
 		ID:            row.UUID,
 		PriceListCode: row.Code,
+		CurrencyCode:  row.CurrencyCode,
+		Strategy:      row.Strategy,
+		IncTax:        row.IncTax,
 		Name:          row.Name,
 		Description:   row.Description,
 		Created:       row.Created,
@@ -89,15 +101,18 @@ func (s *Service) GetPriceLists(ctx context.Context) ([]*PriceList, error) {
 	}
 
 	priceLists := make([]*PriceList, 0, len(rows))
-	for _, t := range rows {
+	for _, row := range rows {
 		pl := PriceList{
 			Object:        "price_list",
-			ID:            t.UUID,
-			PriceListCode: t.Code,
-			Name:          t.Name,
-			Description:   t.Description,
-			Created:       t.Created,
-			Modified:      t.Modified,
+			ID:            row.UUID,
+			PriceListCode: row.Code,
+			CurrencyCode:  row.CurrencyCode,
+			Strategy:      row.Strategy,
+			IncTax:        row.IncTax,
+			Name:          row.Name,
+			Description:   row.Description,
+			Created:       row.Created,
+			Modified:      row.Modified,
 		}
 		priceLists = append(priceLists, &pl)
 	}
@@ -107,7 +122,7 @@ func (s *Service) GetPriceLists(ctx context.Context) ([]*PriceList, error) {
 // UpdatePriceList updates a price list with a new price list code, name
 // and description.
 func (s *Service) UpdatePriceList(ctx context.Context, priceListID string, p *PriceListCreate) (*PriceList, error) {
-	row, err := s.model.UpdatePriceList(ctx, priceListID, p.PriceListCode, p.Name, p.Description)
+	row, err := s.model.UpdatePriceList(ctx, priceListID, p.PriceListCode, p.CurrencyCode, p.Strategy, p.IncTax, p.Name, p.Description)
 	if err != nil {
 		if err == postgres.ErrPriceListNotFound {
 			return nil, ErrPriceListNotFound
@@ -120,6 +135,9 @@ func (s *Service) UpdatePriceList(ctx context.Context, priceListID string, p *Pr
 		Object:        "price_list",
 		ID:            row.UUID,
 		PriceListCode: row.Code,
+		CurrencyCode:  row.CurrencyCode,
+		Strategy:      row.Strategy,
+		IncTax:        row.IncTax,
 		Name:          row.Name,
 		Description:   row.Description,
 		Created:       row.Created,
