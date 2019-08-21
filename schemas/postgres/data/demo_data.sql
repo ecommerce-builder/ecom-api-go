@@ -166,64 +166,64 @@ INSERT INTO category_product (category_id, product_id, pri) VALUES (3, 2, 20);
 INSERT INTO category_product (category_id, product_id, pri) VALUES (3, 4, 30);
 
 -- price_list
-INSERT INTO price_list (code, name, description)
-  VALUES('goldfish', 'Small Wholesale Customer', 'Small company with turn over less than 10k');
-INSERT INTO price_list (code, name, description)
-  VALUES('seabass', 'Medium-sized Customer', 'Medium-sized company with turn over less than 100k');
+INSERT INTO price_list (code, currency_code, strategy, inc_tax, name, description)
+  VALUES('goldfish', 'GBP', 'simple', false, 'Small Wholesale Customer', 'Small company with turn over less than 10k');
+INSERT INTO price_list (code, currency_code, strategy, inc_tax, name, description)
+  VALUES('seabass', 'GBP', 'simple', false, 'Medium-sized Customer', 'Medium-sized company with turn over less than 100k');
 
 
 -- price
 -- default
-INSERT INTO price (price_list_id, product_id, qty, unit_price)
+INSERT INTO price (price_list_id, product_id, break, unit_price)
     VALUES(
     (SELECT id FROM price_list WHERE code = 'default'),
     (SELECT id FROM product WHERE sku = 'WATER-SKU'), 1, 20417);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'default'),
     (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 1, 395833);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'default'),
     (SELECT id FROM product WHERE sku = 'TV-SKU'), 1, 2066250);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'default'),
     (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 1, 241583);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'default'),
     (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1, 2987083);
 
 -- goldfish
-INSERT INTO price (price_list_id, product_id, qty, unit_price)
+INSERT INTO price (price_list_id, product_id, break, unit_price)
     VALUES(
     (SELECT id FROM price_list WHERE code = 'goldfish'),
     (SELECT id FROM product WHERE sku = 'WATER-SKU'), 1, 14500);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'goldfish'),
     (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 1, 152900);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'goldfish'),
     (SELECT id FROM product WHERE sku = 'TV-SKU'), 1, 1245700);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'goldfish'),
     (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 1, 145300);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'goldfish'),
     (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1, 2248200);
 
 -- seabass
-INSERT INTO price (price_list_id, product_id, qty, unit_price)
+INSERT INTO price (price_list_id, product_id, break, unit_price)
     VALUES(
     (SELECT id FROM price_list WHERE code = 'seabass'),
     (SELECT id FROM product WHERE sku = 'WATER-SKU'), 1, 12900);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'seabass'),
     (SELECT id FROM product WHERE sku = 'DRILL-SKU'), 1, 122900);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'seabass'),
     (SELECT id FROM product WHERE sku = 'TV-SKU'), 1, 995700);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'seabass'),
     (SELECT id FROM product WHERE sku = 'PHONE-SKU'), 1, 125300);
-INSERT INTO price (price_list_id, product_id, qty, unit_price) VALUES(
+INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'seabass'),
     (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1, 1984200);
 
