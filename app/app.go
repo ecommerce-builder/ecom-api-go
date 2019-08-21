@@ -43,6 +43,14 @@ const (
 	// ErrCodeProductNotFound indicates the product with given SKU could not be found.
 	ErrCodeProductNotFound string = "product/product-not-found"
 
+	// ErrCodeProductPathTaken is returned when attempting to create or update a product
+	// with a path that is already used by another product.
+	ErrCodeProductPathTaken string = "product/product-path-taken"
+
+	// ErrCodeProductSKUTaken is returned when attempting to create or update a product
+	// with a SKU that is already used by another product.
+	ErrCodeProductSKUTaken string = "product-sku-taken"
+
 	// ErrCodeDuplicateImagePath return value is sent when a consumer attempts
 	// add a new product with duplicate image paths.
 	ErrCodeDuplicateImagePath string = "product/duplicate-image-paths"
@@ -93,7 +101,6 @@ const (
 	OpUpdateProduct string = "OpUpdateProduct"
 	OpGetProduct    string = "OpGetProduct"
 	OpListProducts  string = "OpListProducts"
-	OpProductExists string = "OpProductExists"
 	OpDeleteProduct string = "OpDeleteProduct"
 
 	// Price Lists

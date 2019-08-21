@@ -610,7 +610,6 @@ func main() {
 			r.Put("/{id}", a.Authorization(app.OpUpdateProduct, a.UpdateProductHandler()))
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
-			r.Head("/{id}", a.Authorization(app.OpProductExists, a.ProductExistsHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
 			r.Post("/{id}/images", a.Authorization(app.OpAddImage, a.AddImageHandler()))

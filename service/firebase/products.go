@@ -10,7 +10,13 @@ import (
 
 // ErrProductNotFound is returned by GetProduct when the query
 // for the product could not be found in the database.
-var ErrProductNotFound = errors.New("product not found")
+var ErrProductNotFound = errors.New("service: product not found")
+
+// ErrProductPathTaken error
+var ErrProductPathTaken = errors.New("service: product path taken")
+
+// ErrProductSKUTaken error
+var ErrProductSKUTaken = errors.New("service: product SKU taken")
 
 // ProductImageRequestBody contains the product image data.
 type ProductImageRequestBody struct {
@@ -26,22 +32,18 @@ type ProductPricingRequestBody struct {
 
 // ProductCreateRequestBody contains fields required for creating a product.
 type ProductCreateRequestBody struct {
-	SKU     string                       `json:"sku"`
-	EAN     string                       `json:"ean"`
-	Path    string                       `json:"path"`
-	Name    string                       `json:"name"`
-	Images  []*ProductImageRequestBody   `json:"images"`
-	Pricing []*ProductPricingRequestBody `json:"prices"`
+	Path string `json:"path"`
+	SKU  string `json:"sku"`
+	EAN  string `json:"ean"`
+	Name string `json:"name"`
 }
 
 // ProductUpdateRequestBody contains fields required for updating a product.
 type ProductUpdateRequestBody struct {
-	SKU     string                       `json:"sku"`
-	EAN     string                       `json:"ean"`
-	Path    string                       `json:"path"`
-	Name    string                       `json:"name"`
-	Images  []*ProductImageRequestBody   `json:"images"`
-	Pricing []*ProductPricingRequestBody `json:"prices"`
+	Path string `json:"path"`
+	SKU  string `json:"sku"`
+	EAN  string `json:"ean"`
+	Name string `json:"name"`
 }
 
 type imageListContainer struct {
@@ -63,101 +65,84 @@ type Product struct {
 	Modified time.Time              `json:"modified"`
 }
 
-// ProductSlim is a condensed representatio of a product
-type ProductSlim struct {
-	Object   string    `json:"object"`
-	ID       string    `json:"id"`
-	SKU      string    `json:"sku"`
-	EAN      string    `json:"ean"`
-	Path     string    `json:"path"`
-	Name     string    `json:"name"`
-	Created  time.Time `json:"created"`
-	Modified time.Time `json:"modified"`
-}
-
-// ProductSlimList is a container for a list of product_slim objects.
-type ProductSlimList struct {
-	Object string         `json:"object"`
-	Data   []*ProductSlim `json:"data"`
+// ProductList is a container for a list of product_slim objects.
+type ProductList struct {
+	Object string     `json:"object"`
+	Data   []*Product `json:"data"`
 }
 
 // CreateProduct update and existing product by ID.
 func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBody) (*Product, error) {
-	imagesReq := make([]*postgres.CreateImage, 0, 4)
-	for _, i := range pc.Images {
-		img := postgres.CreateImage{
-			W:     999999,
-			H:     999999,
-			Path:  i.Path,
-			Typ:   "image/jpeg",
-			Ori:   true,
-			Pri:   10,
-			Size:  0,
-			Q:     100,
-			GSURL: "gs://" + i.Path,
-		}
-		imagesReq = append(imagesReq, &img)
-	}
-	pricingReq := make([]*postgres.PriceEntry, 0, 4)
-	for _, r := range pc.Pricing {
-		item := postgres.PriceEntry{
-			PriceListUUID: string(r.PriceListID),
-			UnitPrice:     r.UnitPrice,
-		}
-		pricingReq = append(pricingReq, &item)
-	}
-	create := &postgres.ProductCreate{
-		SKU:    pc.SKU,
-		EAN:    pc.EAN,
-		Path:   pc.Path,
-		Name:   pc.Name,
-		Images: imagesReq,
-		Prices: pricingReq,
-	}
-	p, err := s.model.CreateProduct(ctx, create)
+	// imagesReq := make([]*postgres.CreateImage, 0, 4)
+	// for _, i := range pc.Images {
+	// 	img := postgres.CreateImage{
+	// 		W:     999999,
+	// 		H:     999999,
+	// 		Path:  i.Path,
+	// 		Typ:   "image/jpeg",
+	// 		Ori:   true,
+	// 		Pri:   10,
+	// 		Size:  0,
+	// 		Q:     100,
+	// 		GSURL: "gs://" + i.Path,
+	// 	}
+	// 	imagesReq = append(imagesReq, &img)
+	// }
+	// pricingReq := make([]*postgres.PriceEntry, 0, 4)
+	// for _, r := range pc.Pricing {
+	// 	item := postgres.PriceEntry{
+	// 		PriceListUUID: string(r.PriceListID),
+	// 		UnitPrice:     r.UnitPrice,
+	// 	}
+	// 	pricingReq = append(pricingReq, &item)
+	// }
+	p, err := s.model.CreateProduct(ctx, pc.Path, pc.SKU, pc.EAN, pc.Name)
 	if err != nil {
 		if err == postgres.ErrPriceListNotFound {
 			return nil, ErrPriceListNotFound
+		} else if err == postgres.ErrProductPathTaken {
+			return nil, ErrProductPathTaken
+		} else if err == postgres.ErrProductSKUTaken {
+			return nil, ErrProductSKUTaken
 		}
 		return nil, errors.Wrap(err, "CreateProduct(ctx) failed")
 	}
-	images := make([]*Image, 0, 4)
-	for _, i := range p.Images {
-		img := Image{
-			Object:    "image",
-			ID:        i.UUID,
-			ProductID: i.ProductUUID,
-			Path:      i.Path,
-			GSURL:     i.GSURL,
-			Width:     i.W,
-			Height:    i.H,
-			Size:      i.Size,
-			Created:   i.Created,
-			Modified:  i.Modified,
-		}
-		images = append(images, &img)
-	}
-	prices := make(map[PriceListID]*Price)
-	for _, pr := range p.Prices {
-		price := Price{
-			UnitPrice: pr.UnitPrice,
-			Created:   pr.Created,
-			Modified:  pr.Modified,
-		}
-		prices[PriceListID(pr.UUID)] = &price
-	}
+	// images := make([]*Image, 0, 4)
+	// for _, i := range p.Images {
+	// 	img := Image{
+	// 		Object:    "image",
+	// 		ID:        i.UUID,
+	// 		ProductID: i.ProductUUID,
+	// 		Path:      i.Path,
+	// 		GSURL:     i.GSURL,
+	// 		Width:     i.W,
+	// 		Height:    i.H,
+	// 		Size:      i.Size,
+	// 		Created:   i.Created,
+	// 		Modified:  i.Modified,
+	// 	}
+	// 	images = append(images, &img)
+	// }
+	// prices := make(map[PriceListID]*Price)
+	// for _, pr := range p.Prices {
+	// 	price := Price{
+	// 		UnitPrice: pr.UnitPrice,
+	// 		Created:   pr.Created,
+	// 		Modified:  pr.Modified,
+	// 	}
+	// 	prices[PriceListID(pr.UUID)] = &price
+	// }
 	return &Product{
 		Object: "product",
 		ID:     p.UUID,
+		Path:   p.Path,
 		SKU:    p.SKU,
 		EAN:    p.EAN,
-		Path:   p.Path,
 		Name:   p.Name,
 		Images: imageListContainer{
 			Object: "list",
-			Data:   images,
+			Data:   make([]*Image, 0),
 		},
-		Prices:   prices,
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
@@ -165,36 +150,34 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 
 // UpdateProduct updates an existing product by ID.
 func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *ProductUpdateRequestBody) (*Product, error) {
-	imagesReq := make([]*postgres.CreateImage, 0, 4)
-	for _, i := range pu.Images {
-		img := postgres.CreateImage{
-			W:     999999,
-			H:     999999,
-			Path:  i.Path,
-			Typ:   "image/jpeg",
-			Ori:   true,
-			Pri:   10,
-			Size:  0,
-			Q:     100,
-			GSURL: "gs://" + i.Path,
-		}
-		imagesReq = append(imagesReq, &img)
-	}
-	pricingReq := make([]*postgres.PriceEntry, 0, 4)
-	for _, r := range pu.Pricing {
-		item := postgres.PriceEntry{
-			PriceListUUID: string(r.PriceListID),
-			UnitPrice:     r.UnitPrice,
-		}
-		pricingReq = append(pricingReq, &item)
-	}
+	// imagesReq := make([]*postgres.CreateImage, 0, 4)
+	// for _, i := range pu.Images {
+	// 	img := postgres.CreateImage{
+	// 		W:     999999,
+	// 		H:     999999,
+	// 		Path:  i.Path,
+	// 		Typ:   "image/jpeg",
+	// 		Ori:   true,
+	// 		Pri:   10,
+	// 		Size:  0,
+	// 		Q:     100,
+	// 		GSURL: "gs://" + i.Path,
+	// 	}
+	// 	imagesReq = append(imagesReq, &img)
+	// }
+	// pricingReq := make([]*postgres.PriceEntry, 0, 4)
+	// for _, r := range pu.Pricing {
+	// 	item := postgres.PriceEntry{
+	// 		PriceListUUID: string(r.PriceListID),
+	// 		UnitPrice:     r.UnitPrice,
+	// 	}
+	// 	pricingReq = append(pricingReq, &item)
+	// }
 	update := &postgres.ProductUpdate{
-		SKU:    pu.SKU,
-		EAN:    pu.EAN,
-		Path:   pu.Path,
-		Name:   pu.Name,
-		Images: imagesReq,
-		Prices: pricingReq,
+		Path: pu.Path,
+		SKU:  pu.SKU,
+		EAN:  pu.EAN,
+		Name: pu.Name,
 	}
 	p, err := s.model.UpdateProduct(ctx, productID, update)
 	if err != nil {
@@ -203,42 +186,41 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 		}
 		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%v, ...) failed", productID)
 	}
-	images := make([]*Image, 0, 4)
-	for _, i := range p.Images {
-		img := Image{
-			ID:        i.UUID,
-			ProductID: i.ProductUUID,
-			Path:      i.Path,
-			GSURL:     i.GSURL,
-			Width:     i.W,
-			Height:    i.H,
-			Size:      i.Size,
-			Created:   i.Created,
-			Modified:  i.Modified,
-		}
-		images = append(images, &img)
-	}
-	prices := make(map[PriceListID]*Price)
-	for _, pr := range p.Prices {
-		price := Price{
-			UnitPrice: pr.UnitPrice,
-			Created:   pr.Created,
-			Modified:  pr.Modified,
-		}
-		prices[PriceListID(pr.UUID)] = &price
-	}
+	// images := make([]*Image, 0, 4)
+	// for _, i := range p.Images {
+	// 	img := Image{
+	// 		ID:        i.UUID,
+	// 		ProductID: i.ProductUUID,
+	// 		Path:      i.Path,
+	// 		GSURL:     i.GSURL,
+	// 		Width:     i.W,
+	// 		Height:    i.H,
+	// 		Size:      i.Size,
+	// 		Created:   i.Created,
+	// 		Modified:  i.Modified,
+	// 	}
+	// 	images = append(images, &img)
+	// }
+	// prices := make(map[PriceListID]*Price)
+	// for _, pr := range p.Prices {
+	// 	price := Price{
+	// 		UnitPrice: pr.UnitPrice,
+	// 		Created:   pr.Created,
+	// 		Modified:  pr.Modified,
+	// 	}
+	// 	prices[PriceListID(pr.UUID)] = &price
+	// }
 	return &Product{
 		Object: "product",
 		ID:     p.UUID,
+		Path:   p.Path,
 		SKU:    p.SKU,
 		EAN:    p.EAN,
-		Path:   p.Path,
 		Name:   p.Name,
 		Images: imageListContainer{
 			Object: "list",
-			Data:   images,
+			Data:   make([]*Image, 0),
 		},
-		Prices:   prices,
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
@@ -306,15 +288,15 @@ func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, e
 }
 
 // ListProducts returns a slice of all product SKUS.
-func (s *Service) ListProducts(ctx context.Context) ([]*ProductSlim, error) {
+func (s *Service) ListProducts(ctx context.Context) ([]*Product, error) {
 	products, err := s.model.GetProducts(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "service: GetProduct")
 	}
-	shortProducts := make([]*ProductSlim, 0, len(products))
+	shortProducts := make([]*Product, 0, len(products))
 	for _, p := range products {
-		ps := ProductSlim{
-			Object:   "product_slim",
+		ps := Product{
+			Object:   "product",
 			ID:       p.UUID,
 			SKU:      p.SKU,
 			EAN:      p.EAN,
@@ -326,18 +308,6 @@ func (s *Service) ListProducts(ctx context.Context) ([]*ProductSlim, error) {
 		shortProducts = append(shortProducts, &ps)
 	}
 	return shortProducts, nil
-}
-
-// ProductExists return true if the given product exists.
-func (s *Service) ProductExists(ctx context.Context, productID string) (bool, error) {
-	exists, err := s.model.ProductExists(ctx, productID)
-	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return false, ErrProductNotFound
-		}
-		return false, errors.Wrapf(err, "ProductExists(ctx, productID=%q) failed", productID)
-	}
-	return exists, nil
 }
 
 // DeleteProduct deletes the product with the given UUID.

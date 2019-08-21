@@ -1432,20 +1432,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
-    head:
-      security:
-      - bearerAuth: []
-      summary: Check if a product exists
-      description: |
-        OpProductExists requires `RoleShopper` privileges.
-      operationId: OpProductExists
-      tags:
-      - Products
-      responses:
-        '204':
-          description: No Content
-        '404':
-          description: Not Found
     delete:
       security:
       - bearerAuth: []
@@ -1482,6 +1468,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product/product-path-taken:
+                  summary: product/product-path-taken
+                  value:
+                    status: 409
+                    code: 'product/product-path-taken'
+                    message: product path already taken
     get:
       security:
       - bearerAuth: []
@@ -1505,7 +1504,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ProductSlim'
+                      $ref: '#/components/schemas/Product'
   /price-lists:
     post:
       security:
@@ -2513,53 +2512,23 @@ components:
           example: 'images/products/namwa1.jpg'
     ProductRequest:
       required:
+      - path
       - sku
       - ean
-      - path
       - name
-      - images
-      - pricing
       properties:
+        path:
+          type: string
+          example: 'water-bottle'
         sku:
           type: string
           example: 'WATER-SKU'
         ean:
           type: string
           example: '5060181650666'
-        path:
-          type: string
-          example: 'water-bottle'
         name:
           type: string
           example: 'Water Bottle'
-        images:
-          type: array
-          items:
-            required:
-              - path
-              - title
-            properties:
-              path:
-                type: string
-                example: 'https://www.example.com/yourfile.jpg'
-              title:
-                type: string
-                example: 'Side view of water bottle'
-        pricing:
-          type: array
-          items:
-            required:
-              - price_list_id
-              - unit_price
-            properties:
-              price_list_id:
-                type: string
-                format: uuid
-                example: '2b66dcf0-d2bf-45e4-8947-6ec29b603f42'
-              unit_price:
-                type: integer
-                description: Unit prices are stored as integer to 4 decimal places
-                example: 19950
     ProductUpdateRequest:
       required:
       - ean
@@ -2658,34 +2627,6 @@ components:
             in_the_box:
               type: string
               example: 'Stuff in the box'
-    ProductSlim:
-      properties:
-        object:
-          type: string
-          example: 'product_slim'
-        id:
-          type: string
-          example: 'cc3a2840-af1c-45d1-a861-6260bbd9946f'
-        sku:
-          type: string
-          example: 'WATER-SKU'
-        ean:
-          type: string
-          example: 'WATER-EAN'
-        path:
-          type: string
-          example: 'water-bottle'
-        name:
-          type: string
-          example: 'Water Bottle'
-        created:
-          type: string
-          format: date-time
-          example: '2019-08-07T15:39:48.546441Z'
-        modified:
-          type: string
-          format: date-time
-          example: '2019-08-07T15:39:48.546441Z'
     Product:
       properties:
         object:
@@ -2694,15 +2635,15 @@ components:
         id:
           type: string
           example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
+        path:
+          type: string
+          example: 'usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system'
         sku:
           type: string
           example: 'TV-SKU'
         ean:
           type: string
           example: '883445623'
-        path:
-          type: string
-          example: 'usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system'
         name:
           type: string
           example: 'Green Feathers Wireless Bird Box Camera & USB Recording Kit'

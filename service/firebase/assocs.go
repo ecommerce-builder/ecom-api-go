@@ -62,7 +62,7 @@ type AssocProduct struct {
 
 // Assoc details a catalog association including products.
 type Assoc struct {
-	Products *ProductSlimList `json:"products"`
+	Products *ProductList `json:"products"`
 }
 
 // GetCategoryProductAssocs returns all of the category product associations
@@ -82,18 +82,18 @@ func (s *Service) GetCategoryProductAssocs(ctx context.Context, key string) (map
 		}
 		if _, ok := assocs[k]; !ok {
 			assocs[k] = &Assoc{
-				Products: &ProductSlimList{
+				Products: &ProductList{
 					Object: "list",
-					Data:   make([]*ProductSlim, 0),
+					Data:   make([]*Product, 0),
 				},
 			}
 		}
-		p := ProductSlim{
-			Object:   "product_slim",
+		p := Product{
+			Object:   "product",
 			ID:       v.ProductUUID,
+			Path:     v.ProductPath,
 			SKU:      v.ProductSKU,
 			EAN:      v.ProductEAN,
-			Path:     v.ProductPath,
 			Name:     v.ProductName,
 			Created:  v.ProductCreated,
 			Modified: v.ProductModified,

@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
@@ -11,13 +10,13 @@ import (
 )
 
 func validateProductUpdateRequestBody(pc *service.ProductUpdateRequestBody) error {
-	imagemap := make(map[string]bool)
-	for _, img := range pc.Images {
-		if _, found := imagemap[img.Path]; found {
-			return fmt.Errorf("duplicate image path %s", img.Path)
-		}
-		imagemap[img.Path] = true
-	}
+	// imagemap := make(map[string]bool)
+	// for _, img := range pc.Images {
+	// 	if _, found := imagemap[img.Path]; found {
+	// 		return fmt.Errorf("duplicate image path %s", img.Path)
+	// 	}
+	// 	imagemap[img.Path] = true
+	// }
 
 	// TODO: make sure the new path is not already taken by another
 	// product other than this one.
