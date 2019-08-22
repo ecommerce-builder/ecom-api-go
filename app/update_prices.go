@@ -49,8 +49,17 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 		if err != nil {
 			if err == service.ErrPriceListNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusNotFound,
+					ErrCodePriceListNotFound,
+					"price list not found",
+				})
 				return
-			} else if err == service.ErrPriceListCodeTaken {
+			} else if err == service.ErrProductSKUExists {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -58,8 +67,8 @@ func (a *App) UpdateTierPricingHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodePriceListCodeTaken,
-					"price list is already in use",
+					ErrCodePriceListCodeExists,
+					"price sku already exists",
 				})
 				return
 			}

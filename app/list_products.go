@@ -11,8 +11,8 @@ import (
 // ListProductsHandler creates a handler that returns a list of products.
 func (a *App) ListProductsHandler() http.HandlerFunc {
 	type itemsListResponseBody struct {
-		Object string                 `json:"object"`
-		Data   []*service.ProductSlim `json:"data"`
+		Object string             `json:"object"`
+		Data   []*service.Product `json:"data"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

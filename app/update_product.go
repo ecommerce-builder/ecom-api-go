@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
@@ -11,13 +10,13 @@ import (
 )
 
 func validateProductUpdateRequestBody(pc *service.ProductUpdateRequestBody) error {
-	imagemap := make(map[string]bool)
-	for _, img := range pc.Images {
-		if _, found := imagemap[img.Path]; found {
-			return fmt.Errorf("duplicate image path %s", img.Path)
-		}
-		imagemap[img.Path] = true
-	}
+	// imagemap := make(map[string]bool)
+	// for _, img := range pc.Images {
+	// 	if _, found := imagemap[img.Path]; found {
+	// 		return fmt.Errorf("duplicate image path %s", img.Path)
+	// 	}
+	// 	imagemap[img.Path] = true
+	// }
 
 	// TODO: make sure the new path is not already taken by another
 	// product other than this one.
@@ -53,13 +52,51 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 			})
 			return
 		}
+
 		product, err := a.Service.UpdateProduct(ctx, productID, &pu)
 		if err != nil {
+			if err == service.ErrProductNotFound {
+				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusNotFound,
+					ErrCodeProductNotFound,
+					"product not found",
+				})
+				return
+			} else if err == service.ErrProductPathExists {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeProductPathExists,
+					"product path already exists",
+				})
+				return
+			} else if err == service.ErrProductSKUExists {
+				w.WriteHeader(http.StatusConflict) // 409 Conflict
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeProductSKUExists,
+					"product sku already exists",
+				})
+				return
+			}
 			contextLogger.Errorf("update product failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		w.WriteHeader(http.StatusOK) // 201 OK
+		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(product)
 	}
 }

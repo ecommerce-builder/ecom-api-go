@@ -1,11 +1,9 @@
 package app
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,19 +15,19 @@ func (a *App) GetTierPricingHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetTierPricingHandler called")
 
-		productID := chi.URLParam(r, "id")
-		ref := ""
-		price, err := a.Service.GetProductPrice(ctx, productID, ref)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			contextLogger.Errorf("service GetProductPrice(ctx, %q, %q) error: %+v", productID, ref, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
+		// productID := chi.URLParam(r, "id")
+		// ref := ""
+		// price, err := a.Service.GetProductPrice(ctx, productID, ref)
+		// if err != nil {
+		// 	if err == sql.ErrNoRows {
+		// 		w.WriteHeader(http.StatusNotFound)
+		// 		return
+		// 	}
+		// 	contextLogger.Errorf("service GetProductPrice(ctx, %q, %q) error: %+v", productID, ref, err)
+		// 	w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		// 	return
+		// }
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(price)
+		json.NewEncoder(w).Encode(nil)
 	}
 }

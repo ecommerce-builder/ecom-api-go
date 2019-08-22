@@ -47,8 +47,8 @@ type Category struct {
 	rgt      int
 	depth    int
 	parent   *Category
-	Nodes    *CategoryList    `json:"categories"`
-	Products *ProductSlimList `json:"products,omitempty"`
+	Nodes    *CategoryList `json:"categories"`
+	Products *ProductList  `json:"products,omitempty"`
 }
 
 // AddChild attaches a Category to its parent Category.
@@ -218,7 +218,7 @@ func (n *Category) FindNodeByPath(path string) *Category {
 }
 
 // BuildTree builds a Tree hierarchy from a Nested Set.
-func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*ProductSlim) *Category {
+func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*Product) *Category {
 	context := &Category{
 		Object:  "category",
 		ID:      nestedset[0].UUID,
@@ -238,9 +238,9 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*ProductSl
 	// attached to it. Otherwise, products can't be attached
 	// to non-leafs.
 	if context.lft == context.rgt-1 {
-		context.Products = &ProductSlimList{
+		context.Products = &ProductList{
 			Object: "list",
-			Data:   make([]*ProductSlim, 0),
+			Data:   make([]*Product, 0),
 		}
 	} else {
 		context.Products = nil
@@ -284,14 +284,14 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*ProductSl
 		// and the json omitempty will not render it to the client
 		if cur.Lft == cur.Rgt-1 {
 			if products != nil {
-				n.Products = &ProductSlimList{
+				n.Products = &ProductList{
 					Object: "list",
 					Data:   products,
 				}
 			} else {
-				n.Products = &ProductSlimList{
+				n.Products = &ProductList{
 					Object: "list",
-					Data:   make([]*ProductSlim, 0, 0),
+					Data:   make([]*Product, 0, 0),
 				}
 			}
 		} else {
@@ -337,13 +337,12 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 	}
 
 	// convert slice into map
-	cmap := make(map[string][]*ProductSlim)
+	cmap := make(map[string][]*Product)
 	for _, cpf := range cpas {
-		cmap[cpf.CategoryPath] = append(cmap[cpf.CategoryPath], &ProductSlim{
-			Object:   "product_slim",
+		cmap[cpf.CategoryPath] = append(cmap[cpf.CategoryPath], &Product{
+			Object:   "product",
 			ID:       cpf.ProductUUID,
 			SKU:      cpf.SKU,
-			EAN:      cpf.EAN,
 			Path:     cpf.ProductPath,
 			Name:     cpf.Name,
 			Created:  cpf.ProductCreated,

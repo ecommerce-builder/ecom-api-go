@@ -14,8 +14,8 @@ var ErrDefaultPriceListMissing = errors.New("postgres: pricing list missing")
 // ErrPriceListNotFound error
 var ErrPriceListNotFound = errors.New("postgres: price list not found")
 
-// ErrPriceListCodeTaken error
-var ErrPriceListCodeTaken = errors.New("postgres: price list code already taken")
+// ErrPriceListCodeExists error
+var ErrPriceListCodeExists = errors.New("postgres: price list code already exists")
 
 // ErrPriceListInUse error
 var ErrPriceListInUse = errors.New("postgres: price list has associated prices")
@@ -50,7 +50,7 @@ func (m *PgModel) CreatePriceList(ctx context.Context, code, currencyCode, strat
 	}
 
 	if exists {
-		return nil, ErrPriceListCodeTaken
+		return nil, ErrPriceListCodeExists
 	}
 
 	q2 := `
@@ -150,7 +150,7 @@ func (m *PgModel) UpdatePriceList(ctx context.Context, priceListUUID, code, curr
 		return nil, errors.Wrapf(err, "model: tx.QueryRowContext(ctx, q2=%q, code=%q)", q2, code)
 	}
 	if exists {
-		return nil, ErrPriceListCodeTaken
+		return nil, ErrPriceListCodeExists
 	}
 
 	q3 := `

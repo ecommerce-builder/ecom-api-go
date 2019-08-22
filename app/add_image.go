@@ -21,32 +21,13 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		contextLogger.Info("App: AddImageHandler started")
 
 		productID := chi.URLParam(r, "id")
-		exists, err := a.Service.ProductExists(ctx, productID)
-		if err != nil {
-			contextLogger.Errorf("a.Service.ProductExists(ctx, productID=%q) failed: error %v", productID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
-		if !exists {
-			w.WriteHeader(http.StatusConflict) // 409 Conflict
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusConflict,
-				ErrCodeProductNotFound,
-				fmt.Sprintf("product of productID=%q not found", productID),
-			})
-			return
-		}
 
 		imageRequestBody := imageRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&imageRequestBody); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		exists, err = a.Service.ImagePathExists(ctx, imageRequestBody.Path)
+		exists, err := a.Service.ImagePathExists(ctx, imageRequestBody.Path)
 		if err != nil {
 			contextLogger.Errorf("service ImageExists(ctx, path=%q) error: %v", imageRequestBody.Path, err)
 			w.WriteHeader(http.StatusInternalServerError)

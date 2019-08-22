@@ -29,7 +29,6 @@ type CategoryProductJoinRow struct {
 	productID       int
 	ProductUUID     string
 	ProductSKU      string
-	ProductEAN      string
 	ProductPath     string
 	ProductName     string
 	ProductCreated  time.Time
@@ -48,7 +47,6 @@ type CategoryProductAssocFull struct {
 	CategoryPath    string
 	ProductPath     string
 	SKU             string
-	EAN             string
 	Name            string
 	ProductCreated  time.Time
 	ProductModified time.Time
@@ -201,7 +199,9 @@ func (m *PgModel) DeleteCategoryProductAssoc(ctx context.Context, path, sku stri
 func (m *PgModel) GetCategoryProductAssocs(ctx context.Context) ([]*CategoryProductJoinRow, error) {
 	query := `
 		SELECT
-		  c.id, category_id, c.uuid as category_uuid, c.path as category_path, product_id, p.uuid as product_uuid, p.sku, p.ean, p.path as product_path, p.name, pri, c.created, c.modified
+		  c.id, category_id, c.uuid as category_uuid, c.path as category_path,
+		  product_id, p.uuid as product_uuid, p.sku, p.path as product_path,
+		  p.name, pri, c.created, c.modified
 		FROM
 		  category_product AS r
 		INNER JOIN category AS c
@@ -218,7 +218,7 @@ func (m *PgModel) GetCategoryProductAssocs(ctx context.Context) ([]*CategoryProd
 	cpas := make([]*CategoryProductJoinRow, 0, 256)
 	for rows.Next() {
 		var n CategoryProductJoinRow
-		err = rows.Scan(&n.id, &n.categoryID, &n.CategoryUUID, &n.CategoryPath, &n.productID, &n.ProductUUID, &n.ProductSKU, &n.ProductEAN, &n.ProductPath, &n.ProductSKU, &n.Pri, &n.Created, &n.Modified)
+		err = rows.Scan(&n.id, &n.categoryID, &n.CategoryUUID, &n.CategoryPath, &n.productID, &n.ProductUUID, &n.ProductSKU, &n.ProductPath, &n.ProductSKU, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, errors.Wrapf(err, "model: scan failed")
 		}
@@ -235,7 +235,7 @@ func (m *PgModel) GetCategoryProductAssocs(ctx context.Context) ([]*CategoryProd
 func (m *PgModel) GetCategoryProductAssocsFull(ctx context.Context) ([]*CategoryProductAssocFull, error) {
 	query := `
 		SELECT
-		  c.id, category_id, product_id, p.uuid as product_uuid, t.path, p.path, p.sku, p.ean, p.name,
+		  c.id, category_id, product_id, p.uuid as product_uuid, t.path, p.path, p.sku, p.name,
 		  p.created as product_created, p.modified as product_modified,
 		  pri, c.created, c.modified
 		FROM
@@ -255,7 +255,7 @@ func (m *PgModel) GetCategoryProductAssocsFull(ctx context.Context) ([]*Category
 	for rows.Next() {
 		var n CategoryProductAssocFull
 		err = rows.Scan(&n.id, &n.categoryID, &n.productID, &n.ProductUUID, &n.CategoryPath, &n.ProductPath,
-			&n.SKU, &n.EAN, &n.Name, &n.ProductCreated, &n.ProductModified, &n.Pri, &n.Created, &n.Modified)
+			&n.SKU, &n.Name, &n.ProductCreated, &n.ProductModified, &n.Pri, &n.Created, &n.Modified)
 		if err != nil {
 			return nil, errors.Wrapf(err, "model: scan failed")
 		}

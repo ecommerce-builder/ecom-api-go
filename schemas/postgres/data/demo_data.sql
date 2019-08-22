@@ -145,19 +145,19 @@ INSERT INTO payment (order_id, typ) VALUES(100004, 'paypal');
 INSERT INTO payment (order_id, typ) VALUES(100005, 'stripe');
 
 -- product
-INSERT INTO product (sku, ean, path, name) VALUES('WATER-SKU', 'WATER-EAN', 'water-bottle', 'Water Bottle');
+INSERT INTO product (sku, path, name) VALUES('WATER-SKU', 'water-bottle', 'Water Bottle');
 INSERT INTO inventory (product_id, onhand) VALUES ((SELECT id FROM product WHERE sku = 'WATER-SKU'), 50);
 
-INSERT INTO product (sku, ean, path, name) VALUES('DRILL-SKU', 'DRILL-EAN', 'electric-drill', 'Electric Power Drill');
+INSERT INTO product (sku, path, name) VALUES('DRILL-SKU', 'electric-drill', 'Electric Power Drill');
 INSERT INTO inventory (product_id, onhand) VALUES ((SELECT id FROM product WHERE sku = 'DRILL-SKU'), 50);
 
-INSERT INTO product (sku, ean, path, name) VALUES('TV-SKU', 'TV-EAN', 'television-set', 'LCD TV System');
+INSERT INTO product (sku, path, name) VALUES('TV-SKU', 'television-set', 'LCD TV System');
 INSERT INTO inventory (product_id, onhand) VALUES ((SELECT id FROM product WHERE sku = 'TV-SKU'), 50);
 
-INSERT INTO product (sku, ean, path, name) VALUES('PHONE-SKU', 'PHONE-EAN', 'mobile-phone', 'Mobile Phone Kit');
+INSERT INTO product (sku, path, name) VALUES('PHONE-SKU', 'mobile-phone', 'Mobile Phone Kit');
 INSERT INTO inventory (product_id, onhand) VALUES ((SELECT id FROM product WHERE sku = 'PHONE-SKU'), 50);
 
-INSERT INTO product (sku, ean, path, name) VALUES('DESK-SKU', 'DESK-EAN', 'wooden-desk', 'Oak Desk');
+INSERT INTO product (sku, path, name) VALUES('DESK-SKU', 'wooden-desk', 'Oak Desk');
 INSERT INTO inventory (product_id, onhand) VALUES ((SELECT id FROM product WHERE sku = 'DESK-SKU'), 50);
 
 -- category_product

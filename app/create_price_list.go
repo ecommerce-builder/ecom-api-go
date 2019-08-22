@@ -62,7 +62,7 @@ func (a *App) CreatePriceListHandler() http.HandlerFunc {
 
 		priceList, err := a.Service.CreatePriceList(ctx, &requestBody)
 		if err != nil {
-			if err == service.ErrPriceListCodeTaken {
+			if err == service.ErrPriceListCodeExists {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -70,7 +70,7 @@ func (a *App) CreatePriceListHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodePriceListCodeTaken,
+					ErrCodePriceListCodeExists,
 					"price list is already in use",
 				})
 				return

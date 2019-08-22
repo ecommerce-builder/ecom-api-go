@@ -43,6 +43,14 @@ const (
 	// ErrCodeProductNotFound indicates the product with given SKU could not be found.
 	ErrCodeProductNotFound string = "product/product-not-found"
 
+	// ErrCodeProductPathExists is returned when attempting to create or update a product
+	// with a path that is already used by another product.
+	ErrCodeProductPathExists string = "product/product-path-exists"
+
+	// ErrCodeProductSKUExists is returned when attempting to create or update a product
+	// with a SKU that is already used by another product.
+	ErrCodeProductSKUExists string = "product-sku-exists"
+
 	// ErrCodeDuplicateImagePath return value is sent when a consumer attempts
 	// add a new product with duplicate image paths.
 	ErrCodeDuplicateImagePath string = "product/duplicate-image-paths"
@@ -51,13 +59,19 @@ const (
 	// list that does not exist
 	ErrCodePriceListNotFound string = "price-list/price-list-not-found"
 
-	// ErrCodePriceListCodeTaken is returned when attempting to add a new price list
+	// ErrCodePriceListCodeExists is returned when attempting to add a new price list
 	// with a price list code that is already in use.
-	ErrCodePriceListCodeTaken string = "price-list/price-list-code-taken"
+	ErrCodePriceListCodeExists string = "price-list/price-list-code-exists"
 
 	// ErrCodePriceListInUse is returned when attempting to delete a price list
 	// that is already being referenced by prices.
 	ErrCodePriceListInUse string = "price-list/price-list-in-use"
+
+	// ErrCodeIncludeQueryParamParseError occurs when the include query param is invalid.
+	ErrCodeIncludeQueryParamParseError string = "query/include-query-param-invalid"
+
+	// ErrCodeAuthenticationFailed occurs when the Authentication has failed.
+	ErrCodeAuthenticationFailed string = "auth/authentication-failed"
 )
 
 // Cart operation sentinel values.
@@ -93,7 +107,6 @@ const (
 	OpUpdateProduct string = "OpUpdateProduct"
 	OpGetProduct    string = "OpGetProduct"
 	OpListProducts  string = "OpListProducts"
-	OpProductExists string = "OpProductExists"
 	OpDeleteProduct string = "OpDeleteProduct"
 
 	// Price Lists
