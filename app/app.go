@@ -19,6 +19,10 @@ const (
 	// before a catalog has been applied.
 	ErrCodeNoCatalog string = "catalog/no-catalog"
 
+	// ErrCodeCategoryNotFound returned when attempting to associate a product to a category
+	// and that category can't be found.
+	ErrCodeCategoryNotFound string = "categories/category-not-found"
+
 	// ErrCodeCustomerNotFound is sent if a customer cannot be located
 	ErrCodeCustomerNotFound string = "customers/not-found"
 
@@ -148,6 +152,10 @@ const (
 	OpSignInWithDevKey       string = "OpSignInWithDevKey"
 
 	// Category and assocations
+	OpGetProductsCategories   string = "OpGetProductsCategories"
+	OpUpdateProductProducts   string = "OpUpdateProductProducts"
+	OpPurgeProductsCategories string = "OpPurgeProductsCategories"
+
 	OpUpdateCategories            string = "OpUpdateCategories"
 	OpGetCategories               string = "OpGetCategories"
 	OpPurgeCatalog                string = "OpPurgeCatalog"

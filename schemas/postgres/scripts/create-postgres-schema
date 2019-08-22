@@ -38,8 +38,8 @@ cat $schemadir/image.sql | psql --no-psqlrc ecom_dev > /dev/null
 echo "Creating categories table"
 cat $schemadir/category.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating category_product (is_leaf function and category_product table)"
-cat $schemadir/category_product.sql | psql --no-psqlrc ecom_dev > /dev/null
+echo "Creating product_category (is_leaf function and product_category table)"
+cat $schemadir/product_category.sql | psql --no-psqlrc ecom_dev > /dev/null
 
 echo "Creating category_leaf view"
 cat $schemadir/category_leaf.sql | psql --no-psqlrc ecom_dev > /dev/null

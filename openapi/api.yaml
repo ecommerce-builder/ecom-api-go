@@ -923,25 +923,10 @@ paths:
           description: No Content
   /products-categories:
     put:
-      parameters:
-      - in: header
-        name: X-Keyed-By
-        schema:
-          type: string
-          enum: ['id', 'path']
-          default: 'path'
-        required: false
-        description: Indicates that the request body keys are either category `id` or category `path` values. If the header is not set the default expected request body is expected to be keyed by category `id`.
       security:
       - bearerAuth: []
-      summary: Replace all category to product associations
+      summary: Replace all products to categories associations
       description: |
-        The request body is a map of string to object values. The key of this map is either a category id or a category path, determined by setting the `X-Keyed-By` header to `id` or `path` respectively.
-
-        `X-Keyed-By: id` is currently not implemented and returns a 501 Not Implemented status code. You should use `X-Keyed-By: path` and pass category path strings as keys to the request body.
-
-        To get a list of all products, including product id and SKUs, use the OpListProducts operation.
-
         OpUpdateProductsCategories requires `RoleAdmin` privileges.
       operationId: OpUpdateProductsCategories
       tags:
@@ -950,37 +935,38 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AssocProductIDRequest'
-            example:
-              a/b/e:
-                products:
-                - product_id: 'e0130bb0-5996-451f-95a0-e5c5afa207d7'
-                - product_id: '60230435-5ad9-4a27-9b52-dec2944fdfb1'
+              type: object
+              properties:
+                object:
+                  type: string
+                  enum: ['list']
+                  example: 'list'
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CreateProductsCategories'
       responses:
-        '204':
-          description: No Content
+        '200':
+          description: list of products_categories objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductsCategories'
         '400':
           description: Bad Request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PutAssocsConflict'
     get:
-      parameters:
-      - in: query
-        name: key
-        schema:
-          type: string
-          enum: ['id', 'path']
-          default: 'id'
-        required: false
-        description: Return the category to product associations keyed by either category `id` or category `path`.
       security:
       - bearerAuth: []
       summary: Get all product to category associations
@@ -991,11 +977,19 @@ paths:
         - Products Categories
       responses:
         '200':
-          description: Associations object
+          description: list of products_categories objects
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Associations'
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductsCategories'
     delete:
       security:
       - bearerAuth: []
@@ -1249,6 +1243,14 @@ paths:
           description: No Content
   /prices:
     parameters:
+    - name: product_id
+      required: false
+      in: query
+      description: A unique identifier for the product.
+      schema:
+        type: string
+        format: uuid
+        example: '49173212-537f-497b-b76e-1d606855fe66'
     - name: price_list_id
       required: false
       in: query
@@ -1362,18 +1364,6 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Price'
-    delete:
-      security:
-      - bearerAuth: []
-      summary: Delete a product's prices by price list id.
-      description: |
-        OpDeleteTierPricing requires `RoleAdmin` privileges.
-      operationId: OpDeleteTierPricing
-      tags:
-      - Prices
-      responses:
-        '204':
-          description: No Content
   /products/{id}/images:
     parameters:
     - name: id
@@ -2354,15 +2344,56 @@ components:
                   type: string
                   format: uuid
                   example: 'e0130bb0-5996-451f-95a0-e5c5afa207d7'
-    Associations:
-      type: object
-      additionalProperties:
-        type: object
-        properties:
-          products:
-            type: array
-            items:
-              $ref: '#/components/schemas/AssocProduct'
+    CreateProductsCategories:
+      required:
+      - product_id
+      - category_id
+      properties:
+        product_id:
+          type: string
+          format: uuid
+          example: 3b4c05ff-004e-477c-805d-13f9ef635d27
+        category_id:
+          type: string
+          format: uuid
+          example: c98257b2-1d6a-4b76-97ca-2421603f3bf5
+    ProductsCategories:
+      properties:
+        object:
+          type: string
+          example: products_category
+        id:
+          type: string
+          format: uuid
+          example: f864952e-9711-449a-b3c5-4281e9b671b3
+        product_id:
+          type: string
+          format: uuid
+          example: 3b4c05ff-004e-477c-805d-13f9ef635d27
+        product_path:
+          type: string
+          example: mobile-phone
+        product_sku:
+          type: string
+          example: PHONE-SKU
+        product_name:
+          type: string
+          example: Mobile Phone Kit
+        category_id:
+          type: string
+          format: uuid
+          example: ee8dc5a8-7366-48d3-bdfd-9d8fa6f05564
+        category_path:
+          type: string
+          example: a/b/e
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-22T22:42:41.446412Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-22T22:42:41.446412Z'
     Categories:
       properties:
         object:

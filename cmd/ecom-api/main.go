@@ -645,9 +645,9 @@ func main() {
 		})
 
 		r.Route("/products-categories", func(r chi.Router) {
-			r.Put("/", a.Authorization(app.OpUpdateCategoryProductAssocs, a.UpdateCategoryProductAssocsHandler()))
-			r.Get("/", a.Authorization(app.OpGetCategoryProductAssocs, a.GetCategoryProductAssocsHandler()))
-			r.Delete("/", a.Authorization(app.OpPurgeCategoryAssocs, a.PurgeCategoryAssocsHandler()))
+			r.Put("/", a.Authorization(app.OpUpdateProductProducts, a.UpdateProductsCategoriesHandler()))
+			r.Get("/", a.Authorization(app.OpGetProductsCategories, a.GetProductsCategoriesHandler()))
+			r.Delete("/", a.Authorization(app.OpPurgeProductsCategories, a.PurgeProductsCategoriesHandler()))
 		})
 
 		r.Route("/orders", func(r chi.Router) {

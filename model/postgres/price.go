@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -148,8 +147,6 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 			return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx, q3=%q)", q3, priceListID)
 		}
 	}
-
-	fmt.Println(q3)
 
 	defer rows.Close()
 
