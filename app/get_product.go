@@ -43,7 +43,6 @@ func parseIncludeQueryParam(include string, accepted []string) (invalid string, 
 
 	includes := strings.Split(include, ",")
 	for _, i := range includes {
-		fmt.Printf("%#v\n", i)
 		if !sliceContains(accepted, i) {
 			return i, nil, ErrIncludeQueryContainUnacceptedValue
 		}

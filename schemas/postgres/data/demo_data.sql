@@ -160,10 +160,10 @@ INSERT INTO inventory (product_id, onhand) VALUES ((SELECT id FROM product WHERE
 INSERT INTO product (sku, path, name) VALUES('DESK-SKU', 'wooden-desk', 'Oak Desk');
 INSERT INTO inventory (product_id, onhand) VALUES ((SELECT id FROM product WHERE sku = 'DESK-SKU'), 50);
 
--- category_product
-INSERT INTO category_product (category_id, product_id, pri) VALUES (3, 1, 10);
-INSERT INTO category_product (category_id, product_id, pri) VALUES (3, 2, 20);
-INSERT INTO category_product (category_id, product_id, pri) VALUES (3, 4, 30);
+-- category_product_category
+INSERT INTO product_category (category_id, product_id, pri) VALUES (3, 1, 10);
+INSERT INTO product_category (category_id, product_id, pri) VALUES (3, 2, 20);
+INSERT INTO product_category (category_id, product_id, pri) VALUES (3, 4, 30);
 
 -- price_list
 INSERT INTO price_list (code, currency_code, strategy, inc_tax, name, description)

@@ -16,6 +16,9 @@ import (
 // already exist.
 var ErrAssocsAlreadyExist = errors.New("service: associations already exist")
 
+// ErrCategoryNotFound error
+var ErrCategoryNotFound = errors.New("service: category not found")
+
 // ErrCategoriesEmpty error
 var ErrCategoriesEmpty = errors.New("service: categories empty")
 
@@ -342,9 +345,9 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 		cmap[cpf.CategoryPath] = append(cmap[cpf.CategoryPath], &Product{
 			Object:   "product",
 			ID:       cpf.ProductUUID,
-			SKU:      cpf.SKU,
+			SKU:      cpf.ProductSKU,
 			Path:     cpf.ProductPath,
-			Name:     cpf.Name,
+			Name:     cpf.ProductName,
 			Created:  cpf.ProductCreated,
 			Modified: cpf.ProductModified,
 		})
