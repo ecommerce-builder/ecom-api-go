@@ -40,14 +40,14 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 			return
 		}
 		if err := validateProductUpdateRequestBody(&pu); err != nil {
-			w.WriteHeader(http.StatusConflict) // 409 Conflict
+			w.WriteHeader(http.StatusBadRequest) // 400 Bad Requst
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
 				Code    string `json:"code"`
 				Message string `json:"message"`
 			}{
 				http.StatusConflict,
-				ErrCodeDuplicateImagePath,
+				ErrCodeBadRequest,
 				err.Error(),
 			})
 			return
