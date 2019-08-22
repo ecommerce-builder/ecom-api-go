@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,17 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+			w.Header().Set("WWW-Authenticate", "Bearer")
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusUnauthorized,
+				ErrCodeAuthenticationFailed,
+				"request unauthorized - check token expiration",
+			})
 			return
 		}
 
@@ -31,6 +43,17 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 			contextLogger.Error("using multiple Bearer tokens")
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusUnauthorized,
+				ErrCodeAuthenticationFailed,
+				"request unauthorized - check token expiration",
+			})
+
 			return
 		}
 
@@ -40,6 +63,16 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 			contextLogger.Errorf("invalid Authorization: Bearer <jwt> header. token=%s", token[0])
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusUnauthorized,
+				ErrCodeAuthenticationFailed,
+				"request unauthorized - check token expiration",
+			})
 			return
 		}
 
@@ -49,6 +82,16 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 			contextLogger.Errorf("authenticating failure: jwt=%s", jwt)
 			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 			w.Header().Set("WWW-Authenticate", "Bearer")
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusUnauthorized,
+				ErrCodeAuthenticationFailed,
+				"request unauthorized - check token expiration",
+			})
 			return
 		}
 

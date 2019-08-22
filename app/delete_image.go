@@ -1,9 +1,9 @@
 package app
 
 import (
-	"database/sql"
 	"net/http"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,18 +17,8 @@ func (a *App) DeleteImageHandler() http.HandlerFunc {
 		contextLogger.Info("App: DeleteImageHandler started")
 
 		imageID := chi.URLParam(r, "id")
-		exists, err := a.Service.ImageUUIDExists(ctx, imageID)
-		if err != nil {
-			contextLogger.Errorf("ImageUUIDExists(ctx, imageID=%q) failed: %v", imageID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
-		if !exists {
-			w.WriteHeader(http.StatusNotFound) // 404 Not Found
-			return
-		}
 		if err := a.Service.DeleteImage(ctx, imageID); err != nil {
-			if err == sql.ErrNoRows {
+			if err == service.ErrImageNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}

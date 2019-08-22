@@ -108,14 +108,14 @@ func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) 
 	return &image, nil
 }
 
-// GetProductImages return a slice of Images.
-func (s *Service) GetProductImages(ctx context.Context, productID string) ([]*Image, error) {
-	pilist, err := s.model.GetImages(ctx, productID)
+// GetImagesByProductID return a slice of Images.
+func (s *Service) GetImagesByProductID(ctx context.Context, productID string) ([]*Image, error) {
+	pilist, err := s.model.GetImagesByProductUUID(ctx, productID)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
 		}
-		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, productID=%q) failed", productID)
+		return nil, errors.Wrapf(err, "service: s.model.GetImagesByProductUUID(ctx, productID=%q) failed", productID)
 	}
 
 	images := make([]*Image, 0, 8)
@@ -139,8 +139,11 @@ func (s *Service) GetProductImages(ctx context.Context, productID string) ([]*Im
 
 // DeleteImage delete the image with the given ID.
 func (s *Service) DeleteImage(ctx context.Context, imageID string) error {
-	if err := s.model.DeleteProduct(ctx, imageID); err != nil {
-		return errors.Wrapf(err, "service: DeleteProductImage(ctx, imageID=%q)", imageID)
+	if err := s.model.DeleteImage(ctx, imageID); err != nil {
+		if err == postgres.ErrImageNotFound {
+			return ErrImageNotFound
+		}
+		return errors.Wrapf(err, "service: DeleteImage(ctx, imageID=%q)", imageID)
 	}
 	return nil
 }

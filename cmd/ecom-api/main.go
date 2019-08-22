@@ -595,8 +595,8 @@ func main() {
 		})
 
 		r.Route("/images", func(r chi.Router) {
-			r.Get("/{image_id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
-			r.Delete("/{image_id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
 		})
 
 		r.Route("/products/{id}/tiers/{tier_id}/pricing", func(r chi.Router) {
@@ -613,7 +613,7 @@ func main() {
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
 			r.Post("/{id}/images", a.Authorization(app.OpAddImage, a.AddImageHandler()))
-			r.Get("/{d}/images", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
+			r.Get("/{id}/images", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
 			r.Delete("/{id}/images", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
 
 			r.Get("/{id}/pricing", a.Authorization(app.OpMapPricingByProductID, a.PricingMapByProductIDHandler()))

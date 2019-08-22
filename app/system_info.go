@@ -52,15 +52,15 @@ type ApplSystemEnv struct {
 }
 
 // SystemInfoHandler returns data about the API runtime
-func (app *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
+func (a *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: SystemInfoHandler started")
+		contextLogger.Info("app: SystemInfoHandler started")
 
-		version, err := app.Service.GetSchemaVersion(ctx)
+		version, err := a.Service.GetSchemaVersion(ctx)
 		if err != nil {
-			contextLogger.Errorf("app.Service.GetSchemaVersion(ctx) failed: %+v", err)
+			contextLogger.Errorf("app: a.Service.GetSchemaVersion(ctx) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 		}
 		si.Env.PG.SchemaVersion = *version

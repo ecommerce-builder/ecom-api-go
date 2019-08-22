@@ -29,9 +29,9 @@ type Price struct {
 // 	Modified  time.Time `json:"modified"`
 // }
 
-// GetProductPrice returns a ProductPrice for the product with the
+// GetPricesByProductID returns prices for the product with the
 // given product id and price list id.
-func (s *Service) GetProductPrice(ctx context.Context, productID, priceListID string) (*Price, error) {
+func (s *Service) GetPricesByProductIDAndPriceListID(ctx context.Context, productID, priceListID string) (*Price, error) {
 	p, err := s.model.GetPricesByPriceList(ctx, productID, priceListID)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetProductPricingBySKUAndTier failed")

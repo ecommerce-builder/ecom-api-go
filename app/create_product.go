@@ -55,7 +55,7 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 					"price list could not be found",
 				})
 				return
-			} else if err == service.ErrProductPathTaken {
+			} else if err == service.ErrProductPathExists {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -63,11 +63,11 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodeProductPathTaken,
-					"product path already taken",
+					ErrCodeProductPathExists,
+					"product path already exists",
 				})
 				return
-			} else if err == service.ErrProductSKUTaken {
+			} else if err == service.ErrProductSKUExists {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -75,8 +75,8 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodeProductSKUTaken,
-					"product SKU already taken",
+					ErrCodeProductSKUExists,
+					"product SKU already exists",
 				})
 				return
 			}

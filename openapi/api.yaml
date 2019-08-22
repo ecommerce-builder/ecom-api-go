@@ -1411,12 +1411,24 @@ paths:
               $ref: '#/components/schemas/ProductUpdateRequest'
       responses:
         '201':
-          description: Product object
+          description: product object
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
     get:
+      parameters:
+      - name: include
+        required: false
+        in: query
+        description: |
+          When you request a resource, you can include associated resources in the same request, using the include query parameter. This reduces the number of roundtrips.
+          The include query parameter contains a comma separated list of associated resource.
+
+          For OpGetProduct acceptable values are images and prices.
+        schema:
+          type: string
+          example: 'images,prices'
       security:
       - bearerAuth: []
       summary: Get a product by product id
@@ -1431,7 +1443,40 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Product'
+                oneOf:
+                - $ref: '#/components/schemas/Product'
+                - $ref: '#/components/schemas/ProductIncImages'
+              examples:
+                product:
+                  value:
+                    object: product
+                    id: 93f350b5-2320-40f2-8b85-ed07e0092185
+                    path: water-bottle
+                    sku: WATER-SKU
+                    name: Water Bottle
+                    created: '2019-08-22 09:22:53.403045+00Z'
+                    modified: '2019-08-22 09:22:53.403045+00'
+                product-with-images:
+                  value:
+                    object: product
+                    id: 93f350b5-2320-40f2-8b85-ed07e0092185
+                    path: water-bottle
+                    sku: WATER-SKU
+                    name: Water Bottle
+                    images:
+                    - object: image
+                      id: e2a1b7ff-a00a-4d7c-a2dd-86e8ea749ed1
+                      product_id: 8782b771-e6d7-45f3-879a-2b9d3e8ba1c7
+                      sku: 'WATER-SKU'
+                      path: 4439.jpg
+                      gsurl: gs://4439.jpg
+                      width: 0
+                      height: 0
+                      size: 0
+                      created: '2019-07-30T14:31:47.672541Z'
+                      modified: '2019-07-30T14:31:47.672541Z'
+                    created: '2019-08-22 09:22:53.403045+00Z'
+                    modified: '2019-08-22 09:22:53.403045+00'
     delete:
       security:
       - bearerAuth: []
@@ -1475,12 +1520,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                product/product-path-taken:
-                  summary: product/product-path-taken
+                product/product-path-exists:
+                  summary: product/product-path-exists
                   value:
                     status: 409
-                    code: 'product/product-path-taken'
-                    message: product path already taken
+                    code: 'product/product-path-exists'
+                    message: product path already exists
     get:
       security:
       - bearerAuth: []
@@ -2514,151 +2559,86 @@ components:
       required:
       - path
       - sku
-      - ean
       - name
       properties:
         path:
           type: string
-          example: 'water-bottle'
+          example: water-bottle
         sku:
           type: string
-          example: 'WATER-SKU'
-        ean:
-          type: string
-          example: '5060181650666'
+          example: WATER-SKU
         name:
           type: string
-          example: 'Water Bottle'
+          example: Water Bottle
     ProductUpdateRequest:
       required:
-      - ean
       - path
+      - sku
       - name
-      - images
-      - pricing
       properties:
-        ean:
+        sku:
           type: string
-          example: '5060181650666'
+          example: WATER-SKU
         path:
           type: string
-          example: 'water-bottle'
+          example: water-bottle
         name:
           type: string
-          example: 'Water Bottle'
-        images:
-          type: array
-          items:
-            required:
-              - path
-              - title
-            properties:
-              path:
-                type: string
-                example: 'https://www.example.com/yourfile.jpg'
-              title:
-                type: string
-                example: 'Side view of water bottle'
-        pricing:
-          type: array
-          items:
-            required:
-              - price_list_id
-              - unit_price
-            properties:
-              price_list_id:
-                type: string
-                format: uuid
-                example: '2b66dcf0-d2bf-45e4-8947-6ec29b603f42'
-              unit_price:
-                type: integer
-                description: Unit prices are stored as integer to 4 decimal places
-                example: 299500
-        content:
-          type: object
-          required:
-          - meta
-          - videos
-          - manuals
-          properties:
-            meta:
-              type: object
-              required:
-              - title
-              - description
-              properties:
-                title:
-                  type: string
-                  description: The title of the page when rendered as HTML
-                  example: 'Water Bottle Page'
-                description:
-                  type: string
-                  example: 'A refreshing drink for all occasions.'
-            videos:
-              type: array
-              items:
-                type: string
-              example:
-              - 'v1'
-              - 'v2'
-              - 'v3'
-            manuals:
-              type: array
-              items:
-                type: string
-              example:
-              - 'm1'
-              - 'm2'
-              - 'm3'
-            software:
-              type: array
-              items:
-                type: string
-              example:
-              - 's1'
-              - 's2'
-              - 's3'
-            specification:
-              type: string
-              example: 'Specification of your product'
-            description:
-              type: string
-              example: 'Your description goes here'
-            in_the_box:
-              type: string
-              example: 'Stuff in the box'
-    Product:
+          example: Water Bottle
+    ProductIncImages:
       properties:
         object:
           type: string
-          example: 'product'
+          example: product
         id:
           type: string
+          format: uuid
           example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
         path:
           type: string
-          example: 'usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system'
+          example: usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system
         sku:
           type: string
-          example: 'TV-SKU'
-        ean:
-          type: string
-          example: '883445623'
+          example: TV-SKU
         name:
           type: string
-          example: 'Green Feathers Wireless Bird Box Camera & USB Recording Kit'
+          example: Green Feathers Wireless Bird Box Camera & USB Recording Kit
         images:
           type: object
           properties:
             object:
               type: string
-              example: 'list'
+              example: list
             data:
               type: array
               items:
                 $ref: '#/components/schemas/Image'
-        pricing:
-          type: object
+    Product:
+      properties:
+        object:
+          type: string
+          example: product
+        id:
+          type: string
+          format: uuid
+          example: 8782b771-e6d7-45f3-879a-2b9d3e8ba1c7
+        path:
+          type: string
+          example: usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system
+        sku:
+          type: string
+          example: TV-SKU
+        name:
+          type: string
+          example: Green Feathers Wireless Bird Box Camera & USB Recording Kit
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-22T09:31:35.430Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-22T09:31:35.430Z'
     SystemConfig:
       properties:
         object:

@@ -45,7 +45,6 @@ func TestUpdateProduct(t *testing.T) {
 
 	ctx := context.Background()
 	pu := &ProductCreateUpdate{
-		EAN:  "Updated EAN",
 		Path: "updated-url",
 		Name: "Updated Name",
 		Content: ProductContent{

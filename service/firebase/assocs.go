@@ -93,7 +93,6 @@ func (s *Service) GetCategoryProductAssocs(ctx context.Context, key string) (map
 			ID:       v.ProductUUID,
 			Path:     v.ProductPath,
 			SKU:      v.ProductSKU,
-			EAN:      v.ProductEAN,
 			Name:     v.ProductName,
 			Created:  v.ProductCreated,
 			Modified: v.ProductModified,

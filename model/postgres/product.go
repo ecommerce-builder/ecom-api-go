@@ -17,9 +17,8 @@ type PriceEntry struct {
 
 // ProductUpdate contains the data required to update an existing product.
 type ProductUpdate struct {
-	SKU  string
-	EAN  string
 	Path string
+	SKU  string
 	Name string
 }
 
@@ -29,7 +28,6 @@ type ProductRow struct {
 	UUID     string
 	Path     string
 	SKU      string
-	EAN      string
 	Name     string
 	Created  time.Time
 	Modified time.Time
@@ -41,7 +39,6 @@ type ProductJoinRow struct {
 	UUID     string
 	Path     string
 	SKU      string
-	EAN      string
 	Name     string
 	Images   []*ImageJoinRow
 	Prices   []*PriceRow
@@ -53,21 +50,21 @@ type ProductJoinRow struct {
 // for the product could not be found in the database.
 var ErrProductNotFound = errors.New("postgres: product not found")
 
-// ErrProductPathTaken error
-var ErrProductPathTaken = errors.New("postgres: product path taken")
+// ErrProductPathExists error
+var ErrProductPathExists = errors.New("postgres: product path exists")
 
-// ErrProductSKUTaken error
-var ErrProductSKUTaken = errors.New("postgres: product SKU taken")
+// ErrProductSKUExists error
+var ErrProductSKUExists = errors.New("postgres: product sku exists")
 
 // GetProduct returns a ProductRow by product id.
 func (m *PgModel) GetProduct(ctx context.Context, productID string) (*ProductRow, error) {
 	q1 := `
-		SELECT id, uuid, sku, ean, path, name, created, modified
+		SELECT id, uuid, sku, path, name, created, modified
 		FROM product WHERE uuid = $1
 	`
 	p := ProductRow{}
 	row := m.db.QueryRowContext(ctx, q1, productID)
-	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Created, &p.Modified); err != nil {
+	if err := row.Scan(&p.id, &p.UUID, &p.SKU, &p.Path, &p.Name, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProductNotFound
 		}
@@ -78,12 +75,7 @@ func (m *PgModel) GetProduct(ctx context.Context, productID string) (*ProductRow
 
 // GetProducts returns a list of all products in the product table.
 func (m *PgModel) GetProducts(ctx context.Context) ([]*ProductRow, error) {
-	query := `
-		SELECT
-		  id, uuid, sku, ean, path, name, created, modified
-		FROM
-		  product
-	`
+	query := "SELECT id, uuid, sku, path, name, created, modified FROM product"
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) query=%q failed", query)
@@ -93,7 +85,7 @@ func (m *PgModel) GetProducts(ctx context.Context) ([]*ProductRow, error) {
 	products := make([]*ProductRow, 0, 256)
 	for rows.Next() {
 		var p ProductRow
-		if err := rows.Scan(&p.id, &p.UUID, &p.SKU, &p.EAN, &p.Path, &p.Name, &p.Created, &p.Modified); err != nil {
+		if err := rows.Scan(&p.id, &p.UUID, &p.SKU, &p.Path, &p.Name, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		products = append(products, &p)
@@ -138,42 +130,42 @@ func (m *PgModel) ProductsExist(ctx context.Context, productIDs []string) ([]str
 }
 
 // CreateProduct updates the details of a product with the given product id.
-func (m *PgModel) CreateProduct(ctx context.Context, path, sku, ean, name string) (*ProductRow, error) {
+func (m *PgModel) CreateProduct(ctx context.Context, path, sku, name string) (*ProductRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx failed")
 	}
 
-	q1 := `SELECT EXISTS(SELECT 1 FROM product WHERE path = $1) AS exists`
+	q1 := "SELECT EXISTS(SELECT 1 FROM product WHERE path = $1) AS exists"
 	var exists bool
 	err = tx.QueryRowContext(ctx, q1, path).Scan(&exists)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q1=%q, path=%q) failed", q1, path)
 	}
 	if exists {
-		return nil, ErrProductPathTaken
+		return nil, ErrProductPathExists
 	}
 
-	q2 := `SELECT EXISTS(SELECT 1 FROM product WHERE sku = $1) AS exists`
+	q2 := "SELECT EXISTS(SELECT 1 FROM product WHERE sku = $1) AS exists"
 	err = tx.QueryRowContext(ctx, q2, sku).Scan(&exists)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q2=%q, path=%q) failed", q2, sku)
 	}
 	if exists {
-		return nil, ErrProductSKUTaken
+		return nil, ErrProductSKUExists
 	}
 
 	q3 := `
 		INSERT INTO product
-		  (path, sku, ean, name, created, modified)
+		  (path, sku, name, created, modified)
 		VALUES
-		  ($1, $2, $3, $4, NOW(), NOW())
+		  ($1, $2, $3, NOW(), NOW())
 		RETURNING
-		  id, uuid, path, sku, ean, name, created, modified
+		  id, uuid, path, sku, name, created, modified
 	`
 	p := ProductRow{}
-	row := tx.QueryRowContext(ctx, q3, path, sku, ean, name)
-	if err := row.Scan(&p.id, &p.UUID, &p.Path, &p.SKU, &p.EAN, &p.Name, &p.Created, &p.Modified); err != nil {
+	row := tx.QueryRowContext(ctx, q3, path, sku, name)
+	if err := row.Scan(&p.id, &p.UUID, &p.Path, &p.SKU, &p.Name, &p.Created, &p.Modified); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context query=%q failed", q3)
 	}
@@ -295,7 +287,6 @@ func (m *PgModel) CreateProduct(ctx context.Context, path, sku, ean, name string
 	// 	id:       p.id,
 	// 	UUID:     p.UUID,
 	// 	SKU:      p.SKU,
-	// 	EAN:      p.EAN,
 	// 	Path:     p.Path,
 	// 	Name:     p.Name,
 	// 	Images:   images,
@@ -310,26 +301,63 @@ func (m *PgModel) CreateProduct(ctx context.Context, path, sku, ean, name string
 }
 
 // UpdateProduct updates the details of a product with the given product id.
-func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *ProductUpdate) (*ProductRow, error) {
+func (m *PgModel) UpdateProduct(ctx context.Context, productUUID string, pu *ProductUpdate) (*ProductRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx failed")
 	}
 
-	q1 := `
+	q1 := "SELECT id FROM product WHERE uuid = $1"
+	var productID int
+	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	// The clause
+	//   AND id != $2
+	// checks all other paths but not our own.
+	q2 := `SELECT EXISTS(SELECT 1 FROM product WHERE path = $1 AND id != $2) AS exists`
+	var exists bool
+	err = tx.QueryRowContext(ctx, q2, pu.Path, productID).Scan(&exists)
+	if err != nil {
+		return nil, errors.Wrapf(err, "model: tx.QueryRowContext(ctx, q2=%q, pu.Path=%q)", q2, pu.Path)
+	}
+	if exists {
+		return nil, ErrProductPathExists
+	}
+
+	// The clause
+	//   AND id != $2
+	// checks all other paths but not our own.
+	q3 := `SELECT EXISTS(SELECT 1 FROM product WHERE sku = $1 AND id != $2) AS exists`
+	err = tx.QueryRowContext(ctx, q3, pu.SKU, productID).Scan(&exists)
+	if err != nil {
+		return nil, errors.Wrapf(err, "model: tx.QueryRowContext(ctx, q3=%q, pu.SKU=%q)", q3, pu.SKU)
+	}
+	if exists {
+		return nil, ErrProductSKUExists
+	}
+
+	q4 := `
 		UPDATE product
 		SET
-		  path = $1, ean = $2, name = $3 modified = NOW()
+		  path = $1, sku = $2, name = $3, modified = NOW()
 		WHERE
-		  uuid = $5
+		  id = $4
 		RETURNING
-		  id, uuid, path, sku, ean, name, created, modified`
-	row := tx.QueryRowContext(ctx, q1, pu.Path, pu.EAN, pu.Name, productID)
+		  id, uuid, path, sku, name, created, modified`
+	row := tx.QueryRowContext(ctx, q4, pu.Path, pu.SKU, pu.Name, productID)
 
 	p := ProductRow{}
-	if err := row.Scan(&p.id, &p.UUID, &p.Path, &p.SKU, &p.EAN, &p.Name, &p.Created, &p.Modified); err != nil {
+	if err := row.Scan(&p.id, &p.UUID, &p.Path, &p.SKU, &p.Name, &p.Created, &p.Modified); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "postgres: query row context query=%q failed", q1)
+		return nil, errors.Wrapf(err, "postgres: query row context q4=%q failed", q4)
 	}
 
 	// Delete all existing products. This is not the most efficient
@@ -448,7 +476,6 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	// 	id:       p.id,
 	// 	UUID:     p.UUID,
 	// 	SKU:      p.SKU,
-	// 	EAN:      p.EAN,
 	// 	Path:     p.Path,
 	// 	Name:     p.Name,
 	// 	Images:   images,
@@ -469,37 +496,76 @@ func (m *PgModel) DeleteProduct(ctx context.Context, productUUID string) error {
 		return errors.Wrap(err, "postgres: db.BeginTx failed")
 	}
 
-	query := "SELECT id FROM product WHERE uuid = $1"
+	// 1. Check if the product exists
+	q1 := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
-	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
+	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
 			return ErrProductNotFound
 		}
 		tx.Rollback()
-		return errors.Wrapf(err, "postgres: query row context failed for query=%q", query)
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
-	query = "DELETE FROM price WHERE product_id = $1"
-	_, err = tx.ExecContext(ctx, query, productID)
+	// 2. TODO: check if the product is part of a promo rule targeting an individual product.
+	// return an error if it is in use.
+
+	// 3. Remove the product from all cart items (one to many)
+	q3 := "DELETE FROM cart_item WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, q3, productID)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "postgres: exec context query=%q failed", query)
+		return errors.Wrapf(err, "postgres: exec context q3=%q failed", q3)
 	}
 
-	query = "DELETE FROM category_product WHERE product_id = $1"
-	_, err = tx.ExecContext(ctx, query, productID)
+	// 4. Unlink the product from the categories (many to many)
+	q4 := "DELETE FROM category_product WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, q4, productID)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "postgres: exec context query=%q failed", query)
+		return errors.Wrapf(err, "postgres: exec context q4=%q failed", q4)
 	}
 
-	query = "DELETE FROM product WHERE id = $1"
-	_, err = tx.ExecContext(ctx, query, productID)
+	// 5. Remove all images associated with this product (one to many)
+	q5 := "DELETE FROM image WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, q5, productID)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "exec context query=%q", query)
+		return errors.Wrapf(err, "postgres: exec context q5=%q failed", q5)
+	}
+
+	// 6. Remove the inventory for this product (one to one)
+	q6 := "DELETE FROM inventory WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, q6, productID)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "postgres: exec context q6=%q failed", q6)
+	}
+
+	// 7. Delete all prices referencing this product (many to many)
+	q7 := "DELETE FROM price WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, q7, productID)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "postgres: exec context q7=%q failed", q7)
+	}
+
+	// 8. Remove the product from any product sets to which it belongs (many to many)
+	q8 := "DELETE FROM product_set_list WHERE product_id = $1"
+	_, err = tx.ExecContext(ctx, q8, productID)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "postgres: exec context q8=%q failed", q8)
+	}
+
+	// 9. Delete the product
+	q9 := "DELETE FROM product WHERE id = $1"
+	_, err = tx.ExecContext(ctx, q9, productID)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "exec context q9=%q", q9)
 	}
 
 	if err = tx.Commit(); err != nil {

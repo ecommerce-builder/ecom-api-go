@@ -120,8 +120,8 @@ func (m *PgModel) CreateImageEntry(ctx context.Context, productUUID string, c *C
 	return &p, nil
 }
 
-// GetImages returns a slice of Images associated to a given product SKU.
-func (m *PgModel) GetImages(ctx context.Context, productUUID string) ([]*ImageJoinRow, error) {
+// GetImagesByProductUUID returns a slice of Images associated to a given product SKU.
+func (m *PgModel) GetImagesByProductUUID(ctx context.Context, productUUID string) ([]*ImageJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx")
@@ -271,22 +271,36 @@ func (m *PgModel) ConfirmImageUploaded(ctx context.Context, uuid string) (*Image
 	return &p, nil
 }
 
-// DeleteProductImage deletes an image entry row from the image
-// table by UUID.
-func (m *PgModel) DeleteProductImage(ctx context.Context, uuid string) (int64, error) {
-	query := `
-		DELETE FROM image
-		WHERE uuid = $1
-	`
-	res, err := m.db.ExecContext(ctx, query, uuid)
+// DeleteImage deletes an image entry row from the image table by uuid.
+func (m *PgModel) DeleteImage(ctx context.Context, imageUUID string) error {
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return -1, err
+		return errors.Wrap(err, "postgres: db.BeginTx failed")
 	}
-	count, err := res.RowsAffected()
+
+	q1 := "SELECT id FROM image WHERE uuid = $1"
+	var imageID int
+	err = tx.QueryRowContext(ctx, q1, imageUUID).Scan(&imageID)
 	if err != nil {
-		return -1, err
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrImageNotFound
+		}
+		tx.Rollback()
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
-	return count, nil
+
+	q2 := "DELETE FROM image WHERE id = $1"
+	_, err = tx.ExecContext(ctx, q2, imageID)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return errors.Wrap(err, "postgres: tx.Commit failed")
+	}
+	return nil
 }
 
 // DeleteAllProductImages Images deletes all images from the image table

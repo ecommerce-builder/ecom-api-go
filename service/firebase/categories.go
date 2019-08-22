@@ -343,7 +343,6 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 			Object:   "product",
 			ID:       cpf.ProductUUID,
 			SKU:      cpf.SKU,
-			EAN:      cpf.EAN,
 			Path:     cpf.ProductPath,
 			Name:     cpf.Name,
 			Created:  cpf.ProductCreated,

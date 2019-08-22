@@ -6,17 +6,18 @@ import (
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // ErrProductNotFound is returned by GetProduct when the query
 // for the product could not be found in the database.
 var ErrProductNotFound = errors.New("service: product not found")
 
-// ErrProductPathTaken error
-var ErrProductPathTaken = errors.New("service: product path taken")
+// ErrProductPathExists error
+var ErrProductPathExists = errors.New("service: product path exists")
 
-// ErrProductSKUTaken error
-var ErrProductSKUTaken = errors.New("service: product SKU taken")
+// ErrProductSKUExists error
+var ErrProductSKUExists = errors.New("service: product sku exists")
 
 // ProductImageRequestBody contains the product image data.
 type ProductImageRequestBody struct {
@@ -34,7 +35,6 @@ type ProductPricingRequestBody struct {
 type ProductCreateRequestBody struct {
 	Path string `json:"path"`
 	SKU  string `json:"sku"`
-	EAN  string `json:"ean"`
 	Name string `json:"name"`
 }
 
@@ -42,7 +42,6 @@ type ProductCreateRequestBody struct {
 type ProductUpdateRequestBody struct {
 	Path string `json:"path"`
 	SKU  string `json:"sku"`
-	EAN  string `json:"ean"`
 	Name string `json:"name"`
 }
 
@@ -55,12 +54,11 @@ type imageListContainer struct {
 type Product struct {
 	Object   string                 `json:"object"`
 	ID       string                 `json:"id"`
-	SKU      string                 `json:"sku"`
-	EAN      string                 `json:"ean"`
 	Path     string                 `json:"path"`
+	SKU      string                 `json:"sku"`
 	Name     string                 `json:"name"`
-	Images   imageListContainer     `json:"images"`
-	Prices   map[PriceListID]*Price `json:"prices"`
+	Images   *imageListContainer    `json:"images,omitempty"`
+	Prices   map[PriceListID]*Price `json:"prices,omitempty"`
 	Created  time.Time              `json:"created"`
 	Modified time.Time              `json:"modified"`
 }
@@ -96,14 +94,14 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 	// 	}
 	// 	pricingReq = append(pricingReq, &item)
 	// }
-	p, err := s.model.CreateProduct(ctx, pc.Path, pc.SKU, pc.EAN, pc.Name)
+	p, err := s.model.CreateProduct(ctx, pc.Path, pc.SKU, pc.Name)
 	if err != nil {
 		if err == postgres.ErrPriceListNotFound {
 			return nil, ErrPriceListNotFound
-		} else if err == postgres.ErrProductPathTaken {
-			return nil, ErrProductPathTaken
-		} else if err == postgres.ErrProductSKUTaken {
-			return nil, ErrProductSKUTaken
+		} else if err == postgres.ErrProductPathExists {
+			return nil, ErrProductPathExists
+		} else if err == postgres.ErrProductSKUExists {
+			return nil, ErrProductSKUExists
 		}
 		return nil, errors.Wrap(err, "CreateProduct(ctx) failed")
 	}
@@ -137,9 +135,8 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 		ID:     p.UUID,
 		Path:   p.Path,
 		SKU:    p.SKU,
-		EAN:    p.EAN,
 		Name:   p.Name,
-		Images: imageListContainer{
+		Images: &imageListContainer{
 			Object: "list",
 			Data:   make([]*Image, 0),
 		},
@@ -176,13 +173,16 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	update := &postgres.ProductUpdate{
 		Path: pu.Path,
 		SKU:  pu.SKU,
-		EAN:  pu.EAN,
 		Name: pu.Name,
 	}
 	p, err := s.model.UpdateProduct(ctx, productID, update)
 	if err != nil {
-		if err == postgres.ErrPriceListNotFound {
+		if err == postgres.ErrProductNotFound {
 			return nil, ErrPriceListNotFound
+		} else if err == postgres.ErrProductPathExists {
+			return nil, ErrProductPathExists
+		} else if err == postgres.ErrProductSKUExists {
+			return nil, ErrProductSKUExists
 		}
 		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%v, ...) failed", productID)
 	}
@@ -211,16 +211,11 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 	// 	prices[PriceListID(pr.UUID)] = &price
 	// }
 	return &Product{
-		Object: "product",
-		ID:     p.UUID,
-		Path:   p.Path,
-		SKU:    p.SKU,
-		EAN:    p.EAN,
-		Name:   p.Name,
-		Images: imageListContainer{
-			Object: "list",
-			Data:   make([]*Image, 0),
-		},
+		Object:   "product",
+		ID:       p.UUID,
+		Path:     p.Path,
+		SKU:      p.SKU,
+		Name:     p.Name,
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
@@ -254,7 +249,9 @@ func (s *Service) ProductsExist(ctx context.Context, productIDs []string) (exist
 }
 
 // GetProduct gets a product given the SKU.
-func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, error) {
+func (s *Service) GetProduct(ctx context.Context, productID string, includeImages, includePrices bool) (*Product, error) {
+	contextLogger := log.WithContext(ctx)
+
 	p, err := s.model.GetProduct(ctx, productID)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
@@ -262,29 +259,36 @@ func (s *Service) GetProduct(ctx context.Context, productID string) (*Product, e
 		}
 		return nil, errors.Wrapf(err, "model: GetProduct(ctx, productID=%q) failed", productID)
 	}
-	images, err := s.GetProductImages(ctx, p.UUID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", p.SKU)
-	}
-	prices, err := s.PriceMap(ctx, p.UUID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "service: PricingMapByProductID(ctx, productID=%q)", p.UUID)
-	}
-	return &Product{
-		Object: "product",
-		ID:     p.UUID,
-		SKU:    p.SKU,
-		EAN:    p.EAN,
-		Path:   p.Path,
-		Name:   p.Name,
-		Images: imageListContainer{
-			Object: "list",
-			Data:   images,
-		},
-		Prices:   prices,
+
+	// prices, err := s.PriceMap(ctx, p.UUID)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "service: PricingMapByProductID(ctx, productID=%q)", p.UUID)
+	// }
+	product := Product{
+		Object:   "product",
+		ID:       p.UUID,
+		Path:     p.Path,
+		SKU:      p.SKU,
+		Name:     p.Name,
 		Created:  p.Created,
 		Modified: p.Modified,
-	}, nil
+	}
+
+	// optional: include the image sub-resource
+	if includeImages {
+		contextLogger.Info("service: including the images sub-resource")
+		images, err := s.GetImagesByProductID(ctx, p.UUID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", p.SKU)
+		}
+
+		product.Images = &imageListContainer{
+			Object: "list",
+			Data:   images,
+		}
+	}
+
+	return &product, nil
 }
 
 // ListProducts returns a slice of all product SKUS.
@@ -298,9 +302,8 @@ func (s *Service) ListProducts(ctx context.Context) ([]*Product, error) {
 		ps := Product{
 			Object:   "product",
 			ID:       p.UUID,
-			SKU:      p.SKU,
-			EAN:      p.EAN,
 			Path:     p.Path,
+			SKU:      p.SKU,
 			Name:     p.Name,
 			Created:  p.Created,
 			Modified: p.Modified,
@@ -314,6 +317,9 @@ func (s *Service) ListProducts(ctx context.Context) ([]*Product, error) {
 func (s *Service) DeleteProduct(ctx context.Context, uuid string) error {
 	err := s.model.DeleteProduct(ctx, uuid)
 	if err != nil {
+		if err == postgres.ErrProductNotFound {
+			return ErrProductNotFound
+		}
 		return errors.Wrapf(err, "delete product uuid=%q failed", uuid)
 	}
 	return nil

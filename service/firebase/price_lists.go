@@ -12,8 +12,8 @@ import (
 // for the given sku and tier ref.
 var ErrPriceListNotFound = errors.New("service: price list not found")
 
-// ErrPriceListCodeTaken error
-var ErrPriceListCodeTaken = errors.New("service: price list code already taken")
+// ErrPriceListCodeExists error
+var ErrPriceListCodeExists = errors.New("service: price list code already exists")
 
 // ErrPriceListInUse error
 var ErrPriceListInUse = errors.New("service: price list has associated prices")
@@ -46,8 +46,8 @@ type PriceListCreate struct {
 func (s *Service) CreatePriceList(ctx context.Context, p *PriceListCreate) (*PriceList, error) {
 	row, err := s.model.CreatePriceList(ctx, p.PriceListCode, p.CurrencyCode, p.Strategy, p.IncTax, p.Name, p.Description)
 	if err != nil {
-		if err == postgres.ErrPriceListCodeTaken {
-			return nil, ErrPriceListCodeTaken
+		if err == postgres.ErrPriceListCodeExists {
+			return nil, ErrPriceListCodeExists
 		}
 		return nil, errors.Wrapf(err, "service: s.model.CreatePriceList(ctx, code=%q, name=%q, description=%q) failed", p.PriceListCode, p.Name, p.Description)
 	}
@@ -126,8 +126,8 @@ func (s *Service) UpdatePriceList(ctx context.Context, priceListID string, p *Pr
 	if err != nil {
 		if err == postgres.ErrPriceListNotFound {
 			return nil, ErrPriceListNotFound
-		} else if err == postgres.ErrPriceListCodeTaken {
-			return nil, ErrPriceListCodeTaken
+		} else if err == postgres.ErrPriceListCodeExists {
+			return nil, ErrPriceListCodeExists
 		}
 		return nil, errors.Wrapf(err, "service: s.model.UpdatePriceList(ctx, priceListID=%q, code=%q, name=%q, description=%q) failed", priceListID, p.PriceListCode, p.Name, p.Description)
 	}
