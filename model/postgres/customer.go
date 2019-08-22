@@ -15,15 +15,31 @@ var ErrCustomerNotFound = errors.New("model: customer not found")
 
 // CustomerRow holds details of a single row from the customer table.
 type CustomerRow struct {
-	id        int
-	UUID      string
-	UID       string
-	Role      string
-	Email     string
-	Firstname string
-	Lastname  string
-	Created   time.Time
-	Modified  time.Time
+	id          int
+	UUID        string
+	UID         string
+	priceListID int
+	Role        string
+	Email       string
+	Firstname   string
+	Lastname    string
+	Created     time.Time
+	Modified    time.Time
+}
+
+// CustomerJoinRow joines with the price_list table to use its uuid.
+type CustomerJoinRow struct {
+	id            int
+	UUID          string
+	UID           string
+	priceListID   int
+	PriceListUUID string
+	Role          string
+	Email         string
+	Firstname     string
+	Lastname      string
+	Created       time.Time
+	Modified      time.Time
 }
 
 // PaginationResultSet contains both the underlying result set as well as
@@ -160,16 +176,20 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 }
 
 // GetCustomerByUUID gets a customer by customer UUID
-func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*CustomerRow, error) {
+func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*CustomerJoinRow, error) {
 	query := `
 		SELECT
-			id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM customer
-		WHERE uuid = $1
+		  c.id, c.uuid, uid, price_list_id, l.uuid as price_list_uuid, role, email,
+		  firstname, lastname, c.created, c.modified
+		FROM customer AS c
+		INNER JOIN price_list AS l
+		  ON c.price_list_id = l.id
+		WHERE c.uuid = $1
 	`
-	c := CustomerRow{}
+	c := CustomerJoinRow{}
 	row := m.db.QueryRowContext(ctx, query, customerUUID)
-	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
+	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.priceListID, &c.PriceListUUID, &c.Role, &c.Email,
+		&c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrCustomerNotFound
 		}

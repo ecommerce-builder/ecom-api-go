@@ -66,6 +66,10 @@ const (
 	// that is already being referenced by prices.
 	ErrCodePriceListInUse string = "price-lists/price-list-in-use"
 
+	// ErrCodePriceListForbiddenPriceList for insufficient permissions to access price list.
+	// determined by looking at the price list inside the customer object.
+	ErrCodePriceListForbiddenPriceList string = "price-lists/forbidden-access-price-list"
+
 	// ErrCodeIncludeQueryParamParseError occurs when the include query param is invalid.
 	ErrCodeIncludeQueryParamParseError string = "query/include-query-param-invalid"
 
@@ -115,12 +119,14 @@ const (
 	OpUpdatePriceList string = "OpUpdatePriceList"
 	OpDeletePriceList string = "OpDeletePriceList"
 
-	// Pricing
-	OpGetTierPricing        string = "OpGetTierPricing"
-	OpMapPricingByProductID string = "OpMapPricingByProductID"
-	OpMapPricingByTier      string = "OpMapPricingByTier"
-	OpUpdateTierPricing     string = "OpUpdateTierPricing"
-	OpDeleteTierPricing     string = "OpDeleteTierPricing"
+	// Prices
+	OpUpdateProductPrices string = "OpUpdateProductPrices"
+	OpGetProductPrices    string = "OpGetProductPrices"
+	OpListPrices          string = "OpListPrices"
+
+	OpGetTierPricing    string = "OpGetTierPricing"
+	OpMapPricingByTier  string = "OpMapPricingByTier"
+	OpDeleteTierPricing string = "OpDeleteTierPricing"
 
 	// Promotion Rules
 	OpCreatePromoRule string = "OpCreatePromoRule"

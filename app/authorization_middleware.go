@@ -3,8 +3,10 @@ package app
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"net/http"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"firebase.google.com/go/auth"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
@@ -60,17 +62,18 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem,
 			OpDeleteCartItem, OpEmptyCartItems, OpGetCategories, OpSignInWithDevKey,
 			OpGetProduct, OpListProducts, OpGetCategoryProductAssocs,
-			OpGetTierPricing, OpMapPricingByProductID, OpMapPricingByTier, OpGetImage,
+			OpGetTierPricing, OpMapPricingByTier, OpGetImage,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetPriceList:
 			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		// Operations that required at least RoleAdmin privileges
 		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
 			OpPurgeCategoryAssocs, OpUpdateCategoryProductAssocs, OpSystemInfo,
-			OpUpdateCategories, OpPurgeCatalog, OpUpdateTierPricing, OpDeleteTierPricing,
+			OpUpdateCategories, OpPurgeCatalog, OpUpdateProductPrices, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
 			OpCreatePriceList, OpListPriceLists, OpUpdatePriceList, OpDeletePriceList,
-			OpCreatePromoRule, OpDeletePromoRule, OpGetPromoRule, OpListPromoRules:
+			OpCreatePromoRule, OpDeletePromoRule, OpGetPromoRule, OpListPromoRules,
+			OpListPrices:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
@@ -84,6 +87,47 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 			unauthorized(w)
+			return
+		// both admins and shoppers can get prices, but shoppers are only allowed a price_list_id
+		// matching their customer account
+		case OpGetProductPrices:
+			if role == RoleAdmin {
+				next.ServeHTTP(w, r.WithContext(ctx2))
+				return
+			}
+
+			priceListID := r.URL.Query().Get("price_list_id")
+			if priceListID != "" {
+				contextLogger.Infof("auth: OpGetProductPrices received cid=%q query param price_list_id set to %q", cid, priceListID)
+			}
+			valid, err := a.Service.CustomerCanAccessPriceList(ctx, cid, priceListID)
+			if err != nil {
+				if err == service.ErrCustomerNotFound {
+					contextLogger.Errorf("a.Service.CustomerCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				contextLogger.Errorf("a.Service.CustomerCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if valid {
+				next.ServeHTTP(w, r.WithContext(ctx2))
+				return
+			}
+
+			contextLogger.Errorf("a.Service.CustomerCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
+			w.WriteHeader(http.StatusForbidden) // 403 Forbidden
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusForbidden,
+				ErrCodePriceListForbiddenPriceList,
+				"forbidden access to prices with the given price list",
+			})
 			return
 		case OpCreateAddress, OpGetCustomer, OpGetCustomersAddresses, OpUpdateAddress, OpGenerateCustomerDevKey, OpListCustomersDevKeys:
 			// Check the JWT Claim's customer UUID and safely compare it to the customer UUID in the route

@@ -2,9 +2,12 @@ package firebase
 
 import (
 	"context"
+	"crypto/subtle"
 	"time"
 
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // ErrDefaultPriceListMissing error
@@ -15,11 +18,20 @@ type PriceListID string
 
 // Price contains pricing information for a single product and price list.
 type Price struct {
-	ProductID   string    `json:"product_id,omitempty"`
-	PriceListID string    `json:"pricing_list_id,omitempty"`
+	Object      string    `json:"object"`
+	ID          string    `json:"id"`
+	ProductID   string    `json:"product_id"`
+	PriceListID string    `json:"pricing_list_id"`
+	Break       int       `json:"break"`
 	UnitPrice   int       `json:"unit_price"`
 	Created     time.Time `json:"created"`
 	Modified    time.Time `json:"modified"`
+}
+
+// PriceRequest represents a single price
+type PriceRequest struct {
+	Break     int `json:"break"`
+	UnitPrice int `json:"unit_price"`
 }
 
 // Price represents a single price
@@ -29,7 +41,7 @@ type Price struct {
 // 	Modified  time.Time `json:"modified"`
 // }
 
-// GetPricesByProductID returns prices for the product with the
+// GetPricesByProductIDAndPriceListID returns prices for the product with the
 // given product id and price list id.
 func (s *Service) GetPricesByProductIDAndPriceListID(ctx context.Context, productID, priceListID string) (*Price, error) {
 	p, err := s.model.GetPricesByPriceList(ctx, productID, priceListID)
@@ -37,6 +49,7 @@ func (s *Service) GetPricesByProductIDAndPriceListID(ctx context.Context, produc
 		return nil, errors.Wrap(err, "GetProductPricingBySKUAndTier failed")
 	}
 	pricing := Price{
+		Object:      "price",
 		ProductID:   p.ProductUUID,
 		PriceListID: p.PriceListUUID,
 		UnitPrice:   p.UnitPrice,
@@ -52,24 +65,51 @@ type ProductTierPricing struct {
 	UnitPrice float64 `json:"unit_price"`
 }
 
-// PriceMap returns a map of pricing list id to price.
-func (s *Service) PriceMap(ctx context.Context, productID string) (map[PriceListID]*Price, error) {
-	plist, err := s.model.GetPrices(ctx, productID)
+// CustomerCanAccessPriceList return true if the given customer has access to the price list.
+func (s *Service) CustomerCanAccessPriceList(ctx context.Context, customerID, priceListID string) (bool, error) {
+	customer, err := s.model.GetCustomerByUUID(ctx, customerID)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetProductPricingByProductUUID failed")
+		if err == postgres.ErrCustomerNotFound {
+			return false, ErrCustomerNotFound
+		}
+		return false, errors.Wrapf(err, "service: s.model.GetCustomerByUUID(ctx, customerID=%q) failed", customerID)
 	}
-	pmap := make(map[PriceListID]*Price)
+	if subtle.ConstantTimeCompare([]byte(customer.PriceListUUID), []byte(priceListID)) == 1 {
+		return true, nil
+	}
+	return false, nil
+}
+
+// GetPrices returns a list of prices.
+func (s *Service) GetPrices(ctx context.Context, productID, priceListID string) ([]*Price, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Infof("service: GetPrices(ctx context.Context, productID=%q, priceListID=%q) started", productID, priceListID)
+
+	plist, err := s.model.GetPrices(ctx, productID, priceListID)
+	if err != nil {
+		if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		} else if err == postgres.ErrPriceListNotFound {
+			return nil, ErrPriceListNotFound
+		}
+		return nil, errors.Wrapf(err, "service: GetPrices(ctx, productID=%q, priceListID=%q) failed", productID, priceListID)
+	}
+
+	prices := make([]*Price, 0, len(plist))
 	for _, p := range plist {
-		ptp := Price{
-			UnitPrice: p.UnitPrice,
-			Created:   p.Created,
-			Modified:  p.Modified,
+		price := Price{
+			Object:      "price",
+			ID:          p.UUID,
+			ProductID:   p.ProductUUID,
+			PriceListID: p.PriceListUUID,
+			Break:       p.Break,
+			UnitPrice:   p.UnitPrice,
+			Created:     p.Created,
+			Modified:    p.Modified,
 		}
-		if _, ok := pmap[PriceListID(p.PriceListUUID)]; !ok {
-			pmap[PriceListID(p.PriceListCode)] = &ptp
-		}
+		prices = append(prices, &price)
 	}
-	return pmap, nil
+	return prices, nil
 }
 
 // PriceMapByPriceList returns a map of product ids to Price.
@@ -81,6 +121,7 @@ func (s *Service) PriceMapByPriceList(ctx context.Context, priceListID string) (
 	pmap := make(map[string]*Price)
 	for _, p := range plist {
 		ptp := Price{
+			Object:    "price",
 			UnitPrice: p.UnitPrice,
 			Created:   p.Created,
 			Modified:  p.Modified,
@@ -92,28 +133,42 @@ func (s *Service) PriceMapByPriceList(ctx context.Context, priceListID string) (
 	return pmap, nil
 }
 
-// UpdateTierPricing updates the tier pricing for the given sku and tier ref.
-// If the produt pricing is not found returns nil, nil.
-func (s *Service) UpdateTierPricing(ctx context.Context, productID, priceListID string, unitPrice float64) (*Price, error) {
-	p, err := s.model.GetPricesByPriceList(ctx, productID, priceListID)
+// UpdateProductPrices updates the prices for a given product and product list.
+func (s *Service) UpdateProductPrices(ctx context.Context, productID, priceListID string, createPrices []*PriceRequest) ([]*Price, error) {
+	cps := make([]*postgres.CreatePrice, 0, len(createPrices))
+	for _, p := range createPrices {
+		cp := postgres.CreatePrice{
+			Break:     p.Break,
+			UnitPrice: p.UnitPrice,
+		}
+		cps = append(cps, &cp)
+	}
+
+	plist, err := s.model.UpdatePrices(ctx, productID, priceListID, cps)
 	if err != nil {
-		return nil, errors.Wrapf(err, "GetProductPricingBySKUAndTier(ctx, %q, %q) failed", productID, priceListID)
+		if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		} else if err == postgres.ErrPriceListNotFound {
+			return nil, ErrPriceListNotFound
+		}
+		return nil, errors.Wrapf(err, "service: UpdatePrice(ctx, productID=%q, createPrices=%v) failed", productID, priceListID, createPrices)
 	}
-	if p == nil {
-		return nil, ErrPriceListNotFound
+
+	prices := make([]*Price, 0, len(plist))
+	for _, p := range plist {
+		price := Price{
+			Object:      "price",
+			ID:          p.UUID,
+			ProductID:   p.ProductUUID,
+			PriceListID: p.PriceListUUID,
+			Break:       p.Break,
+			UnitPrice:   p.UnitPrice,
+			Created:     p.Created,
+			Modified:    p.Modified,
+		}
+		prices = append(prices, &price)
 	}
-	p, err = s.model.UpdatePrice(ctx, productID, priceListID, unitPrice)
-	if err != nil {
-		return nil, errors.Wrapf(err, "UpdateTierPricing(ctx, %q, %q, %.4f) failed", productID, priceListID, unitPrice)
-	}
-	pricing := Price{
-		ProductID:   p.ProductUUID,
-		PriceListID: p.PriceListUUID,
-		UnitPrice:   p.UnitPrice,
-		Created:     p.Created,
-		Modified:    p.Modified,
-	}
-	return &pricing, nil
+	return prices, nil
 }
 
 // DeletePrices deletes a price list by id.

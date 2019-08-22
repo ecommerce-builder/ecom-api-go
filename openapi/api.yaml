@@ -1247,6 +1247,40 @@ paths:
       responses:
         '204':
           description: No Content
+  /prices:
+    parameters:
+    - name: price_list_id
+      required: false
+      in: query
+      description: A unique identifier for the price list.
+      schema:
+        type: string
+        format: uuid
+        example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get all prices
+      description: |
+        OpGetAllPrices requires `RoleAdmin` privileges.
+      operationId: OpGetAllPrices
+      tags:
+      - Prices
+      responses:
+        '200':
+          description: list of price objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Price'
   /products/{id}/prices:
     parameters:
     - name: id
@@ -1257,6 +1291,44 @@ paths:
         type: string
         format: uuid
         example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
+    put:
+      parameters:
+      - name: price_list_id
+        required: true
+        in: query
+        description: filter for only a single price list
+        schema:
+          type: string
+          format: uuid
+          example: '72ae053a-e63d-4a8e-8a0b-ac43e9ca89d1'
+      security:
+      - bearerAuth: []
+      summary: Get all prices for a given product
+      description: |
+        OpUpdateProductPrices requires `RoleShopper` privileges.
+      operationId: OpUpdateProductPrices
+      tags:
+      - Prices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductPriceRequest'
+      responses:
+        '200':
+          description: list of price objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Price'
     get:
       parameters:
       - name: price_list_id
@@ -1271,17 +1343,37 @@ paths:
       - bearerAuth: []
       summary: Get all prices for a given product
       description: |
-        OpMapPricingByProductID requires `RoleShopper` privileges.
-      operationId: OpMapPricingBySKU
+        OpGetProductPrices requires `RoleShopper` privileges.
+      operationId: OpGetProductPrices
       tags:
       - Prices
       responses:
         '200':
-          description: PricingMap
+          description: list of price objects
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PricingMap'
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Price'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a product's prices by price list id.
+      description: |
+        OpDeleteTierPricing requires `RoleAdmin` privileges.
+      operationId: OpDeleteTierPricing
+      tags:
+      - Prices
+      responses:
+        '204':
+          description: No Content
   /products/{id}/images:
     parameters:
     - name: id
@@ -1324,7 +1416,7 @@ paths:
       - Images
       responses:
         '200':
-          description: List of Image objects
+          description: List of image objects
           content:
             application/json:
               schema:
@@ -1410,7 +1502,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProductUpdateRequest'
       responses:
-        '201':
+        '200':
           description: product object
           content:
             application/json:
@@ -1711,102 +1803,6 @@ paths:
                     status: 409
                     code: 'price-list/price-list-in-use'
                     message: price list is already in use
-  /products/{id}/price-lists/{price_list_id}:
-    parameters:
-    - name: id
-      required: true
-      in: path
-      description: A unique identifier for the product.
-      schema:
-        type: string
-        example: 'TV-SKU'
-    - name: price_list_id
-      required: true
-      in: path
-      description: A unique identifier for the price list.
-      schema:
-        type: string
-        example: 'default'
-    put:
-      security:
-      - bearerAuth: []
-      summary: Update a product price
-      description: |
-        OpUpdateTierPricing requires `RoleAdmin` privileges.
-      operationId: OpUpdateTierPricing
-      tags:
-      - Prices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - unit_price
-              properties:
-                unit_price:
-                  type: integer
-                  minimum: 0
-                  example: 2066250
-      responses:
-        '200':
-          description: Pricing object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pricing'
-    get:
-      security:
-      - bearerAuth: []
-      summary: Get a product price list
-      description: |
-        OpGetTierPricing requires `RoleShopper` privileges.
-      operationId: OpGetTierPricing
-      tags:
-      - Prices
-      responses:
-        '200':
-          description: Pricing object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pricing'
-    delete:
-      security:
-      - bearerAuth: []
-      summary: Delete a product price by product SKU and price list reference
-      description: |
-        OpDeleteTierPricing requires `RoleAdmin` privileges.
-      operationId: OpDeleteTierPricing
-      tags:
-      - Prices
-      responses:
-        '204':
-          description: No Content
-  /products/tiers/{id}/pricing:
-    get:
-      security:
-      - bearerAuth: []
-      summary: Get all product pricings for a given tier
-      description: |
-        OpMapPricingByTier requires `RoleShopper` privileges.
-      operationId: OpMapPricingByTier
-      tags:
-      - Prices
-      parameters:
-      - name: id
-        required: true
-        in: path
-        description: A unique identifier for the tier.
-        schema:
-          type: string
-          example: 'default'
-      responses:
-        '200':
-          description: PricingMap object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PricingMap'
   /orders:
     post:
       security:
@@ -2401,6 +2397,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CategoryRequest'
+    UpdateProductPriceRequest:
+      required:
+      - object
+      - data
+      properties:
+        object:
+          type: string
+          enum: ['list']
+          example: list
+        data:
+          type: array
+          items:
+            properties:
+              break:
+                type: integer
+                example: 1
+              unit_price:
+                type: integer
+                example: 191920
     PriceListRequest:
       required:
       - price_list_code
@@ -2482,20 +2497,24 @@ components:
             type: string
             format: date-time
             example: '2019-07-31T17:03:17.673329Z'
-    Pricing:
+    Price:
       properties:
         object:
           type: string
-          example: 'pricing'
+          example: price
         id:
           type: string
           example: b85f6782-c6a8-4188-81ca-c9c1eba45367
-        sku:
+        product_id:
           type: string
-          example: 'TV-SKU'
-        tier_id:
+          format: uuid
+          example: 49173212-537f-497b-b76e-1d606855fe66
+        price_list_id:
           type: string
-          example: 'default'
+          example: 5fb5bd58-24f7-42c6-9be8-12f06602cec7
+        break:
+          type: integer
+          example: 1
         unit_price:
           type: integer
           example: 2066250
