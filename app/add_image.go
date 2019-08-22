@@ -2,9 +2,9 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/go-chi/chi"
@@ -27,25 +27,22 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		exists, err := a.Service.ImagePathExists(ctx, imageRequestBody.Path)
+
+		image, err := a.Service.CreateImage(ctx, productID, imageRequestBody.Path)
 		if err != nil {
-			contextLogger.Errorf("service ImageExists(ctx, path=%q) error: %v", imageRequestBody.Path, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if exists {
-			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
-				Message string `json:"message"`
-			}{
-				409,
-				fmt.Sprintf("image with path=%s already exists", imageRequestBody.Path),
-			})
-			return
-		}
-		image, err := a.Service.CreateImageEntry(ctx, productID, imageRequestBody.Path)
-		if err != nil {
+			if err == service.ErrProductNotFound {
+				w.WriteHeader(http.StatusNotFound) // Not Found
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusNotFound,
+					ErrCodeProductNotFound,
+					"product not found",
+				})
+				return
+			}
 			contextLogger.Errorf("service CreateImageEntry(ctx, productID=%s, %s) error: %v", imageRequestBody.Path, productID, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

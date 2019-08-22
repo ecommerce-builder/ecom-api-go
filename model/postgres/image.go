@@ -67,8 +67,8 @@ type ImageJoinRow struct {
 	Modified    time.Time
 }
 
-// CreateImageEntry writes a new image entry to the image table.
-func (m *PgModel) CreateImageEntry(ctx context.Context, productUUID string, c *CreateImage) (*ImageJoinRow, error) {
+// CreateImage writes a new image row to the image table.
+func (m *PgModel) CreateImage(ctx context.Context, productUUID string, c *CreateImage) (*ImageJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
@@ -222,15 +222,17 @@ func (m *PgModel) ImagePathExists(ctx context.Context, path string) (bool, error
 func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*ImageJoinRow, error) {
 	query := `
 		SELECT
-		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
-		  gsurl, data, i.created, i.modified
+		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up,
+		  pri, size, q, gsurl, data, i.created, i.modified
 		FROM image AS i
 		INNER JOIN product AS p
 		  ON p.id = i.product_id
 		WHERE i.uuid = $1
 	`
 	p := ImageJoinRow{}
-	if err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
+	if err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.UUID, &p.productID,
+		&p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size,
+		&p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrImageNotFound
 		}

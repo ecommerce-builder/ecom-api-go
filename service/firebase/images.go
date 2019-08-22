@@ -27,8 +27,8 @@ type Image struct {
 	Modified  time.Time `json:"modified"`
 }
 
-// CreateImageEntry creates a new image entry for a product with the given SKU.
-func (s *Service) CreateImageEntry(ctx context.Context, productID string, path string) (*Image, error) {
+// CreateImage creates a new image for a product.
+func (s *Service) CreateImage(ctx context.Context, productID string, path string) (*Image, error) {
 	pc := postgres.CreateImage{
 		W:     99999999,
 		H:     99999999,
@@ -40,7 +40,7 @@ func (s *Service) CreateImageEntry(ctx context.Context, productID string, path s
 		Size:  0,
 		Q:     100,
 	}
-	pi, err := s.model.CreateImageEntry(ctx, productID, &pc)
+	pi, err := s.model.CreateImage(ctx, productID, &pc)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound

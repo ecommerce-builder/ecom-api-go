@@ -20,20 +20,20 @@ const (
 	ErrCodeNoCatalog string = "catalog/no-catalog"
 
 	// ErrCodeCustomerNotFound is sent if a customer cannot be located
-	ErrCodeCustomerNotFound string = "customer/not-found"
+	ErrCodeCustomerNotFound string = "customers/not-found"
 
 	// ErrCodeCartAlreadyExists is sent when attempting to add a cart item to a cart
 	// and that cart item is already in the cart.
-	ErrCodeCartAlreadyExists string = "cart/cart-item-already-exists"
+	ErrCodeCartAlreadyExists string = "carts/cart-item-already-exists"
 
 	// ErrCodeCartContainsNoItems is sent when attempting to empty a cart that is
 	// already empty.
-	ErrCodeCartContainsNoItems string = "cart/cart-contains-no-items"
+	ErrCodeCartContainsNoItems string = "carts/cart-contains-no-items"
 
 	// ErrCodeCartItemNotFound is sent when attempting to delete or update a product
 	// in a given cart. The cart and product are found but the product is not in
 	// the cart items.
-	ErrCodeCartItemNotFound string = "cart/cart-item-not-found"
+	ErrCodeCartItemNotFound string = "carts/cart-item-not-found"
 
 	// ErrMissingPathsLeafsProductIDs is sent when the consumer attempts to apply catalog
 	// associations that contain references to paths that are non existence, paths that
@@ -41,31 +41,30 @@ const (
 	ErrMissingPathsLeafsProductIDs string = "assocs/missing-paths-leafs-product-ids"
 
 	// ErrCodeProductNotFound indicates the product with given SKU could not be found.
-	ErrCodeProductNotFound string = "product/product-not-found"
+	ErrCodeProductNotFound string = "products/product-not-found"
 
 	// ErrCodeProductPathExists is returned when attempting to create or update a product
 	// with a path that is already used by another product.
-	ErrCodeProductPathExists string = "product/product-path-exists"
+	ErrCodeProductPathExists string = "products/product-path-exists"
 
 	// ErrCodeProductSKUExists is returned when attempting to create or update a product
 	// with a SKU that is already used by another product.
-	ErrCodeProductSKUExists string = "product-sku-exists"
+	ErrCodeProductSKUExists string = "products/product-sku-exists"
 
-	// ErrCodeDuplicateImagePath return value is sent when a consumer attempts
-	// add a new product with duplicate image paths.
-	ErrCodeDuplicateImagePath string = "product/duplicate-image-paths"
+	// ErrCodeImageNotFound is returned whilst attempting to get an image.
+	ErrCodeImageNotFound string = "images/image-not-found"
 
 	// ErrCodePriceListNotFound is returned when attempting to reference a price
 	// list that does not exist
-	ErrCodePriceListNotFound string = "price-list/price-list-not-found"
+	ErrCodePriceListNotFound string = "price-lists/price-list-not-found"
 
 	// ErrCodePriceListCodeExists is returned when attempting to add a new price list
 	// with a price list code that is already in use.
-	ErrCodePriceListCodeExists string = "price-list/price-list-code-exists"
+	ErrCodePriceListCodeExists string = "price-lists/price-list-code-exists"
 
 	// ErrCodePriceListInUse is returned when attempting to delete a price list
 	// that is already being referenced by prices.
-	ErrCodePriceListInUse string = "price-list/price-list-in-use"
+	ErrCodePriceListInUse string = "price-lists/price-list-in-use"
 
 	// ErrCodeIncludeQueryParamParseError occurs when the include query param is invalid.
 	ErrCodeIncludeQueryParamParseError string = "query/include-query-param-invalid"
