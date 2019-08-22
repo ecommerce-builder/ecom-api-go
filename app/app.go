@@ -19,9 +19,9 @@ const (
 	// before a catalog has been applied.
 	ErrCodeNoCatalog string = "catalog/no-catalog"
 
-	// ErrCodeCategoryNotFound returned when attempting to associate a product to a category
-	// and that category can't be found.
-	ErrCodeCategoryNotFound string = "categories/category-not-found"
+	// ErrCodeLeafCategoryNotFound returned when attempting to associate a product to a
+	// leaf category and that categoryd.
+	ErrCodeLeafCategoryNotFound string = "categories/leaf-category-not-found"
 
 	// ErrCodeCustomerNotFound is sent if a customer cannot be located
 	ErrCodeCustomerNotFound string = "customers/not-found"

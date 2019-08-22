@@ -54,7 +54,7 @@ func (app *App) UpdateProductsCategoriesHandler() http.HandlerFunc {
 					"one or more product ids cannot be found",
 				})
 				return
-			} else if err == service.ErrCategoryNotFound {
+			} else if err == service.ErrLeafCategoryNotFound {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -62,8 +62,8 @@ func (app *App) UpdateProductsCategoriesHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodeCategoryNotFound,
-					"one or more category ids cannot be found",
+					ErrCodeLeafCategoryNotFound,
+					"one or more leaf category ids cannot be found",
 				})
 				return
 			}

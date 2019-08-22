@@ -16,8 +16,8 @@ import (
 // already exist.
 var ErrAssocsAlreadyExist = errors.New("service: associations already exist")
 
-// ErrCategoryNotFound error
-var ErrCategoryNotFound = errors.New("service: category not found")
+// ErrLeafCategoryNotFound error
+var ErrLeafCategoryNotFound = errors.New("service: category not found")
 
 // ErrCategoriesEmpty error
 var ErrCategoriesEmpty = errors.New("service: categories empty")

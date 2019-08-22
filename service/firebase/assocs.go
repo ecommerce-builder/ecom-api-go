@@ -129,8 +129,8 @@ func (s *Service) UpdateProductsCategories(ctx context.Context, cpcs []*CreatePr
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
-		} else if err == postgres.ErrCategoryNotFound {
-			return nil, ErrCategoryNotFound
+		} else if err == postgres.ErrLeafCategoryNotFound {
+			return nil, ErrLeafCategoryNotFound
 		}
 		return nil, errors.Wrap(err, "s.model.UpdateProductsCategories(ctx, createProductsCategories) failed")
 	}

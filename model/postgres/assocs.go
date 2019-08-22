@@ -106,7 +106,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	//
 	// 2. Create a map of category_id to category uuid
 	//
-	q2 := "SELECT id, uuid, path FROM category"
+	q2 := "SELECT id, uuid, path FROM category WHERE lft = rgt - 1"
 	rows2, err := tx.QueryContext(ctx, q2)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: query context q2=%q", q2)
@@ -121,7 +121,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	categoryMap := make(map[string]*category)
 	for rows2.Next() {
 		var c category
-		err = rows2.Scan(&c.id, &c.uuid)
+		err = rows2.Scan(&c.id, &c.uuid, &c.path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "postgres: scan failed")
 		}
@@ -138,7 +138,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 			return nil, ErrProductNotFound
 		}
 		if _, ok := categoryMap[c.CategoryUUID]; !ok {
-			return nil, ErrCategoryNotFound
+			return nil, ErrLeafCategoryNotFound
 		}
 	}
 
@@ -265,7 +265,7 @@ func (m *PgModel) CreateCategoryProductAssocs(ctx context.Context, cpas map[stri
 		if err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
-				return ErrCategoryNotFound
+				return ErrLeafCategoryNotFound
 			}
 			tx.Rollback()
 			return errors.Wrapf(err, "query row context failed for query=%q", q3)

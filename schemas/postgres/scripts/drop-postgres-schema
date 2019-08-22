@@ -1,5 +1,7 @@
 #!/bin/bash
 echo "DROP FUNCTION IF EXISTS schema_version()" | psql --no-psqlrc ecom_dev > /dev/null
+echo "DROP FUNCTION IF EXISTS is_leaf(integer)" | psql --no-psqlrc ecom_dev > /dev/null
+echo "DROP FUNCTION IF EXISTS is_leaf_path(text)" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS cart_item" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS cart_coupon" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS coupon" | psql --no-psqlrc ecom_dev > /dev/null
