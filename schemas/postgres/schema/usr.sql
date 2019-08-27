@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS customer (
+CREATE TABLE IF NOT EXISTS usr (
   id               SERIAL PRIMARY KEY,
   uuid             UUID DEFAULT uuid_generate_v4() UNIQUE,
   uid              VARCHAR(64) NOT NULL UNIQUE,
@@ -12,6 +12,6 @@ CREATE TABLE IF NOT EXISTS customer (
   FOREIGN KEY (price_list_id) REFERENCES price_list (id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_customer_role_asc ON customer (role ASC);
-CREATE INDEX IF NOT EXISTS idx_customer_created_desc ON customer (created DESC);
-CREATE INDEX IF NOT EXISTS idx_customer_modified ON customer (modified DESC);
+CREATE INDEX IF NOT EXISTS idx_usr_role_asc ON usr (role ASC);
+CREATE INDEX IF NOT EXISTS idx_usr_created_desc ON usr (created DESC);
+CREATE INDEX IF NOT EXISTS idx_usr_modified ON usr (modified DESC);

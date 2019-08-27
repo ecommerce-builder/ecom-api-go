@@ -56,11 +56,11 @@ cat $schemadir/cart_coupon.sql | psql --no-psqlrc ecom_dev > /dev/null
 echo "Creating offer table"
 cat $schemadir/offer.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating customer table"
-cat $schemadir/customer.sql | psql --no-psqlrc ecom_dev > /dev/null
+echo "Creating usr table"
+cat $schemadir/usr.sql | psql --no-psqlrc ecom_dev > /dev/null
 
-echo "Creating customer_devkey table"
-cat $schemadir/customer_devkey.sql | psql --no-psqlrc ecom_dev > /dev/null
+echo "Creating usr_devkey table"
+cat $schemadir/usr_devkey.sql | psql --no-psqlrc ecom_dev > /dev/null
 
 echo "Creating address table"
 cat $schemadir/address.sql | psql --no-psqlrc ecom_dev > /dev/null
