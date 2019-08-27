@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewQuery(t *testing.T) {
-	q := postgres.NewQuery("customers", map[string]bool{
+	q := postgres.NewQuery("usr", map[string]bool{
 		"id":        true,
 		"uuid":      false,
 		"uid":       false,

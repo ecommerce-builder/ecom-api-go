@@ -65,16 +65,16 @@ type ProductTierPricing struct {
 	UnitPrice float64 `json:"unit_price"`
 }
 
-// CustomerCanAccessPriceList return true if the given customer has access to the price list.
-func (s *Service) CustomerCanAccessPriceList(ctx context.Context, customerID, priceListID string) (bool, error) {
-	customer, err := s.model.GetCustomerByUUID(ctx, customerID)
+// UserCanAccessPriceList return true if the given user has access to the price list.
+func (s *Service) UserCanAccessPriceList(ctx context.Context, userID, priceListID string) (bool, error) {
+	user, err := s.model.GetUserByUUID(ctx, userID)
 	if err != nil {
-		if err == postgres.ErrCustomerNotFound {
-			return false, ErrCustomerNotFound
+		if err == postgres.ErrUserNotFound {
+			return false, ErrUserNotFound
 		}
-		return false, errors.Wrapf(err, "service: s.model.GetCustomerByUUID(ctx, customerID=%q) failed", customerID)
+		return false, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userID=%q) failed", userID)
 	}
-	if subtle.ConstantTimeCompare([]byte(customer.PriceListUUID), []byte(priceListID)) == 1 {
+	if subtle.ConstantTimeCompare([]byte(user.PriceListUUID), []byte(priceListID)) == 1 {
 		return true, nil
 	}
 	return false, nil

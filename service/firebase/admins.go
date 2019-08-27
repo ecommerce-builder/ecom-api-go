@@ -7,14 +7,14 @@ import (
 )
 
 // ListAdmins returns a list of administrators
-func (s *Service) ListAdmins(ctx context.Context) ([]*Customer, error) {
+func (s *Service) ListAdmins(ctx context.Context) ([]*User, error) {
 	admins, err := s.model.GetAllAdmins(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetAllAdmins(ctx) failed")
 	}
-	adms := make([]*Customer, 0, 8)
+	adms := make([]*User, 0, 8)
 	for _, c := range admins {
-		customer := &Customer{
+		user := &User{
 			ID:        c.UUID,
 			UID:       c.UID,
 			Role:      c.Role,
@@ -24,7 +24,7 @@ func (s *Service) ListAdmins(ctx context.Context) ([]*Customer, error) {
 			Created:   c.Created,
 			Modified:  c.Modified,
 		}
-		adms = append(adms, customer)
+		adms = append(adms, user)
 	}
 	return adms, nil
 }
@@ -40,10 +40,10 @@ func (s *Service) DeleteAdmin(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "get admin failed for id=%q", id)
 	}
 	if admin.Role != "admin" {
-		return errors.Errorf("customer record with id=%q does not have role admin or could not be found", id)
+		return errors.Errorf("user record with id=%q does not have role admin or could not be found", id)
 	}
 	if err = s.model.DeleteAdminByUUID(ctx, id); err != nil {
-		return errors.Wrapf(err, "delete customer by id for id=%q failed", id)
+		return errors.Wrapf(err, "delete user by id for id=%q failed", id)
 	}
 	if err = authClient.DeleteUser(ctx, admin.UID); err != nil {
 		return errors.Wrapf(err, "firebase auth delete user failed for uid=%q", admin.UID)

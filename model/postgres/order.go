@@ -72,23 +72,23 @@ func totalSpend(cartItems []*CartItemJoinRow) (int, int) {
 
 // OrderRow holds a single row of data from the orders table.
 type OrderRow struct {
-	id            int
-	UUID          string
-	Status        string
-	Payment       string
-	CustomerID    *int
-	CustomerName  *string
-	CustomerEmail *string
-	StripePI      *string
-	ShipTb        bool
-	Billing       *orderAddress
-	Shipping      *orderAddress
-	Currency      string
-	TotalExVAT    int
-	VATTotal      int
-	TotalIncVAT   int
-	Created       time.Time
-	Modified      time.Time
+	id          int
+	UUID        string
+	Status      string
+	Payment     string
+	UserID      *int
+	UserName    *string
+	UserEmail   *string
+	StripePI    *string
+	ShipTb      bool
+	Billing     *orderAddress
+	Shipping    *orderAddress
+	Currency    string
+	TotalExVAT  int
+	VATTotal    int
+	TotalIncVAT int
+	Created     time.Time
+	Modified    time.Time
 }
 
 // OrderItemRow holds a single row of data from the order_item table.
@@ -111,10 +111,10 @@ type OrderItemRow struct {
 // shipping is nil ship_tb (ship to billing address) is set to true.
 // Returns both the OrderRow and list of OrderItemRows as well as the
 // order total including VAT to be paid, or nil, nil, 0 if an error occurs.
-func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, customerUUID *string, stripePI *string, cartUUID string, billing, shipping *NewAddress) (*OrderRow, []*OrderItemRow, *CustomerRow, error) {
+func (m *PgModel) AddOrder(ctx context.Context, userName, userEmail, userUUID *string, stripePI *string, cartUUID string, billing, shipping *NewAddress) (*OrderRow, []*OrderItemRow, *UsrRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "db.BeginTx")
+		return nil, nil, nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
 	query := `
@@ -126,7 +126,7 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	`
 	rows, err := tx.QueryContext(ctx, query, cartUUID)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "tx.QueryContext(ctx, %q, %q) failed", query, cartUUID)
+		return nil, nil, nil, errors.Wrapf(err, "postgres: tx.QueryContext(ctx, %q, %q) failed", query, cartUUID)
 	}
 	defer rows.Close()
 
@@ -134,39 +134,39 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	for rows.Next() {
 		c := CartItemJoinRow{}
 		if err = rows.Scan(&c.id, &c.UUID, &c.SKU, &c.Name, &c.Qty, &c.UnitPrice, &c.Created, &c.Modified); err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "scan cart item %v", c)
+			return nil, nil, nil, errors.Wrapf(err, "postgres: scan cart item %v", c)
 		}
 		cartItems = append(cartItems, &c)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "rows err")
+		return nil, nil, nil, errors.Wrapf(err, "postgres: rows err")
 	}
 
-	var customerID *int
-	var c CustomerRow
-	if customerUUID != nil {
+	var userID *int
+	var c UsrRow
+	if userUUID != nil {
 		query = `
 			SELECT
 			  id, uuid, uid, role, email, firstname, lastname, created, modified
-			FROM customer
+			FROM usr
 			WHERE
 			  uuid = $1
 		`
-		if err := tx.QueryRowContext(ctx, query, *customerUUID).Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "query row context query=%q", query)
+		if err := tx.QueryRowContext(ctx, query, *userUUID).Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
+			return nil, nil, nil, errors.Wrapf(err, "postgres: query row context query=%q", query)
 		}
-		customerID = &c.id
+		userID = &c.id
 	}
 
 	query = `
 		INSERT INTO order (
-			status, payment, customer_id, customer_name, customer_email, stripe_pi, ship_tb,
+			status, payment, usr_id, usr_name, usr_email, stripe_pi, ship_tb,
 			billing, shipping, currency, total_ex_vat, vat_total, total_inc_vat,
 			created, modified
 		) VALUES (
 			'incomplete', 'unpaid', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()
 		) RETURNING
-			id, uuid, status, payment, customer_id, customer_name, customer_email, stripe_pi,
+			id, uuid, status, payment, usr_id, usr_name, usr_email, stripe_pi,
 			ship_tb, billing, shipping, currency, total_ex_vat, vat_total,
 			total_inc_vat, created, modified
 	`
@@ -182,12 +182,12 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	totalExVAT, totalVAT := totalSpend(cartItems)
 	totalIncVAT := totalExVAT + totalVAT
 
-	row := tx.QueryRowContext(ctx, query, customerID, customerName, customerEmail, stripePI, shipTb, billing, shipping, currency, totalExVAT, totalVAT, totalIncVAT)
-	if err := row.Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.CustomerID, &o.CustomerName, &o.CustomerEmail, &o.StripePI,
+	row := tx.QueryRowContext(ctx, query, userID, userName, userEmail, stripePI, shipTb, billing, shipping, currency, totalExVAT, totalVAT, totalIncVAT)
+	if err := row.Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.UserID, &o.UserName, &o.UserEmail, &o.StripePI,
 		&o.ShipTb, &o.Billing, &o.Shipping, &o.Currency, &o.TotalExVAT, &o.VATTotal,
 		&o.TotalIncVAT, &o.Created, &o.Modified); err != nil {
 		tx.Rollback()
-		return nil, nil, nil, errors.Wrapf(err, "tx.QueryRowContext(ctx, %q) failed", query)
+		return nil, nil, nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, %q) failed", query)
 	}
 
 	query = `
@@ -201,7 +201,7 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
 		tx.Rollback()
-		return nil, nil, nil, errors.Wrapf(err, "tx prepare for query=%q", query)
+		return nil, nil, nil, errors.Wrapf(err, "postgres: tx prepare for query=%q", query)
 	}
 	defer stmt.Close()
 
@@ -212,13 +212,13 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 		row := stmt.QueryRowContext(ctx, o.id, t.SKU, t.Name, t.Qty, t.UnitPrice, nil, "T20", vat20Normalised(t.Qty*t.UnitPrice))
 		if err := row.Scan(&oi.id, &oi.UUID, &oi.orderID, &oi.SKU, &oi.Name, &oi.Qty, &oi.UnitPrice, &oi.Currency, &oi.Discount, &oi.TaxCode, &oi.VAT, &oi.Created); err != nil {
 			tx.Rollback()
-			return nil, nil, nil, errors.Wrap(err, "stmt.QueryRowContext failed")
+			return nil, nil, nil, errors.Wrap(err, "postgres: stmt.QueryRowContext failed")
 		}
 		orderItems = append(orderItems, &oi)
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, nil, nil, errors.Wrap(err, "tx.Commit() failed")
+		return nil, nil, nil, errors.Wrap(err, "postgres: tx.Commit() failed")
 	}
 
 	return &o, orderItems, &c, nil
@@ -230,19 +230,19 @@ func (m *PgModel) AddOrder(ctx context.Context, customerName, customerEmail, cus
 func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (*OrderRow, []*OrderItemRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "db.BeginTx")
+		return nil, nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
 	query := `
 		SELECT
-		  id,  uuid, status, payment, customer_id, customer_name, customer_email, stripe_pi,
+		  id,  uuid, status, payment, usr_id, customer_name, customer_email, stripe_pi,
 		  ship_tb, billing, shipping, currency, total_ex_vat, vat_total,
 		  total_inc_vat, created, modified
 		FROM order
 		WHERE uuid = $1
 	`
 	o := OrderRow{}
-	if err := tx.QueryRowContext(ctx, query, orderUUID).Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.CustomerID, &o.CustomerName, &o.CustomerEmail, &o.StripePI,
+	if err := tx.QueryRowContext(ctx, query, orderUUID).Scan(&o.id, &o.UUID, &o.Status, &o.Payment, &o.UserID, &o.UserName, &o.UserEmail, &o.StripePI,
 		&o.ShipTb, &o.Billing, &o.Shipping, &o.Currency, &o.TotalExVAT, &o.VATTotal,
 		&o.TotalIncVAT, &o.Created, &o.Modified); err != nil {
 		if err == sql.ErrNoRows {
@@ -250,7 +250,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 			return nil, nil, ErrOrderNotFound
 		}
 		tx.Rollback()
-		return nil, nil, errors.Wrapf(err, "query row context query=%q", query)
+		return nil, nil, errors.Wrapf(err, "postgres: query row context query=%q", query)
 	}
 	query = `
 		SELECT
@@ -265,24 +265,24 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 			return nil, nil, ErrOrderItemsNotFound
 		}
 		tx.Rollback()
-		return nil, nil, errors.Wrapf(err, "tx.QueryContext(ctx, %q, %q) failed", query, o.id)
+		return nil, nil, errors.Wrapf(err, "postgres: tx.QueryContext(ctx, %q, %q) failed", query, o.id)
 	}
 	defer rows.Close()
 	orderItems := make([]*OrderItemRow, 0, 16)
 	for rows.Next() {
 		i := OrderItemRow{}
 		if err = rows.Scan(&i.id, &i.UUID, &i.orderID, &i.SKU, &i.Name, &i.Qty, &i.UnitPrice, &i.Currency, &i.Discount, &i.TaxCode, &i.VAT, &i.Created); err != nil {
-			return nil, nil, errors.Wrapf(err, "scan order item %v", i)
+			return nil, nil, errors.Wrapf(err, "postgres: scan order item %v", i)
 		}
 		orderItems = append(orderItems, &i)
 	}
 	if err = rows.Err(); err != nil {
 		tx.Rollback()
-		return nil, nil, errors.Wrapf(err, "rows err")
+		return nil, nil, errors.Wrapf(err, "postgres: rows err")
 	}
 	if err = tx.Commit(); err != nil {
 		tx.Rollback()
-		return nil, nil, errors.Wrap(err, "tx.Commit() failed")
+		return nil, nil, errors.Wrap(err, "postgres: tx.Commit() failed")
 	}
 	return &o, orderItems, nil
 }
@@ -297,7 +297,7 @@ func (m *PgModel) SetStripePaymentIntent(ctx context.Context, orderID, pi string
 	`
 	_, err := m.db.ExecContext(ctx, query, pi, orderID)
 	if err != nil {
-		return errors.Wrapf(err, "m.db.ExecContext(ctx, query=%q, pi=%q, orderID=%q) failed", query, pi, orderID)
+		return errors.Wrapf(err, "postgres: m.db.ExecContext(ctx, query=%q, pi=%q, orderID=%q) failed", query, pi, orderID)
 	}
 	return nil
 }
@@ -307,7 +307,7 @@ func (m *PgModel) SetStripePaymentIntent(ctx context.Context, orderID, pi string
 func (m *PgModel) RecordPayment(ctx context.Context, orderID, pi string, body []byte) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, "db.BeginTx")
+		return errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
 	query := `
@@ -319,7 +319,7 @@ func (m *PgModel) RecordPayment(ctx context.Context, orderID, pi string, body []
 	var id int
 	err = tx.QueryRowContext(ctx, query, orderID, pi).Scan(&id)
 	if err != nil {
-		return errors.Wrapf(err, "tx.ExecContext(ctx, query=%q, pi=%q, orderID=%q) failed", query, pi, orderID)
+		return errors.Wrapf(err, "postgres: tx.ExecContext(ctx, query=%q, pi=%q, orderID=%q) failed", query, pi, orderID)
 	}
 
 	query = `
@@ -331,12 +331,12 @@ func (m *PgModel) RecordPayment(ctx context.Context, orderID, pi string, body []
 	`
 	_, err = tx.ExecContext(ctx, query, id, body)
 	if err != nil {
-		return errors.Wrapf(err, "tx.ExecContext(ctx, query=%q, id=%d, body=%q) failed", query, id, body)
+		return errors.Wrapf(err, "postgres: tx.ExecContext(ctx, query=%q, id=%d, body=%q) failed", query, id, body)
 	}
 
 	if err = tx.Commit(); err != nil {
 		tx.Rollback()
-		return errors.Wrap(err, "tx.Commit() failed")
+		return errors.Wrap(err, "postgres: tx.Commit() failed")
 	}
 
 	return nil

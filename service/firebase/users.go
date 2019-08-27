@@ -11,11 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ErrCustomerNotFound is returned when a customer does not exist in the database.
-var ErrCustomerNotFound = errors.New("service: customer not found")
+// ErrUserNotFound is returned when a user does not exist in the database.
+var ErrUserNotFound = errors.New("service: user not found")
 
-// Customer details
-type Customer struct {
+// User details
+type User struct {
 	ID        string    `json:"id"`
 	UID       string    `json:"uid"`
 	Role      string    `json:"role"`
@@ -53,13 +53,13 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 	_, err = authClient.GetUserByEmail(ctx, email)
 	if err != nil {
 		if auth.IsUserNotFound(err) {
-			customer, err := s.CreateCustomer(ctx, "root", email, password, "Super", "User")
+			user, err := s.CreateUser(ctx, "root", email, password, "Super", "User")
 			if err != nil {
-				return errors.Wrap(err, "create customer for root user failed")
+				return errors.Wrap(err, "create user for root user failed")
 			}
-			_, err = s.GenerateCustomerDevKey(ctx, customer.ID)
+			_, err = s.GenerateUserDevKey(ctx, user.ID)
 			if err != nil {
-				return errors.Wrap(err, "generate customer devkey failed")
+				return errors.Wrap(err, "generate user devkey failed")
 			}
 			return nil
 		}
@@ -69,10 +69,10 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 	return nil
 }
 
-// CreateCustomer creates a new customer
-func (s *Service) CreateCustomer(ctx context.Context, role, email, password, firstname, lastname string) (*Customer, error) {
+// CreateUser creates a new user
+func (s *Service) CreateUser(ctx context.Context, role, email, password, firstname, lastname string) (*User, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("s.CreateCustomer(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
+	contextLogger.Debugf("s.CreateUser(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return nil, err
@@ -88,9 +88,9 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 		return nil, err
 	}
 
-	c, err := s.model.CreateCustomer(ctx, userRecord.UID, role, email, firstname, lastname)
+	c, err := s.model.CreateUser(ctx, userRecord.UID, role, email, firstname, lastname)
 	if err != nil {
-		return nil, fmt.Errorf("model.CreateCustomer(%s, %s, %s, %s, %s) failed: %v", userRecord.UID, role, email, firstname, lastname, err)
+		return nil, fmt.Errorf("model.CreateUser(%s, %s, %s, %s, %s) failed: %v", userRecord.UID, role, email, firstname, lastname, err)
 	}
 
 	// Set the custom claims for this user
@@ -102,7 +102,7 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 		return nil, fmt.Errorf("set custom claims for uid=%s uuid=%s role=%s failed: %v", c.UID, c.UUID, role, err)
 	}
 
-	ac := Customer{
+	ac := User{
 		ID:        c.UUID,
 		UID:       c.UID,
 		Role:      c.Role,
@@ -117,22 +117,22 @@ func (s *Service) CreateCustomer(ctx context.Context, role, email, password, fir
 	return &ac, nil
 }
 
-// GetCustomers gets customers with pagination.
-func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
+// GetUsers gets users with pagination.
+func (s *Service) GetUsers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
 	q := &postgres.PaginationQuery{
 		OrderBy:    pq.OrderBy,
 		OrderDir:   pq.OrderDir,
 		Limit:      pq.Limit,
 		StartAfter: pq.StartAfter,
 	}
-	prs, err := s.model.GetCustomers(ctx, q)
+	prs, err := s.model.GetUsers(ctx, q)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]*Customer, 0)
-	for _, v := range prs.RSet.([]*postgres.CustomerRow) {
-		c := Customer{
+	results := make([]*User, 0)
+	for _, v := range prs.RSet.([]*postgres.UsrRow) {
+		c := User{
 			ID:        v.UUID,
 			UID:       v.UID,
 			Role:      v.Role,
@@ -156,20 +156,20 @@ func (s *Service) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	return aprs, nil
 }
 
-// GetCustomer retrieves a customer by customer ID.
-func (s *Service) GetCustomer(ctx context.Context, customerID string) (*Customer, error) {
+// GetUser retrieves a user by user ID.
+func (s *Service) GetUser(ctx context.Context, userID string) (*User, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("service: GetCustomer(ctx, customerID=%q)", customerID)
-	c, err := s.model.GetCustomerByUUID(ctx, customerID)
+	contextLogger.Debugf("service: GetUser(ctx, userID=%q)", userID)
+	c, err := s.model.GetUserByUUID(ctx, userID)
 	if err != nil {
-		if err == postgres.ErrCustomerNotFound {
-			return nil, ErrCustomerNotFound
+		if err == postgres.ErrUserNotFound {
+			return nil, ErrUserNotFound
 		}
 		return nil, err
 	}
-	contextLogger.Debugf("service: s.model.GetCustomerByUUID(ctx, customerUUID=%s) returned %v", customerID, c)
+	contextLogger.Debugf("service: s.model.GetUserByUUID(ctx, userUUID=%s) returned %v", userID, c)
 
-	ac := Customer{
+	ac := User{
 		ID:        c.UUID,
 		UID:       c.UID,
 		Role:      c.Role,

@@ -99,15 +99,15 @@ const (
 	// Orders
 	OpPlaceOrder string = "OpPlaceOrder"
 
-	// Customers
-	OpCreateCustomer        string = "OpCreateCustomer"
-	OpGetCustomer           string = "OpGetCustomer"
-	OpListCustomers         string = "OpListCustomers"
-	OpGetCustomersAddresses string = "OpGetCustomersAddresses"
-	OpUpdateAddress         string = "OpUpdateAddress"
-	OpCreateAddress         string = "OpCreateAddress"
-	OpGetAddress            string = "OpGetAddress"
-	OpDeleteAddress         string = "OpDeleteAddress"
+	// Users
+	OpCreateUser        string = "OpCreateUser"
+	OpGetUser           string = "OpGetUser"
+	OpListUsers         string = "OpListUsers"
+	OpGetUsersAddresses string = "OpGetUsersAddresses"
+	OpUpdateAddress     string = "OpUpdateAddress"
+	OpCreateAddress     string = "OpCreateAddress"
+	OpGetAddress        string = "OpGetAddress"
+	OpDeleteAddress     string = "OpDeleteAddress"
 
 	// Products
 	OpCreateProduct string = "OpCreateProduct"
@@ -146,10 +146,10 @@ const (
 	OpDeleteAllProductImages string = "OpDeleteAllProductImages"
 
 	// Developer Keys
-	OpGenerateCustomerDevKey string = "OpGenerateCustomerDevKey"
-	OpListCustomersDevKeys   string = "OpListCustomersDevKeys"
-	OpDeleteCustomerDevKey   string = "OpDeleteCustomerDevKey"
-	OpSignInWithDevKey       string = "OpSignInWithDevKey"
+	OpGenerateUserDevKey string = "OpGenerateUserDevKey"
+	OpListUsersDevKeys   string = "OpListUsersDevKeys"
+	OpDeleteUserDevKey   string = "OpDeleteUserDevKey"
+	OpSignInWithDevKey   string = "OpSignInWithDevKey"
 
 	// Category and assocations
 	OpGetProductsCategories   string = "OpGetProductsCategories"

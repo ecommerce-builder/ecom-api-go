@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Address contains address information for a Customer
+// Address contains address information for a user
 type Address struct {
 	ID          string    `json:"id"`
 	Typ         string    `json:"typ"`
@@ -20,14 +20,14 @@ type Address struct {
 	Modified    time.Time `json:"modified"`
 }
 
-// CreateAddress creates a new address for a customer
-func (s *Service) CreateAddress(ctx context.Context, customerUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error) {
-	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
+// CreateAddress creates a new address for a user
+func (s *Service) CreateAddress(ctx context.Context, userUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error) {
+	userID, err := s.model.GetUserIDByUUID(ctx, userUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	a, err := s.model.CreateAddress(ctx, customerID, typ, contactName, addr1, addr2, city, county, postcode, country)
+	a, err := s.model.CreateAddress(ctx, userID, typ, contactName, addr1, addr2, city, county, postcode, country)
 	if err != nil {
 		return nil, err
 	}
@@ -81,23 +81,23 @@ func (s *Service) GetAddress(ctx context.Context, id string) (*Address, error) {
 	return &aa, nil
 }
 
-// GetAddressOwner returns the Customer that owns the address with the given ID.
+// GetAddressOwner returns the user that owns the address with the given ID.
 func (s *Service) GetAddressOwner(ctx context.Context, id string) (*string, error) {
-	customerUUID, err := s.model.GetAddressOwnerByUUID(ctx, id)
+	userUUID, err := s.model.GetAddressOwnerByUUID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return customerUUID, nil
+	return userUUID, nil
 }
 
-// GetAddresses gets a slice of addresses for a given customer
-func (s *Service) GetAddresses(ctx context.Context, customerUUID string) ([]*Address, error) {
-	customerID, err := s.model.GetCustomerIDByUUID(ctx, customerUUID)
+// GetAddresses gets a slice of addresses for a given user
+func (s *Service) GetAddresses(ctx context.Context, userUUID string) ([]*Address, error) {
+	userID, err := s.model.GetUserIDByUUID(ctx, userUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	al, err := s.model.GetAddresses(ctx, customerID)
+	al, err := s.model.GetAddresses(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

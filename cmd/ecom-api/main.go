@@ -566,15 +566,15 @@ func main() {
 		})
 
 		// Customer and address management API
-		r.Route("/customers", func(r chi.Router) {
-			r.Post("/", a.Authorization(app.OpCreateCustomer, a.CreateCustomerHandler()))
-			r.Get("/{id}", a.Authorization(app.OpGetCustomer, a.GetCustomerHandler()))
-			r.Get("/", a.Authorization(app.OpListCustomers, a.ListCustomersHandler()))
+		r.Route("/users", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreateUser, a.CreateUserHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetUser, a.GetUserHandler()))
+			r.Get("/", a.Authorization(app.OpListUsers, a.ListUsersHandler()))
 
-			r.Get("/{id}/devkeys", a.Authorization(app.OpListCustomersDevKeys, a.ListCustomersDevKeysHandler()))
-			r.Post("/{id}/devkeys", a.Authorization(app.OpGenerateCustomerDevKey, a.GenerateCustomerDevKeyHandler()))
+			r.Get("/{id}/devkeys", a.Authorization(app.OpListUsersDevKeys, a.ListUsersDevKeysHandler()))
+			r.Post("/{id}/devkeys", a.Authorization(app.OpGenerateUserDevKey, a.GenerateUserDevKeyHandler()))
 			r.Post("/{id}/addresses", a.Authorization(app.OpCreateAddress, a.CreateAddressHandler()))
-			r.Get("/{id}/addresses", a.Authorization(app.OpGetCustomersAddresses, a.ListAddressesHandler()))
+			r.Get("/{id}/addresses", a.Authorization(app.OpGetUsersAddresses, a.ListAddressesHandler()))
 		})
 
 		// price list resource operation all return 501 Not Implemented
@@ -619,7 +619,7 @@ func main() {
 		})
 
 		r.Route("/devkeys", func(r chi.Router) {
-			r.Delete("/{id}", a.Authorization(app.OpDeleteCustomerDevKey, a.DeleteCustomerDevKeyHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteUserDevKey, a.DeleteUserDevKeyHandler()))
 		})
 
 		r.Route("/addresses", func(r chi.Router) {

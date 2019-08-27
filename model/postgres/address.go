@@ -31,11 +31,11 @@ func (a NewAddress) Value() (driver.Value, error) {
 	return string(b), nil
 }
 
-// Address contains address information for a Customer
+// Address contains address information for a user
 type Address struct {
 	id          int
 	UUID        string
-	CustomerID  int
+	usrID       int
 	Typ         string
 	ContactName string
 	Addr1       string
@@ -48,21 +48,22 @@ type Address struct {
 	Modified    time.Time
 }
 
-// CreateAddress creates a new billing or shipping address for a customer
-func (m *PgModel) CreateAddress(ctx context.Context, customerID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*Address, error) {
+// CreateAddress creates a new billing or shipping address for a user
+func (m *PgModel) CreateAddress(ctx context.Context, userID int, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, country string) (*Address, error) {
 	a := Address{}
 	query := `
 		INSERT INTO address (
-			customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country
+		  usr_id, typ, contact_name, addr1, addr2, city, county, postcode, country
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9
+		  $1, $2, $3, $4, $5, $6, $7, $8, $9
 		) RETURNING
-			id, uuid, customer_id, typ, contact_name, addr1, addr2, city, county, postcode, country, created, modified
+		  id, uuid, usr_id, typ, contact_name, addr1, addr2, city,
+		  county, postcode, country, created, modified
 	`
-	row := m.db.QueryRowContext(ctx, query, customerID, typ, contactName, addr1, addr2, city, county, postcode, country)
-	if err := row.Scan(&a.id, &a.UUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+	row := m.db.QueryRowContext(ctx, query, userID, typ, contactName, addr1, addr2, city, county, postcode, country)
+	if err := row.Scan(&a.id, &a.UUID, &a.usrID, &a.Typ, &a.ContactName, &a.Addr1,
 		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
-		return nil, errors.Wrapf(err, "query row context scan query=%q", query)
+		return nil, errors.Wrapf(err, "postgres: query row context scan query=%q", query)
 	}
 	return &a, nil
 }
@@ -72,13 +73,13 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 	a := Address{}
 	query := `
 		SELECT
-		  id, uuid, customer_id, typ, contact_name, addr1, addr2,
+		  id, uuid, usr_id, typ, contact_name, addr1, addr2,
 		  city, county, postcode, country, created, modified
 		FROM address
 		WHERE uuid = $1
 	`
 	row := m.db.QueryRowContext(ctx, query, uuid)
-	if err := row.Scan(&a.id, &a.UUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+	if err := row.Scan(&a.id, &a.UUID, &a.usrID, &a.Typ, &a.ContactName, &a.Addr1,
 		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &ResourceError{
@@ -107,56 +108,55 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, uuid string) (*Address, 
 }
 
 // GetAddressOwnerByUUID returns a pointer to a string containing the
-// customer UUID of the owner of this address record. If the address is not
+// user UUID of the owner of this address record. If the address is not
 // found the return value of will be nil.
 func (m *PgModel) GetAddressOwnerByUUID(ctx context.Context, uuid string) (*string, error) {
 	query := `
 		SELECT C.uuid
-		FROM customer AS C, address AS A
-		WHERE A.customer_id = C.id AND A.uuid = $1
+		FROM usr AS C, address AS A
+		WHERE A.usr_id = C.id AND A.uuid = $1
 	`
-	var customerUUID string
-	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&customerUUID)
+	var userUUID string
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&userUUID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "query row context query=%q", query)
 	}
-	return &customerUUID, nil
+	return &userUUID, nil
 }
 
 // GetAddresses retrieves a slice of pointers to Address for a given
-// customer.
-func (m *PgModel) GetAddresses(ctx context.Context, customerID int) ([]*Address, error) {
+// user.
+func (m *PgModel) GetAddresses(ctx context.Context, userID int) ([]*Address, error) {
 	addresses := make([]*Address, 0, 8)
 	query := `
 		SELECT
-			id, uuid, customer_id, typ, contact_name, addr1,
-			addr2, city, county, postcode, country, created, modified
-		FROM address
-		WHERE customer_id = $1
+		  id, uuid, usr_id, typ, contact_name, addr1,
+		  addr2, city, county, postcode, country, created, modified
+		FROM address WHERE usr_id = $1
 		ORDER BY created DESC
 	`
-	rows, err := m.db.QueryContext(ctx, query, customerID)
+	rows, err := m.db.QueryContext(ctx, query, userID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "db query context query=%q", query)
+		return nil, errors.Wrapf(err, "postgres: db query context query=%q", query)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var a Address
-		if err = rows.Scan(&a.id, &a.UUID, &a.CustomerID, &a.Typ, &a.ContactName, &a.Addr1,
+		if err = rows.Scan(&a.id, &a.UUID, &a.usrID, &a.Typ, &a.ContactName, &a.Addr1,
 			&a.Addr2, &a.City, &a.County, &a.Postcode, &a.Country, &a.Created, &a.Modified); err != nil {
-			return nil, errors.Wrapf(err, "rows scan query=%q", query)
+			return nil, errors.Wrapf(err, "postgres: rows scan query=%q", query)
 		}
 		addresses = append(addresses, &a)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows err")
+		return nil, errors.Wrap(err, "postgres: rows err")
 	}
 	return addresses, nil
 }
 
-// UpdateAddressByUUID updates an address for a given customer
+// UpdateAddressByUUID updates an address for a given user
 func (m *PgModel) UpdateAddressByUUID(ctx context.Context, UUID string) (*Address, error) {
 	// TO BE DONE
 	//

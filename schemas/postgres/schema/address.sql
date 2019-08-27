@@ -8,7 +8,7 @@ END$$;
 CREATE TABLE IF NOT EXISTS address (
   id              SERIAL PRIMARY KEY,
   uuid            UUID DEFAULT uuid_generate_v4() UNIQUE,
-  customer_id     INTEGER NOT NULL,
+  usr_id          INTEGER NOT NULL,
   typ             address_t NOT NULL,
   contact_name    VARCHAR(1024) NOT NULL,
   addr1           VARCHAR(1024) NOT NULL,
@@ -19,9 +19,8 @@ CREATE TABLE IF NOT EXISTS address (
   country         CHAR(2) NOT NULL,
   created         TIMESTAMP NOT NULL DEFAULT NOW(),
   modified        TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (customer_id) REFERENCES customer (id)
+  FOREIGN KEY (usr_id) REFERENCES usr (id)
 );
 
 CREATE INDEX IF NOT EXISTS created_idx  ON address (created DESC);
 CREATE INDEX IF NOT EXISTS modified_idx ON address (modified DESC);
-

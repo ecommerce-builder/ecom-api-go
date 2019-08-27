@@ -7,11 +7,11 @@ CREATE TYPE order_payment_status_t
 CREATE TABLE IF NOT EXISTS "order" (
   id              SERIAL PRIMARY KEY,
   uuid            UUID DEFAULT uuid_generate_v4() UNIQUE,
-  customer_id     INTEGER NULL,
+  usr_id          INTEGER NULL,
   status          order_status_t NOT NULL DEFAULT 'incomplete',
   payment         order_payment_status_t NOT NULL DEFAULT 'unpaid',
-  customer_name   VARCHAR(512) NULL DEFAULT NULL,
-  customer_email  VARCHAR(512) NULL DEFAULT NULL,
+  user_name       VARCHAR(512) NULL DEFAULT NULL,
+  user_email      VARCHAR(512) NULL DEFAULT NULL,
   stripe_pi       VARCHAR(64) NULL DEFAULT NULL,
   ship_tb         BOOL DEFAULT false,
   billing         JSONB NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS "order" (
   total_inc_vat   INTEGER NOT NULL CHECK (total_inc_vat >= 0 AND total_inc_vat = total_ex_vat + vat_total),
   created         TIMESTAMP NOT NULL DEFAULT NOW(),
   modified        TIMESTAMP NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (customer_id) REFERENCES customer (id)
+  FOREIGN KEY (usr_id) REFERENCES usr (id)
 );
 
 ALTER SEQUENCE order_id_seq RESTART WITH 100001;

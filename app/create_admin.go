@@ -38,9 +38,9 @@ func (a *App) CreateAdminHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		customer, err := a.Service.CreateCustomer(ctx, "admin", o.Email, o.Password, o.Firstname, o.Lastname)
+		customer, err := a.Service.CreateUser(ctx, "admin", o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
-			contextLogger.Errorf("CreateAdminHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s): %v\n", "admin", o.Email, "*****", o.Firstname, o.Lastname, err)
+			contextLogger.Errorf("CreateAdminHandler: failed Service.CreateUser(ctx, %q, %s, %s, %s, %s): %v\n", "admin", o.Email, "*****", o.Firstname, o.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`

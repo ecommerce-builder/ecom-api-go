@@ -1,66 +1,66 @@
--- customer and address
+-- usr and address
 -- 1
-INSERT INTO customer (uid, role, email, firstname, lastname)
+INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid1', 'customer', 'joe@example.com', 'Joe', 'Blogs');
 
 -- address: id=1
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('billing', 1, 'Joe Blogs', '4524 Mulberry Avenue', 'LittleRock', '72209', 'US');
 
 
 -- 2
-INSERT INTO customer (uid, role, email, firstname, lastname)
+INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid2', 'customer', 'sammy@example.com', 'Sammy', 'Peterson');
 
 -- address: id=2
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('billing', 2, 'Sammy Peterson', '138 Ermin Street', 'Wrentham', 'NR34 9TT', 'UK');
 
 
 -- 3
-INSERT INTO customer (uid, role, email, firstname, lastname)
+INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid3', 'customer', 'faith@example.com', 'Faith', 'Bowman');
 
 -- address: id=3
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('shipping', 3, 'Faith Bowman', '18 Pier Road', 'Statham', 'WA13 3DW', 'UK');
 
 -- address: id=4
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('shipping', 3, 'Faith Bowman', '115 Spilman Street', 'Gossops Green', 'RH11 9SP', 'UK');
 
 -- address: id=5
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('shipping', 3, 'Faith Bowman', '43 Shannon Way', 'Chipping Campden', 'GL55 9XZ', 'UK');
 
 -- address: id=6
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('billing', 3, 'Faith Bowman', '38 Walden Road', 'Greenburn', 'DD5 8AU','UK');
 
 -- address: id=7
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('billing', 3, 'Faith Bowman', '99  Wrexham Rd', 'Faceby', 'TS9 4QL', 'UK');
 
 
 -- 4
-INSERT INTO customer (uid, role, email, firstname, lastname)
+INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid4', 'customer', 'clifton@example.com', 'Clifton', 'Delgado');
 
 -- address: id=8
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('billing', 4, 'Clifton Delgado', '131 Caxton Place', 'Byfield', 'NN11 7FN', 'UK');
 
 
 -- 5
-INSERT INTO customer (uid, role, email, firstname, lastname)
+INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid5', 'customer', 'bernadette@example.com', 'Bernadette', 'Graham');
 
 -- address: id=9
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('shipping',5, 'Bernadette Graham', '89 Cubbine Road', 'Southburracoppin', '6421', 'AU');
 
 -- address: id=10
-INSERT INTO address (typ, customer_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
   VALUES('billing',5, 'Bernadette Graham', '38 Porana Place', 'Woolgorong', '6630', 'AU');
 
 
@@ -96,7 +96,7 @@ INSERT INTO category (segment, path, name, lft, rgt, depth, created, modified)
 
 -- order, order_item and payment
 -- 100001
-INSERT INTO "order" (customer_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
+INSERT INTO "order" (usr_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(1, true, '{"address_id": 1, "contact_name": "Joe Blogs", "addr1": "4524 Mulberry Avenue",
             "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 9999, 2000, 11999);
 INSERT INTO order_item (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
@@ -105,21 +105,21 @@ INSERT INTO order_item (order_id, sku, name, qty, unit_price, currency, discount
   VALUES(100001, 'WATER-SKU', 'Water Bottle', 1, 445, 'GBP', null, 'T20', 89);
 
 -- 100002
-INSERT INTO "order" (customer_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
+INSERT INTO "order" (usr_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(1, true, '{"address_id": 1, "contact_name": "Joe Blogs", "addr1": "4524 Mulberry Avenue",
             "city": "LittleRock", "postcode": "72209", "country": "US"}', NULL, 12598, 2520, 15118);
 INSERT INTO order_item (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
   VALUES(100002, 'TV-SKU', 'LCD TV System', 1, 12598, 'GBP', null, 'T20', 2520);
 
 -- 100003
-INSERT INTO "order" (customer_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
+INSERT INTO "order" (usr_id, ship_tb, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(2, true, '{"address_id": 2, "contact_name": "Sammy Peterson", "addr1": "138 Ermin Street",
             "city": "Wrentham", "postcode": "NR34 9TT", "country": "UK"}', NULL, 9800, 980, 10780);
 INSERT INTO order_item (order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat)
   VALUES(100003, 'DRILL-SKU', 'Electric Power Drill', 2, 4900, 'GBP', null, 'T20', 980);
 
 -- 100004
-INSERT INTO "order" (customer_id, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
+INSERT INTO "order" (usr_id, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(3, '{"address_id": 6 , "contact_name": "Faith Bowman", "addr1": "38 Walden Road",
             "city": "Greenburn", "postcode": "DD5 8AU", "country": "UK"}',
             '{"address_id": 3, "contact_name": "Faith Bowman", "addr1": "18 Pier Road",
@@ -128,7 +128,7 @@ INSERT INTO order_item (order_id, sku, name, qty, unit_price, currency, discount
   VALUES(100004, 'DESK-SKU', 'Oak Desk', 1, 7849, 'GBP', null, 'T20', 1570);
 
 -- 100005
-INSERT INTO "order" (customer_id, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
+INSERT INTO "order" (usr_id, billing, shipping, total_ex_vat, vat_total, total_inc_vat)
   VALUES(5, '{"address_id": 10, "contact_name": "Bernadette Graham", "addr1": "38 Porana Place",
               "city": "Woolgorong", "postcode": "6630", "country": "AU"}',
             '{"address_id": 9, "contact_name": "Bernadette Graham", "addr1": "89 Cubbine Road",

@@ -15,8 +15,8 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 		Key string `json:"key"`
 	}
 	type signInResponseBody struct {
-		CustomToken string             `json:"custom_token"`
-		Customer    *firebase.Customer `json:"customer"`
+		CustomToken string         `json:"custom_token"`
+		Customer    *firebase.User `json:"user"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

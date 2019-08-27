@@ -6,73 +6,67 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GetAdmin returns a Customer of role admin for the given UUID.
-func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*CustomerRow, error) {
+// GetAdmin returns a user of role admin for the given UUID.
+func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*UsrRow, error) {
 	query := `
 		SELECT
 		  id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM
-		  customer
-		WHERE
-		  uuid = $1 AND role = 'admin'
+		FROM usr WHERE uuid = $1 AND role = 'admin'
 	`
-	c := CustomerRow{}
+	u := UsrRow{}
 	row := m.db.QueryRowContext(ctx, query, uuid)
-	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
-		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
+	if err := row.Scan(&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
+		return nil, errors.Wrapf(err, "postgres: query row context scan query=%q User=%v", query, u)
 	}
-	return &c, nil
+	return &u, nil
 }
 
-// GetAllAdmins returns a slice of Customers who are all of role admin
-func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*CustomerRow, error) {
+// GetAllAdmins returns a slice of users who are all of role admin
+func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*UsrRow, error) {
 	query := `
 		SELECT
 		  id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM
-		 customer
-		WHERE
-		  role = 'admin'
+		FROM usr WHERE role = 'admin'
 		ORDER by created DESC
 	`
 	rows, err := m.db.QueryContext(ctx, query)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx) query=%q", query)
+		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) query=%q", query)
 	}
 	defer rows.Close()
 
-	admins := make([]*CustomerRow, 0, 8)
+	admins := make([]*UsrRow, 0, 8)
 	for rows.Next() {
-		var c CustomerRow
+		var c UsrRow
 		if err := rows.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
-			return nil, errors.Wrap(err, "scan failed")
+			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		admins = append(admins, &c)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows.Err()")
+		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return admins, nil
 }
 
-// IsAdmin returns true is the given customer UUID has a role of admin.
+// IsAdmin returns true is the given user UUID has a role of admin.
 func (m *PgModel) IsAdmin(ctx context.Context, uuid string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM customer WHERE uuid = $1 AND role = 'admin') AS exists`
+	query := `SELECT EXISTS(SELECT 1 FROM usr WHERE uuid = $1 AND role = 'admin') AS exists`
 	var exists bool
 	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&exists)
 	if err != nil {
-		return false, errors.Wrapf(err, "db.QueryRow(ctx, %s)", query)
+		return false, errors.Wrapf(err, "postgres: db.QueryRow(ctx, %s)", query)
 	}
 	return exists, nil
 }
 
-// DeleteAdminByUUID deletes the administrator from the customer table
+// DeleteAdminByUUID deletes the administrator from the usr table
 // with the given UUID.
 func (m *PgModel) DeleteAdminByUUID(ctx context.Context, uuid string) error {
-	query := `DELETE FROM customer WHERE uuid = $1 AND role = 'admin'`
+	query := `DELETE FROM usr WHERE uuid = $1 AND role = 'admin'`
 	_, err := m.db.ExecContext(ctx, query, uuid)
 	if err != nil {
-		return errors.Wrapf(err, "exec context query=%q", query)
+		return errors.Wrapf(err, "postgres: exec context query=%q", query)
 	}
 	return nil
 }

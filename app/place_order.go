@@ -93,7 +93,7 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 					"The cart id you passed contains no items",
 				})
 				return
-			} else if err == service.ErrCustomerNotFound {
+			} else if err == service.ErrUserNotFound {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`

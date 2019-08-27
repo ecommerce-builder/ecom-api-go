@@ -13,6 +13,6 @@ func (a *App) UpdateAddressHandler() http.HandlerFunc {
 		// a.Service.UpdateAddress()
 
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(service.Customer{})
+		json.NewEncoder(w).Encode(service.User{})
 	}
 }

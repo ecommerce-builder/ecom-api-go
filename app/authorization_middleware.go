@@ -25,7 +25,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		contextLogger.Debugf("authorization started for %s", op)
 		decodedToken := ctx.Value("ecomDecodedToken").(*auth.Token)
 
-		// Get the customer ID and customer role from the JWT
+		// Get the user ID and customer role from the JWT
 		var cid, role string
 		if val, ok := decodedToken.Claims["role"]; ok {
 			role = val.(string)
@@ -67,7 +67,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		// Operations that required at least RoleAdmin privileges
-		case OpListCustomers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
+		case OpListUsers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
 			OpPurgeCategoryAssocs, OpUpdateCategoryProductAssocs, OpSystemInfo,
 			OpUpdateProductProducts, OpPurgeProductsCategories, OpUpdateProductPrices, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
@@ -80,8 +80,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 			w.WriteHeader(http.StatusForbidden) // 403 Forbidden
 			return
-		case OpCreateCustomer:
-			// Only anonymous users can create a new customer account
+		case OpCreateUser:
+			// Only anonymous users can create a new user account
 			if role == RoleShopper {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
@@ -89,7 +89,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			unauthorized(w)
 			return
 		// both admins and shoppers can get prices, but shoppers are only allowed a price_list_id
-		// matching their customer account
+		// matching their user account
 		case OpGetProductPrices:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
@@ -100,14 +100,14 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			if priceListID != "" {
 				contextLogger.Infof("auth: OpGetProductPrices received cid=%q query param price_list_id set to %q", cid, priceListID)
 			}
-			valid, err := a.Service.CustomerCanAccessPriceList(ctx, cid, priceListID)
+			valid, err := a.Service.UserCanAccessPriceList(ctx, cid, priceListID)
 			if err != nil {
-				if err == service.ErrCustomerNotFound {
-					contextLogger.Errorf("a.Service.CustomerCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
+				if err == service.ErrUserNotFound {
+					contextLogger.Errorf("a.Service.UserCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				contextLogger.Errorf("a.Service.CustomerCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
+				contextLogger.Errorf("a.Service.UserCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -117,7 +117,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 
-			contextLogger.Errorf("a.Service.CustomerCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
+			contextLogger.Errorf("a.Service.UserCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
 			w.WriteHeader(http.StatusForbidden) // 403 Forbidden
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
@@ -129,9 +129,9 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				"forbidden access to prices with the given price list",
 			})
 			return
-		case OpCreateAddress, OpGetCustomer, OpGetCustomersAddresses, OpUpdateAddress, OpGenerateCustomerDevKey, OpListCustomersDevKeys:
-			// Check the JWT Claim's customer UUID and safely compare it to the customer UUID in the route
-			// Anonymous signin results in automatic rejection. These operations are reserved for customers.
+		case OpCreateAddress, OpGetUser, OpGetUsersAddresses, OpUpdateAddress, OpGenerateUserDevKey, OpListUsersDevKeys:
+			// Check the JWT Claim's user UUID and safely compare it to the user UUID in the route
+			// Anonymous signin results in automatic rejection. These operations are reserved for customer role.
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
@@ -148,7 +148,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			// RoleShopper
 			unauthorized(w)
 			return
-		case OpDeleteCustomerDevKey:
+		case OpDeleteUserDevKey:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
@@ -156,7 +156,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			unauthorized(w)
 			return
 		case OpGetAddress, OpDeleteAddress:
-			// The customer ID is not in the route so we ask the service layer for the  resource owner's customer ID
+			// The user ID is not in the route so we ask the service layer for the
+			// resource owner's user ID
 			if role == RoleShopper {
 				unauthorized(w)
 				return

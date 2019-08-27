@@ -65,19 +65,17 @@ func (s *Service) CreateCart(ctx context.Context) (*Cart, error) {
 // AddItemToCart adds a single item to a given cart.
 // Returns `ErrCartNotFound` if the cart with `cartID` does not exist.
 func (s *Service) AddItemToCart(ctx context.Context, cartID, productID string, qty int) (*CartItem, error) {
+	userID := ctx.Value("cid").(string)
+	fmt.Printf("UserID = %#v\n", userID)
 
-	customerID := ctx.Value("cid").(string)
+	log.WithContext(ctx).Debugf("service: s.AddItemToCart(cartID=%q, userID=%q, productID=%q, qty=%d) started", cartID, userID, productID, qty)
 
-	fmt.Printf("CustomerID = %#v\n", customerID)
-
-	log.WithContext(ctx).Debugf("service: s.AddItemToCart(cartID=%q, customerID=%q, productID=%q, qty=%d) started", cartID, customerID, productID, qty)
-
-	item, err := s.model.AddItemToCart(ctx, cartID, customerID, productID, qty)
+	item, err := s.model.AddItemToCart(ctx, cartID, userID, productID, qty)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
-		} else if err == postgres.ErrCustomerNotFound {
-			return nil, ErrCustomerNotFound
+		} else if err == postgres.ErrUserNotFound {
+			return nil, ErrUserNotFound
 		} else if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
 		} else if err == postgres.ErrDefaultPriceListMissing {
@@ -112,9 +110,9 @@ func (s *Service) HasCartItems(ctx context.Context, id string) (bool, error) {
 
 // GetCartItems get all cart items by cart ID.
 func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem, error) {
-	customerUUID := ctx.Value("cid").(string)
+	userUUID := ctx.Value("cid").(string)
 
-	items, err := s.model.GetCartItems(ctx, cartID, customerUUID)
+	items, err := s.model.GetCartItems(ctx, cartID, userUUID)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
@@ -142,9 +140,9 @@ func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem,
 
 // UpdateCartItem updates a cart item quantity.
 func (s *Service) UpdateCartItem(ctx context.Context, cartID, productID string, qty int) (*CartItem, error) {
-	customerUUID := ctx.Value("cid").(string)
+	userUUID := ctx.Value("cid").(string)
 
-	item, err := s.model.UpdateItemByCartUUID(ctx, cartID, customerUUID, productID, qty)
+	item, err := s.model.UpdateItemByCartUUID(ctx, cartID, userUUID, productID, qty)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
