@@ -31,17 +31,17 @@ func paginationQueryFromQueryParams(v url.Values) (*service.PaginationQuery, err
 	return pq, nil
 }
 
-// ListCustomersHandler returns an http.HandlerFunc that call the service
-// API to retrievs a list of Customers using a PaginationQuery.
-func (a *App) ListCustomersHandler() http.HandlerFunc {
+// ListUsersHandler returns an http.HandlerFunc that call the service
+// API to retrievs a list of users using a PaginationQuery.
+func (a *App) ListUsersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListCustomersHandler started")
+		contextLogger.Info("App: ListUsersHandler started")
 
 		pq, err := paginationQueryFromQueryParams(r.URL.Query())
 		if err != nil {
-			log.Errorf("pagination query (query params=%s) from query params failed: %v", r.URL, err)
+			log.Errorf("app: pagination query (query params=%s) from query params failed: %v", r.URL, err)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
@@ -51,9 +51,9 @@ func (a *App) ListCustomersHandler() http.HandlerFunc {
 		//	Limit:      l,
 		//	StartAfter: r.URL.Query().Get("start_after"),
 		//}
-		prs, err := a.Service.GetCustomers(ctx, pq)
+		prs, err := a.Service.GetUsers(ctx, pq)
 		if err != nil {
-			log.Errorf("service GetCustomers(ctx) error: %+v", err)
+			log.Errorf("service GetUsers(ctx) error: %+v", err)
 			return
 		}
 

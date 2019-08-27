@@ -8,14 +8,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type customerResponseBody struct {
+type userResponseBody struct {
 	Object string `json:"object"`
-	*service.Customer
+	*service.User
 }
 
-// CreateCustomerHandler creates a new customer record
-func (a *App) CreateCustomerHandler() http.HandlerFunc {
-	type createCustomerRequestBody struct {
+// CreateUserHandler creates a new user record
+func (a *App) CreateUserHandler() http.HandlerFunc {
+	type createUserRequestBody struct {
 		Email     string `json:"email"`
 		Password  string `json:"password"`
 		Firstname string `json:"firstname"`
@@ -25,7 +25,7 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: CreateCustomerHandler called")
+		contextLogger.Info("App: CreateUserHandler called")
 
 		if r.Body == nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
@@ -40,7 +40,7 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 			})
 			return
 		}
-		o := createCustomerRequestBody{}
+		o := createUserRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
@@ -57,9 +57,9 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		customer, err := a.Service.CreateCustomer(ctx, "customer", o.Email, o.Password, o.Firstname, o.Lastname)
+		user, err := a.Service.CreateUser(ctx, "customer", o.Email, o.Password, o.Firstname, o.Lastname)
 		if err != nil {
-			contextLogger.Errorf("CreateCustomerHandler: failed Service.CreateCustomer(ctx, %q, %s, %s, %s, %s) with error: %v", "customer", o.Email, "*****", o.Firstname, o.Lastname, err)
+			contextLogger.Errorf("app: CreateUserHandler: failed Service.CreateUser(ctx, %q, %s, %s, %s, %s) with error: %v", "customer", o.Email, "*****", o.Firstname, o.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
@@ -73,9 +73,9 @@ func (a *App) CreateCustomerHandler() http.HandlerFunc {
 			return
 		}
 
-		res := customerResponseBody{
-			Object:   "customer",
-			Customer: customer,
+		res := userResponseBody{
+			Object: "user",
+			User:   user,
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(res)

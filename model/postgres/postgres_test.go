@@ -60,21 +60,21 @@ func TestUpdateProduct(t *testing.T) {
 
 }
 
-// func TestGetCustomers(t *testing.T) {
+// func TestGetUsers(t *testing.T) {
 // 	model, teardown := setup(t)
 // 	defer teardown()
 
 // 	ctx := context.Background()
 
-// 	prs, err := model.GetCustomers(ctx, "firstname", "ASC", 2, "1bb7faa4-0435-4cf5-978d-3ee76327c32a")
+// 	prs, err := model.GetUsers(ctx, "firstname", "ASC", 2, "1bb7faa4-0435-4cf5-978d-3ee76327c32a")
 // 	if err != nil {
-// 		t.Fatalf("model.GetCustomers(): %v", err)
+// 		t.Fatalf("model.GetUser(): %v", err)
 // 	}
 // 	if err != nil {
 // 		t.Errorf("model.GetCatalogNestedSet(ctx): %v", err)
 // 	}
 
-// 	for i, v := range prs.Rset.([]*model.Customer) {
+// 	for i, v := range prs.Rset.([]*model.User) {
 // 		fmt.Println(i, v)
 // 	}
 // }

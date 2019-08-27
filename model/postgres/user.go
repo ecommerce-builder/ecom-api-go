@@ -9,12 +9,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrCustomerNotFound is returned when a query for the customer
+// ErrUserNotFound is returned when a query for the user
 // could not be found in the database.
-var ErrCustomerNotFound = errors.New("model: customer not found")
+var ErrUserNotFound = errors.New("model: user not found")
 
-// CustomerRow holds details of a single row from the customer table.
-type CustomerRow struct {
+// UserRow holds details of a single row from the usr table.
+type UsrRow struct {
 	id          int
 	UUID        string
 	UID         string
@@ -27,8 +27,8 @@ type CustomerRow struct {
 	Modified    time.Time
 }
 
-// CustomerJoinRow joines with the price_list table to use its uuid.
-type CustomerJoinRow struct {
+// UsrJoinRow joines with the price_list table to use its uuid.
+type UsrJoinRow struct {
 	id            int
 	UUID          string
 	UID           string
@@ -63,28 +63,29 @@ type PaginationQuery struct {
 	StartAfter string
 }
 
-// CreateCustomer creates a new customer
-func (m *PgModel) CreateCustomer(ctx context.Context, uid, role, email, firstname, lastname string) (*CustomerRow, error) {
+// CreateUser creates a new user
+func (m *PgModel) CreateUser(ctx context.Context, uid, role, email, firstname, lastname string) (*UsrRow, error) {
 	query := `
-		INSERT INTO customer (
-			uid, role, email, firstname, lastname
+		INSERT INTO usr (
+		  uid, role, email, firstname, lastname
 		) VALUES (
-			$1, $2, $3, $4, $5
+		  $1, $2, $3, $4, $5
 		)
-		RETURNING id, uuid, uid, role, email, firstname, lastname, created, modified
+		RETURNING
+		  id, uuid, uid, role, email, firstname, lastname, created, modified
 	`
-	c := CustomerRow{}
+	u := UsrRow{}
 	err := m.db.QueryRowContext(ctx, query, uid, role, email, firstname, lastname).Scan(
-		&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+		&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified)
 	if err != nil {
-		return nil, errors.Wrapf(err, "query row context Customer=%v", c)
+		return nil, errors.Wrapf(err, "query row context User=%v", u)
 	}
-	return &c, nil
+	return &u, nil
 }
 
-// GetCustomers gets the next size customer starting at page page
-func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
-	q := NewQuery("customer", map[string]bool{
+// GetUsers gets the next size user starting at page page
+func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
+	q := NewQuery("usr", map[string]bool{
 		"id":        true,
 		"uuid":      false,
 		"uid":       false,
@@ -139,7 +140,7 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir), string(q.orderDir))
 	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.FirstUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "query row context query=%q", sql)
+		return nil, errors.Wrapf(err, "postgres: query row context query=%q", sql)
 	}
 	sql = `
 		SELECT uuid
@@ -150,85 +151,85 @@ func (m *PgModel) GetCustomers(ctx context.Context, pq *PaginationQuery) (*Pagin
 	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir.toggle()), string(q.orderDir.toggle()))
 	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.LastUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "query row context query=%q", sql)
+		return nil, errors.Wrapf(err, "postgres: query row context query=%q", sql)
 	}
 
 	rows, err := m.QueryContextQ(ctx, q)
 	if err != nil {
-		return nil, errors.Wrapf(err, "model query context q=%v", q)
+		return nil, errors.Wrapf(err, "postgres: model query context q=%v", q)
 	}
 	defer rows.Close()
 
-	customers := make([]*CustomerRow, 0)
+	usrs := make([]*UsrRow, 0)
 	for rows.Next() {
-		var c CustomerRow
-		if err = rows.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
-			return nil, errors.Wrapf(err, "rows scan Customer=%v", c)
+		var u UsrRow
+		if err = rows.Scan(&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
+			return nil, errors.Wrapf(err, "postgres: rows scan User=%v", u)
 		}
-		customers = append(customers, &c)
+		usrs = append(usrs, &u)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows err")
+		return nil, errors.Wrap(err, "postgres: rows err")
 	}
-	pr.RSet = customers
+	pr.RSet = usrs
 	return &pr, nil
 }
 
-// GetCustomerByUUID gets a customer by customer UUID
-func (m *PgModel) GetCustomerByUUID(ctx context.Context, customerUUID string) (*CustomerJoinRow, error) {
+// GetUserByUUID gets a user by user UUID
+func (m *PgModel) GetUserByUUID(ctx context.Context, userUUID string) (*UsrJoinRow, error) {
 	query := `
 		SELECT
 		  c.id, c.uuid, uid, price_list_id, l.uuid as price_list_uuid, role, email,
 		  firstname, lastname, c.created, c.modified
-		FROM customer AS c
+		FROM usr AS c
 		INNER JOIN price_list AS l
 		  ON c.price_list_id = l.id
 		WHERE c.uuid = $1
 	`
-	c := CustomerJoinRow{}
-	row := m.db.QueryRowContext(ctx, query, customerUUID)
+	c := UsrJoinRow{}
+	row := m.db.QueryRowContext(ctx, query, userUUID)
 	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.priceListID, &c.PriceListUUID, &c.Role, &c.Email,
 		&c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrCustomerNotFound
+			return nil, ErrUserNotFound
 		}
-		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
+		return nil, errors.Wrapf(err, "query row context scan query=%q User=%v", query, c)
 	}
 	return &c, nil
 }
 
-// GetCustomerByID gets a customer by customer ID
-func (m *PgModel) GetCustomerByID(ctx context.Context, customerID int) (*CustomerRow, error) {
+// GetUserByID gets a user by user ID
+func (m *PgModel) GetUserByID(ctx context.Context, userID int) (*UsrRow, error) {
 	query := `
 		SELECT
-			id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM customer
+		  id, uuid, uid, role, email, firstname, lastname, created, modified
+		FROM usr
 		WHERE id = $1
 	`
-	c := CustomerRow{}
-	row := m.db.QueryRowContext(ctx, query, customerID)
-	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.Role, &c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
+	u := UsrRow{}
+	row := m.db.QueryRowContext(ctx, query, userID)
+	if err := row.Scan(&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrCustomerNotFound
+			return nil, ErrUserNotFound
 		}
-		return nil, errors.Wrapf(err, "query row context scan query=%q Customer=%v", query, c)
+		return nil, errors.Wrapf(err, "query row context scan query=%q User=%v", query, u)
 	}
-	return &c, nil
+	return &u, nil
 }
 
-// GetCustomerIDByUUID converts between customer UUID and the underlying
+// GetUserIDByUUID converts between user UUID and the underlying
 // primary key.
-func (m *PgModel) GetCustomerIDByUUID(ctx context.Context, customerUUID string) (int, error) {
+func (m *PgModel) GetUserIDByUUID(ctx context.Context, userUUID string) (int, error) {
 	var id int
-	query := `SELECT id FROM customer WHERE uuid = $1`
-	row := m.db.QueryRowContext(ctx, query, customerUUID)
+	query := `SELECT id FROM usr WHERE uuid = $1`
+	row := m.db.QueryRowContext(ctx, query, userUUID)
 	err := row.Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return -1, ErrCustomerNotFound
+			return -1, ErrUserNotFound
 		}
-		return -1, errors.Wrapf(err, "query row context query=%q", query)
+		return -1, errors.Wrapf(err, "postgres: query row context query=%q", query)
 	}
 	return id, nil
 }

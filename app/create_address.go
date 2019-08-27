@@ -15,7 +15,7 @@ type addressResponseBody struct {
 	*service.Address
 }
 
-// CreateAddressHandler creates an HTTP handler that creates a new customer address record.
+// CreateAddressHandler creates an HTTP handler that creates a new user address record.
 func (a *App) CreateAddressHandler() http.HandlerFunc {
 	type addressRequestBody struct {
 		Typ         string  `json:"typ"`
@@ -38,7 +38,7 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 			return
 		}
 
-		customerID := chi.URLParam(r, "id")
+		userID := chi.URLParam(r, "id")
 		o := addressRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
@@ -56,9 +56,9 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		address, err := a.Service.CreateAddress(ctx, customerID, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
+		address, err := a.Service.CreateAddress(ctx, userID, o.Typ, o.ContactName, o.Addr1, o.Addr2, o.City, o.County, o.Postcode, o.Country)
 		if err != nil {
-			contextLogger.Panicf("a.Service.CreateAddress(ctx, customerID=%q, ...) failed with error: %v", customerID, err)
+			contextLogger.Panicf("a.Service.CreateAddress(ctx, userID=%q, ...) failed with error: %v", userID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

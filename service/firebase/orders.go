@@ -49,8 +49,8 @@ type OrderItem struct {
 	Created   *time.Time `json:"created,omitempty"`
 }
 
-// OrderCustomer contains details of the guest or customer that placed the order.
-type OrderCustomer struct {
+// OrderUser contains details of the guest or user that placed the order.
+type OrderUser struct {
 	ID          string `json:"id,omitempty"`
 	ContactName string `json:"contact_name,omitempty"`
 	Email       string `json:"email,omitempty"`
@@ -58,47 +58,47 @@ type OrderCustomer struct {
 
 // Order contains details of an previous order.
 type Order struct {
-	ID          string         `json:"id"`
-	Status      string         `json:"status"`
-	Payment     string         `json:"payment"`
-	Customer    *OrderCustomer `json:"customer"`
-	Billing     *OrderAddress  `json:"billing_address"`
-	Shipping    *OrderAddress  `json:"shipping_address"`
-	Currency    string         `json:"currency"`
-	TotalExVAT  int            `json:"total_ex_vat"`
-	VATTotal    int            `json:"vat_total"`
-	TotalIncVAT int            `json:"total_inc_vat"`
-	Items       []*OrderItem   `json:"items"`
-	Created     time.Time      `json:"created"`
-	Modified    time.Time      `json:"modified"`
+	ID          string        `json:"id"`
+	Status      string        `json:"status"`
+	Payment     string        `json:"payment"`
+	User        *OrderUser    `json:"user"`
+	Billing     *OrderAddress `json:"billing_address"`
+	Shipping    *OrderAddress `json:"shipping_address"`
+	Currency    string        `json:"currency"`
+	TotalExVAT  int           `json:"total_ex_vat"`
+	VATTotal    int           `json:"vat_total"`
+	TotalIncVAT int           `json:"total_inc_vat"`
+	Items       []*OrderItem  `json:"items"`
+	Created     time.Time     `json:"created"`
+	Modified    time.Time     `json:"modified"`
 }
 
 // PlaceOrder places a new order in the system.
-func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, customerID *string, cartID string, billing *NewAddress, shipping *NewAddress) (*Order, error) {
+func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, userID *string, cartID string, billing *NewAddress, shipping *NewAddress) (*Order, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("PlaceOrder(ctx, contactName=%v, email=%v, customerID=%v, cartID=%v, ...)", contactName, email, customerID, cartID)
+	contextLogger.Debugf("PlaceOrder(ctx, contactName=%v, email=%v, userID=%v, cartID=%v, ...)", contactName, email, userID, cartID)
 
-	// Guest orders have a customerUUID of nil whereas Customer orders
-	// are set to the UUID of that customer.
-	var customerUUID *string
-	if customerID != nil {
-		customer, err := s.GetCustomer(ctx, *customerID)
+	// Guest orders have a userUUID of nil whereas user orders
+	// are set to the UUID of that user.
+	var userUUID *string
+	if userID != nil {
+		user, err := s.GetUser(ctx, *userID)
 		if err != nil {
-			if err == ErrCustomerNotFound {
+			if err == ErrUserNotFound {
 				return nil, err
 			}
-			return nil, errors.Wrapf(err, "s.GetCustomer(ctx, %q) failed", *customerID)
+			return nil, errors.Wrapf(err, "s.GetUser(ctx, %q) failed", *userID)
 		}
-		customerUUID = customerID
-		contextLogger.Debugf("%#v\n", customer)
+		userUUID = userID
+		contextLogger.Debugf("%#v\n", user)
 	} else {
-		customerUUID = nil
+		userUUID = nil
 	}
 
-	if customerUUID == nil {
-		contextLogger.Debugf("customerUUID is nil")
+	if userUUID == nil {
+		contextLogger.Debugf("userUUID is nil")
 	} else {
-		contextLogger.Debugf("customerUUID is %s", *customerUUID)
+		contextLogger.Debugf("userUUID is %s", *userUUID)
 	}
 
 	// Prevent orders with empty carts.
@@ -129,9 +129,9 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, cu
 		Postcode:    shipping.Postcode,
 		Country:     shipping.Country,
 	}
-	log.WithContext(ctx).Debugf("customerUUID=%v, cartID=%v", customerUUID, cartID)
+	log.WithContext(ctx).Debugf("userUUID=%v, cartID=%v", userUUID, cartID)
 
-	orow, oirows, crow, err := s.model.AddOrder(ctx, contactName, email, customerUUID, nil, cartID, &pgBilling, &pgShipping)
+	orow, oirows, crow, err := s.model.AddOrder(ctx, contactName, email, userUUID, nil, cartID, &pgBilling, &pgShipping)
 	if err != nil {
 		return nil, errors.Wrap(err, "s.model.AddOrder(ctx, ...) failed")
 	}
@@ -153,19 +153,19 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, cu
 		orderItems = append(orderItems, &oi)
 	}
 
-	var customer OrderCustomer
-	if customerID != nil {
-		customer.ID = crow.UUID
+	var user OrderUser
+	if userID != nil {
+		user.ID = crow.UUID
 	} else {
-		customer.ContactName = *contactName
-		customer.Email = *email
+		user.ContactName = *contactName
+		user.Email = *email
 	}
 
 	order := Order{
-		ID:       orow.UUID,
-		Status:   orow.Status,
-		Payment:  orow.Payment,
-		Customer: &customer,
+		ID:      orow.UUID,
+		Status:  orow.Status,
+		Payment: orow.Payment,
+		User:    &user,
 		Billing: &OrderAddress{
 			ContactName: orow.Billing.ContactName,
 			Addr1:       orow.Billing.Addr1,
@@ -206,17 +206,17 @@ func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) 
 		return nil, errors.Wrap(err, "GetOrderDetailsByUUID failed")
 	}
 
-	//var customer *Customer
-	//crow, err := s.model.GetCustomerByID(ctx, *orow.CustomerID)
+	//var user *User
+	//crow, err := s.model.GetUserByID(ctx, *orow.UserID)
 	//if err != nil {
-	//      if err == postgres.ErrCustomerNotFound {
-	//              customer = nil
+	//      if err == postgres.ErrUserNotFound {
+	//              user = nil
 	//      } else {
-	//              return nil, errors.Wrapf(err, "s.model.GetCustomerByID(ctx, CustomerID=%s", *orow.CustomerID)
+	//              return nil, errors.Wrapf(err, "s.model.GetUserByID(ctx, UserID=%s", *orow.UserID)
 	//      }
 	//}
 	//if crow != nil {
-	//      customer = &Customer{
+	//      user = &User{
 	//              ID:        crow.UUID,
 	//              UID:       crow.UID,
 	//              Role:      crow.Role,
@@ -249,7 +249,7 @@ func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) 
 		Status:   orow.Status,
 		Payment:  orow.Payment,
 		Currency: "GBP",
-		//Customer: customer,
+		//User: user,
 		Billing: &OrderAddress{
 			ContactName: orow.Billing.ContactName,
 			Addr1:       orow.Billing.Addr1,

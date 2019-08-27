@@ -33,7 +33,7 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 			if err == service.ErrCartNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				return
-			} else if err == service.ErrCustomerNotFound {
+			} else if err == service.ErrUserNotFound {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -42,7 +42,7 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 				}{
 					http.StatusConflict,
 					ErrCodeCustomerNotFound,
-					"The customerID inside the JWT did not match any customers in the system",
+					"The userID inside the JWT did not match any user in the system",
 				})
 				return
 			} else if err == service.ErrProductNotFound {

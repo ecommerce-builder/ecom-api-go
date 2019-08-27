@@ -173,7 +173,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, path, sku, name string) (*P
 	// Delete all existing products. This is not the most efficient
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
-	// effect the customer's experience.
+	// effect the user's experience.
 	// q2 := "DELETE FROM image WHERE product_id = $1"
 	// if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
 	// 	tx.Rollback()
@@ -363,7 +363,7 @@ func (m *PgModel) UpdateProduct(ctx context.Context, productUUID string, pu *Pro
 	// Delete all existing products. This is not the most efficient
 	// way, but is easier that comparing the state of a list of new
 	// images with the underlying database. Product updates don't
-	// effect the customer's experience.
+	// effect the user's experience.
 	// q2 := "DELETE FROM image WHERE product_id = $1"
 	// if _, err = tx.ExecContext(ctx, q2, p.id); err != nil {
 	// 	tx.Rollback()
