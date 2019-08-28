@@ -88,9 +88,30 @@ func (s *Service) AddProductCategory(ctx context.Context, request *ProductCatego
 	return &productCategory, nil
 }
 
+// GetProductCategory get a product to category association by id
+func (s *Service) GetProductCategory(ctx context.Context, productCategoryID string) (*ProductCategory, error) {
+	row, err := s.model.GetProductCategory(ctx, productCategoryID)
+	if err != nil {
+		if err == postgres.ErrProductCategoryNotFound {
+			return nil, ErrProductCategoryNotFound
+		}
+		return nil, errors.Wrapf(err, "service: s.model.GetProductCategory(ctx, productCategoryUUID=%q", productCategoryID)
+	}
+	productCategory := ProductCategory{
+		Object:     "product_category",
+		ID:         row.UUID,
+		ProductID:  row.ProductUUID,
+		CategoryID: row.CategoryUUID,
+		Pri:        row.Pri,
+		Created:    row.Created,
+		Modified:   row.Modified,
+	}
+	return &productCategory, nil
+}
+
 // DeleteProductCategory unlinks a product from a leaf category.
-func (s *Service) DeleteProductCategory(ctx context.Context, productCategoryUUID string) error {
-	err := s.model.DeleteProductCategory(ctx, productCategoryUUID)
+func (s *Service) DeleteProductCategory(ctx context.Context, productCategoryID string) error {
+	err := s.model.DeleteProductCategory(ctx, productCategoryID)
 	if err != nil {
 		if err == postgres.ErrProductCategoryNotFound {
 			return ErrProductCategoryNotFound

@@ -132,8 +132,8 @@ func (m *PgModel) AddProductCategory(ctx context.Context, categoryUUID, productU
 		  category_id, (SELECT uuid category_uuid FROM category WHERE id = $5),
 		  pri, created, modified
 		`
-	row := tx.QueryRowContext(ctx, q4, productID, categoryID, categoryID, productID, categoryID)
 	var pc ProductCategoryBasicJoinRow
+	row := tx.QueryRowContext(ctx, q4, productID, categoryID, categoryID, productID, categoryID)
 	if err := row.Scan(&pc.id, &pc.UUID, &pc.productID, &pc.ProductUUID,
 		&pc.categoryID, &pc.CategoryUUID, &pc.Pri, &pc.Created, &pc.Modified); err != nil {
 		tx.Rollback()
@@ -142,6 +142,32 @@ func (m *PgModel) AddProductCategory(ctx context.Context, categoryUUID, productU
 
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
+	}
+	return &pc, nil
+}
+
+// GetProductCategory returns a product_category row by uuid.
+func (m *PgModel) GetProductCategory(ctx context.Context, productCategoryUUID string) (*ProductCategoryBasicJoinRow, error) {
+	// 1. check if the product category exists
+	q1 := `
+		SELECT
+		  l.id, l.uuid, l.product_id, p.uuid AS product_uuid,
+		  l.category_id, c.uuid AS category_uuid, pri, l.created, l.modified
+		FROM product_category AS l
+		INNER JOIN product AS p
+		  ON p.id = l.product_id
+		INNER JOIN category AS c
+		  ON c.id = l.category_id
+		WHERE l.uuid = $1
+		`
+	var pc ProductCategoryBasicJoinRow
+	row := m.db.QueryRowContext(ctx, q1, productCategoryUUID)
+	if err := row.Scan(&pc.id, &pc.UUID, &pc.productID, &pc.ProductUUID,
+		&pc.categoryID, &pc.CategoryUUID, &pc.Pri, &pc.Created, &pc.Modified); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrProductCategoryNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, q1, productCategoryUUID=%q).Scan failed q1=%q", q1, productCategoryUUID)
 	}
 	return &pc, nil
 }
