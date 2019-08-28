@@ -646,6 +646,7 @@ func main() {
 
 		r.Route("/products-categories", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpAddProductCategory, a.AddProductCategoryHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetProductCategory, a.GetProductCategoryHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProductCategory, a.DeleteProductCategoryHandler()))
 
 			r.Put("/", a.Authorization(app.OpUpdateProductProducts, a.UpdateProductsCategoriesHandler()))

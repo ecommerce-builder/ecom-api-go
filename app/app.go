@@ -166,6 +166,7 @@ const (
 
 	// Category and assocations
 	OpAddProductCategory      string = "OpAddProductCategory"
+	OpGetProductCategory      string = "OpGetProductCategory"
 	OpDeleteProductCategory   string = "OpDeleteProductCategory"
 	OpGetProductsCategories   string = "OpGetProductsCategories"
 	OpUpdateProductProducts   string = "OpUpdateProductProducts"
