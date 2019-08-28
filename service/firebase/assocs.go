@@ -9,6 +9,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrProductCategoryExists error
+var ErrProductCategoryExists = errors.New("service: product to category association exists")
+
 // ProductCategoryRequestBody request used for linking a product to a category.
 type ProductCategoryRequestBody struct {
 	CategoryID string `json:"category_id"`
@@ -65,6 +68,8 @@ func (s *Service) AddProductCategory(ctx context.Context, request *ProductCatego
 			return nil, ErrCategoryNotLeaf
 		} else if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
+		} else if err == postgres.ErrProductCategoryExists {
+			return nil, ErrProductCategoryExists
 		}
 		return nil, errors.Wrapf(err, "service: s.model.AddProductCategory(ctx, categoryUUID=%q, productUUID=%q)", request.CategoryID, request.ProductID)
 	}

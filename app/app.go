@@ -53,6 +53,10 @@ const (
 	// ErrCodeProductNotFound indicates the product with given SKU could not be found.
 	ErrCodeProductNotFound string = "products/product-not-found"
 
+	// ErrCodeProductCategoryExists indicates the product to category assocation has
+	// already been made.
+	ErrCodeProductCategoryExists string = "product-category/product-category-exists"
+
 	// ErrCodeProductPathExists is returned when attempting to create or update a product
 	// with a path that is already used by another product.
 	ErrCodeProductPathExists string = "products/product-path-exists"

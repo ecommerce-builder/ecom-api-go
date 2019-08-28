@@ -10,6 +10,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrProductCategoryExists error
+var ErrProductCategoryExists = errors.New("postgres: product to category association exists")
+
 // ErrProductsCategoriesNotFound error
 var ErrProductsCategoriesNotFound = errors.New("postgres: product to category association not found")
 
@@ -99,8 +102,18 @@ func (m *PgModel) AddProductCategory(ctx context.Context, categoryUUID, productU
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 	}
 
+	q3 := "SELECT EXISTS(SELECT 1 FROM product_category WHERE product_id = $1 AND category_id = $2) AS exists"
+	var exists bool
+	err = tx.QueryRowContext(ctx, q3, productID, categoryID).Scan(&exists)
+	if err != nil {
+		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q3=%q, productID=%d, categoryID=%d) failed", q3, productID, categoryID)
+	}
+	if exists {
+		return nil, ErrProductCategoryExists
+	}
+
 	// 3. Link the product to the category
-	q3 := `
+	q4 := `
 		INSERT INTO product_category
 		  (product_id, category_id, pri)
 		VALUES ($1, $2,
@@ -119,12 +132,12 @@ func (m *PgModel) AddProductCategory(ctx context.Context, categoryUUID, productU
 		  category_id, (SELECT uuid category_uuid FROM category WHERE id = $5),
 		  pri, created, modified
 		`
-	row := tx.QueryRowContext(ctx, q3, productID, categoryID, categoryID, productID, categoryID)
+	row := tx.QueryRowContext(ctx, q4, productID, categoryID, categoryID, productID, categoryID)
 	var pc ProductCategoryBasicJoinRow
 	if err := row.Scan(&pc.id, &pc.UUID, &pc.productID, &pc.ProductUUID,
 		&pc.categoryID, &pc.CategoryUUID, &pc.Pri, &pc.Created, &pc.Modified); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q3, ...) failed q3=%q", q3)
+		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q4, ...) failed q4=%q", q4)
 	}
 
 	if err = tx.Commit(); err != nil {

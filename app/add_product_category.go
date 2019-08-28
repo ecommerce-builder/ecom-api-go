@@ -68,6 +68,18 @@ func (a *App) AddProductCategoryHandler() http.HandlerFunc {
 					"product not found",
 				})
 				return
+			} else if err == service.ErrProductCategoryExists {
+				w.WriteHeader(http.StatusConflict)
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusConflict,
+					ErrCodeProductCategoryExists,
+					"product to category association already exists",
+				})
+				return
 			}
 
 			contextLogger.Errorf("a.Service.AddProductCategory(ctx, request=%v) failed with error: %+v", requestBody, err)
