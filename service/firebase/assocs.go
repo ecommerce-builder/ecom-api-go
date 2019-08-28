@@ -12,6 +12,9 @@ import (
 // ErrProductCategoryExists error
 var ErrProductCategoryExists = errors.New("service: product to category association exists")
 
+// ErrProductCategoryNotFound error
+var ErrProductCategoryNotFound = errors.New("service: product to category association not found")
+
 // ProductCategoryRequestBody request used for linking a product to a category.
 type ProductCategoryRequestBody struct {
 	CategoryID string `json:"category_id"`
@@ -83,6 +86,18 @@ func (s *Service) AddProductCategory(ctx context.Context, request *ProductCatego
 		Modified:   row.Modified,
 	}
 	return &productCategory, nil
+}
+
+// DeleteProductCategory unlinks a product from a leaf category.
+func (s *Service) DeleteProductCategory(ctx context.Context, productCategoryUUID string) error {
+	err := s.model.DeleteProductCategory(ctx, productCategoryUUID)
+	if err != nil {
+		if err == postgres.ErrProductCategoryNotFound {
+			return ErrProductCategoryNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 // CreateProductCategoryAssocs creates a set of catalog product
