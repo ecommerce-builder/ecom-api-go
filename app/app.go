@@ -23,8 +23,8 @@ const (
 	// leaf category and that categoryd.
 	ErrCodeLeafCategoryNotFound string = "categories/leaf-category-not-found"
 
-	// ErrCodeCustomerNotFound is sent if a customer cannot be located
-	ErrCodeCustomerNotFound string = "customers/not-found"
+	// ErrCodeUserNotFound is sent if a user cannot be located
+	ErrCodeUserNotFound string = "users/not-found"
 
 	// ErrCodeCartAlreadyExists is sent when attempting to add a cart item to a cart
 	// and that cart item is already in the cart.
@@ -159,8 +159,8 @@ const (
 	OpUpdateCategories            string = "OpUpdateCategories"
 	OpGetCategories               string = "OpGetCategories"
 	OpPurgeCatalog                string = "OpPurgeCatalog"
-	OpGetCategoryProductAssocs    string = "OpGetCategoryProductAssocs"
-	OpUpdateCategoryProductAssocs string = "OpUpdateCategoryProductAssocs"
+	OpGetProductCategoryAssocs    string = "OpGetProductCategoryAssocs"
+	OpUpdateProductCategoryAssocs string = "OpUpdateProductCategoryAssocs"
 	OpPurgeCategoryAssocs         string = "OpPurgeCategoryAssocs"
 
 	// Stripe

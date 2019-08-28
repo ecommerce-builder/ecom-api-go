@@ -771,16 +771,16 @@ paths:
       responses:
         '204':
           description: No content
-  /customers:
+  /users:
     post:
       summary: Create and sign up a new customer
       description: |
-        Sign up a new customer creates a new customer with the role of `RoleCustomer`.
+        Sign up a new customer creates a new customer with the role of `RoleCustomer` only.
         ### Auth
         OpCreateCustomer requires no JSON Web Token.
       operationId: OpCreateCustomer
       tags:
-      - Customers
+      - Users
       requestBody:
         description: New customer details
         required: true
@@ -798,12 +798,12 @@ paths:
     get:
       security:
       - bearerAuth: []
-      summary: List all customers
+      summary: List all users
       description: |
-        OpListCustomers requires `RoleAdmin` privileges.
-      operationId: OpListCustomers
+        OpListUsers requires `RoleAdmin` privileges.
+      operationId: OpListUsers
       tags:
-      - Customers
+      - Users
       responses:
         '200':
           description: List of Customer objects
@@ -1002,7 +1002,7 @@ paths:
       responses:
         '204':
           description: No Content
-  /customers/{id}:
+  /users/{id}:
     get:
       security:
       - bearerAuth: []
@@ -1011,7 +1011,7 @@ paths:
         OpGetCustomer requires `RoleCustomer` privileges.
       operationId: OpGetCustomer
       tags:
-      - Customers
+      - Users
       parameters:
       - name: id
         required: true
@@ -1027,7 +1027,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Customer'
-  /customers/{id}/devkeys:
+  /users/{id}/devkeys:
     parameters:
     - name: id
       required: true
@@ -1057,8 +1057,8 @@ paths:
       - bearerAuth: []
       summary: List a customer's developer keys
       description: |
-        OpListCustomersDevKeys requires `RoleCustomer` privileges.
-      operationId: OpListCustomersDevKeys
+        OpListUsersDevKeys requires `RoleCustomer` privileges.
+      operationId: OpListUsersDevKeys
       tags:
       - Developer Keys
       responses:
@@ -1135,7 +1135,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignInDevKeyCustomToken'
-  /customers/{id}/addresses:
+  /users/{id}/addresses:
     parameters:
     - name: id
       required: true
@@ -1170,8 +1170,8 @@ paths:
       - bearerAuth: []
       summary: Get all addresses for a given customer
       description: |
-        OpGetCustomersAddresses requires `RoleCustomer` privileges. Retrieves a list of Address objects for the given customer. If called with `RoleCustomer` you must be the customer you intend to retrieve the addresses for. If called with `RoleAdmin` you can retrieve a list of addresses for any customer.
-      operationId: OpGetCustomersAddresses
+        OpGetUsersAddresses requires `RoleCustomer` privileges. Retrieves a list of Address objects for the given customer. If called with `RoleCustomer` you must be the customer you intend to retrieve the addresses for. If called with `RoleAdmin` you can retrieve a list of addresses for any customer.
+      operationId: OpGetUsersAddresses
       tags:
       - Addresses
       responses:
@@ -2569,9 +2569,6 @@ components:
           type: string
           format: uuid
           example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
-        sku:
-          type: string
-          example: 'USB32GBSP'
         path:
           type: string
           example: '4439.jpg'

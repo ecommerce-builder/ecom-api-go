@@ -16,7 +16,7 @@ func (a *App) PurgeCatalogHandler() http.HandlerFunc {
 		contextLogger.Info("App: PurgeCatalogHandler started")
 
 		// A catalog may only be purged if all catalog product associations are first purged.
-		has, err := a.Service.HasCategoryProductAssocs(ctx)
+		has, err := a.Service.HasProductCategoryAssocs(ctx)
 		if err != nil {
 			contextLogger.Errorf("%+v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

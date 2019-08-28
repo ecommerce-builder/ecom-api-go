@@ -126,24 +126,24 @@ func TestGetAddressByUUID(t *testing.T) {
 	})
 }
 
-func TestCreateCategoryProductAssoc(t *testing.T) {
+func TestCreateProductCategoryAssoc(t *testing.T) {
 	model, teardown := setup(t)
 	defer teardown()
 
 	ctx := context.Background()
-	cp, err := model.CreateCategoryProductAssocs(ctx, "a/c/f/j/m", "WATER-SKU")
+	cp, err := model.CreateProductCategoryAssocs(ctx, "a/c/f/j/m", "WATER-SKU")
 	if err != nil {
 		t.Errorf("create category product assoc: %v", err)
 	}
 	t.Log(cp)
 }
 
-func TestDeleteCategoryProductAssoc(t *testing.T) {
+func TestDeleteProductCategoryAssoc(t *testing.T) {
 	model, teardown := setup(t)
 	defer teardown()
 
 	ctx := context.Background()
-	err := model.DeleteCatalogProductAssoc(ctx, "a/c/f/j/m", "WATER-SKU")
+	err := model.DeleteProductCatalogAssoc(ctx, "a/c/f/j/m", "WATER-SKU")
 	if err != nil {
 		t.Errorf("delete category product assoc: %v", err)
 	}

@@ -10,9 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GetCategoryProductAssocsHandler creates a handler to return all category to product
-// associations.
-func (a *App) GetCategoryProductAssocsHandler() http.HandlerFunc {
+// GetProductCategoryAssocsHandler creates a handler to return all
+// product to category associations.
+func (a *App) GetProductCategoryAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
@@ -36,9 +36,9 @@ func (a *App) GetCategoryProductAssocsHandler() http.HandlerFunc {
 			return
 		}
 
-		cpo, err := a.Service.GetCategoryProductAssocs(ctx, key)
+		cpo, err := a.Service.GetProductCategoryAssocs(ctx, key)
 		if err != nil {
-			contextLogger.Errorf("service GetCategoryProductAssocs(ctx) error: %v", err)
+			contextLogger.Errorf("service GetProductCategoryAssocs(ctx) error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
@@ -75,12 +75,12 @@ func (a *App) PurgeCategoryAssocsHandler() http.HandlerFunc {
 	}
 }
 
-type categoryProduct struct {
+type productCategory struct {
 	ProductID string `json:"product_id"`
 }
 
 type categoryAssoc struct {
-	Products []*categoryProduct `json:"products"`
+	Products []*productCategory `json:"products"`
 }
 
 type categoryAssocs map[string]*categoryAssoc
@@ -108,13 +108,13 @@ func validateCatalogAssocs(cmap map[string]*categoryAssoc, tree *firebase.Catego
 	return pids, missingPaths, nonLeafs
 }
 
-// UpdateCategoryProductAssocsHandler creates a handler function that overwrites
+// UpdateProductCategoryAssocsHandler creates a handler function that overwrites
 // a new category association.
-func (a *App) UpdateCategoryProductAssocsHandler() http.HandlerFunc {
+func (a *App) UpdateProductCategoryAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateCategoryProductAssocsHandler started")
+		contextLogger.Info("App: UpdateProductCategoryAssocsHandler started")
 
 		xKeyedBy := r.Header.Get("X-Keyed-By")
 		if xKeyedBy == "" {
@@ -244,9 +244,9 @@ func (a *App) UpdateCategoryProductAssocsHandler() http.HandlerFunc {
 			}
 			cpas[path] = pids
 		}
-		err = a.Service.CreateCategoryProductAssocs(ctx, cpas)
+		err = a.Service.CreateProductCategoryAssocs(ctx, cpas)
 		if err != nil {
-			contextLogger.Errorf("CreateCategoryProductAssocs(ctx, ...) failed: %+v", err)
+			contextLogger.Errorf("CreateProductCategoryAssocs(ctx, ...) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

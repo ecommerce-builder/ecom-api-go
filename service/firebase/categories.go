@@ -163,9 +163,9 @@ func (n *CategoryRequest) GenerateNestedSet(lft, depth int, path string) int {
 // representation before calling the model to persist the replacement
 // catalog.
 func (s *Service) UpdateCatalog(ctx context.Context, root *CategoryRequest) error {
-	hasAssocs, err := s.HasCategoryProductAssocs(ctx)
+	hasAssocs, err := s.HasProductCategoryAssocs(ctx)
 	if err != nil {
-		return errors.Wrapf(err, "HasCategoryProductAssocs(ctx) error")
+		return errors.Wrapf(err, "HasProductCategoryAssocs(ctx) error")
 	}
 	if hasAssocs {
 		return ErrAssocsAlreadyExist
@@ -334,9 +334,9 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 		log.WithContext(ctx).Debug("service: s.model.GetCatalogNestedSet(ctx) returned an empty list")
 		return nil, ErrCategoriesEmpty
 	}
-	cpas, err := s.model.GetCategoryProductAssocsFull(ctx)
+	cpas, err := s.model.GetProductCategoryAssocsFull(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: GetCategoryProductAssocsFull(ctx) failed")
+		return nil, errors.Wrapf(err, "service: GetProductCategoryAssocsFull(ctx) failed")
 	}
 
 	// convert slice into map

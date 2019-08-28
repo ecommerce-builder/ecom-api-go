@@ -521,7 +521,7 @@ func (m *PgModel) DeleteProduct(ctx context.Context, productUUID string) error {
 	}
 
 	// 4. Unlink the product from the categories (many to many)
-	q4 := "DELETE FROM category_product WHERE product_id = $1"
+	q4 := "DELETE FROM product_category WHERE product_id = $1"
 	_, err = tx.ExecContext(ctx, q4, productID)
 	if err != nil {
 		tx.Rollback()

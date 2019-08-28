@@ -41,7 +41,7 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodeCustomerNotFound,
+					ErrCodeUserNotFound,
 					"The userID inside the JWT did not match any user in the system",
 				})
 				return

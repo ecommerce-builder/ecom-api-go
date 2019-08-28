@@ -11,10 +11,10 @@ import (
 )
 
 // ErrProductsCategoriesNotFound error
-var ErrProductsCategoriesNotFound = errors.New("postgres: products categories association not found")
+var ErrProductsCategoriesNotFound = errors.New("postgres: product to category association not found")
 
-// CategoryProductRow represents a single row from the category_product table.
-type CategoryProductRow struct {
+// ProductCategoryRow represents a single row from the product_category table.
+type ProductCategoryRow struct {
 	id         int
 	categoryID int
 	productID  int
@@ -42,32 +42,14 @@ type ProductCategoryJoinRow struct {
 	Modified        time.Time
 }
 
-// CategoryProductAssocFull maps products to leaf nodes in the catalog hierarchy.
-// type CategoryProductAssocFull struct {
-// 	id              int
-// 	categoryID      int
-// 	productID       int
-// 	ProductUUID     string
-// 	CategoryUUID    string
-// 	CategoryPath    string
-// 	ProductPath     string
-// 	ProductSKU      string
-// 	ProductName     string
-// 	ProductCreated  time.Time
-// 	ProductModified time.Time
-// 	Pri             int
-// 	Created         time.Time
-// 	Modified        time.Time
-// }
-
-// CreateProductsCategoriesRow represents a new row to add.
-type CreateProductsCategoriesRow struct {
+// CreateProductCategoryRow represents a new row to add.
+type CreateProductCategoryRow struct {
 	CategoryUUID string
 	ProductUUID  string
 }
 
 // UpdateProductsCategories creates a batch of associations between a product and category.
-func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreateProductsCategoriesRow) ([]*ProductCategoryJoinRow, error) {
+func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreateProductCategoryRow) ([]*ProductCategoryJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx")
@@ -147,7 +129,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	_, err = tx.ExecContext(ctx, q3)
 	if err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "postgres: delete category_product q3=%q", q3)
+		return nil, errors.Wrapf(err, "postgres: delete product_category q3=%q", q3)
 	}
 
 	q4 := `
@@ -205,23 +187,23 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	return productsCategories, nil
 }
 
-// CreateCategoryProductAssocs inserts multiple category product
+// CreateProductCategoryAssocs inserts multiple category product
 // associations using a transaction.
-func (m *PgModel) CreateCategoryProductAssocs(ctx context.Context, cpas map[string][]string) error {
+func (m *PgModel) CreateProductCategoryAssocs(ctx context.Context, cpas map[string][]string) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	q1 := "DELETE FROM category_product"
+	q1 := "DELETE FROM product_category"
 	_, err = tx.ExecContext(ctx, q1)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "postgres: delete category_product query=%q", q1)
+		return errors.Wrapf(err, "postgres: delete product_category query=%q", q1)
 	}
 
 	q2 := `
-		INSERT INTO category_product
+		INSERT INTO product_category
 			(category_id, product_id, pri)
 		VALUES (
 			$1,
@@ -233,7 +215,7 @@ func (m *PgModel) CreateCategoryProductAssocs(ctx context.Context, cpas map[stri
 					ELSE 10
 				END
 				AS pri
-				FROM category_product
+				FROM product_category_
 				WHERE category_id = $3
 			)
 		)
@@ -298,10 +280,10 @@ func (m *PgModel) CreateCategoryProductAssocs(ctx context.Context, cpas map[stri
 	return nil
 }
 
-// DeleteCategoryProductAssoc delete an existing catalog product association.
-func (m *PgModel) DeleteCategoryProductAssoc(ctx context.Context, path, sku string) error {
+// DeleteProductCategoryAssoc delete an existing catalog product association.
+func (m *PgModel) DeleteProductCategoryAssoc(ctx context.Context, path, sku string) error {
 	query := `
-		DELETE FROM category_product
+		DELETE FROM product_category
 		WHERE path = $1 AND sku = $2
 	`
 	_, err := m.db.ExecContext(ctx, query, path, sku)
@@ -348,16 +330,16 @@ func (m *PgModel) GetProductsCategories(ctx context.Context) ([]*ProductCategory
 	return cpas, nil
 }
 
-// GetCategoryProductAssocsFull returns an Slice of catalog to product
+// GetProductCategoryAssocsFull returns an Slice of catalog to product
 // associations joined with products to including name.
-func (m *PgModel) GetCategoryProductAssocsFull(ctx context.Context) ([]*ProductCategoryJoinRow, error) {
+func (m *PgModel) GetProductCategoryAssocsFull(ctx context.Context) ([]*ProductCategoryJoinRow, error) {
 	query := `
 		SELECT
 		  c.id, category_id, product_id, p.uuid as product_uuid, t.path, p.path, p.sku, p.name,
 		  p.created as product_created, p.modified as product_modified,
 		  pri, c.created, c.modified
 		FROM
-		  category_product AS c
+		  product_category AS c
 		INNER JOIN product AS p
 		  ON p.id = c.product_id
 		INNER JOIN category AS t
@@ -385,10 +367,10 @@ func (m *PgModel) GetCategoryProductAssocsFull(ctx context.Context) ([]*ProductC
 	return cpas, nil
 }
 
-// HasCategoryProductAssocs returns true if any catalog product associations
+// HasProductCategoryAssocs returns true if any catalog product associations
 // exist.
-func (m *PgModel) HasCategoryProductAssocs(ctx context.Context) (bool, error) {
-	query := "SELECT COUNT(*) AS count FROM category_product"
+func (m *PgModel) HasProductCategoryAssocs(ctx context.Context) (bool, error) {
+	query := "SELECT COUNT(*) AS count FROM product_category"
 	var count int
 	err := m.db.QueryRowContext(ctx, query).Scan(&count)
 	if err != nil {
@@ -400,15 +382,15 @@ func (m *PgModel) HasCategoryProductAssocs(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// UpdateCategoryProductAssocs updates all entries in the category_product
+// UpdateProductCategoryAssocs updates all entries in the product_category
 // associations table.
-// func (m *PgModel) UpdateCategoryProductAssocs(ctx context.Context, cpo []*CategoryProductJoinRow) error {
+// func (m *PgModel) UpdateProductCategoryAssocs(ctx context.Context, cpo []*ProductCategoryJoinRow) error {
 // 	tx, err := m.db.BeginTx(ctx, nil)
 // 	if err != nil {
 // 		return err
 // 	}
 // 	stmt, err := tx.PrepareContext(ctx, `
-// 		INSERT INTO category_product
+// 		INSERT INTO product_category
 // 			(category_id, product_id, path, sku, pri)
 // 		VALUES (
 // 			(SELECT id FROM category WHERE path = $1),
@@ -444,16 +426,16 @@ func (m *PgModel) PurgeProductsCategories(ctx context.Context) error {
 	return nil
 }
 
-// DeleteCategoryProductAssocs delete all category product
+// DeleteProductCategoryAssocs delete all category product
 // associations effectly purging the catalog.
-func (m *PgModel) DeleteCategoryProductAssocs(ctx context.Context) (affected int64, err error) {
-	res, err := m.db.ExecContext(ctx, "DELETE FROM category_product")
+func (m *PgModel) DeleteProductCategoryAssocs(ctx context.Context) (affected int64, err error) {
+	res, err := m.db.ExecContext(ctx, "DELETE FROM product_category")
 	if err != nil {
-		return -1, errors.Wrap(err, "assocs: delete category product assocs")
+		return -1, errors.Wrap(err, "postgres: delete product to category assocs")
 	}
 	count, err := res.RowsAffected()
 	if err != nil {
-		return -1, errors.Wrap(err, "assocs: rows affected")
+		return -1, errors.Wrap(err, "postgres: rows affected")
 	}
 	return count, nil
 }
