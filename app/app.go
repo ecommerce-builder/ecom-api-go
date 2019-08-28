@@ -57,6 +57,9 @@ const (
 	// already been made.
 	ErrCodeProductCategoryExists string = "product-category/product-category-exists"
 
+	// ErrCodeProductCategoryNotFound for missing uuid.
+	ErrCodeProductCategoryNotFound string = "product-category/product-category-not-found"
+
 	// ErrCodeProductPathExists is returned when attempting to create or update a product
 	// with a path that is already used by another product.
 	ErrCodeProductPathExists string = "products/product-path-exists"
@@ -163,6 +166,7 @@ const (
 
 	// Category and assocations
 	OpAddProductCategory      string = "OpAddProductCategory"
+	OpDeleteProductCategory   string = "OpDeleteProductCategory"
 	OpGetProductsCategories   string = "OpGetProductsCategories"
 	OpUpdateProductProducts   string = "OpUpdateProductProducts"
 	OpPurgeProductsCategories string = "OpPurgeProductsCategories"

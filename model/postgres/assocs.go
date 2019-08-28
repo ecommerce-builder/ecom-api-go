@@ -13,8 +13,8 @@ import (
 // ErrProductCategoryExists error
 var ErrProductCategoryExists = errors.New("postgres: product to category association exists")
 
-// ErrProductsCategoriesNotFound error
-var ErrProductsCategoriesNotFound = errors.New("postgres: product to category association not found")
+// ErrProductCategoryNotFound error
+var ErrProductCategoryNotFound = errors.New("postgres: product to category association not found")
 
 // ProductCategoryRow represents a single row from the product_category table.
 type ProductCategoryRow struct {
@@ -146,6 +146,39 @@ func (m *PgModel) AddProductCategory(ctx context.Context, categoryUUID, productU
 	return &pc, nil
 }
 
+// DeleteProductCategory deletes a product_category row by uuid.
+func (m *PgModel) DeleteProductCategory(ctx context.Context, productCategoryUUID string) error {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "postgres: db.BeginTx")
+	}
+
+	// 1. check if the product category exists
+	q1 := "SELECT id FROM product_category WHERE uuid = $1"
+	var productCategoryID int
+	err = tx.QueryRowContext(ctx, q1, productCategoryUUID).Scan(&productCategoryID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrProductCategoryNotFound
+		}
+		tx.Rollback()
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	// 2. delete it
+	q2 := "DELETE FROM product_category WHERE id = $1"
+	_, err = tx.ExecContext(ctx, q2, productCategoryID)
+	if err != nil {
+		return errors.Wrapf(err, "tx.ExecContext(ctx, q2, productCategoryID=%d)", productCategoryID)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return errors.Wrap(err, "postgres: tx.Commit")
+	}
+	return nil
+}
+
 // UpdateProductsCategories creates a batch of associations between a product and category.
 func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreateProductCategoryRow) ([]*ProductCategoryJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
@@ -264,7 +297,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 		if err := stmt4.QueryRowContext(ctx, product.id, category.id, category.id).Scan(&c.id, &c.UUID, &c.productID, &c.categoryID, &c.Pri, &c.Created, &c.Modified); err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
-				return nil, ErrProductsCategoriesNotFound
+				return nil, ErrProductCategoryNotFound
 			}
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: stmt4.QueryRowContext(ctx, ...) failed q4=%q", q4)
@@ -386,7 +419,7 @@ func (m *PgModel) DeleteProductCategoryAssoc(ctx context.Context, path, sku stri
 	`
 	_, err := m.db.ExecContext(ctx, query, path, sku)
 	if err != nil {
-		return errors.Wrapf(err, "service: delete category product assoc path=%q sku=%q", path, sku)
+		return errors.Wrapf(err, "postgres: delete category product assoc path=%q sku=%q", path, sku)
 	}
 	return nil
 }
