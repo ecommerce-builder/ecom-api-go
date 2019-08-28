@@ -69,6 +69,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// Operations that required at least RoleAdmin privileges
 		case OpListUsers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
 			OpPurgeCategoryAssocs, OpUpdateProductCategoryAssocs, OpSystemInfo,
+			OpAddProductCategory,
 			OpUpdateProductProducts, OpPurgeProductsCategories, OpUpdateProductPrices, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
 			OpCreatePriceList, OpListPriceLists, OpUpdatePriceList, OpDeletePriceList,

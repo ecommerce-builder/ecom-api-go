@@ -12,6 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ErrCategoryNotFound error
+var ErrCategoryNotFound = errors.New("service: category not found")
+
+// ErrCategoryNotLeaf error
+var ErrCategoryNotLeaf = errors.New("service: category not a leaf")
+
 // ErrAssocsAlreadyExist is returned by UpdateCatalog when any associations
 // already exist.
 var ErrAssocsAlreadyExist = errors.New("service: associations already exist")

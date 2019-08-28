@@ -7,6 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrCategoryNotFound error
+var ErrCategoryNotFound = errors.New("postgres: category not found")
+
+// ErrCategoryNotLeaf error
+var ErrCategoryNotLeaf = errors.New("postgres: category not a leaf")
+
 // ErrLeafCategoryNotFound error
 var ErrLeafCategoryNotFound = errors.New("postgres: category not found")
 

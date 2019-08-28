@@ -19,6 +19,12 @@ const (
 	// before a catalog has been applied.
 	ErrCodeNoCatalog string = "catalog/no-catalog"
 
+	// ErrCodeCategoryNotFound is sent when referencing a category with an invalid uuid.
+	ErrCodeCategoryNotFound string = "category/category-not-found"
+
+	// ErrCodeCategoryNotLeaf is sent when trying to link a product to a non-leaf category.
+	ErrCodeCategoryNotLeaf string = "category/category-not-leaf"
+
 	// ErrCodeLeafCategoryNotFound returned when attempting to associate a product to a
 	// leaf category and that categoryd.
 	ErrCodeLeafCategoryNotFound string = "categories/leaf-category-not-found"
@@ -152,6 +158,7 @@ const (
 	OpSignInWithDevKey   string = "OpSignInWithDevKey"
 
 	// Category and assocations
+	OpAddProductCategory      string = "OpAddProductCategory"
 	OpGetProductsCategories   string = "OpGetProductsCategories"
 	OpUpdateProductProducts   string = "OpUpdateProductProducts"
 	OpPurgeProductsCategories string = "OpPurgeProductsCategories"

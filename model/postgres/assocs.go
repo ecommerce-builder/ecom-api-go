@@ -16,11 +16,26 @@ var ErrProductsCategoriesNotFound = errors.New("postgres: product to category as
 // ProductCategoryRow represents a single row from the product_category table.
 type ProductCategoryRow struct {
 	id         int
-	categoryID int
+	UUID       string
 	productID  int
+	categoryID int
 	Pri        int
 	Created    time.Time
 	Modified   time.Time
+}
+
+// ProductCategoryBasicJoinRow contains a simple product_category row
+// joined to the product and category table for uuids only.
+type ProductCategoryBasicJoinRow struct {
+	id           int
+	UUID         string
+	productID    int
+	ProductUUID  string
+	categoryID   int
+	CategoryUUID string
+	Pri          int
+	Created      time.Time
+	Modified     time.Time
 }
 
 // ProductCategoryJoinRow join row.
@@ -46,6 +61,76 @@ type ProductCategoryJoinRow struct {
 type CreateProductCategoryRow struct {
 	CategoryUUID string
 	ProductUUID  string
+}
+
+// AddProductCategory associates a product to a leaf category
+func (m *PgModel) AddProductCategory(ctx context.Context, categoryUUID, productUUID string) (*ProductCategoryBasicJoinRow, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "postgres: db.BeginTx")
+	}
+
+	// 1. Check if the category exists and that it's a leaf category
+	q1 := "SELECT id, lft, rgt FROM category WHERE uuid = $1"
+	var categoryID, lft, rgt int
+	err = tx.QueryRowContext(ctx, q1, categoryUUID).Scan(&categoryID, &lft, &rgt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCategoryNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "postgres: tx prepare for q1=%q", q1)
+	}
+
+	if lft != rgt-1 {
+		return nil, ErrCategoryNotLeaf
+	}
+
+	// 2. Check if the product exists
+	q2 := "SELECT id FROM product WHERE uuid = $1"
+	var productID int
+	err = tx.QueryRowContext(ctx, q2, productUUID).Scan(&productID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductNotFound
+		}
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
+	}
+
+	// 3. Link the product to the category
+	q3 := `
+		INSERT INTO product_category
+		  (product_id, category_id, pri)
+		VALUES ($1, $2,
+			(
+			SELECT
+			  CASE WHEN COUNT(1) > 0
+			  THEN MAX(pri)+10
+			  ELSE 10
+			END
+			AS pri FROM product_category WHERE category_id = $3
+			)
+		)
+		RETURNING
+		  id, uuid,
+		  product_id, (SELECT uuid AS product_uuid FROM product WHERE id = $4),
+		  category_id, (SELECT uuid category_uuid FROM category WHERE id = $5),
+		  pri, created, modified
+		`
+	row := tx.QueryRowContext(ctx, q3, productID, categoryID, categoryID, productID, categoryID)
+	var pc ProductCategoryBasicJoinRow
+	if err := row.Scan(&pc.id, &pc.UUID, &pc.productID, &pc.ProductUUID,
+		&pc.categoryID, &pc.CategoryUUID, &pc.Pri, &pc.Created, &pc.Modified); err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q3, ...) failed q3=%q", q3)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "postgres: tx.Commit")
+	}
+	return &pc, nil
 }
 
 // UpdateProductsCategories creates a batch of associations between a product and category.

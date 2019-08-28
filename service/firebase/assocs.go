@@ -9,6 +9,23 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ProductCategoryRequestBody request used for linking a product to a category.
+type ProductCategoryRequestBody struct {
+	CategoryID string `json:"category_id"`
+	ProductID  string `json:"product_id"`
+}
+
+// ProductCategory represents an association between a product and a category.
+type ProductCategory struct {
+	Object     string    `json:"object"`
+	ID         string    `json:"id"`
+	ProductID  string    `json:"product_id"`
+	CategoryID string    `json:"category_id"`
+	Pri        int       `json:"pri"`
+	Created    time.Time `json:"created"`
+	Modified   time.Time `json:"modified"`
+}
+
 // ProductCategoryAssoc maps products to leaf nodes in the catalogue hierarchy
 type ProductCategoryAssoc struct {
 	Path     string    `json:"path"`
@@ -38,7 +55,32 @@ type CreateProductsCategories struct {
 	CategoryID string `json:"category_id"`
 }
 
-// CreateProducCategorytAssocs creates a set of catalog product
+// AddProductCategory associates a product to a leaf category
+func (s *Service) AddProductCategory(ctx context.Context, request *ProductCategoryRequestBody) (*ProductCategory, error) {
+	row, err := s.model.AddProductCategory(ctx, request.CategoryID, request.ProductID)
+	if err != nil {
+		if err == postgres.ErrCategoryNotFound {
+			return nil, ErrCategoryNotFound
+		} else if err == postgres.ErrCategoryNotLeaf {
+			return nil, ErrCategoryNotLeaf
+		} else if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		}
+		return nil, errors.Wrapf(err, "service: s.model.AddProductCategory(ctx, categoryUUID=%q, productUUID=%q)", request.CategoryID, request.ProductID)
+	}
+	productCategory := ProductCategory{
+		Object:     "product_category",
+		ID:         row.UUID,
+		ProductID:  row.ProductUUID,
+		CategoryID: row.CategoryUUID,
+		Pri:        row.Pri,
+		Created:    row.Created,
+		Modified:   row.Modified,
+	}
+	return &productCategory, nil
+}
+
+// CreateProductCategoryAssocs creates a set of catalog product
 // associations either completing with all or failing with none
 // being added.
 func (s *Service) CreateProductCategoryAssocs(ctx context.Context, cpas map[string][]string) error {
