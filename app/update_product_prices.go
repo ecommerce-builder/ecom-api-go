@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,7 +26,7 @@ func (a *App) UpdateProductPricesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: UpdateProductPricesHandler started")
 
-		productID := chi.URLParam(r, "id")
+		productID := r.URL.Query().Get("product_id")
 		priceListID := r.URL.Query().Get("price_list_id")
 
 		var request updatePriceRequest
