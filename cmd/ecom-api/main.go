@@ -597,7 +597,9 @@ func main() {
 		r.Route("/images", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpAddImage, a.AddImageHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
+			r.Get("/", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
+			r.Delete("/", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
 		})
 
 		r.Route("/prices", func(r chi.Router) {
@@ -610,9 +612,6 @@ func main() {
 			r.Get("/", a.Authorization(app.OpListProducts, a.ListProductsHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
-
-			r.Get("/{id}/images", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
-			r.Delete("/{id}/images", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
 
 			r.Get("/{id}/prices", a.Authorization(app.OpGetProductPrices, a.GetProductPrices()))
 			r.Put("/{id}/prices", a.Authorization(app.OpUpdateProductPrices, a.UpdateProductPricesHandler()))

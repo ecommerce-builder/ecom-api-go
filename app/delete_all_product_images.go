@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,7 +15,8 @@ func (a *App) DeleteAllProductImagesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: DeleteAllProductImagesHandler started")
 
-		productID := chi.URLParam(r, "id")
+		productID := r.URL.Query().Get("product_id")
+
 		if err := a.Service.DeleteAllProductImages(ctx, productID); err != nil {
 			if err == service.ErrProductNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
