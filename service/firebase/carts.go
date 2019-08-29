@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -64,11 +63,8 @@ func (s *Service) CreateCart(ctx context.Context) (*Cart, error) {
 
 // AddProductToCart adds a single product to a given cart.
 // Returns `ErrCartNotFound` if the cart with `cartID` does not exist.
-func (s *Service) AddProductToCart(ctx context.Context, cartID, productID string, qty int) (*CartProduct, error) {
-	userID := ctx.Value("cid").(string)
-	fmt.Printf("UserID = %#v\n", userID)
-
-	log.WithContext(ctx).Debugf("service: s.AddItemToCart(cartID=%q, userID=%q, productID=%q, qty=%d) started", cartID, userID, productID, qty)
+func (s *Service) AddProductToCart(ctx context.Context, userID, cartID, productID string, qty int) (*CartProduct, error) {
+	log.WithContext(ctx).Debugf("service: s.AddProductToCart(userID=%q, cartID=%q, userID=%q, productID=%q, qty=%d) started", userID, cartID, userID, productID, qty)
 
 	item, err := s.model.AddProductToCart(ctx, cartID, userID, productID, qty)
 	if err != nil {
@@ -83,11 +79,12 @@ func (s *Service) AddProductToCart(ctx context.Context, cartID, productID string
 		} else if err == postgres.ErrCartProductExists {
 			return nil, ErrCartProductExists
 		}
-		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, cartID=%q, %q, productID=%q, qty=%d) failed: ", cartID, "default", productID, qty)
+		return nil, errors.Wrapf(err, "s.model.AddProductToCart(ctx, cartID=%q, %q, productID=%q, qty=%d) failed: ", cartID, "default", productID, qty)
 	}
 	sitem := CartProduct{
 		Object:    "cart_product",
 		ID:        item.UUID,
+		CartID:    cartID,
 		ProductID: item.ProductUUID,
 		SKU:       item.SKU,
 		Name:      item.Name,
@@ -111,7 +108,7 @@ func (s *Service) HasCartProducts(ctx context.Context, id string) (bool, error) 
 
 // GetCartProducts get all cart items by cart ID.
 func (s *Service) GetCartProducts(ctx context.Context, cartID string) ([]*CartProduct, error) {
-	userUUID := ctx.Value("cid").(string)
+	userUUID := ctx.Value("ecom_uid").(string)
 
 	cartProducts, err := s.model.GetCartProducts(ctx, cartID, userUUID)
 	if err != nil {
@@ -140,10 +137,8 @@ func (s *Service) GetCartProducts(ctx context.Context, cartID string) ([]*CartPr
 }
 
 // UpdateCartProduct updates a cart item quantity.
-func (s *Service) UpdateCartProduct(ctx context.Context, cartProductID string, qty int) (*CartProduct, error) {
-	userUUID := ctx.Value("cid").(string)
-
-	item, err := s.model.UpdateCartProduct(ctx, userUUID, cartProductID, qty)
+func (s *Service) UpdateCartProduct(ctx context.Context, userID, cartProductID string, qty int) (*CartProduct, error) {
+	item, err := s.model.UpdateCartProduct(ctx, userID, cartProductID, qty)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
@@ -185,8 +180,6 @@ func (s *Service) EmptyCartProducts(ctx context.Context, cartID string) error {
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return ErrCartNotFound
-		} else if err == postgres.ErrCartContainsNoProducts {
-			return ErrCartContainsNoProducts
 		}
 		return err
 	}

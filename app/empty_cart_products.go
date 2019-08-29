@@ -8,16 +8,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DeleteAllProductImagesHandler create a handler that deletes all images for the
-// product with the given SKU.
-func (a *App) DeleteAllProductImagesHandler() http.HandlerFunc {
+// EmptyCartProductsHandler empties the cart of all products (not including coupons).
+func (a *App) EmptyCartProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeleteAllProductImagesHandler started")
+		contextLogger.Info("app: EmptyCartProductsHandler started")
 
-		productID := r.URL.Query().Get("product_id")
-		if productID == "" {
+		cartID := r.URL.Query().Get("cart_id")
+		if cartID == "" {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
 				Status  int    `json:"status"`
@@ -26,17 +25,17 @@ func (a *App) DeleteAllProductImagesHandler() http.HandlerFunc {
 			}{
 				http.StatusBadRequest,
 				ErrCodeBadRequest,
-				"query parameter product_id must be set",
+				"query parameter cart_id must be set",
 			})
 			return
 		}
 
-		if err := a.Service.DeleteAllProductImages(ctx, productID); err != nil {
-			if err == service.ErrProductNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+		if err := a.Service.EmptyCartProducts(ctx, cartID); err != nil {
+			if err == service.ErrCartNotFound {
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("DeleteAllProductImages(ctx, productID=%q) failed: %v", productID, err)
+			contextLogger.Errorf("service EmptyCartProducts(ctx, cartID=%q) error: %v", cartID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

@@ -135,6 +135,10 @@ func (s *Service) PriceMapByPriceList(ctx context.Context, priceListID string) (
 
 // UpdateProductPrices updates the prices for a given product and product list.
 func (s *Service) UpdateProductPrices(ctx context.Context, productID, priceListID string, createPrices []*PriceRequest) ([]*Price, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("service: UpdateProductPrices(ctx context.Context, productID=%q, priceListID=%q, ...) started", productID, priceListID)
+	contextLogger.Debugf("service: received %d prices", len(createPrices))
+
 	cps := make([]*postgres.CreatePrice, 0, len(createPrices))
 	for _, p := range createPrices {
 		cp := postgres.CreatePrice{

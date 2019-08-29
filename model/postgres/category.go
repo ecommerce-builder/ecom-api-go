@@ -16,8 +16,8 @@ var ErrCategoryNotLeaf = errors.New("postgres: category not a leaf")
 // ErrLeafCategoryNotFound error
 var ErrLeafCategoryNotFound = errors.New("postgres: category not found")
 
-// A NestedSetNode represents a single node in the nested set.
-type NestedSetNode struct {
+// A CategoryRow represents a single row from the category table.
+type CategoryRow struct {
 	id       int
 	UUID     string
 	Segment  string
@@ -32,7 +32,7 @@ type NestedSetNode struct {
 
 // BatchCreateNestedSet creates a nested set of nodes representing the
 // catalog.
-func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*NestedSetNode) error {
+func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*CategoryRow) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "db.BeginTx")
@@ -68,14 +68,14 @@ func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*NestedSetNode)
 }
 
 // GetCategoryByPath retrieves a single set element by the given path.
-func (m *PgModel) GetCategoryByPath(ctx context.Context, path string) (*NestedSetNode, error) {
+func (m *PgModel) GetCategoryByPath(ctx context.Context, path string) (*CategoryRow, error) {
 	query := `
 		SELECT
 		  id, uuid, segment, path, name, lft, rgt, depth, created, modified
 		FROM category
 		WHERE path = $1
 	`
-	var n NestedSetNode
+	var n CategoryRow
 	row := m.db.QueryRowContext(ctx, query, path)
 	if err := row.Scan(&n.id, &n.UUID, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified); err != nil {
 		return nil, errors.Wrapf(err, "service: query row ctx scan query=%q", query)
@@ -97,8 +97,8 @@ func (m *PgModel) HasCatalog(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// GetCatalogNestedSet returns a slice of NestedSetNode representing the catalog as a nested set.
-func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, error) {
+// GetCategories returns a slice of CategoryRow representing the catalog as a nested set.
+func (m *PgModel) GetCategories(ctx context.Context) ([]*CategoryRow, error) {
 	query := `
 		SELECT
 		  id, uuid, segment, path, name, lft, rgt, depth, created, modified
@@ -111,9 +111,9 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, er
 	}
 	defer rows.Close()
 
-	nodes := make([]*NestedSetNode, 0, 256)
+	nodes := make([]*CategoryRow, 0, 256)
 	for rows.Next() {
-		var n NestedSetNode
+		var n CategoryRow
 		if err = rows.Scan(&n.id, &n.UUID, &n.Segment, &n.Path, &n.Name, &n.Lft, &n.Rgt, &n.Depth, &n.Created, &n.Modified); err != nil {
 			return nil, err
 		}
@@ -126,12 +126,12 @@ func (m *PgModel) GetCatalogNestedSet(ctx context.Context) ([]*NestedSetNode, er
 	return nodes, nil
 }
 
-// DeleteCatalogNestedSet delete all rows in the categors table.
-func (m *PgModel) DeleteCatalogNestedSet(ctx context.Context) error {
-	query := `DELETE FROM category`
+// DeleteCategories deletes all rows in the category table.
+func (m *PgModel) DeleteCategories(ctx context.Context) error {
+	query := "DELETE FROM category"
 	_, err := m.db.ExecContext(ctx, query)
 	if err != nil {
-		return errors.Wrap(err, "service: delete category")
+		return errors.Wrapf(err, "postgres: m.db.ExecContext(ctx, query=%q) failed", query)
 	}
 	return nil
 }

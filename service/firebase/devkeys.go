@@ -23,22 +23,22 @@ type UserDevKey struct {
 
 // GenerateUserDevKey creates a new API Key for a user
 func (s *Service) GenerateUserDevKey(ctx context.Context, userID string) (*UserDevKey, error) {
-	cid, err := s.model.GetUserIDByUUID(ctx, userID)
+	uid, err := s.model.GetUserIDByUUID(ctx, userID)
 	if err != nil {
 		if err == postgres.ErrUserNotFound {
 			return nil, ErrUserNotFound
 		}
-		return nil, errors.Wrapf(err, "s.model.GetUserIDByUUID(ctx, userID=%q)", userID)
+		return nil, errors.Wrapf(err, "service: s.model.GetUserIDByUUID(ctx, userID=%q)", userID)
 	}
 	data := make([]byte, 32)
 	_, err = rand.Read(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "rand.Read(data)")
+		return nil, errors.Wrap(err, "service: rand.Read(data)")
 	}
 
-	ak, err := s.model.CreateUserDevKey(ctx, cid, base58.Encode(data))
+	ak, err := s.model.CreateUserDevKey(ctx, uid, base58.Encode(data))
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.CreateUserDevKey(ctx, userID=%q, ...)", userID)
+		return nil, errors.Wrapf(err, "service: s.model.CreateUserDevKey(ctx, userID=%q, ...)", userID)
 	}
 
 	return &UserDevKey{
@@ -70,7 +70,7 @@ func (s *Service) GetUserDevKey(ctx context.Context, id string) (*UserDevKey, er
 
 // ListUsersDevKeys gets all API Keys for a user.
 func (s *Service) ListUsersDevKeys(ctx context.Context, userID string) ([]*UserDevKey, error) {
-	cid, err := s.model.GetUserIDByUUID(ctx, userID)
+	uid, err := s.model.GetUserIDByUUID(ctx, userID)
 	if err != nil {
 		if err == postgres.ErrUserNotFound {
 			return nil, ErrUserNotFound
@@ -78,7 +78,7 @@ func (s *Service) ListUsersDevKeys(ctx context.Context, userID string) ([]*UserD
 		return nil, err
 	}
 
-	rows, err := s.model.GetUserDevKeys(ctx, cid)
+	rows, err := s.model.GetUserDevKeys(ctx, uid)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 // GenerateUserDevKeyHandler creates a new API Key for a given user
 func (a *App) GenerateUserDevKeyHandler() http.HandlerFunc {
 	type requestBody struct {
-		UserID string `json:"used_id"`
+		UserID string `json:"user_id"`
 	}
 
 	type responseBody struct {

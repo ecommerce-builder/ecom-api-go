@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
@@ -30,8 +31,8 @@ var ErrCategoriesEmpty = errors.New("service: categories empty")
 
 // CategoryList is a container for a list of category objects
 type CategoryList struct {
-	Object string      `json:"object"`
-	Data   []*Category `json:"data"`
+	Object string          `json:"object"`
+	Data   []*CategoryNode `json:"data"`
 }
 
 // CategoryRequest represents the request body for an update categories operation.
@@ -45,8 +46,8 @@ type CategoryRequest struct {
 	Nodes   []*CategoryRequest `json:"categories"`
 }
 
-// A Category represents an individual category in the catalog hierarchy.
-type Category struct {
+// A CategoryNode represents an individual category in the catalog hierarchy.
+type CategoryNode struct {
 	Object   string `json:"object,omitempty"`
 	ID       string `json:"id,omitempty"`
 	Segment  string `json:"segment"`
@@ -55,35 +56,48 @@ type Category struct {
 	lft      int
 	rgt      int
 	depth    int
-	parent   *Category
+	parent   *CategoryNode
 	Nodes    *CategoryList `json:"categories"`
 	Products *ProductList  `json:"products,omitempty"`
 }
 
+// Category represents a single entry from the nested set
+type Category struct {
+	ID       string `json:"id"`
+	Segment  string `json:"segment"`
+	Path     string `json:"path"`
+	Name     string `json:"name"`
+	Lft      int    `json:"lft"`
+	Rgt      int    `json:"rgt"`
+	Depth    int    `json:"depth"`
+	Created  time.Time
+	Modified time.Time
+}
+
 // AddChild attaches a Category to its parent Category.
-func (n *Category) AddChild(c *Category) {
+func (n *CategoryNode) AddChild(c *CategoryNode) {
 	c.parent = n
 	n.Nodes.Data = append(n.Nodes.Data, c)
 }
 
 // IsRoot returns true for the root node only.
-func (n *Category) IsRoot() bool {
+func (n *CategoryNode) IsRoot() bool {
 	return n.parent == nil
 }
 
 // IsLeaf return true if the node is a leaf node.
-func (n *Category) IsLeaf() bool {
+func (n *CategoryNode) IsLeaf() bool {
 	return len(n.Nodes.Data) == 0
 }
 
 // NestedSet uses preorder traversal of the tree to return a
-// slice of NestedSetNodes.
-func (n *CategoryRequest) NestedSet(ns *[]*postgres.NestedSetNode) {
+// slice of CategoryRow.
+func (n *CategoryRequest) NestedSet(ns *[]*postgres.CategoryRow) {
 	n.preorderTraversalNS(ns)
 }
 
-func (n *CategoryRequest) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
-	nsn := &postgres.NestedSetNode{
+func (n *CategoryRequest) preorderTraversalNS(ns *[]*postgres.CategoryRow) {
+	nsn := &postgres.CategoryRow{
 		Segment: n.Segment,
 		Path:    n.path,
 		Name:    n.Name,
@@ -99,13 +113,13 @@ func (n *CategoryRequest) preorderTraversalNS(ns *[]*postgres.NestedSetNode) {
 
 // PreorderTraversalPrint provides a depth first search printout of each node
 // in the hierarchy.
-func (n *Category) PreorderTraversalPrint(w io.Writer) {
+func (n *CategoryNode) PreorderTraversalPrint(w io.Writer) {
 	tw := new(tabwriter.Writer).Init(w, 0, 8, 2, ' ', 0)
 	n.preorderTraversalWrite(tw)
 	tw.Flush()
 }
 
-func (n *Category) preorderTraversalWrite(w io.Writer) {
+func (n *CategoryNode) preorderTraversalWrite(w io.Writer) {
 	fmt.Fprintf(w, "segment: %s\t path: %q\tname: %q\tlft: %d\t rgt: %d\t depth %d\n", n.Segment, n.path, n.Name, n.lft, n.rgt, n.depth)
 
 	for _, i := range n.Nodes.Data {
@@ -113,7 +127,7 @@ func (n *Category) preorderTraversalWrite(w io.Writer) {
 	}
 }
 
-func moveContext(context *Category) *Category {
+func moveContext(context *CategoryNode) *CategoryNode {
 	if context.parent == nil {
 		return context
 	}
@@ -127,8 +141,8 @@ func moveContext(context *Category) *Category {
 }
 
 // NewCategory creates a new Category.
-func NewCategory(segment, name string) *Category {
-	return &Category{
+func NewCategory(segment, name string) *CategoryNode {
+	return &CategoryNode{
 		Segment: segment,
 		path:    "",
 		Name:    name,
@@ -138,7 +152,7 @@ func NewCategory(segment, name string) *Category {
 		parent:  nil,
 		Nodes: &CategoryList{
 			Object: "list",
-			Data:   make([]*Category, 0),
+			Data:   make([]*CategoryNode, 0),
 		},
 	}
 }
@@ -178,7 +192,7 @@ func (s *Service) UpdateCatalog(ctx context.Context, root *CategoryRequest) erro
 	}
 
 	root.GenerateNestedSet(1, 0, "")
-	ns := make([]*postgres.NestedSetNode, 0, 128)
+	ns := make([]*postgres.CategoryRow, 0, 128)
 	root.NestedSet(&ns)
 	if err := s.model.BatchCreateNestedSet(ctx, ns); err != nil {
 		return errors.Wrap(err, "service: replace catalog")
@@ -186,15 +200,15 @@ func (s *Service) UpdateCatalog(ctx context.Context, root *CategoryRequest) erro
 	return nil
 }
 
-func (n *Category) addChild(c *Category) {
+func (n *CategoryNode) addChild(c *CategoryNode) {
 	n.Nodes.Data = append(n.Nodes.Data, c)
 }
 
-func (n *Category) hasChildren() bool {
+func (n *CategoryNode) hasChildren() bool {
 	return len(n.Nodes.Data) > 0
 }
 
-func (n *Category) findNode(segment string) *Category {
+func (n *CategoryNode) findNode(segment string) *CategoryNode {
 	if !n.hasChildren() {
 		return nil
 	}
@@ -207,7 +221,7 @@ func (n *Category) findNode(segment string) *Category {
 }
 
 // FindNodeByPath traverses the tree looking for a Node with a matching path.
-func (n *Category) FindNodeByPath(path string) *Category {
+func (n *CategoryNode) FindNodeByPath(path string) *CategoryNode {
 	// example without leading forwardslash 'a/c/f/j/n'
 	segments := strings.Split(path, "/")
 	if len(segments) == 0 {
@@ -227,8 +241,8 @@ func (n *Category) FindNodeByPath(path string) *Category {
 }
 
 // BuildTree builds a Tree hierarchy from a Nested Set.
-func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*Product) *Category {
-	context := &Category{
+func BuildTree(nestedset []*postgres.CategoryRow, cmap map[string][]*Product) *CategoryNode {
+	context := &CategoryNode{
 		Object:  "category",
 		ID:      nestedset[0].UUID,
 		Segment: nestedset[0].Segment,
@@ -237,7 +251,7 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*Product) 
 		parent:  nil,
 		Nodes: &CategoryList{
 			Object: "list",
-			Data:   make([]*Category, 0),
+			Data:   make([]*CategoryNode, 0),
 		},
 		lft: nestedset[0].Lft,
 		rgt: nestedset[0].Rgt,
@@ -261,7 +275,7 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*Product) 
 		if !ok {
 			products = nil
 		}
-		n := &Category{
+		n := &CategoryNode{
 			Object:  "category",
 			ID:      cur.UUID,
 			Segment: cur.Segment,
@@ -270,7 +284,7 @@ func BuildTree(nestedset []*postgres.NestedSetNode, cmap map[string][]*Product) 
 			parent:  context,
 			Nodes: &CategoryList{
 				Object: "list",
-				Data:   make([]*Category, 0),
+				Data:   make([]*CategoryNode, 0),
 			},
 			lft: cur.Lft,
 			rgt: cur.Rgt,
@@ -329,15 +343,15 @@ func (s *Service) HasCatalog(ctx context.Context) (bool, error) {
 	return has, nil
 }
 
-// GetCatalog returns a tree of all categories as a hierarchy of nodes.
-func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
+// GetCategoriesTree returns a tree of all categories as a hierarchy of nodes.
+func (s *Service) GetCategoriesTree(ctx context.Context) (*CategoryNode, error) {
 	log.WithContext(ctx).Debug("service: GetCatalog started")
-	ns, err := s.model.GetCatalogNestedSet(ctx)
+	ns, err := s.model.GetCategories(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.GetCatalogNestedSet(ctx) failed")
+		return nil, errors.Wrapf(err, "s.model.GetCategories(ctx) failed")
 	}
 	if len(ns) == 0 {
-		log.WithContext(ctx).Debug("service: s.model.GetCatalogNestedSet(ctx) returned an empty list")
+		log.WithContext(ctx).Debug("service: s.model.GetCategories(ctx) returned an empty list")
 		return nil, ErrCategoriesEmpty
 	}
 	cpas, err := s.model.GetProductCategoryAssocsFull(ctx)
@@ -362,11 +376,39 @@ func (s *Service) GetCatalog(ctx context.Context) (*Category, error) {
 	return tree, nil
 }
 
-// DeleteCatalog purges the entire catalog hierarchy.
-func (s *Service) DeleteCatalog(ctx context.Context) error {
-	err := s.model.DeleteCatalogNestedSet(ctx)
+// DeleteCategories deletes all categories effectively purging the
+// entire tree.
+func (s *Service) DeleteCategories(ctx context.Context) error {
+	err := s.model.DeleteCategories(ctx)
 	if err != nil {
-		return errors.Wrap(err, "delete catalog nested set")
+		return errors.Wrap(err, "service: delete categories failed")
 	}
 	return nil
+}
+
+// Category raw nested set
+
+// GetCategories returns a list of categories.
+func (s *Service) GetCategories(ctx context.Context) ([]*Category, error) {
+	cats, err := s.model.GetCategories(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "service: s.model.GetCategories(ctx) failed")
+	}
+
+	categories := make([]*Category, 0, len(cats))
+	for _, c := range cats {
+		category := Category{
+			ID:       c.UUID,
+			Segment:  c.Segment,
+			Path:     c.Path,
+			Name:     c.Name,
+			Lft:      c.Lft,
+			Rgt:      c.Rgt,
+			Depth:    c.Depth,
+			Created:  c.Created,
+			Modified: c.Modified,
+		}
+		categories = append(categories, &category)
+	}
+	return categories, nil
 }

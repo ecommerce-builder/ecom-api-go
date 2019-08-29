@@ -71,7 +71,7 @@ func TestUpdateProduct(t *testing.T) {
 // 		t.Fatalf("model.GetUser(): %v", err)
 // 	}
 // 	if err != nil {
-// 		t.Errorf("model.GetCatalogNestedSet(ctx): %v", err)
+// 		t.Errorf("model.GetCategories(ctx): %v", err)
 // 	}
 
 // 	for i, v := range prs.Rset.([]*model.User) {
@@ -162,14 +162,14 @@ func TestGetCategoryByPath(t *testing.T) {
 	t.Log(ns)
 }
 
-func TestGetCatalogNestedSet(t *testing.T) {
+func TestGetCategories(t *testing.T) {
 	model, teardown := setup(t)
 	defer teardown()
 
 	ctx := context.Background()
-	nodes, err := model.GetCatalogNestedSet(ctx)
+	nodes, err := model.GetCategories(ctx)
 	if err != nil {
-		t.Errorf("model.GetCatalogNestedSet(ctx): %v", err)
+		t.Errorf("model.GetCategories(ctx): %v", err)
 	}
 
 	assert.Equal(t, len(nodes), 14, "should be 14 nodes in the set")
@@ -220,8 +220,8 @@ func TestCart(t *testing.T) {
 		t.Errorf("got invalid uuid: %s", *uuid)
 	}
 
-	t.Run("AddItemToCart", func(t *testing.T) {
-		_, err := model.AddItemToCart(ctx, *uuid, "default", "WATER", 1)
+	t.Run("AddProductToCart", func(t *testing.T) {
+		_, err := model.AddProductToCart(ctx, *uuid, "default", "WATER", 1)
 		if err != nil {
 			t.Errorf("AddItemToCart(...): %v", err)
 		}

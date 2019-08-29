@@ -4,47 +4,32 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/pkg/errors"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	log "github.com/sirupsen/logrus"
 )
 
-// GetCategoriesHandler creates a handler to return the entire catalog
-func (app *App) GetCategoriesHandler() http.HandlerFunc {
+// GetCategoriesHandler returns a handler function that returns categories
+// in nested set form.
+func (a *App) GetCategoriesHandler() http.HandlerFunc {
+	type listResponse struct {
+		Object string              `json:"object"`
+		Data   []*service.Category `json:"data"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: GetCategoriesHandler called")
 
-		tree, err := app.Service.GetCatalog(ctx)
+		categories, err := a.Service.GetCategories(ctx)
 		if err != nil {
-			contextLogger.Errorf("service GetCatalog(ctx) error: %+v", errors.WithStack(err))
-			w.WriteHeader(http.StatusInternalServerError) // 500
-			return
-		}
-		if tree == nil {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("{}"))
-			return
-		}
-		if err != nil {
-			contextLogger.Errorf("service GetCatalog(ctx) error: %+v", errors.WithStack(err))
-			w.WriteHeader(http.StatusInternalServerError) // 500
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusInternalServerError,
-				ErrCodeInternalServerError,
-				err.Error(),
-			})
-			return
-		}
-		w.WriteHeader(http.StatusOK) // 200 OK
-		if err = json.NewEncoder(w).Encode(tree); err != nil {
-			contextLogger.Errorf("json encode failed with error: %+v", err)
+
+			contextLogger.Errorf("app: a.Service.GetCategories(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+
+		w.WriteHeader(http.StatusOK) // 200 OK
+		json.NewEncoder(w).Encode(&categories)
 	}
 }

@@ -21,6 +21,19 @@ func (a *App) ListProductImagesHandler() http.HandlerFunc {
 		contextLogger.Info("App: ListProductImagesHandler started")
 
 		productID := r.URL.Query().Get("product_id")
+		if productID == "" {
+			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
+				"query parameter product_id must be set",
+			})
+			return
+		}
 
 		products, err := a.Service.GetImagesByProductID(ctx, productID)
 		if err != nil {

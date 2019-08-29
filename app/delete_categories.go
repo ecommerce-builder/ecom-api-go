@@ -8,12 +8,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PurgeCatalogHandler purges the catalog hierarchy.
-func (a *App) PurgeCatalogHandler() http.HandlerFunc {
+// DeleteCategoriesHandler delete all categories entries effectively
+// purging the entire tree.
+func (a *App) DeleteCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: PurgeCatalogHandler started")
+		contextLogger.Info("App: DeleteCategoriesHandler started")
 
 		// A catalog may only be purged if all catalog product associations are first purged.
 		has, err := a.Service.HasProductCategoryAssocs(ctx)
@@ -31,12 +32,12 @@ func (a *App) PurgeCatalogHandler() http.HandlerFunc {
 			}{
 				http.StatusConflict,
 				ErrCodeAssocsExist,
-				"OpPurgeCatalog cannot be called whilst catalog product associations exist",
+				"OpDeleteCategories cannot be called whilst category to product associations exist",
 			})
 			return
 		}
-		if err = a.Service.DeleteCatalog(ctx); err != nil {
-			contextLogger.Errorf("service DeleteCatalog(ctx) error: %v", errors.Cause(err))
+		if err = a.Service.DeleteCategories(ctx); err != nil {
+			contextLogger.Errorf("service DeleteCategories(ctx) error: %v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

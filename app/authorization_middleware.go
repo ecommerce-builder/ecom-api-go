@@ -27,14 +27,14 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 		// Get the user ID and customer role from the JWT
 		var cid, role string
-		if val, ok := decodedToken.Claims["role"]; ok {
+		if val, ok := decodedToken.Claims["ecom_role"]; ok {
 			role = val.(string)
 		}
 
 		if role == "" {
 			role = RoleShopper
 		} else {
-			if val, ok := decodedToken.Claims["cid"]; ok {
+			if val, ok := decodedToken.Claims["ecom_uid"]; ok {
 				cid = val.(string)
 			}
 
@@ -44,7 +44,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 		}
 
-		ctx2 := context.WithValue(ctx, "cid", cid)
+		ctx2 := context.WithValue(ctx, "ecom_uid", cid)
 
 		// superuser has all privileges. The JWT containing the claims is cryptographically
 		// signed with a claim of "root" so we give maximum privilege.
@@ -60,14 +60,14 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		switch op {
 		// Operations that don't require any special authorization
 		case OpCreateCart, OpAddProductToCart, OpGetCartProducts, OpUpdateCartProduct,
-			OpDeleteCartProduct, OpEmptyCartProducts, OpGetCategories, OpSignInWithDevKey,
+			OpDeleteCartProduct, OpEmptyCartProducts, OpGetCategories, OpGetCategoriesTree, OpSignInWithDevKey,
 			OpGetProduct, OpListProducts, OpGetProductCategoryAssocs,
 			OpGetTierPricing, OpMapPricingByTier, OpGetImage, OpGetProductCategory,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetPriceList:
 			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		// Operations that required at least RoleAdmin privileges
-		case OpListUsers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct,
+		case OpListUsers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct, OpDeleteCategories,
 			OpPurgeCategoryAssocs, OpUpdateProductCategoryAssocs, OpSystemInfo,
 			OpAddProductCategory, OpDeleteProductCategory,
 			OpUpdateProductProducts, OpPurgeProductsCategories, OpUpdateProductPrices, OpDeleteTierPricing,

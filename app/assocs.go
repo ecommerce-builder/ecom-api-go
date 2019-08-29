@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -85,7 +85,7 @@ type categoryAssoc struct {
 
 type categoryAssocs map[string]*categoryAssoc
 
-func validateCatalogAssocs(cmap map[string]*categoryAssoc, tree *firebase.Category) (pids, missingPaths, nonLeafs []string) {
+func validateCatalogAssocs(cmap map[string]*categoryAssoc, tree *service.CategoryNode) (pids, missingPaths, nonLeafs []string) {
 	productIDMap := make(map[string]bool)
 	for path, ca := range cmap {
 		for _, s := range ca.Products {
@@ -194,7 +194,7 @@ func (a *App) UpdateProductCategoryAssocsHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		tree, err := a.Service.GetCatalog(ctx)
+		tree, err := a.Service.GetCategoriesTree(ctx)
 		if err != nil {
 			contextLogger.Errorf("a.Service.GetCatalog(ctx) failed: %+v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError)

@@ -365,7 +365,7 @@ func (m *PgModel) UpdateCartProduct(ctx context.Context, userUUID, cartProductUU
 	}
 
 	q3 := `
-		UPDATE cart_item
+		UPDATE cart_product
 		SET
 		  qty = $1, modified = NOW()
 		WHERE
@@ -444,27 +444,33 @@ func (m *PgModel) DeleteCartProduct(ctx context.Context, cartProductUUID string)
 
 // EmptyCartProducts empty the cart of all items. Does not affect coupons.
 func (m *PgModel) EmptyCartProducts(ctx context.Context, cartUUID string) (err error) {
-	exists, err := m.IsCartExists(ctx, cartUUID)
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.Wrapf(err, "postgres: m.IsCartExists(ctx, cartUUID=%q) failed", cartUUID)
-	}
-	if !exists {
-		return ErrCartNotFound
+		return errors.Wrap(err, "postgres: db.BeginTx failed")
 	}
 
-	hasProducts, err := m.HasCartProducts(ctx, cartUUID)
+	// 1. Check the cart exists
+	q1 := "SELECT id FROM cart WHERE uuid = $1"
+	var cartID int
+	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
 	if err != nil {
-		return errors.Wrapf(err, "postgres: m.HasCartProducts(ctx, cartUUID=%q) failed: %v", cartUUID, err)
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrCartNotFound
+		}
+		tx.Rollback()
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
-	if !hasProducts {
-		return ErrCartContainsNoProducts
+	// 2. Delete all product from the cart
+	q2 := "DELETE FROM cart_product WHERE cart_id = $1"
+	_, err = m.db.ExecContext(ctx, q2, cartID)
+	if err != nil {
+		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
 	}
 
-	query := `DELETE FROM cart_product WHERE cart_id = (SELECT id FROM cart WHERE uuid = $1)`
-	_, err = m.db.ExecContext(ctx, query, cartUUID)
-	if err != nil {
-		return errors.Wrapf(err, "postgres: exec context query=%q", query)
+	if err = tx.Commit(); err != nil {
+		return errors.Wrap(err, "postgres: tx.Commit failed")
 	}
 	return nil
 }

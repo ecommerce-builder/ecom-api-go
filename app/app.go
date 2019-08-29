@@ -36,10 +36,6 @@ const (
 	// and that product is already in the cart.
 	ErrCodeCartProductExists string = "carts/cart-product-exists"
 
-	// ErrCodeCartContainsNoProducts is sent when attempting to empty a cart that is
-	// already empty.
-	ErrCodeCartContainsNoProducts string = "carts/cart-contains-no-products"
-
 	// ErrCodeCartProductNotFound is sent when attempting to delete or update a
 	// cart product that cannot be found.
 	ErrCodeCartProductNotFound string = "carts/cart-product-not-found"
@@ -170,9 +166,14 @@ const (
 	OpUpdateProductProducts   string = "OpUpdateProductProducts"
 	OpPurgeProductsCategories string = "OpPurgeProductsCategories"
 
-	OpUpdateCategories            string = "OpUpdateCategories"
-	OpGetCategories               string = "OpGetCategories"
-	OpPurgeCatalog                string = "OpPurgeCatalog"
+	// Categories Tree
+	OpGetCategoriesTree    string = "OpGetCategoriesTree"
+	OpUpdateCategoriesTree string = "OpUpdateCategoriesTree"
+
+	// Categories
+	OpGetCategories    string = "OpGetCategories"
+	OpDeleteCategories string = "OpDeleteCategories"
+
 	OpGetProductCategoryAssocs    string = "OpGetProductCategoryAssocs"
 	OpUpdateProductCategoryAssocs string = "OpUpdateProductCategoryAssocs"
 	OpPurgeCategoryAssocs         string = "OpPurgeCategoryAssocs"

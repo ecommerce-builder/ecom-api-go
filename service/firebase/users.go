@@ -72,7 +72,7 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 // CreateUser creates a new user
 func (s *Service) CreateUser(ctx context.Context, role, email, password, firstname, lastname string) (*User, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("s.CreateUser(%s, %s, %s, %s, %s) started", role, email, "*****", firstname, lastname)
+	contextLogger.Debugf("s.CreateUser(ctx, role=%q, email=%q, password=%q, firstname=%q, lastname=%q) started", role, email, "*****", firstname, lastname)
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
 		return nil, err
@@ -95,8 +95,8 @@ func (s *Service) CreateUser(ctx context.Context, role, email, password, firstna
 
 	// Set the custom claims for this user
 	err = authClient.SetCustomUserClaims(ctx, c.UID, map[string]interface{}{
-		"cid":  c.UUID,
-		"role": role,
+		"ecom_uid":  c.UUID,
+		"ecom_role": role,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("set custom claims for uid=%s uuid=%s role=%s failed: %v", c.UID, c.UUID, role, err)

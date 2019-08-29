@@ -10,90 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AddProductToCartHandler creates a handler to add a product to a given cart
-func (a *App) AddProductToCartHandler() http.HandlerFunc {
-	type requestBody struct {
-		CartID    string `json:"cart_id"`
-		ProductID string `json:"product_id"`
-		Qty       int    `json:"qty"`
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: AddProductToCartHandler started")
-
-		request := requestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				"bad request",
-			})
-			return
-		}
-
-		product, err := a.Service.AddProductToCart(ctx, request.CartID, request.ProductID, request.Qty)
-		if err != nil {
-			if err == service.ErrCartNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				return
-			} else if err == service.ErrUserNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeUserNotFound,
-					"The userID inside the JWT did not match any user in the system",
-				})
-				return
-			} else if err == service.ErrProductNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeProductNotFound,
-					"failed to add product with given id to the cart as the product cannot be found",
-				})
-				return
-			} else if err == service.ErrDefaultPriceListNotFound {
-				contextLogger.Error("ErrDefaultPriceListNotFound")
-				w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-				return
-			} else if err == service.ErrCartProductExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeCartProductExists,
-					"cart product already in the cart",
-				})
-				return
-			}
-
-			contextLogger.Errorf("service AddProductToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %v", request.CartID, request.ProductID, request.Qty, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
-		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(&product)
-	}
-}
-
 type cartResponseBody struct {
 	Object string `json:"object"`
 	*service.Cart
@@ -201,7 +117,8 @@ func (a *App) UpdateCartProductHandler() http.HandlerFunc {
 			return
 		}
 
-		product, err := a.Service.UpdateCartProduct(ctx, cartProductID, request.Qty)
+		userID := ctx.Value("ecom_uid").(string)
+		product, err := a.Service.UpdateCartProduct(ctx, userID, cartProductID, request.Qty)
 		if err != nil {
 			if err == service.ErrCartProductNotFound {
 				contextLogger.Debugf("app: Cart Product (cartProductID=%q) not found", cartProductID)
@@ -254,41 +171,6 @@ func (a *App) DeleteCartProductHandler() http.HandlerFunc {
 			return
 		}
 
-		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
-	}
-}
-
-// EmptyCartProductsHandler empties the cart of all products (not including coupons).
-func (a *App) EmptyCartProductsHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: EmptyCartProductsHandler started")
-
-		cartID := r.URL.Query().Get("cart_id")
-
-		if err := a.Service.EmptyCartProducts(ctx, cartID); err != nil {
-			if err == service.ErrCartNotFound {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			} else if err == service.ErrCartContainsNoProducts {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeCartContainsNoProducts,
-					"OpEmptyCartProducts cannot be called if a cart contains no products",
-				})
-				return
-			}
-			contextLogger.Errorf("service EmptyCartProducts(ctx, cartID=%q) error: %v", cartID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
 		w.Header().Del("Content-Type")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}

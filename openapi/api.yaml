@@ -172,7 +172,7 @@ paths:
     delete:
       security:
       - bearerAuth: []
-      summary: Empty the entire cart
+      summary: Empty the entire cart of products
       description: |
         OpEmptyCartProducts requires `RoleShopper` privileges.
       operationId: OpEmptyCartProducts
@@ -181,19 +181,6 @@ paths:
       responses:
         '204':
           description: No Content
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                cart/cart-contains-no-products:
-                  summary: cart/cart-contains-no-products
-                  value:
-                    status: 409
-                    code: 'cart/cart-contains-no-products'
-                    message: OpEmptyCartProducts cannot be called if a cart contains no products
   /carts-products:
     post:
       security:

@@ -10,12 +10,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UpdateCategoriesHandler creates an HTTP handler that updates all the categories.
-func (a *App) UpdateCategoriesHandler() http.HandlerFunc {
+// UpdateCategoriesTreeHandler creates an HTTP handler that updates all the categories
+// using a tree structure.
+func (a *App) UpdateCategoriesTreeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateCategoriesHandler started")
+		contextLogger.Info("App: UpdateCategoriesTreeHandler started")
 
 		catRequest := service.CategoryRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&catRequest); err != nil {
