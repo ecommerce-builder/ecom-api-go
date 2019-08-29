@@ -59,8 +59,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// at this point the role is set to either "anon", "customer" or "admin"
 		switch op {
 		// Operations that don't require any special authorization
-		case OpCreateCart, OpAddItemToCart, OpGetCartItems, OpUpdateCartItem,
-			OpDeleteCartItem, OpEmptyCartItems, OpGetCategories, OpSignInWithDevKey,
+		case OpCreateCart, OpAddProductToCart, OpGetCartProducts, OpUpdateCartProduct,
+			OpDeleteCartProduct, OpEmptyCartProducts, OpGetCategories, OpSignInWithDevKey,
 			OpGetProduct, OpListProducts, OpGetProductCategoryAssocs,
 			OpGetTierPricing, OpMapPricingByTier, OpGetImage, OpGetProductCategory,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetPriceList:

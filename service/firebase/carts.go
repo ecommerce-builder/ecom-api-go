@@ -14,15 +14,15 @@ var (
 	// ErrCartNotFound is returned when attempting an operation on non existing cart.
 	ErrCartNotFound = errors.New("cart not found")
 
-	// ErrCartItemAlreadyExists is returned when attempting to add a
+	// ErrCartProductExists is returned when attempting to add a
 	// cart item to a cart that already contains that item.
-	ErrCartItemAlreadyExists = errors.New("cart already exists")
+	ErrCartProductExists = errors.New("cart product already exists")
 
-	// ErrCartItemNotFound is returned when a cart ID cannot be found.
-	ErrCartItemNotFound = errors.New("cart item not found")
+	// ErrCartProductNotFound is returned when a cart product cannot be found.
+	ErrCartProductNotFound = errors.New("cart product not found")
 
-	// ErrCartContainsNoItems occurs when attempting to delete all items.
-	ErrCartContainsNoItems = errors.New("cart contains no items")
+	// ErrCartContainsNoProducts occurs when attempting to delete all items.
+	ErrCartContainsNoProducts = errors.New("cart contains no products")
 )
 
 // Cart holds the details of a shopping cart.
@@ -33,11 +33,11 @@ type Cart struct {
 	Modified time.Time `json:"modified"`
 }
 
-// CartItem structure holds the details individual cart item
-type CartItem struct {
+// CartProduct structure holds the details individual cart product.
+type CartProduct struct {
 	Object    string    `json:"object"`
 	ID        string    `json:"id"`
-	CartID    string    `json:"cart_id,omitempty"`
+	CartID    string    `json:"cart_id"`
 	ProductID string    `json:"product_id"`
 	SKU       string    `json:"sku"`
 	Name      string    `json:"name"`
@@ -62,15 +62,15 @@ func (s *Service) CreateCart(ctx context.Context) (*Cart, error) {
 	return &cart, nil
 }
 
-// AddItemToCart adds a single item to a given cart.
+// AddProductToCart adds a single product to a given cart.
 // Returns `ErrCartNotFound` if the cart with `cartID` does not exist.
-func (s *Service) AddItemToCart(ctx context.Context, cartID, productID string, qty int) (*CartItem, error) {
+func (s *Service) AddProductToCart(ctx context.Context, cartID, productID string, qty int) (*CartProduct, error) {
 	userID := ctx.Value("cid").(string)
 	fmt.Printf("UserID = %#v\n", userID)
 
 	log.WithContext(ctx).Debugf("service: s.AddItemToCart(cartID=%q, userID=%q, productID=%q, qty=%d) started", cartID, userID, productID, qty)
 
-	item, err := s.model.AddItemToCart(ctx, cartID, userID, productID, qty)
+	item, err := s.model.AddProductToCart(ctx, cartID, userID, productID, qty)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
@@ -78,15 +78,15 @@ func (s *Service) AddItemToCart(ctx context.Context, cartID, productID string, q
 			return nil, ErrUserNotFound
 		} else if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
-		} else if err == postgres.ErrDefaultPriceListMissing {
-			return nil, ErrDefaultPriceListMissing
-		} else if err == postgres.ErrCartItemAlreadyExists {
-			return nil, ErrCartItemAlreadyExists
+		} else if err == postgres.ErrDefaultPriceListNotFound {
+			return nil, ErrDefaultPriceListNotFound
+		} else if err == postgres.ErrCartProductExists {
+			return nil, ErrCartProductExists
 		}
 		return nil, errors.Wrapf(err, "s.model.AddItemToCart(ctx, cartID=%q, %q, productID=%q, qty=%d) failed: ", cartID, "default", productID, qty)
 	}
-	sitem := CartItem{
-		Object:    "cart_item",
+	sitem := CartProduct{
+		Object:    "cart_product",
 		ID:        item.UUID,
 		ProductID: item.ProductUUID,
 		SKU:       item.SKU,
@@ -99,20 +99,21 @@ func (s *Service) AddItemToCart(ctx context.Context, cartID, productID string, q
 	return &sitem, nil
 }
 
-// HasCartItems returns true if any cart items have previously been added to the given cart.
-func (s *Service) HasCartItems(ctx context.Context, id string) (bool, error) {
-	has, err := s.model.HasCartItems(ctx, id)
+// HasCartProducts returns true if any cart products have previously
+// been added to the given cart.
+func (s *Service) HasCartProducts(ctx context.Context, id string) (bool, error) {
+	has, err := s.model.HasCartProducts(ctx, id)
 	if err != nil {
 		return false, errors.Wrap(err, "service: has cart items failed")
 	}
 	return has, nil
 }
 
-// GetCartItems get all cart items by cart ID.
-func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem, error) {
+// GetCartProducts get all cart items by cart ID.
+func (s *Service) GetCartProducts(ctx context.Context, cartID string) ([]*CartProduct, error) {
 	userUUID := ctx.Value("cid").(string)
 
-	items, err := s.model.GetCartItems(ctx, cartID, userUUID)
+	cartProducts, err := s.model.GetCartProducts(ctx, cartID, userUUID)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
@@ -120,10 +121,10 @@ func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem,
 		return nil, err
 	}
 
-	results := make([]*CartItem, 0, 32)
-	for _, v := range items {
-		i := CartItem{
-			Object:    "cart_item",
+	results := make([]*CartProduct, 0, 32)
+	for _, v := range cartProducts {
+		i := CartProduct{
+			Object:    "cart_product",
 			ID:        v.UUID,
 			ProductID: v.ProductUUID,
 			SKU:       v.SKU,
@@ -138,23 +139,23 @@ func (s *Service) GetCartItems(ctx context.Context, cartID string) ([]*CartItem,
 	return results, nil
 }
 
-// UpdateCartItem updates a cart item quantity.
-func (s *Service) UpdateCartItem(ctx context.Context, cartID, productID string, qty int) (*CartItem, error) {
+// UpdateCartProduct updates a cart item quantity.
+func (s *Service) UpdateCartProduct(ctx context.Context, cartProductID string, qty int) (*CartProduct, error) {
 	userUUID := ctx.Value("cid").(string)
 
-	item, err := s.model.UpdateItemByCartUUID(ctx, cartID, userUUID, productID, qty)
+	item, err := s.model.UpdateCartProduct(ctx, userUUID, cartProductID, qty)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
 		} else if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
-		} else if err == postgres.ErrCartItemNotFound {
-			return nil, ErrCartItemNotFound
+		} else if err == postgres.ErrCartProductNotFound {
+			return nil, ErrCartProductNotFound
 		}
 		return nil, err
 	}
-	sitem := CartItem{
-		Object:    "cart_item",
+	sitem := CartProduct{
+		Object:    "cart_product",
 		ID:        item.UUID,
 		ProductID: item.ProductUUID,
 		SKU:       item.SKU,
@@ -167,29 +168,25 @@ func (s *Service) UpdateCartItem(ctx context.Context, cartID, productID string, 
 	return &sitem, nil
 }
 
-// DeleteCartItem deletes a single cart item
-func (s *Service) DeleteCartItem(ctx context.Context, cartID, productID string) error {
-	if err := s.model.DeleteCartItem(ctx, cartID, productID); err != nil {
-		if err == postgres.ErrCartNotFound {
-			return ErrCartNotFound
-		} else if err == postgres.ErrProductNotFound {
-			return ErrProductNotFound
-		} else if err == postgres.ErrCartItemNotFound {
-			return ErrCartItemNotFound
+// DeleteCartProduct deletes a single cart product.
+func (s *Service) DeleteCartProduct(ctx context.Context, cartProductID string) error {
+	if err := s.model.DeleteCartProduct(ctx, cartProductID); err != nil {
+		if err == postgres.ErrCartProductNotFound {
+			return ErrCartProductNotFound
 		}
-		return errors.Wrapf(err, "s.model.DeleteCartItem(ctx, cartID=%q, productID=%q) failed", cartID, productID)
+		return errors.Wrapf(err, "s.model.DeleteCartProduct(ctx, cartProductID=%q) failed", cartProductID)
 	}
 	return nil
 }
 
-// EmptyCartItems empties the cart of all items but not coupons
-func (s *Service) EmptyCartItems(ctx context.Context, cartID string) error {
-	err := s.model.EmptyCartItems(ctx, cartID)
+// EmptyCartProducts empties the cart of all product (not including coupons).
+func (s *Service) EmptyCartProducts(ctx context.Context, cartID string) error {
+	err := s.model.EmptyCartProducts(ctx, cartID)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return ErrCartNotFound
-		} else if err == postgres.ErrCartContainsNoItems {
-			return ErrCartContainsNoItems
+		} else if err == postgres.ErrCartContainsNoProducts {
+			return ErrCartContainsNoProducts
 		}
 		return err
 	}

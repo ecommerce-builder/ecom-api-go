@@ -10,9 +10,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AddItemToCartHandler creates a handler to add an item to a given cart
-func (a *App) AddItemToCartHandler() http.HandlerFunc {
-	type itemRequestBody struct {
+// AddProductToCartHandler creates a handler to add a product to a given cart
+func (a *App) AddProductToCartHandler() http.HandlerFunc {
+	type requestBody struct {
+		CartID    string `json:"cart_id"`
 		ProductID string `json:"product_id"`
 		Qty       int    `json:"qty"`
 	}
@@ -20,15 +21,24 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: AddItemToCartHandler started")
+		contextLogger.Info("app: AddProductToCartHandler started")
 
-		cartID := chi.URLParam(r, "id")
-		o := itemRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
-			http.Error(w, err.Error(), 400)
+		request := requestBody{}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
+				"bad request",
+			})
 			return
 		}
-		item, err := a.Service.AddItemToCart(ctx, cartID, o.ProductID, o.Qty)
+
+		product, err := a.Service.AddProductToCart(ctx, request.CartID, request.ProductID, request.Qty)
 		if err != nil {
 			if err == service.ErrCartNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
@@ -57,11 +67,11 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 					"failed to add product with given id to the cart as the product cannot be found",
 				})
 				return
-			} else if err == service.ErrDefaultPriceListMissing {
-				contextLogger.Error("ErrDefaultPriceListMissing")
+			} else if err == service.ErrDefaultPriceListNotFound {
+				contextLogger.Error("ErrDefaultPriceListNotFound")
 				w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 				return
-			} else if err == service.ErrCartItemAlreadyExists {
+			} else if err == service.ErrCartProductExists {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -69,18 +79,18 @@ func (a *App) AddItemToCartHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodeCartAlreadyExists,
-					"cart item already exists in the cart",
+					ErrCodeCartProductExists,
+					"cart product already in the cart",
 				})
 				return
 			}
 
-			contextLogger.Errorf("service AddItemToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %v", cartID, o.ProductID, o.Qty, err)
+			contextLogger.Errorf("service AddProductToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %v", request.CartID, request.ProductID, request.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(&item)
+		json.NewEncoder(w).Encode(&product)
 	}
 }
 
@@ -102,28 +112,28 @@ func (a *App) CreateCartHandler() http.HandlerFunc {
 			return
 		}
 
-		res := cartResponseBody{
+		response := cartResponseBody{
 			Object: "cart",
 			Cart:   cart,
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(&response)
 	}
 }
 
-// GetCartItemsHandler returns a list of all cart items
-func (a *App) GetCartItemsHandler() http.HandlerFunc {
-	type itemsListResponseBody struct {
-		Object string              `json:"object"`
-		Data   []*service.CartItem `json:"data"`
+// GetCartProductsHandler returns a list of all cart products.
+func (a *App) GetCartProductsHandler() http.HandlerFunc {
+	type responseBody struct {
+		Object string                 `json:"object"`
+		Data   []*service.CartProduct `json:"data"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: GetCartItemsHandler started")
+		contextLogger.Info("app: GetCartProductsHandler started")
 
-		cartID := chi.URLParam(r, "id")
+		cartID := r.URL.Query().Get("cart_id")
 		if IsValidUUID(cartID) == false {
 			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
 			json.NewEncoder(w).Encode(struct {
@@ -138,22 +148,22 @@ func (a *App) GetCartItemsHandler() http.HandlerFunc {
 			return
 		}
 
-		cartItems, err := a.Service.GetCartItems(ctx, cartID)
+		cartProducts, err := a.Service.GetCartProducts(ctx, cartID)
 		if err != nil {
 			if err == service.ErrCartNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			contextLogger.Errorf("service GetCartItems(cartID=%q) error: %v", cartID, err)
+			contextLogger.Errorf("service GetCartProducts(cartID=%q) error: %v", cartID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		res := itemsListResponseBody{
+		response := responseBody{
 			Object: "list",
-			Data:   cartItems,
+			Data:   cartProducts,
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(&res)
+		json.NewEncoder(w).Encode(&response)
 	}
 }
 
@@ -163,38 +173,38 @@ func IsValidUUID(uuid string) bool {
 	return r.MatchString(uuid)
 }
 
-// UpdateCartItemHandler creates a handler to add an item to a given cart
-func (a *App) UpdateCartItemHandler() http.HandlerFunc {
-	type qtyRequestBody struct {
+// UpdateCartProductHandler creates a handler to update a cart product.
+func (a *App) UpdateCartProductHandler() http.HandlerFunc {
+	type requestBody struct {
 		Qty int `json:"qty"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: UpdateCartItemHandler started")
+		contextLogger.Info("app: UpdateCartProductHandler started")
 
-		cartID := chi.URLParam(r, "id")
-		productID := chi.URLParam(r, "product_id")
+		cartProductID := chi.URLParam(r, "id")
 
-		o := qtyRequestBody{}
-		err := json.NewDecoder(r.Body).Decode(&o)
-		if err != nil {
-			http.Error(w, err.Error(), 400)
+		request := requestBody{}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(struct {
+				Status  int    `json:"status"`
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}{
+				http.StatusBadRequest,
+				ErrCodeBadRequest,
+				"bad request",
+			})
 			return
 		}
-		item, err := a.Service.UpdateCartItem(ctx, cartID, productID, o.Qty)
+
+		product, err := a.Service.UpdateCartProduct(ctx, cartProductID, request.Qty)
 		if err != nil {
-			if err == service.ErrCartItemNotFound {
-				contextLogger.Debugf("app: Cart (cartID=%q) not found", cartID)
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				return
-			} else if err == service.ErrProductNotFound {
-				contextLogger.Debugf("app: Product (productID=%q) not found", productID)
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				return
-			} else if err == service.ErrCartItemNotFound {
-				contextLogger.Debugf("app: Product (productID=%q) in cart (cartID=%q) not found", productID, cartID)
+			if err == service.ErrCartProductNotFound {
+				contextLogger.Debugf("app: Cart Product (cartProductID=%q) not found", cartProductID)
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -202,40 +212,31 @@ func (a *App) UpdateCartItemHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusNotFound,
-					ErrCodeCartItemNotFound,
-					"product is not in this cart",
+					ErrCodeCartProductNotFound,
+					"cart product not found",
 				})
 				return
 			}
-			contextLogger.Errorf("service UpdateCartItem(ctx, cartID=%q, productID=%q, qty=%d) error: %v", cartID, productID, o.Qty, err)
+			contextLogger.Errorf("app: a.Service.UpdateCartProduct(ctx, cartProductID=%q, request.Qty=%d) error: %v", cartProductID, request.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(&item)
+		json.NewEncoder(w).Encode(&product)
 	}
 }
 
-// DeleteCartItemHandler creates a handler to delete an item from the cart with the given cart UUID.
-func (a *App) DeleteCartItemHandler() http.HandlerFunc {
+// DeleteCartProductHandler creates a handler to delete a cart product.
+func (a *App) DeleteCartProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: DeleteCartItemHandler started")
+		contextLogger.Info("app: DeleteCartProductHandler started")
 
-		cartID := chi.URLParam(r, "id")
-		productID := chi.URLParam(r, "product_id")
-		if err := a.Service.DeleteCartItem(ctx, cartID, productID); err != nil {
-			if err == service.ErrCartNotFound {
-				contextLogger.Debugf("app: Cart (cartID=%q) not found", cartID)
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				return
-			} else if err == service.ErrProductNotFound {
-				contextLogger.Debugf("app: Product (productID=%q) not found", productID)
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				return
-			} else if err == service.ErrCartItemNotFound {
-				contextLogger.Debugf("app: Product (productID=%q) in cart (cartID=%q) not found", productID, cartID)
+		cartProductID := chi.URLParam(r, "id")
+		if err := a.Service.DeleteCartProduct(ctx, cartProductID); err != nil {
+			if err == service.ErrCartProductNotFound {
+				contextLogger.Debugf("app: CartProduct (cartProductID=%q) not found", cartProductID)
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -243,12 +244,12 @@ func (a *App) DeleteCartItemHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusNotFound,
-					ErrCodeCartItemNotFound,
-					"product is not in this cart",
+					ErrCodeCartProductNotFound,
+					"cart product not found",
 				})
 				return
 			}
-			contextLogger.Errorf("app: DeleteCartItem(ctx, cartID=%q, productID=%q) error: %v", cartID, productID, err)
+			contextLogger.Errorf("app: a.Service.DeleteCartProduct(ctx, cartProductID=%q) error: %v", cartProductID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -258,19 +259,20 @@ func (a *App) DeleteCartItemHandler() http.HandlerFunc {
 	}
 }
 
-// EmptyCartItemsHandler empties the cart of all items. This does not remove coupons.
-func (a *App) EmptyCartItemsHandler() http.HandlerFunc {
+// EmptyCartProductsHandler empties the cart of all products (not including coupons).
+func (a *App) EmptyCartProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: EmptyCartItemsHandler started")
+		contextLogger.Info("app: EmptyCartProductsHandler started")
 
-		cartID := chi.URLParam(r, "id")
-		if err := a.Service.EmptyCartItems(ctx, cartID); err != nil {
+		cartID := r.URL.Query().Get("cart_id")
+
+		if err := a.Service.EmptyCartProducts(ctx, cartID); err != nil {
 			if err == service.ErrCartNotFound {
 				w.WriteHeader(http.StatusNotFound)
 				return
-			} else if err == service.ErrCartContainsNoItems {
+			} else if err == service.ErrCartContainsNoProducts {
 				w.WriteHeader(http.StatusConflict) // 409 Conflict
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -278,12 +280,12 @@ func (a *App) EmptyCartItemsHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodeCartContainsNoItems,
-					"OpEmptyCartItems cannot be called if a cart contains no items",
+					ErrCodeCartContainsNoProducts,
+					"OpEmptyCartProducts cannot be called if a cart contains no products",
 				})
 				return
 			}
-			contextLogger.Errorf("service EmptyCartItems(ctx, cartID=%q) error: %v", cartID, err)
+			contextLogger.Errorf("service EmptyCartProducts(ctx, cartID=%q) error: %v", cartID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

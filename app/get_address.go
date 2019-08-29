@@ -27,11 +27,12 @@ func (app *App) GetAddressHandler() http.HandlerFunc {
 			contextLogger.Errorf("failed to get address: %v", err)
 			return
 		}
-		res := addressResponseBody{
+
+		response := addressResponseBody{
 			Object:  "address",
 			Address: addr,
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(&response)
 	}
 }

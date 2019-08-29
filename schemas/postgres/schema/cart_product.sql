@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS cart_item (
+CREATE TABLE IF NOT EXISTS cart_product (
   id          SERIAL PRIMARY KEY,
   uuid        UUID NOT NULL DEFAULT uuid_generate_v4(),
   cart_id     INTEGER,

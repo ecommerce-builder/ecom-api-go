@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,10 +14,11 @@ func (a *App) ListAddressesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListAddressesHandler started")
 
-		customerID := chi.URLParam(r, "id")
-		addresses, err := a.Service.GetAddresses(ctx, customerID)
+		userID := r.URL.Query().Get("user_id")
+
+		addresses, err := a.Service.GetAddresses(ctx, userID)
 		if err != nil {
-			contextLogger.Errorf("a.Service.GetAddresses(ctx, customerID=%q) error: %v", customerID, err)
+			contextLogger.Errorf("a.Service.GetAddresses(ctx, customerID=%q) error: %v", userID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

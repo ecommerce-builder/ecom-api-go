@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrDefaultPriceListMissing error
-var ErrDefaultPriceListMissing = errors.New("postgres: pricing list missing")
+// ErrDefaultPriceListNotFound error
+var ErrDefaultPriceListNotFound = errors.New("postgres: pricing list not found")
 
 // ErrPriceListNotFound error
 var ErrPriceListNotFound = errors.New("postgres: price list not found")

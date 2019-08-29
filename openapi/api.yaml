@@ -77,7 +77,7 @@ paths:
       - bearerAuth: []
       summary: Create a new shopping cart
       description: |
-        OpCreateCart requires `RoleShopper` privileges. Creates an empty shopping cart. A shopping cart consists of items, offers and coupons. The request body contains a unique identifier for the new cart.
+        OpCreateCart requires `RoleShopper` privileges. Creates an empty shopping cart. A shopping cart consists of products, offers and coupons. The request body contains a unique identifier for the new cart.
       operationId: OpCreateCart
       tags:
       - Carts
@@ -110,7 +110,7 @@ paths:
     get:
       security:
       - bearerAuth: []
-      summary: Get a shoping cart including cart items, cart offers and cart coupons
+      summary: Get a shoping cart including cart products, cart offers and cart coupons
       description: |
         OpGetCart requires `RoleShopper` privileges. Retrives an existing shopping cart with the given cart ID.
       tags:
@@ -129,7 +129,7 @@ paths:
             application/json:
               schema:
                 example: ''
-  /carts/{id}/items:
+  /carts/{id}/products:
     parameters:
     - name: id
       required: true
@@ -142,15 +142,15 @@ paths:
     get:
       security:
       - bearerAuth: []
-      summary: Get cart items
+      summary: Get cart products
       description: |
-        OpGetCartItems requires `RoleShopper` privileges.
-      operationId: OpGetCartItems
+        OpGetCartProducts requires `RoleShopper` privileges.
+      operationId: OpGetCartProducts
       tags:
-      - Cart Items
+      - Cart Products
       responses:
         '200':
-          description: List of cart item objects
+          description: List of cart_product objects
           content:
             application/json:
               schema:
@@ -162,7 +162,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/CartItem'
+                      $ref: '#/components/schemas/CartProduct'
         '404':
           description: |
             The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
@@ -174,10 +174,10 @@ paths:
       - bearerAuth: []
       summary: Empty the entire cart
       description: |
-        OpEmptyCartItems requires `RoleShopper` privileges.
-      operationId: OpEmptyCartItems
+        OpEmptyCartProducts requires `RoleShopper` privileges.
+      operationId: OpEmptyCartProducts
       tags:
-      - Cart Items
+      - Cart Products
       responses:
         '204':
           description: No Content
@@ -188,24 +188,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                cart/cart-contains-no-items:
-                  summary: cart/cart-contains-no-items
+                cart/cart-contains-no-products:
+                  summary: cart/cart-contains-no-products
                   value:
                     status: 409
-                    code: 'cart/cart-contains-no-items'
-                    message: OpEmptyCartItems cannot be called if a cart contains no items
-  /carts-items:
+                    code: 'cart/cart-contains-no-products'
+                    message: OpEmptyCartProducts cannot be called if a cart contains no products
+  /carts-products:
     post:
       security:
       - bearerAuth: []
-      summary: Place an item into a cart
+      summary: Place a product into a cart
       description: |
-        OpAddItemToCart requires `RoleShopper` privileges. Places an new item to the cart returning the cart_item object. Each item has a unique identifier.
-      operationId: OpAddItemToCart
+        OpAddProductToCart requires `RoleShopper` privileges. Places an new product to the cart returning the cart_product object. Each product has a unique identifier.
+      operationId: OpAddProductToCart
       tags:
-      - Cart Items
+      - Cart Product
       requestBody:
-        description: New CartItem
+        description: New CartProduct
         required: true
         content:
           application/json:
@@ -229,12 +229,11 @@ paths:
                   example: 2
       responses:
         '201':
-          description: |
-            `CartItem` object
+          description: cart_product object
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CartItem'
+                $ref: '#/components/schemas/CartProduct'
         '404':
           description: |
             The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
@@ -248,32 +247,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                cart/cart-item-already-exists:
-                  summary: cart/cart-item-already-exists
+                cart/cart-product-exists:
+                  summary: cart/cart-product-exists
                   value:
                     status: 409
-                    code: 'cart/cart-item-already-exists'
-                    message: cart item already exists in the cart
-  /carts-items/{id}:
+                    code: 'cart/cart-product-exists'
+                    message: cart product already exists in the cart
+  /carts-products/{id}:
     parameters:
     - name: id
       required: true
       in: path
-      description: A unique identifier for the cart item.
+      description: A unique identifier for the cart product.
       schema:
         type: string
         example: 'aba8b505-d016-4afc-95bd-1f292ed5a915'
     patch:
       security:
       - bearerAuth: []
-      summary: Update a cart item with a new quantity
+      summary: Update a cart product with a new quantity
       description: |
-        OpUpdateCartItem requires `RoleShopper` privileges.
-      operationId: OpUpdateCartItem
+        OpUpdateCartProduct requires `RoleShopper` privileges.
+      operationId: OpUpdateCartProduct
       tags:
-      - Cart Items
+      - Cart Products
       requestBody:
-        description: New quantity for cart item
+        description: New quantity for cart product
         required: true
         content:
           application/json:
@@ -287,20 +286,20 @@ paths:
                   example: 3
       responses:
         '200':
-          description: CartItem object
+          description: cart_product object
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CartItem'
+                $ref: '#/components/schemas/CartProduct'
     delete:
       security:
       - bearerAuth: []
-      summary: Delete a cart item
+      summary: Delete a cart product
       description: |
-        OpDeleteCartItem requires `RoleShopper` privileges.
-      operationId: OpDeleteCartItem
+        OpDeleteCartProduct requires `RoleShopper` privileges.
+      operationId: OpDeleteCartProduct
       tags:
-      - Cart Items
+      - Cart Products
       responses:
         '204':
           description: No Content
@@ -887,12 +886,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                cart/cart-item-already-exists:
-                  summary: cart/cart-item-already-exists
+                cart/cart-product-exists:
+                  summary: cart/cart-product-exists
                   value:
                     status: 409
-                    code: 'cart/cart-item-already-exists'
-                    message: cart item already exists in the cart
+                    code: 'cart/cart-product-exists'
+                    message: cart product exists in the cart
     get:
       security:
       - bearerAuth: []
@@ -1826,7 +1825,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                cart/cart-item-already-exists:
+                cart/cart-product-exists:
                   summary: validate/invalid-request-body
                   value:
                     status: 409
@@ -1934,13 +1933,13 @@ components:
             data:
               type: array
               items:
-                $ref: '#/components/schemas/CartItem'
-    CartItem:
+                $ref: '#/components/schemas/CartProduct'
+    CartProduct:
       type: object
       properties:
         object:
           type: string
-          example: 'cart_item'
+          example: 'cart_product'
         id:
           type: string
           example: '69186b07-075f-42b9-b5cb-d66d9addabf1'

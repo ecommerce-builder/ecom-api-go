@@ -11,9 +11,9 @@ const (
 	// ErrCodeBadRequest is sent as the error code for 400 Bad Request.
 	ErrCodeBadRequest string = "bad-request"
 
-	// ErrCodeAssocsAlreadyExist is sent when the consumer attempts to purge the catalog
+	// ErrCodeAssocsExist is sent when the consumer attempts to purge the catalog
 	// before purging the catalog associations.
-	ErrCodeAssocsAlreadyExist string = "assocs/assocs-already-exists"
+	ErrCodeAssocsExist string = "assocs/assocs-exists"
 
 	// ErrCodeNoCatalog is sent when the consumer attempts to apply catalog associations
 	// before a catalog has been applied.
@@ -32,18 +32,17 @@ const (
 	// ErrCodeUserNotFound is sent if a user cannot be located
 	ErrCodeUserNotFound string = "users/not-found"
 
-	// ErrCodeCartAlreadyExists is sent when attempting to add a cart item to a cart
-	// and that cart item is already in the cart.
-	ErrCodeCartAlreadyExists string = "carts/cart-item-already-exists"
+	// ErrCodeCartProductExists is sent when attempting to add a product to a cart
+	// and that product is already in the cart.
+	ErrCodeCartProductExists string = "carts/cart-product-exists"
 
-	// ErrCodeCartContainsNoItems is sent when attempting to empty a cart that is
+	// ErrCodeCartContainsNoProducts is sent when attempting to empty a cart that is
 	// already empty.
-	ErrCodeCartContainsNoItems string = "carts/cart-contains-no-items"
+	ErrCodeCartContainsNoProducts string = "carts/cart-contains-no-products"
 
-	// ErrCodeCartItemNotFound is sent when attempting to delete or update a product
-	// in a given cart. The cart and product are found but the product is not in
-	// the cart items.
-	ErrCodeCartItemNotFound string = "carts/cart-item-not-found"
+	// ErrCodeCartProductNotFound is sent when attempting to delete or update a
+	// cart product that cannot be found.
+	ErrCodeCartProductNotFound string = "carts/cart-product-not-found"
 
 	// ErrMissingPathsLeafsProductIDs is sent when the consumer attempts to apply catalog
 	// associations that contain references to paths that are non existence, paths that
@@ -102,12 +101,12 @@ const (
 	OpDeleteAdmin string = "OpDeleteAdmin"
 
 	// Cart
-	OpCreateCart     string = "OpCreateCart"
-	OpAddItemToCart  string = "OpAddItemToCart"
-	OpGetCartItems   string = "OpGetCartItems"
-	OpUpdateCartItem string = "OpUpdateCartItem"
-	OpDeleteCartItem string = "OpDeleteCartItem"
-	OpEmptyCartItems string = "OpEmptyCartItems"
+	OpCreateCart        string = "OpCreateCart"
+	OpAddProductToCart  string = "OpAddProductToCart"
+	OpGetCartProducts   string = "OpGetCartProducts"
+	OpUpdateCartProduct string = "OpUpdateCartProduct"
+	OpDeleteCartProduct string = "OpDeleteCartProduct"
+	OpEmptyCartProducts string = "OpEmptyCartProducts"
 
 	// Orders
 	OpPlaceOrder string = "OpPlaceOrder"

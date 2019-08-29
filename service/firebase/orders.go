@@ -102,9 +102,9 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, us
 	}
 
 	// Prevent orders with empty carts.
-	has, err := s.HasCartItems(ctx, cartID)
+	has, err := s.HasCartProducts(ctx, cartID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.HasCartItems(ctx, %q) failed", cartID)
+		return nil, errors.Wrapf(err, "s.HasCartProducts(ctx, %q) failed", cartID)
 	}
 
 	if !has {

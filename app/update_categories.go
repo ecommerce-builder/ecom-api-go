@@ -41,7 +41,7 @@ func (a *App) UpdateCategoriesHandler() http.HandlerFunc {
 					Message string `json:"message"`
 				}{
 					http.StatusConflict,
-					ErrCodeAssocsAlreadyExist,
+					ErrCodeAssocsExist,
 					fmt.Sprintf("catalog associations already exist"),
 				})
 				return

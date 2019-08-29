@@ -513,7 +513,7 @@ func (m *PgModel) DeleteProduct(ctx context.Context, productUUID string) error {
 	// return an error if it is in use.
 
 	// 3. Remove the product from all cart items (one to many)
-	q3 := "DELETE FROM cart_item WHERE product_id = $1"
+	q3 := "DELETE FROM cart_product WHERE product_id = $1"
 	_, err = tx.ExecContext(ctx, q3, productID)
 	if err != nil {
 		tx.Rollback()

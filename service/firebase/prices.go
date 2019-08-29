@@ -10,8 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ErrDefaultPriceListMissing error
-var ErrDefaultPriceListMissing = errors.New("default pricing list missing")
+// ErrDefaultPriceListNotFound error
+var ErrDefaultPriceListNotFound = errors.New("default pricing list not found")
 
 // PriceListID for a pricing list id.
 type PriceListID string

@@ -30,7 +30,7 @@ func (a *App) PurgeCatalogHandler() http.HandlerFunc {
 				Message string `json:"message"`
 			}{
 				http.StatusConflict,
-				ErrCodeAssocsAlreadyExist,
+				ErrCodeAssocsExist,
 				"OpPurgeCatalog cannot be called whilst catalog product associations exist",
 			})
 			return
