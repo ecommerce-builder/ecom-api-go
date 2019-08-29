@@ -139,7 +139,6 @@ const (
 	// Prices
 	OpUpdateProductPrices string = "OpUpdateProductPrices"
 	OpGetProductPrices    string = "OpGetProductPrices"
-	OpListPrices          string = "OpListPrices"
 
 	OpGetTierPricing    string = "OpGetTierPricing"
 	OpMapPricingByTier  string = "OpMapPricingByTier"

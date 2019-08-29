@@ -603,7 +603,8 @@ func main() {
 		})
 
 		r.Route("/prices", func(r chi.Router) {
-			r.Get("/", a.Authorization(app.OpListPrices, a.ListPricesHandler()))
+			r.Get("/", a.Authorization(app.OpGetProductPrices, a.GetProductPrices()))
+			r.Put("/", a.Authorization(app.OpUpdateProductPrices, a.UpdateProductPricesHandler()))
 		})
 
 		r.Route("/products", func(r chi.Router) {
@@ -613,8 +614,6 @@ func main() {
 			r.Get("/{id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
-			r.Get("/{id}/prices", a.Authorization(app.OpGetProductPrices, a.GetProductPrices()))
-			r.Put("/{id}/prices", a.Authorization(app.OpUpdateProductPrices, a.UpdateProductPricesHandler()))
 		})
 
 		r.Route("/devkeys", func(r chi.Router) {
