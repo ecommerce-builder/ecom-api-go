@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,7 +20,8 @@ func (a *App) ListProductImagesHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("App: ListProductImagesHandler started")
 
-		productID := chi.URLParam(r, "id")
+		productID := r.URL.Query().Get("product_id")
+
 		products, err := a.Service.GetImagesByProductID(ctx, productID)
 		if err != nil {
 			contextLogger.Errorf("service ListProductImages(ctx, productID=%q) error: %+v", productID, err)
