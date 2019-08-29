@@ -595,6 +595,7 @@ func main() {
 		})
 
 		r.Route("/images", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpAddImage, a.AddImageHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetImage, a.GetImageHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteImage, a.DeleteImageHandler()))
 		})
@@ -610,7 +611,6 @@ func main() {
 			r.Get("/{id}", a.Authorization(app.OpGetProduct, a.GetProductHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProduct, a.DeleteProductHandler()))
 
-			r.Post("/{id}/images", a.Authorization(app.OpAddImage, a.AddImageHandler()))
 			r.Get("/{id}/images", a.Authorization(app.OpListProductImages, a.ListProductImagesHandler()))
 			r.Delete("/{id}/images", a.Authorization(app.OpDeleteAllProductImages, a.DeleteAllProductImagesHandler()))
 
