@@ -121,13 +121,13 @@ func (s *Service) DeleteProductCategory(ctx context.Context, productCategoryID s
 	return nil
 }
 
-// CreateProductCategoryAssocs creates a set of catalog product
+// CreateProductCategoryRelations creates a set of catalog product
 // associations either completing with all or failing with none
 // being added.
-func (s *Service) CreateProductCategoryAssocs(ctx context.Context, cpas map[string][]string) error {
-	err := s.model.CreateProductCategoryAssocs(ctx, cpas)
+func (s *Service) CreateProductCategoryRelations(ctx context.Context, cpas map[string][]string) error {
+	err := s.model.CreateProductCategoryRelations(ctx, cpas)
 	if err != nil {
-		return errors.Wrap(err, "service: CreateProductCategoryAssocs")
+		return errors.Wrap(err, "service: CreateProductCategoryRelationships")
 	}
 	return nil
 }
@@ -148,17 +148,17 @@ func (s *Service) CreateProductCategoryAssocs(ctx context.Context, cpas map[stri
 // 	return &scpa, nil
 // }
 
-// HasProductCategoryAssocs returns true if any catalog product associations
+// HasProductCategoryRelations returns true if any product to category relations
 // exist.
-func (s *Service) HasProductCategoryAssocs(ctx context.Context) (bool, error) {
-	has, err := s.model.HasProductCategoryAssocs(ctx)
+func (s *Service) HasProductCategoryRelations(ctx context.Context) (bool, error) {
+	has, err := s.model.HasProductCategoryRelations(ctx)
 	if err != nil {
-		return false, errors.Wrap(err, "service: has catalog product assocs")
+		return false, errors.Wrap(err, "service: has product to category relations")
 	}
 	return has, nil
 }
 
-// An AssocProduct holds details of a product in the context of an AssocSet.
+// An AssocProduct holds details of a product in the context of an Relationshipset.
 type AssocProduct struct {
 	SKU      string    `json:"sku"`
 	Created  time.Time `json:"created"`
@@ -174,7 +174,7 @@ type Assoc struct {
 func (s *Service) GetProductsCategoriesList(ctx context.Context) ([]*ProductsCategories, error) {
 	cps, err := s.model.GetProductsCategories(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: s.model.GetProductCategoryAssocs(ctx) failed")
+		return nil, errors.Wrapf(err, "service: s.model.GetProductCategoryRelations(ctx) failed")
 	}
 
 	productsCategories := make([]*ProductsCategories, 0, len(cps))
@@ -238,10 +238,10 @@ func (s *Service) UpdateProductsCategories(ctx context.Context, cpcs []*CreatePr
 	return results, nil
 }
 
-// GetProductCategoryAssocs returns all of the category product associations
+// GetProductCategoryRelations returns all of the category product associations
 // keyed by key. key has a value of either `id` or `path`
-func (s *Service) GetProductCategoryAssocs(ctx context.Context, key string) (map[string]*Assoc, error) {
-	cpo, err := s.model.GetProductCategoryAssocsFull(ctx)
+func (s *Service) GetProductCategoryRelations(ctx context.Context, key string) (map[string]*Assoc, error) {
+	cpo, err := s.model.GetProductCategoryRelationsFull(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -275,29 +275,20 @@ func (s *Service) GetProductCategoryAssocs(ctx context.Context, key string) (map
 	return assocs, nil
 }
 
-// UpdateProductCategoryAssocs updates the category product associations
-// func (s *Service) UpdateProductCategoryAssocs(ctx context.Context, cpo []*postgres.catalogProductAssoc) error {
-// 	err := s.model.UpdateProductCategoryAssocs(ctx, cpo)
+// UpdateProductCategoryRelations updates the category to product relations
+// func (s *Service) UpdateProductCategoryRelations(ctx context.Context, cpo []*postgres.catalogProductAssoc) error {
+// 	err := s.model.UpdateProductCategoryRelations(ctx, cpo)
 // 	if err != nil {
 // 		return err
 // 	}
 // 	return nil
 // }
 
-// PurgeProductsCategories delete all catalog product associations.
-func (s *Service) PurgeProductsCategories(ctx context.Context) error {
-	err := s.model.PurgeProductsCategories(ctx)
+// DeleteAllProductCategoryRelations delete all catalog product associations.
+func (s *Service) DeleteAllProductCategoryRelations(ctx context.Context) error {
+	err := s.model.DeleteAllProductCategoryRelations(ctx)
 	if err != nil {
-		return errors.Wrapf(err, "service: purge products categories")
+		return errors.Wrapf(err, "service: delete product to category relations")
 	}
 	return nil
-}
-
-// DeleteCategoryAssocs delete all catalog product associations.
-func (s *Service) DeleteCategoryAssocs(ctx context.Context) (affected int64, err error) {
-	n, err := s.model.DeleteProductCategoryAssocs(ctx)
-	if err != nil {
-		return 0, errors.Wrapf(err, "service: delete catalog assocs")
-	}
-	return n, nil
 }

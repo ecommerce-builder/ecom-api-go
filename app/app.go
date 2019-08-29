@@ -159,12 +159,13 @@ const (
 	OpSignInWithDevKey   string = "OpSignInWithDevKey"
 
 	// Category and assocations
-	OpAddProductCategory      string = "OpAddProductCategory"
-	OpGetProductCategory      string = "OpGetProductCategory"
-	OpDeleteProductCategory   string = "OpDeleteProductCategory"
-	OpGetProductsCategories   string = "OpGetProductsCategories"
-	OpUpdateProductProducts   string = "OpUpdateProductProducts"
-	OpPurgeProductsCategories string = "OpPurgeProductsCategories"
+	OpAddProductCategoryRel    string = "OpAddProductCategoryRel"
+	OpGetProductCategoryRel    string = "OpGetProductCategoryRel"
+	OpDeleteProductCategoryRel string = "OpDeleteProductCategoryRel"
+
+	OpGetProductCategoryRels    string = "OpGetProductCategoryRels"
+	OpUpdateProductCategoryRels string = "OpUpdateProductCategoryRels"
+	OpDeleteProductCategoryRels string = "OpPurgeProductsCategories"
 
 	// Categories Tree
 	OpGetCategoriesTree    string = "OpGetCategoriesTree"
@@ -174,9 +175,9 @@ const (
 	OpGetCategories    string = "OpGetCategories"
 	OpDeleteCategories string = "OpDeleteCategories"
 
-	OpGetProductCategoryAssocs    string = "OpGetProductCategoryAssocs"
-	OpUpdateProductCategoryAssocs string = "OpUpdateProductCategoryAssocs"
-	OpPurgeCategoryAssocs         string = "OpPurgeCategoryAssocs"
+	OpGetProductCategoryRelations    string = "OpGetProductCategoryRelations"
+	OpUpdateProductCategoryRelations string = "OpUpdateProductCategoryRelations"
+	OpDeleteCategoryRelations        string = "OpDeleteCategoryRelations"
 
 	// Stripe
 	OpStripeCheckout string = "OpStripeCheckout"

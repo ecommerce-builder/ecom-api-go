@@ -41,6 +41,7 @@ type PriceJoinRow struct {
 	Modified      time.Time
 }
 
+// CreatePrice is a container for break and unit price pairs.
 type CreatePrice struct {
 	Break     int
 	UnitPrice int

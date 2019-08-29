@@ -183,9 +183,9 @@ func (n *CategoryRequest) GenerateNestedSet(lft, depth int, path string) int {
 // representation before calling the model to persist the replacement
 // catalog.
 func (s *Service) UpdateCatalog(ctx context.Context, root *CategoryRequest) error {
-	hasAssocs, err := s.HasProductCategoryAssocs(ctx)
+	hasAssocs, err := s.HasProductCategoryRelations(ctx)
 	if err != nil {
-		return errors.Wrapf(err, "HasProductCategoryAssocs(ctx) error")
+		return errors.Wrapf(err, "HasProductCategoryRelations(ctx) error")
 	}
 	if hasAssocs {
 		return ErrAssocsAlreadyExist
@@ -354,7 +354,7 @@ func (s *Service) GetCategoriesTree(ctx context.Context) (*CategoryNode, error) 
 		log.WithContext(ctx).Debug("service: s.model.GetCategories(ctx) returned an empty list")
 		return nil, ErrCategoriesEmpty
 	}
-	cpas, err := s.model.GetProductCategoryAssocsFull(ctx)
+	cpas, err := s.model.GetProductCategoryRelationsFull(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: GetProductCategoryAssocsFull(ctx) failed")
 	}

@@ -36,7 +36,7 @@ func (a *App) GetProductCategoryAssocsHandler() http.HandlerFunc {
 			return
 		}
 
-		cpo, err := a.Service.GetProductCategoryAssocs(ctx, key)
+		cpo, err := a.Service.GetProductCategoryRelations(ctx, key)
 		if err != nil {
 			contextLogger.Errorf("service GetProductCategoryAssocs(ctx) error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
@@ -56,17 +56,17 @@ func (a *App) GetProductCategoryAssocsHandler() http.HandlerFunc {
 	}
 }
 
-// PurgeCategoryAssocsHandler returns an handler that deletes all category
+// PurgeProductCategoryRelationsHandler returns an handler that deletes all category
 // to product associations.
-func (a *App) PurgeCategoryAssocsHandler() http.HandlerFunc {
+func (a *App) PurgeProductCategoryRelationsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: PurgeCategoryAssocsHandler started")
+		contextLogger.Info("app: DeleteProductCategoryRelationsHandler started")
 
-		_, err := a.Service.DeleteCategoryAssocs(ctx)
+		err := a.Service.DeleteAllProductCategoryRelations(ctx)
 		if err != nil {
-			contextLogger.Errorf("service DeleteCategoryAssocs(ctx) error: %+v", err)
+			contextLogger.Errorf("app: DeleteAllCategoryAssocs(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -244,7 +244,7 @@ func (a *App) UpdateProductCategoryAssocsHandler() http.HandlerFunc {
 			}
 			cpas[path] = pids
 		}
-		err = a.Service.CreateProductCategoryAssocs(ctx, cpas)
+		err = a.Service.CreateProductCategoryRelations(ctx, cpas)
 		if err != nil {
 			contextLogger.Errorf("CreateProductCategoryAssocs(ctx, ...) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

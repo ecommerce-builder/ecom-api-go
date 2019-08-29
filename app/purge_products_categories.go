@@ -7,16 +7,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PurgeProductsCategoriesHandler returns a handler to purge all product to categories.
-func (app *App) PurgeProductsCategoriesHandler() http.HandlerFunc {
+// DeleteProductsCategoriesHandler returns a handler to purge all product to categories.
+func (app *App) DeleteProductsCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: PurgeProductsCategoriesHandler called")
+		contextLogger.Info("App: DeleteProductsCategoriesHandler called")
 
-		err := app.Service.PurgeProductsCategories(ctx)
+		err := app.Service.DeleteAllProductCategoryRelations(ctx)
 		if err != nil {
-			contextLogger.Errorf("service PurgeProductsCategories(ctx) error: %+v", errors.WithStack(err))
+			contextLogger.Errorf("app: DeleteProductsCategories(ctx) error: %+v", errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}

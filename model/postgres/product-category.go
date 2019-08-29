@@ -205,7 +205,7 @@ func (m *PgModel) DeleteProductCategory(ctx context.Context, productCategoryUUID
 	return nil
 }
 
-// UpdateProductsCategories creates a batch of associations between a product and category.
+// UpdateProductsCategories creates a batch of product to category relationships.
 func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreateProductCategoryRow) ([]*ProductCategoryJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -218,6 +218,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	q1 := "SELECT id, uuid, path, sku, name FROM product"
 	rows1, err := tx.QueryContext(ctx, q1)
 	if err != nil {
+		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query context q1=%q", q1)
 	}
 	defer rows1.Close()
@@ -234,6 +235,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 		var p product
 		err = rows1.Scan(&p.id, &p.uuid, &p.path, &p.sku, &p.name)
 		if err != nil {
+			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: scan failed")
 		}
 		productMap[p.uuid] = &p
@@ -248,6 +250,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	q2 := "SELECT id, uuid, path FROM category WHERE lft = rgt - 1"
 	rows2, err := tx.QueryContext(ctx, q2)
 	if err != nil {
+		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query context q2=%q", q2)
 	}
 	defer rows2.Close()
@@ -262,11 +265,15 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 		var c category
 		err = rows2.Scan(&c.id, &c.uuid, &c.path)
 		if err != nil {
+			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: scan failed")
 		}
 		categoryMap[c.uuid] = &c
 	}
+
 	if err = rows2.Err(); err != nil {
+
+		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: rows.Err()")
 	}
 
@@ -274,14 +281,16 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	// Ensure that each product uuid and category uuid exists in the maps
 	for _, c := range cps {
 		if _, ok := productMap[c.ProductUUID]; !ok {
+			tx.Rollback()
 			return nil, ErrProductNotFound
 		}
 		if _, ok := categoryMap[c.CategoryUUID]; !ok {
+			tx.Rollback()
 			return nil, ErrLeafCategoryNotFound
 		}
 	}
 
-	// 3. Delete the existing product category associations
+	// 3. Delete the existing product to category relationships
 	q3 := "DELETE FROM product_category"
 	_, err = tx.ExecContext(ctx, q3)
 	if err != nil {
@@ -344,9 +353,9 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 	return productsCategories, nil
 }
 
-// CreateProductCategoryAssocs inserts multiple category product
-// associations using a transaction.
-func (m *PgModel) CreateProductCategoryAssocs(ctx context.Context, cpas map[string][]string) error {
+// CreateProductCategoryRelations inserts multiple product to category
+// relationships.
+func (m *PgModel) CreateProductCategoryRelations(ctx context.Context, cpas map[string][]string) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -380,7 +389,7 @@ func (m *PgModel) CreateProductCategoryAssocs(ctx context.Context, cpas map[stri
 	stmt2, err := tx.PrepareContext(ctx, q2)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "tx prepare for query=%q", q2)
+		return errors.Wrapf(err, "postgres: tx prepare for query=%q", q2)
 	}
 	defer stmt2.Close()
 
@@ -388,14 +397,14 @@ func (m *PgModel) CreateProductCategoryAssocs(ctx context.Context, cpas map[stri
 	stmt3, err := tx.PrepareContext(ctx, q3)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "tx prepare for query=%q", q3)
+		return errors.Wrapf(err, "postgres: tx prepare for query=%q", q3)
 	}
 
 	q4 := "SELECT id FROM product WHERE uuid = $1"
 	stmt4, err := tx.PrepareContext(ctx, q4)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "tx prepare for query=%q", q4)
+		return errors.Wrapf(err, "postgres: tx prepare for query=%q", q4)
 	}
 
 	for path, pids := range cpas {
@@ -407,7 +416,7 @@ func (m *PgModel) CreateProductCategoryAssocs(ctx context.Context, cpas map[stri
 				return ErrLeafCategoryNotFound
 			}
 			tx.Rollback()
-			return errors.Wrapf(err, "query row context failed for query=%q", q3)
+			return errors.Wrapf(err, "postgres: query row context failed for query=%q", q3)
 		}
 
 		for _, pid := range pids {
@@ -420,32 +429,19 @@ func (m *PgModel) CreateProductCategoryAssocs(ctx context.Context, cpas map[stri
 					return ErrProductNotFound
 				}
 				tx.Rollback()
-				return errors.Wrapf(err, "query row context failed for query=%q", q4)
+				return errors.Wrapf(err, "postgres: query row context failed for query=%q", q4)
 			}
 
 			if _, err := stmt2.ExecContext(ctx, categoryID, productID, categoryID); err != nil {
 				tx.Rollback()
 				fmt.Fprintf(os.Stderr, "%+v", err)
-				return errors.Wrap(err, "stmt2 exec context")
+				return errors.Wrap(err, "postgres: stmt2 exec context")
 			}
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return errors.Wrap(err, "tx.Commit")
-	}
-	return nil
-}
-
-// DeleteProductCategoryAssoc delete an existing catalog product association.
-func (m *PgModel) DeleteProductCategoryAssoc(ctx context.Context, path, sku string) error {
-	query := `
-		DELETE FROM product_category
-		WHERE path = $1 AND sku = $2
-	`
-	_, err := m.db.ExecContext(ctx, query, path, sku)
-	if err != nil {
-		return errors.Wrapf(err, "postgres: delete category product assoc path=%q sku=%q", path, sku)
+		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil
 }
@@ -487,9 +483,9 @@ func (m *PgModel) GetProductsCategories(ctx context.Context) ([]*ProductCategory
 	return cpas, nil
 }
 
-// GetProductCategoryAssocsFull returns an Slice of catalog to product
+// GetProductCategoryRelationsFull returns an Slice of catalog to product
 // associations joined with products to including name.
-func (m *PgModel) GetProductCategoryAssocsFull(ctx context.Context) ([]*ProductCategoryJoinRow, error) {
+func (m *PgModel) GetProductCategoryRelationsFull(ctx context.Context) ([]*ProductCategoryJoinRow, error) {
 	query := `
 		SELECT
 		  c.id, category_id, product_id, p.uuid as product_uuid, t.path, p.path, p.sku, p.name,
@@ -524,9 +520,9 @@ func (m *PgModel) GetProductCategoryAssocsFull(ctx context.Context) ([]*ProductC
 	return cpas, nil
 }
 
-// HasProductCategoryAssocs returns true if any catalog product associations
+// HasProductCategoryRelations returns true if any product to category relations
 // exist.
-func (m *PgModel) HasProductCategoryAssocs(ctx context.Context) (bool, error) {
+func (m *PgModel) HasProductCategoryRelations(ctx context.Context) (bool, error) {
 	query := "SELECT COUNT(*) AS count FROM product_category"
 	var count int
 	err := m.db.QueryRowContext(ctx, query).Scan(&count)
@@ -573,26 +569,12 @@ func (m *PgModel) HasProductCategoryAssocs(ctx context.Context) (bool, error) {
 // 	return tx.Commit()
 // }
 
-// PurgeProductsCategories
-func (m *PgModel) PurgeProductsCategories(ctx context.Context) error {
+// DeleteAllProductCategoryRelations delete all product to category relationships.
+func (m *PgModel) DeleteAllProductCategoryRelations(ctx context.Context) error {
 	q1 := "DELETE FROM product_category"
 	_, err := m.db.ExecContext(ctx, q1)
 	if err != nil {
 		return errors.Wrapf(err, "postgres: m.db.ExecContext(ctx, q1=%q)", q1)
 	}
 	return nil
-}
-
-// DeleteProductCategoryAssocs delete all category product
-// associations effectly purging the catalog.
-func (m *PgModel) DeleteProductCategoryAssocs(ctx context.Context) (affected int64, err error) {
-	res, err := m.db.ExecContext(ctx, "DELETE FROM product_category")
-	if err != nil {
-		return -1, errors.Wrap(err, "postgres: delete product to category assocs")
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return -1, errors.Wrap(err, "postgres: rows affected")
-	}
-	return count, nil
 }

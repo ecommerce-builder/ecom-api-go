@@ -61,16 +61,16 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		// Operations that don't require any special authorization
 		case OpCreateCart, OpAddProductToCart, OpGetCartProducts, OpUpdateCartProduct,
 			OpDeleteCartProduct, OpEmptyCartProducts, OpGetCategories, OpGetCategoriesTree, OpSignInWithDevKey,
-			OpGetProduct, OpListProducts, OpGetProductCategoryAssocs,
-			OpGetTierPricing, OpMapPricingByTier, OpGetImage, OpGetProductCategory,
+			OpGetProduct, OpListProducts, OpGetProductCategoryRelations,
+			OpGetTierPricing, OpMapPricingByTier, OpGetImage, OpGetProductCategoryRel,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetPriceList:
 			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		// Operations that required at least RoleAdmin privileges
 		case OpListUsers, OpCreateProduct, OpUpdateProduct, OpDeleteProduct, OpDeleteCategories,
-			OpPurgeCategoryAssocs, OpUpdateProductCategoryAssocs, OpSystemInfo,
-			OpAddProductCategory, OpDeleteProductCategory,
-			OpUpdateProductProducts, OpPurgeProductsCategories, OpUpdateProductPrices, OpDeleteTierPricing,
+			OpUpdateProductCategoryRels, OpSystemInfo,
+			OpAddProductCategoryRel, OpDeleteProductCategoryRel,
+			OpDeleteProductCategoryRels, OpUpdateProductPrices, OpDeleteTierPricing,
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
 			OpCreatePriceList, OpListPriceLists, OpUpdatePriceList, OpDeletePriceList,
 			OpCreatePromoRule, OpDeletePromoRule, OpGetPromoRule, OpListPromoRules:

@@ -641,7 +641,7 @@ func main() {
 			r.Delete("/", a.Authorization(app.OpEmptyCartProducts, a.EmptyCartProductsHandler()))
 		})
 
-		// Categories and relationships
+		// Categories
 		r.Route("/categories", func(r chi.Router) {
 			r.Get("/", a.Authorization(app.OpGetCategories, a.GetCategoriesHandler()))
 			r.Delete("/", a.Authorization(app.OpDeleteCategories, a.DeleteCategoriesHandler()))
@@ -652,13 +652,14 @@ func main() {
 			r.Get("/", a.Authorization(app.OpGetCategoriesTree, a.GetCategoriesTreeHandler()))
 		})
 
+		// Product - Category relationships
 		r.Route("/products-categories", func(r chi.Router) {
-			r.Post("/", a.Authorization(app.OpAddProductCategory, a.AddProductCategoryHandler()))
-			r.Get("/{id}", a.Authorization(app.OpGetProductCategory, a.GetProductCategoryHandler()))
-			r.Delete("/{id}", a.Authorization(app.OpDeleteProductCategory, a.DeleteProductCategoryHandler()))
-			r.Put("/", a.Authorization(app.OpUpdateProductProducts, a.UpdateProductsCategoriesHandler()))
-			r.Get("/", a.Authorization(app.OpGetProductsCategories, a.GetProductsCategoriesHandler()))
-			r.Delete("/", a.Authorization(app.OpPurgeProductsCategories, a.PurgeProductsCategoriesHandler()))
+			r.Post("/", a.Authorization(app.OpAddProductCategoryRel, a.AddProductCategoryHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetProductCategoryRel, a.GetProductCategoryHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteProductCategoryRel, a.DeleteProductCategoryHandler()))
+			r.Put("/", a.Authorization(app.OpUpdateProductCategoryRels, a.UpdateProductsCategoriesHandler()))
+			r.Get("/", a.Authorization(app.OpGetProductCategoryRels, a.GetProductsCategoriesHandler()))
+			r.Delete("/", a.Authorization(app.OpDeleteProductCategoryRels, a.DeleteProductsCategoriesHandler()))
 		})
 
 		// Orders
