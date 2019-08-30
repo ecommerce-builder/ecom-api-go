@@ -2746,7 +2746,7 @@ components:
           example: "assocs/assocs-already-exists"
         message:
           type: string
-          example: "catalog associations already exists"
+          example: "product to category relations already exist"
     PutAssocsConflict:
       properties:
         status:
@@ -2757,7 +2757,7 @@ components:
           example: "assocs/assocs-already-exists"
         message:
           type: string
-          example: "catalog associations already exists"
+          example: "product to category relations already exist"
         data:
           type: object
           properties:

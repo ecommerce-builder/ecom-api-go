@@ -43,7 +43,7 @@ func (a *App) UpdateCategoriesTreeHandler() http.HandlerFunc {
 				}{
 					http.StatusConflict,
 					ErrCodeAssocsExist,
-					fmt.Sprintf("catalog associations already exist"),
+					fmt.Sprintf("product to category relations already exist"),
 				})
 				return
 			}
