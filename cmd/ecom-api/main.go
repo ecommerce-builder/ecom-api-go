@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -107,10 +109,9 @@ var (
 	//
 	// Google settings
 	//
-	gaeProjectID  = os.Getenv("ECOM_GAE_PROJECT_ID")
-	fbProjectID   = os.Getenv("ECOM_FIREBASE_PROJECT_ID")
-	fbWebAPIKey   = os.Getenv("ECOM_FIREBASE_WEB_API_KEY")
-	fbCredentials = os.Getenv("ECOM_FIREBASE_CREDENTIALS")
+	gaeProjectIDEnv   = os.Getenv("ECOM_GAE_PROJECT_ID")
+	fbPublicConfigEnv = os.Getenv("ECOM_FIREBASE_PUBLIC_CONFIG")
+	fbCredentialsEnv  = os.Getenv("ECOM_FIREBASE_PRIVATE_CREDENTIALS")
 
 	// Stripe settings (optional)
 	stripeSecretKey     = os.Getenv("ECOM_STRIPE_SECRET_KEY")
@@ -149,7 +150,7 @@ func initLogging() {
 		// Log as JSON Stackdriver with entry threading
 		// instead of the default ASCII formatter.
 		formatter := stackdriver.GAEStandardFormatter(
-			stackdriver.WithProjectID(gaeProjectID),
+			stackdriver.WithProjectID(gaeProjectIDEnv),
 		)
 		log.SetFormatter(formatter)
 	} else {
@@ -283,32 +284,47 @@ func main() {
 	}
 
 	// 2. Service Account Credentials
-	if fbCredentials == "" {
-		log.Fatal("missing service account credentials. Use export ECOM_GOOGLE_CREDENTIALS=/path/to/your/service-account-file or ECOM_GOOGLE_CREDENTIALS=<base64-json-file>")
+	if fbCredentialsEnv == "" {
+		log.Fatal("missing service account credentials. Use export ECOM_FIREBASE_PRIVATE_CREDENTIALS=/path/to/your/service-account-file or ECOM_FIREBASE_PRIVATE_CREDENTIALS=<base64-json-file>")
 	}
 	// if the credentials is a relative pathname, make it relative to the secretVolume/sacDir root
 	// i.e. /etc/secret-volume/service_account_credentials/<file>
-	if fbCredentials[0] == '/' {
-		if !filepath.IsAbs(fbCredentials) {
+	if fbCredentialsEnv[0] == '/' {
+		if !filepath.IsAbs(fbCredentialsEnv) {
 			log.Debugf("credentials is a relative pathname so building absolute pathname")
-			fbCredentials = filepath.Join(secretVolume, sacDir, fbCredentials)
+			fbCredentialsEnv = filepath.Join(secretVolume, sacDir, fbCredentialsEnv)
 		}
-		mustHaveFile(fbCredentials, "service account credentials")
+		mustHaveFile(fbCredentialsEnv, "service account credentials")
 	}
 
 	// 3. GAE ProjectID, Google Project ID (Firebase) and Web API Key (Firebase)
-	if gaeProjectID == "" {
+	if gaeProjectIDEnv == "" {
 		log.Fatal("missing GAE project ID. Use export ECOM_GAE_PROJECT_ID")
 	}
 
-	if fbProjectID == "" {
-		log.Fatal("missing project ID. Use export ECOM_GOOGLE_PROJECT_ID")
+	if fbPublicConfigEnv == "" {
+		log.Fatal("missing public Firebase Config.  Use ECOM_FIREBASE_PUBLIC_CONFIG=<base64-json-string>")
 	}
-	log.Infof("google project ID set to %s", fbProjectID)
-	if fbWebAPIKey == "" {
-		log.Fatal("missing Web API Key. Use export ECOM_GOOGLE_WEB_API_KEY")
+	// log.Infof("Web API Key set to %s", fbWebAPIKey)
+	decoded, err := base64.StdEncoding.DecodeString(fbPublicConfigEnv)
+	if err != nil {
+		log.Fatalf("decode error: %v", err)
 	}
-	log.Infof("Web API Key set to %s", fbWebAPIKey)
+	type firebaseConfig struct {
+		Firebase app.FirebaseSystemEnv `json:"firebaseConfig"`
+	}
+
+	var fbConfig firebaseConfig
+	if err := json.NewDecoder(bytes.NewReader(decoded)).Decode(&fbConfig); err != nil {
+		log.Fatal(err)
+	}
+
+	if fbConfig.Firebase.APIKEY == "" {
+		log.Fatal("Firebase Config not loaded. Check base64 encoded ECOM_FIREBASE_PUBLIC_CONFIG.")
+	}
+
+	log.Infof("firebase apiKey set to %s", fbConfig.Firebase.APIKEY)
+	log.Infof("firebase projectID set to %s", fbConfig.Firebase.ProjectID)
 
 	// 4. Stripe Secret Key and Signing Key.
 	if stripeSecretKey == "" && stripeSigningSecret == "" {
@@ -353,7 +369,7 @@ func main() {
 	// Google Compute Engine attaches a persistent disk containing the necessary assets
 	// Assets include PostgreSQL .pem files, Google Firebase service account keys and
 	// TLS/SSL certificate files for HTTPS termination (see ECOM_APP_TLS_MODE=enable).
-	if fbCredentials[0] == '/' {
+	if fbCredentialsEnv[0] == '/' {
 		ex, err := exists(secretVolume)
 		if err != nil {
 			log.Fatalf("failed to determine if secret volume %s exists: %v", secretVolume, err)
@@ -491,10 +507,10 @@ func main() {
 
 	ctx := context.Background()
 	var opt option.ClientOption
-	if fbCredentials[0] == '/' {
-		opt = option.WithCredentialsFile(fbCredentials)
+	if fbCredentialsEnv[0] == '/' {
+		opt = option.WithCredentialsFile(fbCredentialsEnv)
 	} else {
-		decoded, err := base64.StdEncoding.DecodeString(fbCredentials)
+		decoded, err := base64.StdEncoding.DecodeString(fbCredentialsEnv)
 		if err != nil {
 			log.Fatalf("decode error: %v", err)
 		}
@@ -526,12 +542,9 @@ func main() {
 				PgSSLMode:  pgsslmode,
 			},
 			Goog: app.GoogSystemEnv{
-				GAEProjectID: gaeProjectID,
+				GAEProjectID: gaeProjectIDEnv,
 			},
-			Firebase: app.FirebaseSystemEnv{
-				ProjectID: fbProjectID,
-				WebAPIKey: fbWebAPIKey,
-			},
+			Firebase: fbConfig.Firebase,
 			App: app.ApplSystemEnv{
 				AppPort:      port,
 				AppRootEmail: rootEmail,
