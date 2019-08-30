@@ -13,7 +13,7 @@ import (
 func (app *App) GetProductsCategoriesHandler() http.HandlerFunc {
 	type productsCategoriesListResponse struct {
 		Object string                        `json:"object"`
-		Data   []*service.ProductsCategories `json:"products_categories"`
+		Data   []*service.ProductsCategories `json:"data"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

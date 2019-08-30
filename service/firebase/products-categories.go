@@ -51,6 +51,7 @@ type ProductsCategories struct {
 	ProductName  string    `json:"product_name"`
 	CategoryID   string    `json:"category_id"`
 	CategoryPath string    `json:"category_path"`
+	Pri          int       `json:"pri"`
 	Created      time.Time `json:"created"`
 	Modified     time.Time `json:"modified"`
 }
@@ -188,6 +189,7 @@ func (s *Service) GetProductsCategoriesList(ctx context.Context) ([]*ProductsCat
 			ProductName:  pc.ProductName,
 			CategoryID:   pc.CategoryUUID,
 			CategoryPath: pc.CategoryPath,
+			Pri:          pc.Pri,
 			Created:      pc.Created,
 			Modified:     pc.Modified,
 		}
@@ -230,6 +232,7 @@ func (s *Service) UpdateProductsCategories(ctx context.Context, cpcs []*CreatePr
 			ProductName:  l.ProductName,
 			CategoryID:   l.CategoryUUID,
 			CategoryPath: l.CategoryPath,
+			Pri:          l.Pri,
 			Created:      l.Created,
 			Modified:     l.Modified,
 		}
