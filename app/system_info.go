@@ -41,8 +41,13 @@ type GoogSystemEnv struct {
 
 // FirebaseSystemEnv contains the Firebase environment variables.
 type FirebaseSystemEnv struct {
-	ProjectID string `json:"ECOM_FIREBASE_PROJECT_ID"`
-	WebAPIKey string `json:"ECOM_FIREBASE_WEB_API_KEY"`
+	APIKEY            string `json:"apiKey"`
+	AuthDomain        string `json:"authDomain"`
+	DatabaseURL       string `json:"databaseURL"`
+	ProjectID         string `json:"projectId"`
+	StorageBucket     string `json:"storageBucket"`
+	MessagingSenderID string `json:"messagingSenderId"`
+	AppID             string `json:"appId"`
 }
 
 // ApplSystemEnv contains the application port and root email address.

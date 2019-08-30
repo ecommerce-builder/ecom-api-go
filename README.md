@@ -52,9 +52,8 @@ The Google configuration includes Firebase Auth and is mandatory since the API r
 | Env Var                         | Required | Default | Description |
 | -------------                   | -------- | ------- | ------------|
 | **`ECOM_GAE_PROJECT_ID`**       | Required |         | Set the value to the Google Project ID where the GAE App is running. For example, `open247-gae`. |
-| **`ECOM_FIREBASE_PROJECT_ID`**  | Required |         | Set the value to the Firebase Project ID. e.g. `ecom-test-bf262`. |
-| **`ECOM_FIREBASE_WEB_API_KEY`** | Required |         | Firebase Web API Key used to Authentication. For example, `AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc`. |
-| **`ECOM_FIREBASE_CREDENTIALS`** | Required |         | Use either the filepath of the Firebase Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
+| **`ECOM_FIREBASE_PUBLIC_CONFIG`**  | Required |         | base64 encoded string firebase config JSON string. |
+| **`ECOM_FIREBASE_PRIVATE_CREDENTIALS`** | Required |         | Use either the filepath of the Firebase Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
 
 #### <a name="env-stripe"></a>Stripe
 
@@ -85,7 +84,7 @@ The stripe settings are optional and only required if you are processing payment
 
 `ECOM_GOOGLE_PROJECT_ID` can be obtained from the Firebase Console. When you create a Firebase app, Google creates a Google Cloud project with the same project ID. The Firebase Auth is accessible via the Firebase control panel and is backed by a project of the same ID in the Google Cloud Console.
 
-`ECOM_GOOGLE_CREDENTIALS` is the service account key file found in the Google Cloud Console, or Firebase console under the service account keys section.
+`ECOM_FIREBASE_PRIVATE_CREDENTIALS` is the service account key file found in the Google Cloud Console, or Firebase console under the service account keys section.
 `ECOM_PG_PORT` should use a private IP if running on GKE or GCE.
 
 GAE sets `PORT` for each container it starts. Hard coding the port to 8080 causes an error message to appear in Stackdriver about nginx reverse proxy misconfiguration, resulting in poor performance.
@@ -116,7 +115,7 @@ secret-volume/
 ## <a name="deployment"></a>Deployment
 
 ### <a name="gce"></a>Google Compute Engine
-GAE offers free SSL endpoints and provides a proxy method to securely connect to Postgres, so there is no need to deploy the secret volume containing either the `secrets/tls` and `secrets/pg` directories. The `ecom-api` executable accepts the service account credentials as a Base64 encoded string passed using the `ECOM_GOOGLE_CREDENTIALS` so there is often no need to package the service credentials file. The app can be configured entirely using environment variables.
+GAE offers free SSL endpoints and provides a proxy method to securely connect to Postgres, so there is no need to deploy the secret volume containing either the `secrets/tls` and `secrets/pg` directories. The `ecom-api` executable accepts the service account credentials as a Base64 encoded string passed using the `ECOM_FIREBASE_PRIVATE_CREDENTIALS` so there is often no need to package the service credentials file. The app can be configured entirely using environment variables.
 
 See Google's documentation for [Deploying Containers on VMs and Managed Instance Groups](https://cloud.google.com/compute/docs/containers/deploying-containers).
 

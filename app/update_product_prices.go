@@ -71,7 +71,7 @@ func (a *App) UpdateProductPricesHandler() http.HandlerFunc {
 				})
 				return
 			}
-			contextLogger.Errorf("app: UpdateProductPrices(ctx, productID, priceListID, request) failed: %+v", productID, priceListID, request, err)
+			contextLogger.Errorf("app: UpdateProductPrices(ctx, productID=%q, priceListID=%q, request=%v) failed: %+v", productID, priceListID, request, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
