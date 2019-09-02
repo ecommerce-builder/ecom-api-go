@@ -21,7 +21,7 @@ type Price struct {
 	Object      string    `json:"object"`
 	ID          string    `json:"id"`
 	ProductID   string    `json:"product_id"`
-	PriceListID string    `json:"pricing_list_id"`
+	PriceListID string    `json:"price_list_id"`
 	Break       int       `json:"break"`
 	UnitPrice   int       `json:"unit_price"`
 	Created     time.Time `json:"created"`
@@ -155,7 +155,7 @@ func (s *Service) UpdateProductPrices(ctx context.Context, productID, priceListI
 		} else if err == postgres.ErrPriceListNotFound {
 			return nil, ErrPriceListNotFound
 		}
-		return nil, errors.Wrapf(err, "service: UpdatePrice(ctx, productID=%q, createPrices=%v) failed", productID, priceListID, createPrices)
+		return nil, errors.Wrapf(err, "service: UpdatePrice(ctx, productID=%q, priceListID=%q, createPrices=%v) failed", productID, priceListID, createPrices)
 	}
 
 	prices := make([]*Price, 0, len(plist))

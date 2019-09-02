@@ -50,17 +50,22 @@ type imageListContainer struct {
 	Data   []*Image `json:"data"`
 }
 
+type priceListContainer struct {
+	Object string   `json:"object"`
+	Data   []*Price `json:"data"`
+}
+
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	Object   string                 `json:"object"`
-	ID       string                 `json:"id"`
-	Path     string                 `json:"path"`
-	SKU      string                 `json:"sku"`
-	Name     string                 `json:"name"`
-	Images   *imageListContainer    `json:"images,omitempty"`
-	Prices   map[PriceListID]*Price `json:"prices,omitempty"`
-	Created  time.Time              `json:"created"`
-	Modified time.Time              `json:"modified"`
+	Object   string              `json:"object"`
+	ID       string              `json:"id"`
+	Path     string              `json:"path"`
+	SKU      string              `json:"sku"`
+	Name     string              `json:"name"`
+	Images   *imageListContainer `json:"images,omitempty"`
+	Prices   *priceListContainer `json:"prices,omitempty"`
+	Created  time.Time           `json:"created"`
+	Modified time.Time           `json:"modified"`
 }
 
 // ProductList is a container for a list of product_slim objects.
@@ -249,7 +254,7 @@ func (s *Service) ProductsExist(ctx context.Context, productIDs []string) (exist
 }
 
 // GetProduct gets a product given the SKU.
-func (s *Service) GetProduct(ctx context.Context, productID string, includeImages, includePrices bool) (*Product, error) {
+func (s *Service) GetProduct(ctx context.Context, userID, productID string, includeImages, includePrices bool) (*Product, error) {
 	contextLogger := log.WithContext(ctx)
 
 	p, err := s.model.GetProduct(ctx, productID)
@@ -274,9 +279,9 @@ func (s *Service) GetProduct(ctx context.Context, productID string, includeImage
 		Modified: p.Modified,
 	}
 
-	// optional: include the image sub-resource
+	// optional: include the images for this product
 	if includeImages {
-		contextLogger.Info("service: including the images sub-resource")
+		contextLogger.Info("service: including the images for this product")
 		images, err := s.GetImagesByProductID(ctx, p.UUID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", p.SKU)
@@ -288,6 +293,29 @@ func (s *Service) GetProduct(ctx context.Context, productID string, includeImage
 		}
 	}
 
+	// optional: include the prices for this product
+	if includePrices {
+		contextLogger.Info("service: including the prices for this product")
+
+		usrJoinRow, err := s.model.GetUserByUUID(ctx, userID)
+		if err != nil {
+			if err == postgres.ErrUserNotFound {
+				return nil, ErrUserNotFound
+			}
+			return nil, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userUUID=%q) failed", userID)
+		}
+
+		priceListID := usrJoinRow.PriceListUUID
+		prices, err := s.GetPrices(ctx, product.ID, priceListID)
+		if err != nil {
+			return nil, err
+		}
+
+		product.Prices = &priceListContainer{
+			Object: "list",
+			Data:   prices,
+		}
+	}
 	return &product, nil
 }
 

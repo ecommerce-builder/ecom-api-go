@@ -103,7 +103,8 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 			includePrices = true
 		}
 
-		product, err := a.Service.GetProduct(ctx, productID, includeImages, includePrices)
+		userID := ctx.Value("ecom_uid").(string)
+		product, err := a.Service.GetProduct(ctx, userID, productID, includeImages, includePrices)
 		if err != nil {
 			if err == service.ErrProductNotFound {
 				w.WriteHeader(http.StatusNotFound)
