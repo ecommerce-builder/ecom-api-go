@@ -14,16 +14,17 @@ var ErrImageNotFound = errors.New("image not found")
 
 // CreateImage struct contains the data required to store a new product image.
 type CreateImage struct {
-	W     int
-	H     int
-	Path  string
-	Typ   string
-	Ori   bool
-	Pri   int
-	Size  int
-	Q     int
-	GSURL string
-	Data  interface{}
+	ProductID string
+	W         int
+	H         int
+	Path      string
+	Typ       string
+	Ori       bool
+	Pri       int
+	Size      int
+	Q         int
+	GSURL     string
+	Data      interface{}
 }
 
 // ImageRow struct holds a row of the image table.
@@ -68,7 +69,7 @@ type ImageJoinRow struct {
 }
 
 // CreateImage writes a new image row to the image table.
-func (m *PgModel) CreateImage(ctx context.Context, productUUID string, c *CreateImage) (*ImageJoinRow, error) {
+func (m *PgModel) CreateImage(ctx context.Context, c *CreateImage) (*ImageJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "db.BeginTx")
@@ -76,7 +77,7 @@ func (m *PgModel) CreateImage(ctx context.Context, productUUID string, c *Create
 
 	q1 := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
-	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
+	err = tx.QueryRowContext(ctx, q1, c.ProductID).Scan(&productID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()

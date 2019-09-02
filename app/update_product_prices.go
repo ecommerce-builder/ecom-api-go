@@ -46,7 +46,19 @@ func (a *App) UpdateProductPricesHandler() http.HandlerFunc {
 
 		prices, err := a.Service.UpdateProductPrices(ctx, productID, priceListID, request.Data)
 		if err != nil {
-			if err == service.ErrPriceListNotFound {
+			if err == service.ErrProductNotFound {
+				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				json.NewEncoder(w).Encode(struct {
+					Status  int    `json:"status"`
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				}{
+					http.StatusNotFound,
+					ErrCodeProductNotFound,
+					"product not found",
+				})
+				return
+			} else if err == service.ErrPriceListNotFound {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				json.NewEncoder(w).Encode(struct {
 					Status  int    `json:"status"`
@@ -56,18 +68,6 @@ func (a *App) UpdateProductPricesHandler() http.HandlerFunc {
 					http.StatusNotFound,
 					ErrCodePriceListNotFound,
 					"price list not found",
-				})
-				return
-			} else if err == service.ErrProductSKUExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodePriceListCodeExists,
-					"price sku already exists",
 				})
 				return
 			}

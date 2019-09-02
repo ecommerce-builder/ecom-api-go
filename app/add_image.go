@@ -18,7 +18,7 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: AddImageHandler started")
+		contextLogger.Info("app: AddImageHandler started")
 
 		request := imageRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

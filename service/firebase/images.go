@@ -30,17 +30,18 @@ type Image struct {
 // CreateImage creates a new image for a product.
 func (s *Service) CreateImage(ctx context.Context, productID string, path string) (*Image, error) {
 	pc := postgres.CreateImage{
-		W:     99999999,
-		H:     99999999,
-		Path:  path,
-		GSURL: fmt.Sprintf("%s%s", "gs://", path),
-		Typ:   "image/jpeg",
-		Ori:   true,
-		Pri:   10,
-		Size:  0,
-		Q:     100,
+		ProductID: productID,
+		W:         99999999,
+		H:         99999999,
+		Path:      path,
+		GSURL:     fmt.Sprintf("%s%s", "gs://", path),
+		Typ:       "image/jpeg",
+		Ori:       true,
+		Pri:       10,
+		Size:      0,
+		Q:         100,
 	}
-	pi, err := s.model.CreateImage(ctx, productID, &pc)
+	pi, err := s.model.CreateImage(ctx, &pc)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound

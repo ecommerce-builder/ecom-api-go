@@ -296,7 +296,7 @@ func (m *PgModel) UpdatePrices(ctx context.Context, productUUID, priceListUUID s
 			return nil, errors.Wrapf(err, "postgres: row.Scan failed")
 		}
 		p.ProductUUID = productUUID
-		p.PriceListUUID = productUUID
+		p.PriceListUUID = priceListUUID
 		prices = append(prices, &p)
 	}
 
