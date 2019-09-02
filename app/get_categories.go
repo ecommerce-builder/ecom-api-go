@@ -29,7 +29,11 @@ func (a *App) GetCategoriesHandler() http.HandlerFunc {
 			return
 		}
 
+		list := listResponse{
+			Object: "list",
+			Data:   categories,
+		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(&categories)
+		json.NewEncoder(w).Encode(&list)
 	}
 }

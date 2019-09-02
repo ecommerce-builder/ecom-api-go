@@ -63,6 +63,7 @@ type CategoryNode struct {
 
 // Category represents a single entry from the nested set
 type Category struct {
+	Object   string `json:"object"`
 	ID       string `json:"id"`
 	Segment  string `json:"segment"`
 	Path     string `json:"path"`
@@ -398,6 +399,7 @@ func (s *Service) GetCategories(ctx context.Context) ([]*Category, error) {
 	categories := make([]*Category, 0, len(cats))
 	for _, c := range cats {
 		category := Category{
+			Object:   "category",
 			ID:       c.UUID,
 			Segment:  c.Segment,
 			Path:     c.Path,
