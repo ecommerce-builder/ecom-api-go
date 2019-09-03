@@ -13,6 +13,32 @@ type addressResponseBody struct {
 	*service.Address
 }
 
+func clientError(w http.ResponseWriter, statusCode int, code string, message string) {
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(struct {
+		Status  int    `json:"status"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}{
+		statusCode,
+		code,
+		message,
+	})
+}
+
+func serverError(w http.ResponseWriter, statusCode int, code string, message string) {
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(struct {
+		Status  int    `json:"status"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}{
+		statusCode,
+		code,
+		message,
+	})
+}
+
 // CreateAddressHandler creates an HTTP handler that creates a new user address record.
 func (a *App) CreateAddressHandler() http.HandlerFunc {
 	type requestBody struct {
@@ -40,16 +66,7 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 		request := requestBody{}
 		err := json.NewDecoder(r.Body).Decode(&request)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				err.Error(),
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 		defer r.Body.Close()
@@ -57,7 +74,7 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 		address, err := a.Service.CreateAddress(ctx, request.UserID, request.Typ, request.ContactName, request.Addr1, request.Addr2, request.City, request.County, request.Postcode, request.Country)
 		if err != nil {
 			contextLogger.Errorf("a.Service.CreateAddress(ctx, userID=%q, ...) failed with error: %v", request.UserID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			serverError(w, http.StatusInternalServerError, ErrCodeInternalServerError, "internal server error")
 			return
 		}
 

@@ -15,16 +15,18 @@ var ErrImageNotFound = errors.New("image not found")
 
 // Image represents a product image.
 type Image struct {
-	Object    string    `json:"object"`
-	ID        string    `json:"id"`
-	ProductID string    `json:"product_id"`
-	Path      string    `json:"path"`
-	GSURL     string    `json:"gsurl"`
-	Width     int       `json:"width"`
-	Height    int       `json:"height"`
-	Size      int       `json:"size"`
-	Created   time.Time `json:"created"`
-	Modified  time.Time `json:"modified"`
+	Object      string    `json:"object"`
+	ID          string    `json:"id"`
+	ProductID   string    `json:"product_id"`
+	ProductPath string    `json:"product_path"`
+	ProductSKU  string    `json:"product_sku"`
+	Path        string    `json:"path"`
+	GSURL       string    `json:"gsurl"`
+	Width       int       `json:"width"`
+	Height      int       `json:"height"`
+	Size        int       `json:"size"`
+	Created     time.Time `json:"created"`
+	Modified    time.Time `json:"modified"`
 }
 
 // CreateImage creates a new image for a product.
@@ -41,7 +43,7 @@ func (s *Service) CreateImage(ctx context.Context, productID string, path string
 		Size:      0,
 		Q:         100,
 	}
-	pi, err := s.model.CreateImage(ctx, &pc)
+	i, err := s.model.CreateImage(ctx, &pc)
 	if err != nil {
 		if err == postgres.ErrProductNotFound {
 			return nil, ErrProductNotFound
@@ -49,16 +51,18 @@ func (s *Service) CreateImage(ctx context.Context, productID string, path string
 		return nil, errors.Wrapf(err, "service: create image productID=%q, path=%q, entry failed", productID, path)
 	}
 	image := Image{
-		Object:    "image",
-		ID:        pi.UUID,
-		ProductID: pi.ProductUUID,
-		Path:      pi.Path,
-		GSURL:     pi.GSURL,
-		Width:     pi.W,
-		Height:    pi.H,
-		Size:      pi.Size,
-		Created:   pi.Created,
-		Modified:  pi.Modified,
+		Object:      "image",
+		ID:          i.UUID,
+		ProductID:   i.ProductUUID,
+		ProductPath: i.ProductPath,
+		ProductSKU:  i.ProductSKU,
+		Path:        i.Path,
+		GSURL:       i.GSURL,
+		Width:       i.W,
+		Height:      i.H,
+		Size:        i.Size,
+		Created:     i.Created,
+		Modified:    i.Modified,
 	}
 	return &image, nil
 }
@@ -87,7 +91,7 @@ func (s *Service) ImagePathExists(ctx context.Context, path string) (bool, error
 
 // GetImage returns an image by the given ID.
 func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) {
-	pi, err := s.model.GetProductImage(ctx, imageID)
+	i, err := s.model.GetProductImage(ctx, imageID)
 	if err != nil {
 		if err == postgres.ErrImageNotFound {
 			return nil, ErrImageNotFound
@@ -95,16 +99,17 @@ func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) 
 		return nil, errors.Wrapf(err, "service: GetProductImage(ctx, imageID=%q) failed", imageID)
 	}
 	image := Image{
-		Object:    "image",
-		ID:        pi.UUID,
-		ProductID: pi.ProductUUID,
-		Path:      pi.Path,
-		GSURL:     pi.GSURL,
-		Width:     pi.W,
-		Height:    pi.H,
-		Size:      pi.Size,
-		Created:   pi.Created,
-		Modified:  pi.Modified,
+		Object:     "image",
+		ID:          i.UUID,
+		ProductID:   i.ProductUUID,
+		ProductPath: i.ProductPath,
+		Path:        i.Path,
+		GSURL:       i.GSURL,
+		Width:       i.W,
+		Height:      i.H,
+		Size:        i.Size,
+		Created:     i.Created,
+		Modified:    i.Modified,
 	}
 	return &image, nil
 }
@@ -120,18 +125,20 @@ func (s *Service) GetImagesByProductID(ctx context.Context, productID string) ([
 	}
 
 	images := make([]*Image, 0, 8)
-	for _, pi := range pilist {
+	for _, i := range pilist {
 		image := Image{
-			Object:    "image",
-			ID:        pi.UUID,
-			ProductID: pi.ProductUUID,
-			Path:      pi.Path,
-			GSURL:     pi.GSURL,
-			Width:     pi.W,
-			Height:    pi.H,
-			Size:      pi.Size,
-			Created:   pi.Created,
-			Modified:  pi.Modified,
+			Object:      "image",
+			ID:          i.UUID,
+			ProductID:   i.ProductUUID,
+			ProductPath: i.ProductPath,
+			ProductSKU:  i.ProductSKU,
+			Path:        i.Path,
+			GSURL:       i.GSURL,
+			Width:       i.W,
+			Height:      i.H,
+			Size:        i.Size,
+			Created:     i.Created,
+			Modified:    i.Modified,
 		}
 		images = append(images, &image)
 	}

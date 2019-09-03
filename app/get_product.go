@@ -56,7 +56,7 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetProductHandler called")
+		contextLogger.Info("app: GetProductHandler called")
 
 		productID := chi.URLParam(r, "id")
 		include := r.URL.Query().Get("include")
@@ -107,8 +107,10 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 		product, err := a.Service.GetProduct(ctx, userID, productID, includeImages, includePrices)
 		if err != nil {
 			if err == service.ErrProductNotFound {
-				w.WriteHeader(http.StatusNotFound)
+				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
 				return
+			} else if err == service.ErrDefaultPriceListNotFound {
+
 			}
 			contextLogger.Errorf("app: GetProduct(ctx, productID=%q) error: %+v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

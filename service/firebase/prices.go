@@ -18,14 +18,17 @@ type PriceListID string
 
 // Price contains pricing information for a single product and price list.
 type Price struct {
-	Object      string    `json:"object"`
-	ID          string    `json:"id"`
-	ProductID   string    `json:"product_id"`
-	PriceListID string    `json:"price_list_id"`
-	Break       int       `json:"break"`
-	UnitPrice   int       `json:"unit_price"`
-	Created     time.Time `json:"created"`
-	Modified    time.Time `json:"modified"`
+	Object        string    `json:"object"`
+	ID            string    `json:"id"`
+	ProductID     string    `json:"product_id"`
+	ProductPath   string    `json:"product_path"`
+	ProductSKU    string    `json:"product_sku"`
+	PriceListID   string    `json:"price_list_id"`
+	PriceListCode string    `json:"price_list_code"`
+	Break         int       `json:"break"`
+	UnitPrice     int       `json:"unit_price"`
+	Created       time.Time `json:"created"`
+	Modified      time.Time `json:"modified"`
 }
 
 // PriceRequest represents a single price
@@ -48,15 +51,18 @@ func (s *Service) GetPricesByProductIDAndPriceListID(ctx context.Context, produc
 	if err != nil {
 		return nil, errors.Wrap(err, "GetProductPricingBySKUAndTier failed")
 	}
-	pricing := Price{
-		Object:      "price",
-		ProductID:   p.ProductUUID,
-		PriceListID: p.PriceListUUID,
-		UnitPrice:   p.UnitPrice,
-		Created:     p.Created,
-		Modified:    p.Modified,
+	prices := Price{
+		Object:        "price",
+		ProductID:     p.ProductUUID,
+		ProductPath:   p.ProductPath,
+		ProductSKU:    p.ProductSKU,
+		PriceListID:   p.PriceListUUID,
+		PriceListCode: p.PriceListCode,
+		UnitPrice:     p.UnitPrice,
+		Created:       p.Created,
+		Modified:      p.Modified,
 	}
-	return &pricing, nil
+	return &prices, nil
 }
 
 // ProductTierPricing contains pricing information for all tiers of
@@ -98,14 +104,17 @@ func (s *Service) GetPrices(ctx context.Context, productID, priceListID string) 
 	prices := make([]*Price, 0, len(plist))
 	for _, p := range plist {
 		price := Price{
-			Object:      "price",
-			ID:          p.UUID,
-			ProductID:   p.ProductUUID,
-			PriceListID: p.PriceListUUID,
-			Break:       p.Break,
-			UnitPrice:   p.UnitPrice,
-			Created:     p.Created,
-			Modified:    p.Modified,
+			Object:        "price",
+			ID:            p.UUID,
+			ProductID:     p.ProductUUID,
+			ProductPath:   p.ProductPath,
+			ProductSKU:    p.ProductSKU,
+			PriceListID:   p.PriceListUUID,
+			PriceListCode: p.PriceListCode,
+			Break:         p.Break,
+			UnitPrice:     p.UnitPrice,
+			Created:       p.Created,
+			Modified:      p.Modified,
 		}
 		prices = append(prices, &price)
 	}
@@ -161,14 +170,17 @@ func (s *Service) UpdateProductPrices(ctx context.Context, productID, priceListI
 	prices := make([]*Price, 0, len(plist))
 	for _, p := range plist {
 		price := Price{
-			Object:      "price",
-			ID:          p.UUID,
-			ProductID:   p.ProductUUID,
-			PriceListID: p.PriceListUUID,
-			Break:       p.Break,
-			UnitPrice:   p.UnitPrice,
-			Created:     p.Created,
-			Modified:    p.Modified,
+			Object:        "price",
+			ID:            p.UUID,
+			ProductID:     p.ProductUUID,
+			ProductPath:   p.ProductPath,
+			ProductSKU:    p.ProductSKU,
+			PriceListID:   p.PriceListUUID,
+			PriceListCode: p.PriceListCode,
+			Break:         p.Break,
+			UnitPrice:     p.UnitPrice,
+			Created:       p.Created,
+			Modified:      p.Modified,
 		}
 		prices = append(prices, &price)
 	}

@@ -21,20 +21,9 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 		token, ok := r.Header["Authorization"]
 		if !ok {
 			contextLogger.Debug("authorization header missing")
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+
 			w.Header().Set("WWW-Authenticate", "Bearer")
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
-			w.Header().Set("WWW-Authenticate", "Bearer")
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusUnauthorized,
-				ErrCodeAuthenticationFailed,
-				"request unauthorized - check token expiration",
-			})
+			clientError(w, http.StatusUnauthorized, ErrCodeAuthenticationFailed, "authentication failed - check token expiration")
 			return
 		}
 

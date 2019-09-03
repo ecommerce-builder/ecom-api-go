@@ -13,7 +13,7 @@ func (a *App) GetTierPricingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetTierPricingHandler called")
+		contextLogger.Info("app: GetTierPricingHandler called")
 
 		// productID := chi.URLParam(r, "id")
 		// ref := ""

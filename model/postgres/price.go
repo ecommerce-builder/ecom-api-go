@@ -31,7 +31,8 @@ type PriceJoinRow struct {
 	UUID          string
 	productID     int
 	ProductUUID   string
-	SKU           string
+	ProductPath   string
+	ProductSKU    string
 	priceListID   int
 	PriceListUUID string
 	PriceListCode string
@@ -51,7 +52,7 @@ type CreatePrice struct {
 func (m *PgModel) GetPricesByPriceList(ctx context.Context, productUUID, priceListUUID string) (*PriceJoinRow, error) {
 	query := `
 		SELECT
-		  r.id, r.uuid, p.id, p.uuid AS product_uuid, p.sku, price_list_id,
+		  r.id, r.uuid, p.id, p.uuid AS product_uuid, p.path, p.sku, price_list_id,
 		  t.uuid AS price_list_uuid, t.code, unit_price, r.created, r.modified
                 FROM
                   price r
@@ -63,7 +64,7 @@ func (m *PgModel) GetPricesByPriceList(ctx context.Context, productUUID, priceLi
                   p.uuid = $1 AND t.uuid = $2;
 	`
 	p := PriceJoinRow{}
-	if err := m.db.QueryRowContext(ctx, query, productUUID, priceListUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.SKU, &p.priceListID, &p.PriceListUUID, &p.PriceListCode, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+	if err := m.db.QueryRowContext(ctx, query, productUUID, priceListUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.ProductPath, &p.ProductSKU, &p.priceListID, &p.PriceListUUID, &p.PriceListCode, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrPriceNotFound
 		}
@@ -111,7 +112,7 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 
 	q3 := `
 		SELECT
-		  r.id, r.uuid AS uuid, p.id AS product_id, p.uuid as product_uuid, p.sku,
+		  r.id, r.uuid AS uuid, p.id AS product_id, p.uuid as product_uuid, p.path, p.sku,
 		  t.id as price_list_id, t.uuid as price_list_uuid, t.code,
 		  r.unit_price, r.break, r.created, r.modified
 		FROM product AS p
@@ -154,7 +155,7 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 	prices := make([]*PriceJoinRow, 0, 8)
 	for rows.Next() {
 		var p PriceJoinRow
-		if err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.SKU,
+		if err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.ProductPath, &p.ProductSKU,
 			&p.priceListID, &p.PriceListUUID, &p.PriceListCode,
 			&p.UnitPrice, &p.Break, &p.Created, &p.Modified); err != nil {
 			if err == sql.ErrNoRows {
@@ -239,9 +240,11 @@ func (m *PgModel) UpdatePrices(ctx context.Context, productUUID, priceListUUID s
 	}
 
 	// 1. Check the product exists
-	q1 := "SELECT id FROM product WHERE uuid = $1"
+	q1 := "SELECT id, path, sku FROM product WHERE uuid = $1"
 	var productID int
-	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
+	var productPath string
+	var productSKU string
+	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID, &productPath, &productSKU)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
@@ -252,9 +255,10 @@ func (m *PgModel) UpdatePrices(ctx context.Context, productUUID, priceListUUID s
 	}
 
 	// 2. Check the product list exists
-	q2 := "SELECT id FROM price_list WHERE uuid = $1"
+	q2 := "SELECT id, code FROM price_list WHERE uuid = $1"
 	var priceListID int
-	err = tx.QueryRowContext(ctx, q2, priceListUUID).Scan(&priceListID)
+	var priceListCode string
+	err = tx.QueryRowContext(ctx, q2, priceListUUID).Scan(&priceListID, &priceListCode)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
@@ -296,7 +300,10 @@ func (m *PgModel) UpdatePrices(ctx context.Context, productUUID, priceListUUID s
 			return nil, errors.Wrapf(err, "postgres: row.Scan failed")
 		}
 		p.ProductUUID = productUUID
+		p.ProductPath = productPath
+		p.ProductSKU = productSKU
 		p.PriceListUUID = priceListUUID
+		p.PriceListCode = priceListCode
 		prices = append(prices, &p)
 	}
 

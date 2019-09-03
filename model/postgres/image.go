@@ -53,6 +53,8 @@ type ImageJoinRow struct {
 	UUID        string
 	productID   int
 	ProductUUID string
+	ProductPath string
+	ProductSKU  string
 	W           int
 	H           int
 	Path        string
@@ -72,19 +74,21 @@ type ImageJoinRow struct {
 func (m *PgModel) CreateImage(ctx context.Context, c *CreateImage) (*ImageJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "db.BeginTx")
+		return nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
-	q1 := "SELECT id FROM product WHERE uuid = $1"
+	q1 := "SELECT id, path, sku FROM product WHERE uuid = $1"
 	var productID int
-	err = tx.QueryRowContext(ctx, q1, c.ProductID).Scan(&productID)
+	var productPath string
+	var productSKU string
+	err = tx.QueryRowContext(ctx, q1, c.ProductID).Scan(&productID, &productPath, &productSKU)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
 			return nil, ErrProductNotFound
 		}
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "query row context failed for q1=%q", q1)
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
 	q2 := `
@@ -101,7 +105,7 @@ func (m *PgModel) CreateImage(ctx context.Context, c *CreateImage) (*ImageJoinRo
 			$7, $8, $9,
 			$10, NOW(), NOW()
 		) RETURNING
-			id, uuid, product_id, (SELECT uuid FROM product WHERE id = $11), w, h, path, typ, ori, up, pri, size, q,
+			id, uuid, product_id, w, h, path, typ, ori, up, pri, size, q,
 			gsurl, data, created, modified
 	`
 	p := ImageJoinRow{}
@@ -109,14 +113,17 @@ func (m *PgModel) CreateImage(ctx context.Context, c *CreateImage) (*ImageJoinRo
 		c.W, c.H, c.Path, c.Typ,
 		c.Ori,
 		c.Pri, c.Size, c.Q,
-		c.GSURL, productID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		c.GSURL, productID).Scan(&p.id, &p.UUID, &p.productID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+	p.ProductUUID = c.ProductID
+	p.ProductPath = productPath
+	p.ProductSKU = productSKU
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "tx.Commit")
+		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return &p, nil
 }
@@ -128,7 +135,7 @@ func (m *PgModel) GetImagesByProductUUID(ctx context.Context, productUUID string
 		return nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
-	q1 := "SELECT id FROM product WHERE uuid = $1"
+	q1 := "SELECT id  FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
 	if err != nil {
@@ -142,7 +149,8 @@ func (m *PgModel) GetImagesByProductUUID(ctx context.Context, productUUID string
 
 	q2 := `
 		SELECT
-		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up, pri, size, q,
+		  i.id, i.uuid, product_id, p.uuid as product_uuid, p.path as product_path, p.sku as product_sku,
+		  w, h, i.path, typ, ori, up, pri, size, q,
 		  gsurl, data, i.created, i.modified
 		FROM image AS i
 		INNER JOIN product AS p
@@ -159,7 +167,9 @@ func (m *PgModel) GetImagesByProductUUID(ctx context.Context, productUUID string
 	images := make([]*ImageJoinRow, 0, 4)
 	for rows.Next() {
 		i := ImageJoinRow{}
-		err = rows.Scan(&i.id, &i.UUID, &i.productID, &i.ProductUUID, &i.W, &i.H, &i.Path, &i.Typ, &i.Ori, &i.Up, &i.Pri, &i.Size, &i.Q, &i.GSURL, &i.Data, &i.Created, &i.Modified)
+		err = rows.Scan(&i.id, &i.UUID, &i.productID, &i.ProductUUID, &i.ProductPath, &i.ProductSKU,
+			&i.W, &i.H, &i.Path, &i.Typ, &i.Ori, &i.Up, &i.Pri, &i.Size, &i.Q,
+			&i.GSURL, &i.Data, &i.Created, &i.Modified)
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +233,8 @@ func (m *PgModel) ImagePathExists(ctx context.Context, path string) (bool, error
 func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*ImageJoinRow, error) {
 	query := `
 		SELECT
-		  i.id, i.uuid, product_id, p.uuid as product_uuid, w, h, i.path, typ, ori, up,
+		  i.id, i.uuid, product_id, p.uuid as product_uuid, p.path as product_path, p.sku as product_sku,
+		  w, h, i.path, typ, ori, up,
 		  pri, size, q, gsurl, data, i.created, i.modified
 		FROM image AS i
 		INNER JOIN product AS p
@@ -231,9 +242,9 @@ func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*Image
 		WHERE i.uuid = $1
 	`
 	p := ImageJoinRow{}
-	if err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.UUID, &p.productID,
-		&p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size,
-		&p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
+	if err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductPath, &p.ProductSKU,
+		&p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up,
+		&p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrImageNotFound
 		}
@@ -311,7 +322,7 @@ func (m *PgModel) DeleteImage(ctx context.Context, imageUUID string) error {
 func (m *PgModel) DeleteAllProductImages(ctx context.Context, productUUID string) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, "db.BeginTx")
+		return errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
 	q1 := `SELECT id FROM product WHERE uuid = $1`
@@ -323,7 +334,7 @@ func (m *PgModel) DeleteAllProductImages(ctx context.Context, productUUID string
 			return ErrProductNotFound
 		}
 		tx.Rollback()
-		return errors.Wrapf(err, "query row context failed for query=%q", q1)
+		return errors.Wrapf(err, "postgres: query row context failed for query=%q", q1)
 	}
 
 	q2 := `
@@ -337,7 +348,7 @@ func (m *PgModel) DeleteAllProductImages(ctx context.Context, productUUID string
 	}
 
 	if err = tx.Commit(); err != nil {
-		return errors.Wrap(err, "tx.Commit")
+		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil
 }
