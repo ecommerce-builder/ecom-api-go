@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS image (
   pri         INTEGER NOT NULL CHECK (pri > 0),
   size        INTEGER NOT NULL CHECK (size >= 0),
   q           INTEGER NOT NULL CHECK (q BETWEEN 1 AND 100),
-  gsurl       VARCHAR(4096) NOT NULL UNIQUE,
+  gsurl       VARCHAR(4096) NOT NULL,
   data        JSONB,
   created     TIMESTAMP NOT NULL DEFAULT NOW(),
   modified    TIMESTAMP NOT NULL DEFAULT NOW(),
