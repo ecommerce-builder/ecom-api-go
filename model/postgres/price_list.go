@@ -90,6 +90,21 @@ func (m *PgModel) GetPriceList(ctx context.Context, priceListUUID string) (*Pric
 	return &p, nil
 }
 
+// GetDefaultPriceListUUID returns the price list id for the default price list
+// or an empty string and an error if not found.
+func (m *PgModel) GetDefaultPriceListUUID(ctx context.Context) (string, error) {
+	q1 := "SELECT uuid FROM price_list WHERE code = $1"
+	var priceListID string
+	row := m.db.QueryRowContext(ctx, q1, "default")
+	if err := row.Scan(&priceListID); err != nil {
+		if err == sql.ErrNoRows {
+			return "", ErrDefaultPriceListNotFound
+		}
+		return "", errors.Wrapf(err, "scan failed q1=%q", q1)
+	}
+	return priceListID, nil
+}
+
 // GetPriceLists returns a list of price lists.
 func (m *PgModel) GetPriceLists(ctx context.Context) ([]*PriceListRow, error) {
 	q1 := `

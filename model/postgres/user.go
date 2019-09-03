@@ -13,7 +13,7 @@ import (
 // could not be found in the database.
 var ErrUserNotFound = errors.New("model: user not found")
 
-// UserRow holds details of a single row from the usr table.
+// UsrRow holds details of a single row from the usr table.
 type UsrRow struct {
 	id          int
 	UUID        string

@@ -297,15 +297,27 @@ func (s *Service) GetProduct(ctx context.Context, userID, productID string, incl
 	if includePrices {
 		contextLogger.Info("service: including the prices for this product")
 
-		usrJoinRow, err := s.model.GetUserByUUID(ctx, userID)
-		if err != nil {
-			if err == postgres.ErrUserNotFound {
-				return nil, ErrUserNotFound
+		var priceListID string
+		if userID == "" {
+			// The user is signed in anonymously to use the default price
+			priceListID, err = s.model.GetDefaultPriceListUUID(ctx)
+			if err != nil {
+				if err == postgres.ErrDefaultPriceListNotFound {
+					return nil, ErrDefaultPriceListNotFound
+				}
 			}
-			return nil, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userUUID=%q) failed", userID)
+		} else {
+			// Look up the user to determine their price list id
+			usrJoinRow, err := s.model.GetUserByUUID(ctx, userID)
+			if err != nil {
+				if err == postgres.ErrUserNotFound {
+					return nil, ErrUserNotFound
+				}
+				return nil, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userUUID=%q) failed", userID)
+			}
+			priceListID = usrJoinRow.PriceListUUID
 		}
 
-		priceListID := usrJoinRow.PriceListUUID
 		prices, err := s.GetPrices(ctx, product.ID, priceListID)
 		if err != nil {
 			return nil, err
