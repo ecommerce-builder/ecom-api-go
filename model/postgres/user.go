@@ -61,6 +61,7 @@ type PaginationQuery struct {
 	OrderDir   string
 	Limit      int
 	StartAfter string
+	EndBefore  string
 }
 
 // CreateUser creates a new user
@@ -85,18 +86,31 @@ func (m *PgModel) CreateUser(ctx context.Context, uid, role, email, firstname, l
 
 // GetUsers gets the next size user starting at page page
 func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
+	fmt.Printf("%+v\n", pq)
 	q := NewQuery("usr", map[string]bool{
-		"id":        true,
-		"uuid":      false,
-		"uid":       false,
-		"role":      true,
-		"email":     true,
-		"firstname": true,
-		"lastname":  true,
-		"created":   true,
-		"modified":  true,
+		"id":            true,
+		"uuid":          false,
+		"uid":           false,
+		"price_list_id": false,
+		"role":          true,
+		"email":         true,
+		"firstname":     true,
+		"lastname":      true,
+		"created":       true,
+		"modified":      true,
 	})
-	q = q.Select([]string{"id", "uuid", "uid", "role", "email", "firstname", "lastname", "created", "modified"})
+	q = q.Select([]string{
+		"id",
+		"uuid",
+		"uid",
+		"price_list_id",
+		"role",
+		"email",
+		"firstname",
+		"lastname",
+		"created",
+		"modified",
+	})
 
 	// if not set, default Order By, Order Direction and Limit is "created DESC LIMIT 10"
 	if pq.OrderBy != "" {
@@ -109,21 +123,18 @@ func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 	} else {
 		q = q.OrderDir("DESC")
 	}
-	if pq.Limit > 0 {
-		q = q.Limit(pq.Limit)
-	} else {
-		q = q.Limit(10)
-	}
+	q = q.Limit(pq.Limit)
+
 	if pq.StartAfter != "" {
 		q = q.StartAfter(pq.StartAfter)
+	}
+	if pq.EndBefore != "" {
+		q = q.EndBefore(pq.EndBefore)
 	}
 
 	// calculate the total count, first and last items in the result set
 	pr := PaginationResultSet{}
-	sql := `
-		SELECT COUNT(*) AS count
-		FROM %s
-	`
+	sql := "SELECT COUNT(*) AS count FROM %s"
 	sql = fmt.Sprintf(sql, q.table)
 	err := m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.Total)
 	if err != nil {
@@ -131,29 +142,20 @@ func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 	}
 
 	// book mark either end of the result set
-	sql = `
-		SELECT uuid
-		FROM %s
-		ORDER BY %s %s, id %s
-		FETCH FIRST 1 ROW ONLY
-	`
+	sql = "SELECT uuid FROM %s ORDER BY %s %s, id %s FETCH FIRST 1 ROW ONLY"
 	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir), string(q.orderDir))
 	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.FirstUUID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context query=%q", sql)
 	}
-	sql = `
-		SELECT uuid
-		FROM %s
-		ORDER BY %s %s, id %s
-		FETCH FIRST 1 ROW ONLY
-	`
+	sql = "SELECT uuid FROM %s ORDER BY %s %s, id %s FETCH FIRST 1 ROW ONLY"
 	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir.toggle()), string(q.orderDir.toggle()))
 	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.LastUUID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context query=%q", sql)
 	}
 
+	fmt.Printf("%#+v\n", q)
 	rows, err := m.QueryContextQ(ctx, q)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: model query context q=%v", q)
@@ -163,7 +165,7 @@ func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 	usrs := make([]*UsrRow, 0)
 	for rows.Next() {
 		var u UsrRow
-		if err = rows.Scan(&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
+		if err = rows.Scan(&u.id, &u.UUID, &u.UID, &u.priceListID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
 			return nil, errors.Wrapf(err, "postgres: rows scan User=%v", u)
 		}
 		usrs = append(usrs, &u)

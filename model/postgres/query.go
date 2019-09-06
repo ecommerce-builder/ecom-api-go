@@ -20,6 +20,7 @@ type Query struct {
 	orderDir   OrderDirection
 	limit      int
 	startAfter string
+	endBefore  string
 	err        error
 }
 
@@ -40,6 +41,7 @@ func NewQuery(table string, sf map[string]bool) *Query {
 		orderDir:   OrderDirection("ASC"),
 		limit:      0,
 		startAfter: "",
+		endBefore:  "",
 		err:        nil,
 	}
 }
@@ -110,6 +112,22 @@ func (q *Query) StartAfter(s string) *Query {
 		orderDir:   q.orderDir,
 		limit:      q.limit,
 		startAfter: s,
+		endBefore:  "",
+		err:        q.err,
+	}
+}
+
+// EndBefore indicates the UUID of the row to return the previous page of results.
+func (q *Query) EndBefore(s string) *Query {
+	return &Query{
+		table:      q.table,
+		sfields:    q.sfields,
+		sel:        q.sel,
+		orderBy:    q.orderBy,
+		orderDir:   q.orderDir,
+		limit:      q.limit,
+		startAfter: "",
+		endBefore:  s,
 		err:        q.err,
 	}
 }
@@ -117,6 +135,9 @@ func (q *Query) StartAfter(s string) *Query {
 // QueryContextQ builds an SQL statement based on the given Query q and
 // returns make a call to sql.QueryContext returning a *sql.Rows.
 func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error) {
+
+	fmt.Printf("%#v\n", q)
+
 	for _, v := range q.sel {
 		_, ok := q.sfields[v]
 		if !ok {
@@ -136,14 +157,15 @@ func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error
 		q.sel = append(q.sel, "*")
 	}
 
-	if q.startAfter == "" {
+	if q.startAfter == "" && q.endBefore == "" {
 		var sql string
 		sel := `SELECT %s FROM %s ORDER BY %s %s, id %s`
 		sel = fmt.Sprintf(sel, strings.Join(q.sel, ", "), q.table, q.orderBy, q.orderDir, q.orderDir)
+		var lmt string
 		if q.limit > 0 {
-			lmt := fmt.Sprintf(" FETCH FIRST %d ROWS ONLY", q.limit)
-			sql = sel + lmt
+			lmt = fmt.Sprintf(" FETCH FIRST %d ROWS ONLY", q.limit)
 		}
+		sql = sel + lmt
 
 		rows, err := m.db.QueryContext(ctx, sql)
 		if err != nil {
@@ -154,11 +176,22 @@ func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error
 
 	// Assume startAfter only
 	var comparitor string
-	if q.orderDir == "ASC" {
-		comparitor = ">"
-	} else {
+	var uuid string
+	if q.startAfter != "" {
 		comparitor = "<"
+		uuid = q.startAfter
+	} else {
+		// q.endBefore must be set
+		comparitor = ">"
+		uuid = q.endBefore
+		q.orderDir = q.orderDir.toggle()
 	}
+
+	// if q.orderDir == "ASC" {
+	// 	comparitor = ">"
+	// } else {
+	// 	comparitor = "<"
+	// }
 
 	sql := `
 		SELECT %s FROM %s
@@ -175,9 +208,14 @@ func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error
 		q.orderBy,
 		q.orderBy, q.orderDir, q.orderDir,
 		q.limit)
-	rows, err := m.db.QueryContext(ctx, sql, q.startAfter)
+	rows, err := m.db.QueryContext(ctx, sql, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("QueryContext with %q: %v", sql, err)
 	}
+
+	if q.endBefore != "" {
+		// reverse the rows
+	}
+
 	return rows, err
 }

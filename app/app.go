@@ -48,6 +48,10 @@ const (
 	// ErrCodeProductNotFound indicates the product with given SKU could not be found.
 	ErrCodeProductNotFound string = "products/product-not-found"
 
+	// ErrCodeProductHasNoPrices occurs when attempting to perform an operation
+	// that requires a product's price.
+	ErrCodeProductHasNoPrices string = "products/product-has-no-prices"
+
 	// ErrCodeProductCategoryExists indicates the product to category assocation has
 	// already been made.
 	ErrCodeProductCategoryExists string = "product-category/product-category-exists"

@@ -8,7 +8,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func validateProductCreateRequestBody(pc *service.ProductCreateRequestBody) (bool, string) {
+func validateProductCreateRequestBody(request *service.ProductCreateRequestBody) (bool, string) {
+	if request.Path == "" {
+		return false, "path attribute not set"
+	}
+
+	if request.SKU == "" {
+		return false, "sku attribute not set"
+	}
+
+	if request.Name == "" {
+		return false, "name attribute not set"
+	}
+
 	return true, ""
 }
 
@@ -19,65 +31,29 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: CreateProductHandler called")
 
-		pc := service.ProductCreateRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&pc); err != nil {
-			http.Error(w, err.Error(), 400)
+		request := service.ProductCreateRequestBody{}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 		defer r.Body.Close()
 
-		valid, message := validateProductCreateRequestBody(&pc)
+		valid, message := validateProductCreateRequestBody(&request)
 		if !valid {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				message,
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
 			return
 		}
 
-		product, err := a.Service.CreateProduct(ctx, &pc)
+		product, err := a.Service.CreateProduct(ctx, &request)
 		if err != nil {
 			if err == service.ErrPriceListNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodePriceListNotFound,
-					"price list could not be found",
-				})
+				clientError(w, http.StatusConflict, ErrCodePriceListNotFound, "price list could not be found")
 				return
 			} else if err == service.ErrProductPathExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeProductPathExists,
-					"product path already exists",
-				})
+				clientError(w, http.StatusConflict, ErrCodeProductPathExists, "product path already exists")
 				return
 			} else if err == service.ErrProductSKUExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeProductSKUExists,
-					"product SKU already exists",
-				})
+				clientError(w, http.StatusConflict, ErrCodeProductSKUExists, "product sku already exists")
 				return
 			}
 			contextLogger.Errorf("create product failed: %+v", err)

@@ -16,8 +16,17 @@ type addProductToCartRequestBody struct {
 
 func validateAddProductRequestBody(request *addProductToCartRequestBody) (bool, string) {
 	if request.Qty < 1 {
-		return false, "qty must be set to at least 1"
+		return false, "qty attribute must be set to at least 1"
 	}
+
+	if request.CartID == "" {
+		return false, "product_id attribute must be set"
+	}
+
+	if request.ProductID == "" {
+		return false, "product_id attribute must be set"
+	}
+
 	return true, ""
 }
 
@@ -66,48 +75,29 @@ func (a *App) AddProductToCartHandler() http.HandlerFunc {
 				w.WriteHeader(http.StatusNotFound) // 404 Not Found
 				return
 			} else if err == service.ErrUserNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeUserNotFound,
-					"The userID inside the JWT did not match any user in the system",
-				})
+				// 409 Conflict
+				clientError(w, http.StatusConflict, ErrCodeUserNotFound, "The userID inside the JWT did not match any user in the system")
 				return
 			} else if err == service.ErrProductNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeProductNotFound,
-					"failed to add product with given id to the cart as the product cannot be found",
-				})
+				// 409 Conflict
+				clientError(w, http.StatusConflict, ErrCodeProductNotFound, "failed to add product with given id to the cart as the product cannot be found")
 				return
 			} else if err == service.ErrDefaultPriceListNotFound {
+				// 500 Internal Server Error
 				contextLogger.Error("ErrDefaultPriceListNotFound")
-				w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+				w.WriteHeader(http.StatusInternalServerError)
 				return
 			} else if err == service.ErrCartProductExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeCartProductExists,
-					"cart product already in the cart",
-				})
+				// 409 Conflict
+				clientError(w, http.StatusConflict, ErrCodeCartProductExists, "cart product already in the cart")
+				return
+			} else if err == service.ErrProductHasNoPrices {
+				// 409 Conflict
+				clientError(w, http.StatusConflict, ErrCodeProductHasNoPrices, "can not add to cart as the product prices have not been set")
 				return
 			}
 
-			contextLogger.Errorf("service AddProductToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %v", request.CartID, request.ProductID, request.Qty, err)
+			contextLogger.Errorf("service AddProductToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %+v", request.CartID, request.ProductID, request.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

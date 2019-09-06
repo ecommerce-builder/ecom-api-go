@@ -22,6 +22,9 @@ var (
 
 	// ErrCartContainsNoProducts occurs when attempting to delete all items.
 	ErrCartContainsNoProducts = errors.New("cart contains no products")
+
+	// ErrProductHasNoPrices error
+	ErrProductHasNoPrices = errors.New("service: product has no prices")
 )
 
 // Cart holds the details of a shopping cart.
@@ -78,6 +81,8 @@ func (s *Service) AddProductToCart(ctx context.Context, userID, cartID, productI
 			return nil, ErrDefaultPriceListNotFound
 		} else if err == postgres.ErrCartProductExists {
 			return nil, ErrCartProductExists
+		} else if err == postgres.ErrProductHasNoPrices {
+			return nil, ErrProductHasNoPrices
 		}
 		return nil, errors.Wrapf(err, "s.model.AddProductToCart(ctx, cartID=%q, %q, productID=%q, qty=%d) failed: ", cartID, "default", productID, qty)
 	}

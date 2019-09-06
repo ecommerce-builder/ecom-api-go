@@ -14,13 +14,16 @@ var (
 
 	// ErrCartProductExists occurs when trying to add an product
 	// that already exists.
-	ErrCartProductExists = errors.New("cart already exists")
+	ErrCartProductExists = errors.New("postgres: cart already exists")
 
 	// ErrCartProductNotFound occurs if the cart product cannot be found.
-	ErrCartProductNotFound = errors.New("cart product not found")
+	ErrCartProductNotFound = errors.New("postgres: cart product not found")
 
 	// ErrCartContainsNoProducts occurs when attempting to delete all products from a cart.
-	ErrCartContainsNoProducts = errors.New("cart contains no products")
+	ErrCartContainsNoProducts = errors.New("postgres: cart contains no products")
+
+	// ErrProductHasNoPrices error
+	ErrProductHasNoPrices = errors.New("postgres: product has no prices")
 )
 
 // CartRow represents a row from the the cart table.
@@ -171,7 +174,25 @@ func (m *PgModel) AddProductToCart(ctx context.Context, cartUUID, userUUID, prod
 		return nil, ErrCartProductExists
 	}
 
+	// ensure there is at least one price for this product / price list combo.
 	q6 := `
+		SELECT COUNT(*) AS count
+		FROM price
+		WHERE product_id = $1 AND price_list_id = $2
+	`
+	var priceCount int
+	row := tx.QueryRowContext(ctx, q6, productID, priceListID)
+	if err := row.Scan(&priceCount); err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "postgres: query scan failed q6=%q", q6)
+	}
+
+	if priceCount < 1 {
+		tx.Rollback()
+		return nil, ErrProductHasNoPrices
+	}
+
+	q7 := `
 		INSERT INTO cart_product
 		  (cart_id, product_id, qty)
 		VALUES
@@ -180,13 +201,13 @@ func (m *PgModel) AddProductToCart(ctx context.Context, cartUUID, userUUID, prod
 		  id
 	`
 	var cartProductID int
-	row := tx.QueryRowContext(ctx, q6, cartID, productID, qty)
+	row = tx.QueryRowContext(ctx, q7, cartID, productID, qty)
 	if err := row.Scan(&cartProductID); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "postgres: query scan failed q6=%q", q6)
+		return nil, errors.Wrapf(err, "postgres: query scan failed q7=%q", q7)
 	}
 
-	q7 := `
+	q8 := `
 		SELECT
 		  c.id, c.uuid, c.product_id, p.uuid, sku, name, qty, unit_price, c.created, c.modified
 		FROM cart_product AS c
@@ -199,11 +220,11 @@ func (m *PgModel) AddProductToCart(ctx context.Context, cartUUID, userUUID, prod
 		ORDER BY created ASC
 	`
 	item := CartProductJoinRow{}
-	row = tx.QueryRowContext(ctx, q7, cartProductID, priceListID)
+	row = tx.QueryRowContext(ctx, q8, cartProductID, priceListID)
 	if err := row.Scan(&item.id, &item.UUID, &item.productID, &item.ProductUUID, &item.SKU, &item.Name,
 		&item.Qty, &item.UnitPrice, &item.Created, &item.Modified); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "postgres: query scan failed query=%q", q7)
+		return nil, errors.Wrapf(err, "postgres: query scan failed q8=%q", q8)
 	}
 	item.CartUUID = cartUUID
 

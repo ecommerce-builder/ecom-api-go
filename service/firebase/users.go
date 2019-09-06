@@ -16,29 +16,37 @@ var ErrUserNotFound = errors.New("service: user not found")
 
 // User details
 type User struct {
-	ID        string    `json:"id"`
-	UID       string    `json:"uid"`
-	Role      string    `json:"role"`
-	Email     string    `json:"email"`
-	Firstname string    `json:"firstname"`
-	Lastname  string    `json:"lastname"`
-	Created   time.Time `json:"created"`
-	Modified  time.Time `json:"modified"`
+	ID          string    `json:"id"`
+	UID         string    `json:"uid"`
+	Role        string    `json:"role"`
+	PriceListID string    `json:"price_list_id"`
+	Email       string    `json:"email"`
+	Firstname   string    `json:"firstname"`
+	Lastname    string    `json:"lastname"`
+	Created     time.Time `json:"created"`
+	Modified    time.Time `json:"modified"`
 }
 
+// PaginationQuery holds query
 type PaginationQuery struct {
 	OrderBy    string
 	OrderDir   string
 	Limit      int
 	StartAfter string
+	EndBefore  string
 }
 
+// PaginationContext holds the context for the currently retrieved set.
 type PaginationContext struct {
-	Total     int    `json:"total"`
-	FirstUUID string `json:"first_id"`
-	LastUUID  string `json:"last_id"`
+	Total      int    `json:"total"`
+	FirstID    string `json:"first_id"`
+	LastID     string `json:"last_id"`
+	SetFirstID string `json:"set_first_id"`
+	SetLastID  string `json:"set_last_id"`
 }
 
+// PaginationResultSet contains the set retrieved from the last fetch
+// including the context information.
 type PaginationResultSet struct {
 	RContext PaginationContext
 	RSet     interface{}
@@ -124,6 +132,7 @@ func (s *Service) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 		OrderDir:   pq.OrderDir,
 		Limit:      pq.Limit,
 		StartAfter: pq.StartAfter,
+		EndBefore:  pq.EndBefore,
 	}
 	prs, err := s.model.GetUsers(ctx, q)
 	if err != nil {
@@ -147,9 +156,9 @@ func (s *Service) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 
 	aprs := &PaginationResultSet{
 		RContext: PaginationContext{
-			Total:     prs.RContext.Total,
-			FirstUUID: prs.RContext.FirstUUID,
-			LastUUID:  prs.RContext.LastUUID,
+			Total:   prs.RContext.Total,
+			FirstID: prs.RContext.FirstUUID,
+			LastID:  prs.RContext.LastUUID,
 		},
 		RSet: results,
 	}

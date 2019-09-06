@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -22,11 +23,22 @@ func paginationQueryFromQueryParams(v url.Values) (*service.PaginationQuery, err
 	} else {
 		limit = 0 // unlimited
 	}
+
+	orderBy := v.Get("order_by")
+	var orderDirection string
+	if orderBy[0:1] == "-" {
+		orderDirection = "desc"
+		orderBy = orderBy[1:]
+	} else {
+		orderDirection = "asc"
+	}
+
 	pq := &service.PaginationQuery{
-		OrderBy:    v.Get("order_by"),
-		OrderDir:   v.Get("order_dir"),
+		OrderBy:    orderBy,
+		OrderDir:   orderDirection,
 		Limit:      limit,
 		StartAfter: v.Get("start_after"),
+		EndBefore:  v.Get("end_before"),
 	}
 	return pq, nil
 }
@@ -37,7 +49,7 @@ func (a *App) ListUsersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListUsersHandler started")
+		contextLogger.Info("app: ListUsersHandler started")
 
 		pq, err := paginationQueryFromQueryParams(r.URL.Query())
 		if err != nil {
@@ -45,19 +57,36 @@ func (a *App) ListUsersHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-		//pagq := &PaginationQuery{
-		//	OrderBy:    r.URL.Query().Get("order_by"),
-		//	OrderDir:   r.URL.Query().Get("order_dir"),
-		//	Limit:      l,
-		//	StartAfter: r.URL.Query().Get("start_after"),
-		//}
-		prs, err := a.Service.GetUsers(ctx, pq)
+
+		fmt.Printf("%+v\n", pq)
+		paginationResultSet, err := a.Service.GetUsers(ctx, pq)
 		if err != nil {
 			log.Errorf("service GetUsers(ctx) error: %+v", err)
 			return
 		}
 
+		type links struct {
+			Prev string `json:"prev"`
+			Next string `json:"next"`
+		}
+
+		type result struct {
+			Object string      `json:"object"`
+			Data   interface{} `json:"data"`
+			Links  links       `json:"links"`
+		}
+
+		fmt.Printf("%#v\n", paginationResultSet)
+
+		results := result{
+			Object: "list",
+			Data:   paginationResultSet.RSet,
+			Links: links{
+				Next: fmt.Sprintf("/users?start_after=%s", paginationResultSet.RContext.LastID),
+			},
+		}
+
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(*prs)
+		json.NewEncoder(w).Encode(&results)
 	}
 }

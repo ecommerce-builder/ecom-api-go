@@ -208,7 +208,6 @@ func (m *PgModel) AddOrder(ctx context.Context, userName, userEmail, userUUID *s
 	orderItems := make([]*OrderItemRow, 0, len(cartItems))
 	for _, t := range cartItems {
 		oi := OrderItemRow{}
-
 		row := stmt.QueryRowContext(ctx, o.id, t.SKU, t.Name, t.Qty, t.UnitPrice, nil, "T20", vat20Normalised(t.Qty*t.UnitPrice))
 		if err := row.Scan(&oi.id, &oi.UUID, &oi.orderID, &oi.SKU, &oi.Name, &oi.Qty, &oi.UnitPrice, &oi.Currency, &oi.Discount, &oi.TaxCode, &oi.VAT, &oi.Created); err != nil {
 			tx.Rollback()
