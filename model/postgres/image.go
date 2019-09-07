@@ -113,13 +113,13 @@ func (m *PgModel) CreateImage(ctx context.Context, c *CreateImage) (*ImageJoinRo
 		c.W, c.H, c.Path, c.Typ,
 		c.Ori,
 		c.Pri, c.Size, c.Q,
-		c.GSURL, productID).Scan(&p.id, &p.UUID, &p.productID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+		c.GSURL).Scan(&p.id, &p.UUID, &p.productID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up, &p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
 	p.ProductUUID = c.ProductID
 	p.ProductPath = productPath
 	p.ProductSKU = productSKU
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, errors.Wrapf(err, "postgres: query row context scan failed q2=%q", q2)
 	}
 
 	if err = tx.Commit(); err != nil {

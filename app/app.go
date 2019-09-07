@@ -150,6 +150,10 @@ const (
 	OpMapPricingByTier  string = "OpMapPricingByTier"
 	OpDeleteTierPricing string = "OpDeleteTierPricing"
 
+	// Inventory
+	OpGetInventory    string = "OpGetInventory"
+	OpUpdateInventory string = "OpUpdateInventory"
+
 	// Promotion Rules
 	OpCreatePromoRule string = "OpCreatePromoRule"
 	OpGetPromoRule    string = "OpGetPromoRule"
