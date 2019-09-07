@@ -22,26 +22,25 @@ func (a *App) GetCartProductsHandler() http.HandlerFunc {
 
 		cartID := r.URL.Query().Get("cart_id")
 		if IsValidUUID(cartID) == false {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				"cart_id is not a valid UUID v4",
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "cart_id is not a valid UUID v4")
 			return
 		}
 
-		cartProducts, err := a.Service.GetCartProducts(ctx, cartID)
+		userID := ctx.Value(ecomUIDKey).(string)
+		cartProducts, err := a.Service.GetCartProducts(ctx, userID, cartID)
 		if err != nil {
 			if err == service.ErrCartNotFound {
 				w.WriteHeader(http.StatusNotFound)
+				clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart could not be found")
+				return
+			} else if err == service.ErrUserNotFound {
+				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user for this call could not be found")
+				return
+			} else if err == service.ErrDefaultPriceListNotFound {
+				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "user price list could not be found")
 				return
 			}
-			contextLogger.Errorf("service GetCartProducts(cartID=%q) error: %v", cartID, err)
+			contextLogger.Errorf("app: service GetCartProducts(userID=%q, cartID=%q) error: %v", userID, cartID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

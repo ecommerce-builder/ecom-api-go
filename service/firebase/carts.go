@@ -112,13 +112,15 @@ func (s *Service) HasCartProducts(ctx context.Context, id string) (bool, error) 
 }
 
 // GetCartProducts get all cart items by cart ID.
-func (s *Service) GetCartProducts(ctx context.Context, cartID string) ([]*CartProduct, error) {
-	userUUID := ctx.Value("ecom_uid").(string)
-
-	cartProducts, err := s.model.GetCartProducts(ctx, cartID, userUUID)
+func (s *Service) GetCartProducts(ctx context.Context, userID, cartID string) ([]*CartProduct, error) {
+	cartProducts, err := s.model.GetCartProducts(ctx, cartID, userID)
 	if err != nil {
 		if err == postgres.ErrCartNotFound {
 			return nil, ErrCartNotFound
+		} else if err == postgres.ErrUserNotFound {
+			return nil, ErrUserNotFound
+		} else if err == postgres.ErrDefaultPriceListNotFound {
+			return nil, ErrDefaultPriceListNotFound
 		}
 		return nil, err
 	}

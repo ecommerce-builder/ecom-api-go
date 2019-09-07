@@ -68,7 +68,7 @@ func (a *App) AddProductToCartHandler() http.HandlerFunc {
 			return
 		}
 
-		userID := ctx.Value("ecom_uid").(string)
+		userID := ctx.Value(ecomUIDKey).(string)
 		product, err := a.Service.AddProductToCart(ctx, userID, request.CartID, request.ProductID, request.Qty)
 		if err != nil {
 			if err == service.ErrCartNotFound {

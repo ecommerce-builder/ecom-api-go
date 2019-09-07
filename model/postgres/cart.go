@@ -256,6 +256,7 @@ func (m *PgModel) GetCartProducts(ctx context.Context, cartUUID, userUUID string
 		return nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
+	// 1. Check the cart exists.
 	q1 := "SELECT id FROM cart WHERE uuid = $1"
 	var cartID int
 	err = tx.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
@@ -268,6 +269,7 @@ func (m *PgModel) GetCartProducts(ctx context.Context, cartUUID, userUUID string
 		return nil, errors.Wrapf(err, "postgres: query row context failed for query=%q", q1)
 	}
 
+	// 2. Check the user exists.
 	q2 := "SELECT id FROM usr WHERE uuid = $1"
 	var userID int
 	err = tx.QueryRowContext(ctx, q2, userUUID).Scan(&userID)
@@ -280,6 +282,7 @@ func (m *PgModel) GetCartProducts(ctx context.Context, cartUUID, userUUID string
 		return nil, errors.Wrapf(err, "postgres: query row context failed for query=%q", q2)
 	}
 
+	// 3. Determine the price list the user is on.
 	var priceListID int
 	if userUUID != "" {
 		q3 := "SELECT price_list_id FROM usr WHERE uuid = $1"

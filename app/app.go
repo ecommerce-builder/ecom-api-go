@@ -36,6 +36,10 @@ const (
 	// and that product is already in the cart.
 	ErrCodeCartProductExists string = "carts/cart-product-exists"
 
+	// ErrCodeCartNotFound is sent when attempting to do cart operation of a non existing
+	// cart.
+	ErrCodeCartNotFound string = "carts/cart-not-found"
+
 	// ErrCodeCartProductNotFound is sent when attempting to delete or update a
 	// cart product that cannot be found.
 	ErrCodeCartProductNotFound string = "carts/cart-product-not-found"
