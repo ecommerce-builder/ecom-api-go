@@ -146,7 +146,7 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 		q3 = strings.Replace(q3, "%WHERECLAUSE%", "", 1)
 		rows, err = tx.QueryContext(ctx, q3)
 		if err != nil {
-			return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx, q3=%q)", q3, priceListID)
+			return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx, q3=%q)", q3)
 		}
 	}
 

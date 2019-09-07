@@ -11,6 +11,12 @@ import (
 
 type decodedTokenString string
 
+const ecomDecodedTokenKey decodedTokenString = "ecomDecodedToken"
+
+type ecomUIDString string
+
+const ecomUIDKey ecomUIDString = "ecom_uid"
+
 // AuthenticateMiddleware provides authentication layer
 func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +93,7 @@ func (a *App) AuthenticateMiddleware(next http.Handler) http.Handler {
 		contextLogger.Info("authentication success")
 
 		// store the decodedToken in the context
-		ctx2 := context.WithValue(ctx, "ecomDecodedToken", decodedToken)
+		ctx2 := context.WithValue(ctx, ecomDecodedTokenKey, decodedToken)
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r.WithContext(ctx2))
 	}

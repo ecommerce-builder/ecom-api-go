@@ -23,7 +23,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Debugf("authorization started for %s", op)
-		decodedToken := ctx.Value("ecomDecodedToken").(*auth.Token)
+		decodedToken := ctx.Value(ecomDecodedTokenKey).(*auth.Token)
 
 		// Get the user ID and customer role from the JWT
 		var cid, role string
@@ -44,7 +44,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 		}
 
-		ctx2 := context.WithValue(ctx, "ecom_uid", cid)
+		ctx2 := context.WithValue(ctx, ecomUIDKey, cid)
 
 		// superuser has all privileges. The JWT containing the claims is cryptographically
 		// signed with a claim of "root" so we give maximum privilege.
