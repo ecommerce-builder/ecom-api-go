@@ -8,61 +8,53 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type generateUserDevKeyRequestBody struct {
+	UserID string `json:"user_id"`
+}
+
+func validateGenerateUserDevKeyRequestBody(request *generateUserDevKeyRequestBody) (bool, string) {
+	if request.UserID == "" {
+		return false, "user_id attribute must be set"
+	}
+	return true, ""
+}
+
 // GenerateUserDevKeyHandler creates a new API Key for a given user
 func (a *App) GenerateUserDevKeyHandler() http.HandlerFunc {
-	type requestBody struct {
-		UserID string `json:"user_id"`
-	}
-
 	type responseBody struct {
 		Object string `json:"object"`
-		*service.UserDevKey
+		*service.DeveloperKey
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GenerateUserDevKeyHandler started")
+		contextLogger.Info("app: GenerateUserDevKeyHandler started")
 
-		request := requestBody{}
+		request := generateUserDevKeyRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				"bad request",
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
-		cdk, err := a.Service.GenerateUserDevKey(ctx, request.UserID)
+		ok, message := validateGenerateUserDevKeyRequestBody(&request)
+		if !ok {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			return
+		}
+
+		developerKey, err := a.Service.GenerateUserDevKey(ctx, request.UserID)
 		if err != nil {
 			if err == service.ErrUserNotFound {
-				w.WriteHeader(http.StatusNotFound) // Not Found
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodeUserNotFound,
-					"user not found",
-				})
+				// 404 Not Found
+				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
 				return
 			}
-			contextLogger.Errorf("service GenerateUserAPIKey(ctx, userID=%q) error: %v", request.UserID, err)
+			contextLogger.Errorf("app: GenerateUserAPIKey(ctx, userID=%q) error: %v", request.UserID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-		response := responseBody{
-			Object:     "developer_key",
-			UserDevKey: cdk,
-		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(&response)
+		json.NewEncoder(w).Encode(&developerKey)
 	}
 }

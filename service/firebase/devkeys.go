@@ -12,17 +12,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserDevKey struct holding the details of a user Developer Key including its bcrypt hash.
-type UserDevKey struct {
+// ErrDeveloperKeyNotFound error
+var ErrDeveloperKeyNotFound = errors.New("service: developer key not found")
+
+// DeveloperKey struct holding the details of a user Developer Key including its bcrypt hash.
+type DeveloperKey struct {
+	Object   string    `json:"object"`
 	ID       string    `json:"id"`
+	UserID   string    `json:"user_id"`
 	Key      string    `json:"key"`
-	UserID   string    `json:"user_id,omitempty"`
 	Created  time.Time `json:"created"`
 	Modified time.Time `json:"modified"`
 }
 
 // GenerateUserDevKey creates a new API Key for a user
-func (s *Service) GenerateUserDevKey(ctx context.Context, userID string) (*UserDevKey, error) {
+func (s *Service) GenerateUserDevKey(ctx context.Context, userID string) (*DeveloperKey, error) {
 	uid, err := s.model.GetUserIDByUUID(ctx, userID)
 	if err != nil {
 		if err == postgres.ErrUserNotFound {
@@ -41,17 +45,18 @@ func (s *Service) GenerateUserDevKey(ctx context.Context, userID string) (*UserD
 		return nil, errors.Wrapf(err, "service: s.model.CreateUserDevKey(ctx, userID=%q, ...)", userID)
 	}
 
-	return &UserDevKey{
-		ID:  ak.UUID,
-		Key: ak.Key,
-		// UserID: userID,
+	return &DeveloperKey{
+		Object:   "developer_key",
+		ID:       ak.UUID,
+		Key:      ak.Key,
+		UserID:   userID,
 		Created:  ak.Created,
 		Modified: ak.Modified,
 	}, nil
 }
 
 // GetUserDevKey returns a UserDevKey for the user with the given ID.
-func (s *Service) GetUserDevKey(ctx context.Context, id string) (*UserDevKey, error) {
+func (s *Service) GetUserDevKey(ctx context.Context, id string) (*DeveloperKey, error) {
 	ak, err := s.model.GetUserDevKey(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -59,7 +64,8 @@ func (s *Service) GetUserDevKey(ctx context.Context, id string) (*UserDevKey, er
 		}
 		return nil, err
 	}
-	return &UserDevKey{
+	return &DeveloperKey{
+		Object:   "developer_key",
 		ID:       ak.UUID,
 		Key:      ak.Key,
 		UserID:   ak.UserUUID,
@@ -69,7 +75,7 @@ func (s *Service) GetUserDevKey(ctx context.Context, id string) (*UserDevKey, er
 }
 
 // ListUsersDevKeys gets all API Keys for a user.
-func (s *Service) ListUsersDevKeys(ctx context.Context, userID string) ([]*UserDevKey, error) {
+func (s *Service) ListUsersDevKeys(ctx context.Context, userID string) ([]*DeveloperKey, error) {
 	uid, err := s.model.GetUserIDByUUID(ctx, userID)
 	if err != nil {
 		if err == postgres.ErrUserNotFound {
@@ -82,9 +88,10 @@ func (s *Service) ListUsersDevKeys(ctx context.Context, userID string) ([]*UserD
 	if err != nil {
 		return nil, err
 	}
-	apiKeys := make([]*UserDevKey, 0, len(rows))
+	apiKeys := make([]*DeveloperKey, 0, len(rows))
 	for _, row := range rows {
-		c := UserDevKey{
+		c := DeveloperKey{
+			Object:   "developer_key",
 			ID:       row.UUID,
 			Key:      row.Key,
 			UserID:   userID,
@@ -148,4 +155,16 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 		Modified:  cust.Modified,
 	}
 	return token, user, nil
+}
+
+// DeleteDeveloperKey deletes the developer key with the given id.
+func (s *Service) DeleteDeveloperKey(ctx context.Context, developerKeyID string) error {
+	err := s.model.DeleteUsrDevKey(ctx, developerKeyID)
+	if err != nil {
+		if err == postgres.ErrDeveloperKeyNotFound {
+			return ErrDeveloperKeyNotFound
+		}
+		return errors.Wrapf(err, "service: s.model.DeleteUsrDevKey(ctx, usrDevKeyUUID=%q) failed", developerKeyID)
+	}
+	return nil
 }

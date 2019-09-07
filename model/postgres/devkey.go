@@ -31,6 +31,9 @@ type UsrDevKeyFull struct {
 	Modified time.Time
 }
 
+// ErrDeveloperKeyNotFound error
+var ErrDeveloperKeyNotFound = errors.New("postgres: developer key not found")
+
 // CreateUserDevKey generates a user developer key using bcrypt.
 func (m *PgModel) CreateUserDevKey(ctx context.Context, userID int, key string) (*UsrDevKey, error) {
 	query := `
@@ -114,4 +117,25 @@ func (m *PgModel) GetUserDevKeyByDevKey(ctx context.Context, key string) (*UsrDe
 		return nil, errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, %q, %q).Scan(...)", query, key)
 	}
 	return &row, nil
+}
+
+// DeleteUsrDevKey deletes the developer key with the given uuid.
+func (m *PgModel) DeleteUsrDevKey(ctx context.Context, usrDevKeyUUID string) error {
+	q1 := "SELECT id FROM usr_devkey WHERE uuid = $1"
+	var usrDevKeyID int
+	err := m.db.QueryRowContext(ctx, q1, usrDevKeyUUID).Scan(&usrDevKeyID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrDeveloperKeyNotFound
+		}
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	q2 := "DELETE FROM usr_devkey WHERE id = $1"
+	_, err = m.db.ExecContext(ctx, q2, usrDevKeyID)
+	if err != nil {
+		return errors.Wrapf(err, "postgres: exec context failed q2=%q", q2)
+	}
+
+	return nil
 }

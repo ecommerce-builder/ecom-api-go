@@ -13,5 +13,3 @@ CREATE TABLE IF NOT EXISTS usr_devkey (
 CREATE INDEX IF NOT EXISTS idx_usr_devkey_apikey_asc ON usr_devkey (created DESC);
 CREATE INDEX IF NOT EXISTS idx_usr_devkey_created_desc ON usr_devkey (created DESC);
 CREATE INDEX IF NOT EXISTS idx_usr_devkey_modified ON usr_devkey (modified DESC);
-
-ALTER SEQUENCE usr_devkey_id_seq RESTART WITH 900001;

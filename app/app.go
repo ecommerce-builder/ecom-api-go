@@ -95,6 +95,9 @@ const (
 
 	// ErrCodeAuthenticationFailed occurs when the Authentication has failed.
 	ErrCodeAuthenticationFailed string = "auth/authentication-failed"
+
+	// ErrCodeDeveloperKeyNotFound occurs when attempting to delete a developer key.
+	ErrCodeDeveloperKeyNotFound string = "developer-keys/developer-key-not-found"
 )
 
 // Cart operation sentinel values.
