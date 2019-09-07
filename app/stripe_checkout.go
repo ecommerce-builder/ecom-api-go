@@ -18,13 +18,13 @@ func (a *App) StripeCheckoutHandler(stripeSuccessURL, stripeCancelURL string) ht
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: StripeCheckoutHandler started")
+		contextLogger.Info("app: StripeCheckoutHandler started")
 
 		id := chi.URLParam(r, "id")
-		contextLogger.Debugf("order id %s", id)
+		contextLogger.Debugf("app: order id %s", id)
 		sid, err := a.Service.StripeCheckout(ctx, id, stripeSuccessURL, stripeCancelURL)
 		if err != nil {
-			contextLogger.Errorf("service StripeCheckout(ctx, %q) error: %v", id, err)
+			contextLogger.Errorf("app: StripeCheckout(ctx, %q) error: %v", id, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

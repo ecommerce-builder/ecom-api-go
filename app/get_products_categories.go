@@ -19,11 +19,11 @@ func (app *App) GetProductsCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetProductsCategoriesHandler called")
+		contextLogger.Info("app: GetProductsCategoriesHandler called")
 
 		assocs, err := app.Service.GetProductsCategoriesList(ctx)
 		if err != nil {
-			contextLogger.Errorf("service GetProductsCategoriesList(ctx) error: %+v", errors.WithStack(err))
+			contextLogger.Errorf("app: GetProductsCategoriesList(ctx) error: %+v", errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}

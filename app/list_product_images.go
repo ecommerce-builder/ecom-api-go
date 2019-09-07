@@ -18,26 +18,17 @@ func (a *App) ListProductImagesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListProductImagesHandler started")
+		contextLogger.Info("app: ListProductImagesHandler started")
 
 		productID := r.URL.Query().Get("product_id")
 		if productID == "" {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				"query parameter product_id must be set",
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "query parameter product_id must be set")
 			return
 		}
 
 		products, err := a.Service.GetImagesByProductID(ctx, productID)
 		if err != nil {
-			contextLogger.Errorf("service ListProductImages(ctx, productID=%q) error: %+v", productID, err)
+			contextLogger.Errorf("app: ListProductImages(ctx, productID=%q) error: %+v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

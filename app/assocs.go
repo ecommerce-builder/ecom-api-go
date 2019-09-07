@@ -16,7 +16,7 @@ func (a *App) GetProductCategoryAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetCategoryAssocsHandler started")
+		contextLogger.Info("app: GetCategoryAssocsHandler started")
 
 		key := r.URL.Query().Get("key")
 		if key == "" {
@@ -114,7 +114,7 @@ func (a *App) UpdateProductCategoryAssocsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateProductCategoryAssocsHandler started")
+		contextLogger.Info("app: UpdateProductCategoryAssocsHandler started")
 
 		xKeyedBy := r.Header.Get("X-Keyed-By")
 		if xKeyedBy == "" {

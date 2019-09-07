@@ -19,7 +19,7 @@ func (a *App) ListPromoRulesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListPromoRulesHandler started")
+		contextLogger.Info("app: ListPromoRulesHandler started")
 
 		promoRules, err := a.Service.GetPromoRules(ctx)
 		if err != nil {

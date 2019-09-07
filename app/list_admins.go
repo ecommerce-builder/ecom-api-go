@@ -12,11 +12,11 @@ func (a *App) ListAdminsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListAdminsHandler started")
+		contextLogger.Info("app: ListAdminsHandler started")
 
 		admins, err := a.Service.ListAdmins(ctx)
 		if err != nil {
-			contextLogger.Errorf("service: GetAdmins(ctx) error: %v", err)
+			contextLogger.Errorf("app: GetAdmins(ctx) error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

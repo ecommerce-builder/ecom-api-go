@@ -44,69 +44,33 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: PlaceOrderHandler started")
+		contextLogger.Info("app: PlaceOrderHandler started")
 
 		req := orderRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				err.Error(),
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 		defer r.Body.Close()
 
-		msg, ok := validateOrderRequestBody(&req)
+		message, ok := validateOrderRequestBody(&req)
 		if !ok {
-			w.WriteHeader(http.StatusConflict) // 409 Conflict
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusConflict,
-				"validate/invalid-request-body",
-				msg,
-			})
+			clientError(w, http.StatusConflict, ErrCodeBadRequest, message)
 			return
 		}
 
-		contextLogger.Debugf("a.Service.PlaceOrder(ctx, req.ContextName=%v, req.Email=%v, res.CustomerID=%v, %q, ...)", req.ContactName, req.Email, req.CustomerID, *req.CartID)
+		contextLogger.Debugf("app: a.Service.PlaceOrder(ctx, req.ContextName=%v, req.Email=%v, res.CustomerID=%v, %q, ...)", req.ContactName, req.Email, req.CustomerID, *req.CartID)
 		order, err := a.Service.PlaceOrder(ctx, req.ContactName, req.Email, req.CustomerID, *req.CartID, req.Billing, req.Shipping)
 		if err != nil {
 			if err == service.ErrCartEmpty {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					"order/empty-cart",
-					"The cart id you passed contains no items",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeOrderCartEmpty, "The cart id you passed contains no items")
 				return
 			} else if err == service.ErrUserNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					"order/customer-not-found",
-					"The customer with the given customer_id could not be found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeOrderUserNotFound, "The user with the given user_id could not be found")
 				return
 			}
-			contextLogger.Panicf("App: PlaceOrder(ctx, %q, %q, ...) failed with error: %v", *req.ContactName, *req.Email, err)
+			contextLogger.Panicf("app: PlaceOrder(ctx, %q, %q, ...) failed with error: %v", *req.ContactName, *req.Email, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

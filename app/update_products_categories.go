@@ -24,7 +24,7 @@ func (app *App) UpdateProductsCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateProductsCategoriesHandler called")
+		contextLogger.Info("app: UpdateProductsCategoriesHandler called")
 
 		var request request
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

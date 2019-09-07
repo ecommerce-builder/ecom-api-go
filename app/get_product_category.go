@@ -15,21 +15,13 @@ func (a *App) GetProductCategoryHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetProductCategoryHandler called")
+		contextLogger.Info("app: GetProductCategoryHandler called")
 
 		productCategoryID := chi.URLParam(r, "id")
 		productCategory, err := a.Service.GetProductCategory(ctx, productCategoryID)
 		if err != nil {
 			if err == service.ErrProductCategoryNotFound {
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodeProductCategoryNotFound,
-					"product to category association not found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeProductCategoryNotFound, "product to category association not found")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.GetProductCategory(ctx, productCategoryID=%q)", productCategoryID)

@@ -12,7 +12,7 @@ func (a *App) ListAddressesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListAddressesHandler started")
+		contextLogger.Info("app: ListAddressesHandler started")
 
 		userID := r.URL.Query().Get("user_id")
 

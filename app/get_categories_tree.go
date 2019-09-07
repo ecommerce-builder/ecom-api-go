@@ -14,11 +14,11 @@ func (app *App) GetCategoriesTreeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetCategoriesHandler called")
+		contextLogger.Info("app: GetCategoriesHandler called")
 
 		tree, err := app.Service.GetCategoriesTree(ctx)
 		if err != nil {
-			contextLogger.Errorf("service GetCatalog(ctx) error: %+v", errors.WithStack(err))
+			contextLogger.Errorf("app: service GetCatalog(ctx) error: %+v", errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
@@ -28,17 +28,8 @@ func (app *App) GetCategoriesTreeHandler() http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			contextLogger.Errorf("service GetCatalog(ctx) error: %+v", errors.WithStack(err))
+			contextLogger.Errorf("app: GetCatalog(ctx) error: %+v", errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusInternalServerError,
-				ErrCodeInternalServerError,
-				err.Error(),
-			})
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

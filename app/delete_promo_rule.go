@@ -14,12 +14,12 @@ func (a *App) DeletePromoRuleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeletePromoRuleHandler started")
+		contextLogger.Info("app: DeletePromoRuleHandler started")
 
 		promoRuleID := chi.URLParam(r, "id")
 		if err := a.Service.DeletePromoRule(ctx, promoRuleID); err != nil {
 			if err == service.ErrPromoRuleNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.DeletePromoRule(ctx, promoRuleID=%q) error: %+v", promoRuleID, err)

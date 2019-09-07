@@ -15,7 +15,7 @@ func (a *App) PricingMapByTierHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: PricingMapByTierHandler started")
+		contextLogger.Info("app: PricingMapByTierHandler started")
 
 		priceListID := chi.URLParam(r, "id")
 		pmap, err := a.Service.PriceMapByPriceList(ctx, priceListID)

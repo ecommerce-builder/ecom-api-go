@@ -31,7 +31,7 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateProductHandler started")
+		contextLogger.Info("app: UpdateProductHandler started")
 
 		productID := chi.URLParam(r, "id")
 		pu := service.ProductUpdateRequestBody{}

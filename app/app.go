@@ -90,6 +90,9 @@ const (
 	// determined by looking at the price list inside the customer object.
 	ErrCodePriceListForbiddenPriceList string = "price-lists/forbidden-access-price-list"
 
+	// ErrCodePromoRuleNotFound error
+	ErrCodePromoRuleNotFound string = "promo-rules/promo-rule-not-found"
+
 	// ErrCodeIncludeQueryParamParseError occurs when the include query param is invalid.
 	ErrCodeIncludeQueryParamParseError string = "query/include-query-param-invalid"
 
@@ -98,6 +101,12 @@ const (
 
 	// ErrCodeDeveloperKeyNotFound occurs when attempting to delete a developer key.
 	ErrCodeDeveloperKeyNotFound string = "developer-keys/developer-key-not-found"
+
+	// ErrCodeOrderCartEmpty error
+	ErrCodeOrderCartEmpty string = "orders/order-cart-empty"
+
+	// ErrCodeOrderUserNotFound error
+	ErrCodeOrderUserNotFound string = "orders/order-user-not-found"
 )
 
 // Cart operation sentinel values.

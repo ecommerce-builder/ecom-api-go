@@ -19,11 +19,11 @@ func (a *App) ListPriceListsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListPriceListsHandler started")
+		contextLogger.Info("app: ListPriceListsHandler started")
 
 		priceLists, err := a.Service.GetPriceLists(ctx)
 		if err != nil {
-			contextLogger.Errorf("service GetPricingLists(ctx) error: %+v", err)
+			contextLogger.Errorf("app: GetPricingLists(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

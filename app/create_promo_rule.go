@@ -33,23 +33,14 @@ func (a *App) CreatePromoRuleHandler() http.HandlerFunc {
 
 		requestBody := service.PromoRuleCreateRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			http.Error(w, err.Error(), 400)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 		defer r.Body.Close()
 
 		valid, message := validatePromoRuleCreateRequestBody(&requestBody)
 		if !valid {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				message,
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
 			return
 		}
 

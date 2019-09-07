@@ -19,7 +19,7 @@ func (a *App) GetCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetCategoriesHandler called")
+		contextLogger.Info("app: GetCategoriesHandler called")
 
 		categories, err := a.Service.GetCategories(ctx)
 		if err != nil {

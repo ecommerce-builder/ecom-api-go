@@ -21,16 +21,16 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: SignInWithDevKeyHandler started")
+		contextLogger.Info("app: SignInWithDevKeyHandler started")
 
 		if r.Body == nil {
-			http.Error(w, "Please send a request body", 400)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "missing request body")
 			return
 		}
 		o := signInRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
-			http.Error(w, err.Error(), 400)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 		customToken, customer, err := a.Service.SignInWithDevKey(ctx, o.Key)
@@ -39,7 +39,7 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			contextLogger.Errorf("service SignInWithDevKeyHandler(ctx, ...) error: %v\n", err)
+			contextLogger.Errorf("app: SignInWithDevKeyHandler(ctx, ...) error: %v\n", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

@@ -15,26 +15,17 @@ func (a *App) UpdatePriceListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdatePriceListHandler started")
+		contextLogger.Info("app: UpdatePriceListHandler started")
 
 		requestBody := service.PriceListCreate{}
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			http.Error(w, err.Error(), 400)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
 		ok, message := validateCreatePriceListRequest(&requestBody)
 		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				message,
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
 			return
 		}
 
@@ -42,19 +33,12 @@ func (a *App) UpdatePriceListHandler() http.HandlerFunc {
 		priceList, err := a.Service.UpdatePriceList(ctx, priceListID, &requestBody)
 		if err != nil {
 			if err == service.ErrPriceListNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				// 404 Not Found
+				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
 				return
 			} else if err == service.ErrPriceListCodeExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodePriceListCodeExists,
-					"price list is already in use",
-				})
+				// 409 Conflict
+				clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.UpdatePriceList(ctx, priceListID=%q, p=%v) %+v", priceListID, requestBody, err)

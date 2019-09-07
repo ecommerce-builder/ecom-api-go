@@ -15,11 +15,12 @@ func (a *App) StripeWebhookHandler(stripeSigningSecret string) http.HandlerFunc 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: StripeWebhookHandler started")
+		contextLogger.Info("app: StripeWebhookHandler started")
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			contextLogger.Errorf("failed to read request body: %v\n", err)
+
+			contextLogger.Errorf("app: failed to read request body: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -28,8 +29,8 @@ func (a *App) StripeWebhookHandler(stripeSigningSecret string) http.HandlerFunc 
 		// to ConstructEvent, along with the webhook signing key
 		event, err := webhook.ConstructEvent(body, r.Header.Get("Stripe-Signature"), stripeSigningSecret)
 		if err != nil {
-			contextLogger.Errorf("failed to verify webhook signature: %v", err)
-			w.WriteHeader(http.StatusBadRequest) // Return a 400 error on a bad signature
+			contextLogger.Errorf("app: failed to verify webhook signature: %v", err)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
@@ -38,8 +39,8 @@ func (a *App) StripeWebhookHandler(stripeSigningSecret string) http.HandlerFunc 
 			var session stripe.CheckoutSession
 			err := json.Unmarshal(event.Data.Raw, &session)
 			if err != nil {
-				contextLogger.Errorf("failed to parse webhook JSON: %v", err)
-				w.WriteHeader(http.StatusBadRequest)
+				contextLogger.Errorf("app: failed to parse webhook JSON: %v", err)
+				clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 				return
 			}
 
