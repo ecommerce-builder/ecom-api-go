@@ -67,7 +67,7 @@ type CreateProductCategoryRow struct {
 }
 
 // AddProductCategory associates a product to a leaf category
-func (m *PgModel) AddProductCategory(ctx context.Context, categoryUUID, productUUID string) (*ProductCategoryBasicJoinRow, error) {
+func (m *PgModel) AddProductCategory(ctx context.Context, productUUID, categoryUUID string) (*ProductCategoryBasicJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx")

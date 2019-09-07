@@ -28,46 +28,22 @@ func (app *App) UpdateProductsCategoriesHandler() http.HandlerFunc {
 
 		var request request
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				err.Error(),
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
 		productsCategories, err := app.Service.UpdateProductsCategories(ctx, request.Data)
 		if err != nil {
 			if err == service.ErrProductNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeProductNotFound,
-					"one or more product ids cannot be found",
-				})
+				// 404 Not Found
+				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "one or more product ids cannot be found")
 				return
 			} else if err == service.ErrLeafCategoryNotFound {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeLeafCategoryNotFound,
-					"one or more leaf category ids cannot be found",
-				})
+				// 404 Not Found
+				clientError(w, http.StatusNotFound, ErrCodeLeafCategoryNotFound, "one or more leaf category ids cannot be found")
 				return
 			}
-			contextLogger.Errorf("service UpdateProductsCategories(ctx, %v) error: %+v", request, errors.WithStack(err))
+			contextLogger.Errorf("app: UpdateProductsCategories(ctx, %v) error: %+v", request, errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
@@ -76,7 +52,7 @@ func (app *App) UpdateProductsCategoriesHandler() http.HandlerFunc {
 			Object: "list",
 			Data:   productsCategories,
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusCreated) // 200 Created
 		if err = json.NewEncoder(w).Encode(&list); err != nil {
 			contextLogger.Errorf("json encode failed with error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

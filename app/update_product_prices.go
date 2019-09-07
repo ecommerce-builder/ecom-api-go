@@ -54,7 +54,7 @@ func (a *App) UpdateProductPricesHandler() http.HandlerFunc {
 			Object: "list",
 			Data:   prices,
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusCreated) // 200 Created
 		json.NewEncoder(w).Encode(&list)
 	}
 }

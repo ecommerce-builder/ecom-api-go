@@ -63,8 +63,8 @@ type CreateProductsCategories struct {
 }
 
 // AddProductCategory associates a product to a leaf category
-func (s *Service) AddProductCategory(ctx context.Context, request *ProductCategoryRequestBody) (*ProductCategory, error) {
-	row, err := s.model.AddProductCategory(ctx, request.CategoryID, request.ProductID)
+func (s *Service) AddProductCategory(ctx context.Context, productID, categoryID string) (*ProductCategory, error) {
+	row, err := s.model.AddProductCategory(ctx, productID, categoryID)
 	if err != nil {
 		if err == postgres.ErrCategoryNotFound {
 			return nil, ErrCategoryNotFound
@@ -75,7 +75,7 @@ func (s *Service) AddProductCategory(ctx context.Context, request *ProductCatego
 		} else if err == postgres.ErrProductCategoryExists {
 			return nil, ErrProductCategoryExists
 		}
-		return nil, errors.Wrapf(err, "service: s.model.AddProductCategory(ctx, categoryUUID=%q, productUUID=%q)", request.CategoryID, request.ProductID)
+		return nil, errors.Wrapf(err, "service: s.model.AddProductCategory(ctx, productUUID=%q, categoryUUID=%q)", categoryID, productID)
 	}
 	productCategory := ProductCategory{
 		Object:     "product_category",
