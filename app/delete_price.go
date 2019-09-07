@@ -14,15 +14,15 @@ func (a *App) DeletePriceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeletePriceListHandler started")
+		contextLogger.Info("app: DeletePriceListHandler started")
 
 		priceListID := chi.URLParam(r, "id")
 		if err := a.Service.DeletePriceList(ctx, priceListID); err != nil {
 			if err == service.ErrPriceListNotFound {
-				w.WriteHeader(http.StatusNotFound)
+				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
 				return
 			}
-			contextLogger.Errorf("service DeletePriceList(ctx, productLidID=%q) error: %+v", priceListID, err)
+			contextLogger.Errorf("app: DeletePriceList(ctx, productLidID=%q) error: %+v", priceListID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

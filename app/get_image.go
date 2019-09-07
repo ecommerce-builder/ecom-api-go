@@ -14,25 +14,16 @@ func (a *App) GetImageHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetImageHandler called")
+		contextLogger.Info("app: GetImageHandler called")
 
 		imageID := chi.URLParam(r, "id")
 		image, err := a.Service.GetImage(ctx, imageID)
 		if err != nil {
 			if err == service.ErrImageNotFound {
-				w.WriteHeader(http.StatusNotFound) // Not Found
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodeImageNotFound,
-					"image not found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeImageNotFound, "image not found")
 				return
 			}
-			contextLogger.Errorf("service: GetImage(ctx, imageID=%q) error: %+v", imageID, err)
+			contextLogger.Errorf("app: GetImage(ctx, imageID=%q) error: %+v", imageID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

@@ -19,7 +19,7 @@ func (a *App) CreateAdminHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: CreateAdminHandler started")
+		contextLogger.Info("app: CreateAdminHandler started")
 
 		o := createAdminRequestBody{}
 		err := json.NewDecoder(r.Body).Decode(&o)

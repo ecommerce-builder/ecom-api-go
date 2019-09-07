@@ -24,16 +24,7 @@ func (a *App) UpdateCartProductHandler() http.HandlerFunc {
 
 		request := requestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				"bad request",
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
@@ -42,16 +33,7 @@ func (a *App) UpdateCartProductHandler() http.HandlerFunc {
 		if err != nil {
 			if err == service.ErrCartProductNotFound {
 				contextLogger.Debugf("app: Cart Product (cartProductID=%q) not found", cartProductID)
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodeCartProductNotFound,
-					"cart product not found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeCartProductNotFound, "cart product not found")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.UpdateCartProduct(ctx, cartProductID=%q, request.Qty=%d) error: %v", cartProductID, request.Qty, err)

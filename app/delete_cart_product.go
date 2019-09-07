@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"net/http"
 	"regexp"
 
@@ -32,16 +31,7 @@ func (a *App) DeleteCartProductHandler() http.HandlerFunc {
 		if err := a.Service.DeleteCartProduct(ctx, cartProductID); err != nil {
 			if err == service.ErrCartProductNotFound {
 				contextLogger.Debugf("app: CartProduct (cartProductID=%q) not found", cartProductID)
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodeCartProductNotFound,
-					"cart product not found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeCartProductNotFound, "cart product not found")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.DeleteCartProduct(ctx, cartProductID=%q) error: %v", cartProductID, err)

@@ -12,7 +12,7 @@ func (app *App) DeleteProductsCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeleteProductsCategoriesHandler called")
+		contextLogger.Info("app: DeleteProductsCategoriesHandler called")
 
 		err := app.Service.DeleteAllProductCategoryRelations(ctx)
 		if err != nil {

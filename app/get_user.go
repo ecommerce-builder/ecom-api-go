@@ -14,12 +14,12 @@ func (a *App) GetUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetUserHandler called")
+		contextLogger.Info("app: GetUserHandler called")
 
 		userID := chi.URLParam(r, "id")
 		user, err := a.Service.GetUser(ctx, userID)
 		if err != nil {
-			contextLogger.Errorf("service GetUser(ctx, userID=%q) error: %+v", userID, err)
+			contextLogger.Errorf("app: GetUser(ctx, userID=%q) error: %+v", userID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

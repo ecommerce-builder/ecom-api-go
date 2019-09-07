@@ -58,7 +58,7 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: CreateAddressHandler started")
+		contextLogger.Info("app: CreateAddressHandler started")
 
 		if r.Body == nil {
 			http.Error(w, "Please send a request body", 400)

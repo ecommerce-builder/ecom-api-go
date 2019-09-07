@@ -18,11 +18,11 @@ func (a *App) ListProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: ListProductsHandler started")
+		contextLogger.Info("app: ListProductsHandler started")
 
 		products, err := a.Service.ListProducts(ctx)
 		if err != nil {
-			contextLogger.Errorf("service: ListProducts(ctx) error: %v", err)
+			contextLogger.Errorf("app: ListProducts(ctx) error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

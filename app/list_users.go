@@ -61,7 +61,7 @@ func (a *App) ListUsersHandler() http.HandlerFunc {
 		fmt.Printf("%+v\n", pq)
 		paginationResultSet, err := a.Service.GetUsers(ctx, pq)
 		if err != nil {
-			log.Errorf("service GetUsers(ctx) error: %+v", err)
+			log.Errorf("app: GetUsers(ctx) error: %+v", err)
 			return
 		}
 

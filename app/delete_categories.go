@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -14,7 +13,7 @@ func (a *App) DeleteCategoriesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeleteCategoriesHandler started")
+		contextLogger.Info("app: DeleteCategoriesHandler started")
 
 		// A catalog may only be purged if all catalog product associations are first purged.
 		has, err := a.Service.HasProductCategoryRelations(ctx)
@@ -24,20 +23,11 @@ func (a *App) DeleteCategoriesHandler() http.HandlerFunc {
 			return
 		}
 		if has {
-			w.WriteHeader(http.StatusConflict) // 409 Conflict
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusConflict,
-				ErrCodeAssocsExist,
-				"OpDeleteCategories cannot be called whilst category to product associations exist",
-			})
+			clientError(w, http.StatusConflict, ErrCodeAssocsExist, "OpDeleteCategories cannot be called whilst category to product associations exist")
 			return
 		}
 		if err = a.Service.DeleteCategories(ctx); err != nil {
-			contextLogger.Errorf("service DeleteCategories(ctx) error: %v", errors.Cause(err))
+			contextLogger.Errorf("app: DeleteCategories(ctx) error: %v", errors.Cause(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

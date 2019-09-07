@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
@@ -15,24 +14,15 @@ func (a *App) DeletePriceListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeletePriceListHandler started")
+		contextLogger.Info("app: DeletePriceListHandler started")
 
 		priceListID := chi.URLParam(r, "id")
 		if err := a.Service.DeletePriceList(ctx, priceListID); err != nil {
 			if err == service.ErrPriceListNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
 				return
 			} else if err == service.ErrPriceListInUse {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodePriceListInUse,
-					"price list is already in use",
-				})
+				clientError(w, http.StatusConflict, ErrCodePriceListInUse, "price list is already in use")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.DeletePriceList(ctx, priceListID=%q) error: %+v", priceListID, err)

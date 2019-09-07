@@ -15,13 +15,13 @@ func (a *App) GetPriceListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetPriceListHandler called")
+		contextLogger.Info("app: GetPriceListHandler called")
 
 		priceListID := chi.URLParam(r, "id")
 		priceList, err := a.Service.GetPriceList(ctx, priceListID)
 		if err != nil {
 			if err == service.ErrPriceListNotFound {
-				w.WriteHeader(http.StatusNotFound)
+				clientError(w, http.StatusNotFound, ErrCodePriceListCodeExists, "price_list_id not found")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.GetPriceList(ctx, priceListID=%q)", priceListID)

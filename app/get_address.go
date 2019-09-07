@@ -13,7 +13,7 @@ func (app *App) GetAddressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetAddressHandler started")
+		contextLogger.Info("app: GetAddressHandler started")
 
 		id := chi.URLParam(r, "id")
 		addr, err := app.Service.GetAddress(ctx, id)

@@ -15,7 +15,7 @@ func (a *App) GetPromoRuleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: GetPromoRuleHandler called")
+		contextLogger.Info("app: GetPromoRuleHandler called")
 
 		promoRuleID := chi.URLParam(r, "id")
 		promoRule, err := a.Service.GetPromoRule(ctx, promoRuleID)

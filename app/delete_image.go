@@ -14,15 +14,15 @@ func (a *App) DeleteImageHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeleteImageHandler started")
+		contextLogger.Info("app: DeleteImageHandler started")
 
 		imageID := chi.URLParam(r, "id")
 		if err := a.Service.DeleteImage(ctx, imageID); err != nil {
 			if err == service.ErrImageNotFound {
-				w.WriteHeader(http.StatusNotFound)
+				clientError(w, http.StatusNotFound, ErrCodeImageNotFound, "image not found")
 				return
 			}
-			contextLogger.Errorf("delete image imageID=%q failed: %v", imageID, err)
+			contextLogger.Errorf("app: DeleteImage(ctx, imageID=%q) failed: %+v", imageID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

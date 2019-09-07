@@ -12,12 +12,12 @@ func (a *App) DeleteAddressHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: DeleteAddressHandler started")
+		contextLogger.Info("app: DeleteAddressHandler started")
 
 		id := chi.URLParam(r, "id")
 		err := a.Service.DeleteAddress(ctx, id)
 		if err != nil {
-			contextLogger.Errorf("service DeleteAddress(ctx, %s) failed with error: %v", id, err)
+			contextLogger.Errorf("app: DeleteAddress(ctx, %s) failed with error: %v", id, err)
 			return
 		}
 		w.Header().Del("Content-Type")

@@ -37,42 +37,24 @@ func (a *App) CreatePriceListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: CreatePriceListHandler called")
+		contextLogger.Info("app: CreatePriceListHandler called")
 
 		requestBody := service.PriceListCreate{}
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			http.Error(w, err.Error(), 400)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
 		valid, message := validateCreatePriceListRequest(&requestBody)
 		if !valid {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				message,
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
 			return
 		}
 
 		priceList, err := a.Service.CreatePriceList(ctx, &requestBody)
 		if err != nil {
 			if err == service.ErrPriceListCodeExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodePriceListCodeExists,
-					"price list is already in use",
-				})
+				clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
 				return
 			}
 		}
