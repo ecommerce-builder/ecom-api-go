@@ -24,51 +24,25 @@ func (a *App) UpdateProductPricesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("App: UpdateProductPricesHandler started")
+		contextLogger.Info("app: UpdateProductPricesHandler started")
 
 		productID := r.URL.Query().Get("product_id")
 		priceListID := r.URL.Query().Get("price_list_id")
+		contextLogger.Debugf("app: query params product_id=%q, price_list_id=%q", productID, priceListID)
 
 		var request updatePriceRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				err.Error(),
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
 		prices, err := a.Service.UpdateProductPrices(ctx, productID, priceListID, request.Data)
 		if err != nil {
 			if err == service.ErrProductNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodeProductNotFound,
-					"product not found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
 				return
 			} else if err == service.ErrPriceListNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodePriceListNotFound,
-					"price list not found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
 				return
 			}
 			contextLogger.Errorf("app: UpdateProductPrices(ctx, productID=%q, priceListID=%q, request=%v) failed: %+v", productID, priceListID, request, err)

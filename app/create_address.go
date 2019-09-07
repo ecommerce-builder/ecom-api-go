@@ -14,6 +14,7 @@ type addressResponseBody struct {
 }
 
 func clientError(w http.ResponseWriter, statusCode int, code string, message string) {
+	// 4xx (Client Error): The request contains bad syntax or cannot be fulfilled
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(struct {
 		Status  int    `json:"status"`
@@ -27,6 +28,7 @@ func clientError(w http.ResponseWriter, statusCode int, code string, message str
 }
 
 func serverError(w http.ResponseWriter, statusCode int, code string, message string) {
+	// 5xx (Server Error): The server failed to fulfill an apparently valid request
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(struct {
 		Status  int    `json:"status"`

@@ -40,31 +40,13 @@ func (a *App) AddProductToCartHandler() http.HandlerFunc {
 
 		request := addProductToCartRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				"bad request",
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
 		ok, message := validateAddProductRequestBody(&request)
 		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusBadRequest,
-				ErrCodeBadRequest,
-				message,
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
 			return
 		}
 

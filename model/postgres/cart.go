@@ -207,6 +207,7 @@ func (m *PgModel) AddProductToCart(ctx context.Context, cartUUID, userUUID, prod
 		return nil, errors.Wrapf(err, "postgres: query scan failed q7=%q", q7)
 	}
 
+	// TODO: q8 can return multiple rows for volume and tiered pricing strategies.
 	q8 := `
 		SELECT
 		  c.id, c.uuid, c.product_id, p.uuid, sku, name, qty, unit_price, c.created, c.modified
@@ -216,7 +217,7 @@ func (m *PgModel) AddProductToCart(ctx context.Context, cartUUID, userUUID, prod
 		LEFT OUTER JOIN price AS r
 		  ON r.product_id = p.id
 		WHERE
-		  c.id = $1 AND r.price_list_id = $2
+		  c.id = $1 AND r.price_list_id = $2 AND break = 1
 		ORDER BY created ASC
 	`
 	item := CartProductJoinRow{}
@@ -316,7 +317,7 @@ func (m *PgModel) GetCartProducts(ctx context.Context, cartUUID, userUUID string
 		LEFT OUTER JOIN price AS r
 		  ON r.product_id = p.id
 		WHERE
-		  c.cart_id = $1 AND r.price_list_id = $2
+		  c.cart_id = $1 AND r.price_list_id = $2 AND break = 1
 		ORDER BY created ASC
 	`
 	rows, err := tx.QueryContext(ctx, q5, cartID, priceListID)
@@ -351,9 +352,16 @@ func (m *PgModel) UpdateCartProduct(ctx context.Context, userUUID, cartProductUU
 		return nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
-	q1 := "SELECT id FROM cart_product WHERE uuid = $1"
+	q1 := `
+		SELECT cart_product.id, cart.uuid
+		FROM cart_product
+		INNER JOIN cart
+		  ON cart_product.cart_id = cart.id
+		WHERE cart_product.uuid = $1
+	`
 	var cartProductID int
-	err = tx.QueryRowContext(ctx, q1, cartProductUUID).Scan(&cartProductID)
+	var cartUUID string
+	err = tx.QueryRowContext(ctx, q1, cartProductUUID).Scan(&cartProductID, &cartUUID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
@@ -408,14 +416,15 @@ func (m *PgModel) UpdateCartProduct(ctx context.Context, userUUID, cartProductUU
 
 	q4 := `
 		SELECT
-		  c.id, c.uuid, c.product_id, p.uuid, sku, name, qty, unit_price, c.created, c.modified
+		  c.id, c.uuid, c.product_id, p.uuid as product_uuid, sku, name, c.qty, unit_price,
+		  c.created, c.modified
 		FROM cart_product AS c
 		INNER JOIN product AS p
 		  ON p.id = c.product_id
 		LEFT OUTER JOIN price AS r
 		  ON r.product_id = p.id
 		WHERE
-		  c.id = $1 AND r.price_list_id = $2
+		  c.id = $1 AND r.price_list_id = $2 AND break = 1
 		ORDER BY created ASC
 	`
 	item := CartProductJoinRow{}
@@ -427,6 +436,7 @@ func (m *PgModel) UpdateCartProduct(ctx context.Context, userUUID, cartProductUU
 		}
 		return nil, errors.Wrapf(err, "postgres: query row scan failed for q4=%q", q4)
 	}
+	item.CartUUID = cartUUID
 
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
