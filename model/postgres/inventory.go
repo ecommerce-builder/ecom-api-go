@@ -12,14 +12,10 @@ import (
 // for inventory returns no results.
 var ErrInventoryNotFound = errors.New("postgres: inventory not found")
 
-// A InventoryRow represents a single row from the inventory table.
-type InventoryRow struct {
-	id        int
-	UUID      string
-	productID int
-	Onhand    int
-	Created   time.Time
-	Modified  time.Time
+// InventoryRowUpdate holds the data for a single update used in batch update.
+type InventoryRowUpdate struct {
+	ProductUUID string
+	Onhand      int
 }
 
 // A InventoryJoinRow represents a single row from the inventory table
@@ -167,4 +163,91 @@ func (m *PgModel) UpdateInventoryByUUID(ctx context.Context, inventoryUUID strin
 	}
 
 	return &v, nil
+}
+
+// BatchUpdateInventory updates multiple product inventory, either
+// all completing or none.
+func (m *PgModel) BatchUpdateInventory(ctx context.Context, inventoryList []*InventoryRowUpdate) ([]*InventoryJoinRow, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "postgres: db.BeginTx failed")
+	}
+
+	// 1. Create a map of product uuid to product ids
+	q1 := "SELECT id, uuid, path, sku, name FROM product"
+	rows1, err := tx.QueryContext(ctx, q1)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "postgres: query context q1=%q", q1)
+	}
+	defer rows1.Close()
+
+	type product struct {
+		id   int
+		uuid string
+		path string
+		sku  string
+		name string
+	}
+	productMap := make(map[string]*product)
+	for rows1.Next() {
+		var p product
+		err = rows1.Scan(&p.id, &p.uuid, &p.path, &p.sku, &p.name)
+		if err != nil {
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "postgres: scan failed")
+		}
+		productMap[p.uuid] = &p
+	}
+	if err = rows1.Err(); err != nil {
+		return nil, errors.Wrapf(err, "postgres: rows.Err()")
+	}
+
+	// Iterate the inventory update list passed in to this function.
+	// Ensure that each inventory product exists in the map
+	for _, inv := range inventoryList {
+		if _, ok := productMap[inv.ProductUUID]; !ok {
+			tx.Rollback()
+			return nil, ErrProductNotFound
+		}
+	}
+
+	q2 := `
+		UPDATE inventory
+		SET onhand = $1, modified = NOW()
+		WHERE product_id = $2
+		RETURNING id, uuid, product_id, onhand, created, modified
+	`
+	stmt2, err := tx.PrepareContext(ctx, q2)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.Wrapf(err, "postgres: tx prepare for q2=%q", q2)
+	}
+	defer stmt2.Close()
+
+	inventoryResults := make([]*InventoryJoinRow, 0, len(inventoryList))
+	for _, i := range inventoryList {
+		product := productMap[i.ProductUUID]
+
+		inventory := InventoryJoinRow{}
+		if err := stmt2.QueryRowContext(ctx, i.Onhand, product.id).Scan(&inventory.id, &inventory.UUID, &inventory.productID, &inventory.Onhand, &inventory.Created, &inventory.Modified); err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrProductCategoryNotFound
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "postgres: stmt2.QueryRowContext(ctx, ...) failed q2%q", q2)
+		}
+		inventory.ProductUUID = product.uuid
+		inventory.ProductPath = product.path
+		inventory.ProductSKU = product.sku
+
+		inventoryResults = append(inventoryResults, &inventory)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
+	}
+
+	return inventoryResults, nil
 }

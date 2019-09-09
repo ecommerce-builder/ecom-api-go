@@ -75,7 +75,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpAddImage, OpDeleteImage, OpDeleteAllProductImages,
 			OpCreatePriceList, OpListPriceLists, OpUpdatePriceList, OpDeletePriceList,
 			OpCreatePromoRule, OpDeletePromoRule, OpGetPromoRule, OpListPromoRules,
-			OpUpdateInventory:
+			OpUpdateInventory, OpBatchUpdateInventory:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return

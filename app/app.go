@@ -167,9 +167,10 @@ const (
 	OpDeleteTierPricing string = "OpDeleteTierPricing"
 
 	// Inventory
-	OpGetInventory    string = "OpGetInventory"
-	OpListInventory   string = "OpListInventory"
-	OpUpdateInventory string = "OpUpdateInventory"
+	OpGetInventory         string = "OpGetInventory"
+	OpListInventory        string = "OpListInventory"
+	OpUpdateInventory      string = "OpUpdateInventory"
+	OpBatchUpdateInventory string = "OpBatchUpdateInventory"
 
 	// Promotion Rules
 	OpCreatePromoRule string = "OpCreatePromoRule"

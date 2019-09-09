@@ -13,6 +13,12 @@ import (
 // for inventory returns no results.
 var ErrInventoryNotFound = errors.New("service: inventory not found")
 
+// InventoryUpdateRequest for a single inventory update.
+type InventoryUpdateRequest struct {
+	ProductID string `json:"product_id"`
+	Onhand    int    `json:"onhold"`
+}
+
 // Inventory holds inventory for a single product
 type Inventory struct {
 	Object      string    `json:"object"`
@@ -131,4 +137,41 @@ func (s *Service) UpdateInventory(ctx context.Context, inventoryID string, onhol
 		Modified:    v.Modified,
 	}
 	return &inventory, nil
+}
+
+// BatchUpdateInventory updates the inventory for multiple products in a single operations.
+func (s *Service) BatchUpdateInventory(ctx context.Context, inventoryUpdates []*InventoryUpdateRequest) ([]*Inventory, error) {
+	inventoryRows := make([]*postgres.InventoryRowUpdate, 0, len(inventoryUpdates))
+	for _, i := range inventoryUpdates {
+		pinv := postgres.InventoryRowUpdate{
+			ProductUUID: i.ProductID,
+			Onhand:      i.Onhand,
+		}
+		inventoryRows = append(inventoryRows, &pinv)
+	}
+
+	list, err := s.model.BatchUpdateInventory(ctx, inventoryRows)
+	if err != nil {
+		if err == postgres.ErrProductNotFound {
+			return nil, ErrProductNotFound
+		}
+		return nil, errors.Wrap(err, "s.model.BatchUpdateInventory(ctx, inventoryRows) failed")
+	}
+
+
+	results := make([]*Inventory, 0, len(list))
+	for _, i := range list {
+		pc := Inventory{
+			Object:       "inventory",
+			ID:           i.UUID,
+			ProductID:    i.ProductUUID,
+			ProductPath:  i.ProductPath,
+			ProductSKU:   i.ProductSKU,
+			Onhand:       i.Onhand,
+			Created:      i.Created,
+			Modified:     i.Modified,
+		}
+		results = append(results, &pc)
+	}
+	return results, nil
 }

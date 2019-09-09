@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
@@ -220,7 +219,6 @@ func (s *Service) UpdateProductsCategories(ctx context.Context, cpcs []*CreatePr
 		return nil, errors.Wrap(err, "s.model.UpdateProductsCategories(ctx, createProductsCategories) failed")
 	}
 
-	fmt.Printf("%#v\n", len(list))
 	results := make([]*ProductsCategories, 0, len(list))
 	for _, l := range list {
 		pc := ProductsCategories{
