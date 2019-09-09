@@ -9,7 +9,7 @@ import (
 )
 
 // ErrPromoRuleNotFound error
-var ErrPromoRuleNotFound = errors.New("model: promo rule not found")
+var ErrPromoRuleNotFound = errors.New("postgres: promo rule not found")
 
 // PromoRuleRow maps to a single row in the promo_rule table.
 type PromoRuleRow struct {
@@ -49,7 +49,7 @@ func (m *PgModel) CreatePromoRule(ctx context.Context, pr *PromoRuleCreate) (*Pr
 	r := PromoRuleRow{}
 	row := m.db.QueryRowContext(ctx, q1, pr.Name, pr.StartsAt, pr.EndsAt, pr.Amount, pr.TotalThreshold, pr.Type, pr.Target)
 	if err := row.Scan(&r.id, &r.UUID, &r.Name, &r.StartsAt, &r.EndsAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
-		return nil, errors.Wrapf(err, "query row context q1=%q", q1)
+		return nil, errors.Wrapf(err, "postgres: query row context q1=%q", q1)
 	}
 	return &r, nil
 }
@@ -67,7 +67,7 @@ func (m *PgModel) GetPromoRule(ctx context.Context, promoRuleUUID string) (*Prom
 		if err == sql.ErrNoRows {
 			return nil, ErrPromoRuleNotFound
 		}
-		return nil, errors.Wrapf(err, "model: query row context scan query=%q promoRuleUUID=%q failed", q1, promoRuleUUID)
+		return nil, errors.Wrapf(err, "postgres: query row context scan query=%q promoRuleUUID=%q failed", q1, promoRuleUUID)
 	}
 	return &p, nil
 }
@@ -81,7 +81,7 @@ func (m *PgModel) GetPromoRules(ctx context.Context) ([]*PromoRuleRow, error) {
 	`
 	rows, err := m.db.QueryContext(ctx, q1)
 	if err != nil {
-		return nil, errors.Wrapf(err, "model: m.db.QueryContext(ctx) failed")
+		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
 	}
 	defer rows.Close()
 
@@ -92,12 +92,12 @@ func (m *PgModel) GetPromoRules(ctx context.Context) ([]*PromoRuleRow, error) {
 			if err == sql.ErrNoRows {
 				return nil, ErrPromoRuleNotFound
 			}
-			return nil, errors.Wrap(err, "model: scan failed")
+			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		rules = append(rules, &p)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows.Err()")
+		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return rules, nil
 }
@@ -106,7 +106,7 @@ func (m *PgModel) GetPromoRules(ctx context.Context) ([]*PromoRuleRow, error) {
 func (m *PgModel) DeletePromoRule(ctx context.Context, promoRuleUUID string) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, "model: db.BeginTx")
+		return errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
 	q1 := "SELECT id FROM promo_rule WHERE uuid = $1"
@@ -118,18 +118,18 @@ func (m *PgModel) DeletePromoRule(ctx context.Context, promoRuleUUID string) err
 			return ErrPromoRuleNotFound
 		}
 		tx.Rollback()
-		return errors.Wrapf(err, "model: query row context failed for q1=%q", q1)
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
 	q2 := "DELETE FROM promo_rule WHERE id = $1"
 	_, err = tx.ExecContext(ctx, q2, promoRuleID)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "model: exec context q2=%q", q2)
+		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
 	}
 
 	if err = tx.Commit(); err != nil {
-		return errors.Wrap(err, "model: tx.Commit")
+		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil
 }

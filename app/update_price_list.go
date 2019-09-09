@@ -10,7 +10,7 @@ import (
 )
 
 // UpdatePriceListHandler creates a handler function that updates
-// as price list with the given price list id.
+// a price list with the given price list id.
 func (a *App) UpdatePriceListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
