@@ -44,7 +44,9 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		product, err := a.Service.CreateProduct(ctx, &request)
+		userID := ctx.Value(ecomUIDKey).(string)
+		contextLogger.Debugf("app: ecom_uid=%q", userID)
+		product, err := a.Service.CreateProduct(ctx, userID, &request)
 		if err != nil {
 			if err == service.ErrPriceListNotFound {
 				clientError(w, http.StatusConflict, ErrCodePriceListNotFound, "price list could not be found")
@@ -60,6 +62,8 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+		contextLogger.Infof("app: product %q created", product.ID)
+
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(product)
 	}

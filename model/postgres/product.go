@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // PriceEntry contains a tier reference and unit price pair
@@ -130,7 +131,10 @@ func (m *PgModel) ProductsExist(ctx context.Context, productIDs []string) ([]str
 }
 
 // CreateProduct updates the details of a product with the given product id.
-func (m *PgModel) CreateProduct(ctx context.Context, path, sku, name string) (*ProductRow, error) {
+func (m *PgModel) CreateProduct(ctx context.Context, userUUID string, path, sku, name string) (*ProductRow, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("postgres: CreateProduct(ctx, userUUID=%s, path=%s, sku=%s, name=%q) called", userUUID, path, sku, name)
+
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx failed")
@@ -155,7 +159,35 @@ func (m *PgModel) CreateProduct(ctx context.Context, path, sku, name string) (*P
 		return nil, ErrProductSKUExists
 	}
 
-	q3 := `
+	// 3. Determine the price list the user is on.
+	var priceListID int
+	if userUUID != "" {
+		q3 := "SELECT price_list_id FROM usr WHERE uuid = $1"
+		err = tx.QueryRowContext(ctx, q3, userUUID).Scan(&priceListID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrUserNotFound
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "postgres: query row context failed for query=%q", q3)
+		}
+		contextLogger.Debugf("postgres: userUUID=%s is on priceListID=%d", userUUID, priceListID)
+	} else {
+		contextLogger.Debugf("postgres: userUUID not set. Trying to determine priceListID using the default price list code")
+		q4 := "SELECT id FROM price_list WHERE code = 'default'"
+		err = tx.QueryRowContext(ctx, q4).Scan(&priceListID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return nil, ErrDefaultPriceListNotFound
+			}
+			tx.Rollback()
+			return nil, errors.Wrapf(err, "postgres: query row context failed for query=%q", q4)
+		}
+	}
+
+	q4 := `
 		INSERT INTO product
 		  (path, sku, name, created, modified)
 		VALUES
@@ -164,11 +196,22 @@ func (m *PgModel) CreateProduct(ctx context.Context, path, sku, name string) (*P
 		  id, uuid, path, sku, name, created, modified
 	`
 	p := ProductRow{}
-	row := tx.QueryRowContext(ctx, q3, path, sku, name)
+	row := tx.QueryRowContext(ctx, q4, path, sku, name)
 	if err := row.Scan(&p.id, &p.UUID, &p.Path, &p.SKU, &p.Name, &p.Created, &p.Modified); err != nil {
 		tx.Rollback()
-		return nil, errors.Wrapf(err, "postgres: query row context query=%q failed", q3)
+		return nil, errors.Wrapf(err, "postgres: query row context q4=%q failed", q4)
 	}
+	contextLogger.Debugf("postgres: q4 created new product with product.id=%d, product.UUID=%s", p.id, p.UUID)
+
+	q5 := `
+		INSERT INTO price (product_id, price_list_id, break, unit_price)
+		VALUES ($1, $2, 1, 0)
+	`
+	_, err = tx.ExecContext(ctx, q5, p.id, priceListID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "postgres: tx.ExecContext(ctx, q5=%q, %s)", q5, p.id)
+	}
+	contextLogger.Debugf("postgres: q5 created a single empty price for product.id=%d, p.UUID=%s", p.id, p.UUID)
 
 	// Delete all existing products. This is not the most efficient
 	// way, but is easier that comparing the state of a list of new

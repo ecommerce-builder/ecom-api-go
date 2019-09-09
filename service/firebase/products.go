@@ -75,7 +75,7 @@ type ProductList struct {
 }
 
 // CreateProduct update and existing product by ID.
-func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBody) (*Product, error) {
+func (s *Service) CreateProduct(ctx context.Context, userID string, pc *ProductCreateRequestBody) (*Product, error) {
 	// imagesReq := make([]*postgres.CreateImage, 0, 4)
 	// for _, i := range pc.Images {
 	// 	img := postgres.CreateImage{
@@ -99,7 +99,7 @@ func (s *Service) CreateProduct(ctx context.Context, pc *ProductCreateRequestBod
 	// 	}
 	// 	pricingReq = append(pricingReq, &item)
 	// }
-	p, err := s.model.CreateProduct(ctx, pc.Path, pc.SKU, pc.Name)
+	p, err := s.model.CreateProduct(ctx, userID, pc.Path, pc.SKU, pc.Name)
 	if err != nil {
 		if err == postgres.ErrPriceListNotFound {
 			return nil, ErrPriceListNotFound
