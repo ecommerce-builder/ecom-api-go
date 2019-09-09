@@ -4,6 +4,13 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
+// Inventory
+const (
+	// ErrCodeInventoryNotFound is sent when failing to retrive any inventory for both list
+	// and get operations.
+	ErrCodeInventoryNotFound string = "inventory/inventory-not-found"
+)
+
 const (
 	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
 	ErrCodeInternalServerError string = "internal-server-error"
@@ -161,6 +168,7 @@ const (
 
 	// Inventory
 	OpGetInventory    string = "OpGetInventory"
+	OpListInventory   string = "OpListInventory"
 	OpUpdateInventory string = "OpUpdateInventory"
 
 	// Promotion Rules

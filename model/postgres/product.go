@@ -209,9 +209,19 @@ func (m *PgModel) CreateProduct(ctx context.Context, userUUID string, path, sku,
 	`
 	_, err = tx.ExecContext(ctx, q5, p.id, priceListID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: tx.ExecContext(ctx, q5=%q, %s)", q5, p.id)
+		return nil, errors.Wrapf(err, "postgres: tx.ExecContext(ctx, q5=%q, %d)", q5, p.id)
 	}
 	contextLogger.Debugf("postgres: q5 created a single empty price for product.id=%d, p.UUID=%s", p.id, p.UUID)
+
+	// 6. Set the inventory for this product to onhold = 0
+	q6 := `
+		INSERT INTO inventory (product_id, onhand, created, modified)
+		VALUES ($1, 0, NOW(), NOW())
+	`
+	_, err = tx.ExecContext(ctx, q6, p.id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "postgres: tx.ExecContext(ctx, q6=%q, %d)", q6, p.id)
+	}
 
 	// Delete all existing products. This is not the most efficient
 	// way, but is easier that comparing the state of a list of new
