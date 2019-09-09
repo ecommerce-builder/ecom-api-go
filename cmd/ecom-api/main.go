@@ -614,8 +614,10 @@ func main() {
 
 		// Inventory
 		r.Route("/inventory", func(r chi.Router) {
-			// r.Get("/", a.Authorization(app.OpGetInventory, a.GetInventoryHandler())
-			// r.Put("/", a.Authorization(app.OpUpdateInventory, a.UpdateInventoryHandler())
+			r.Get("/", a.Authorization(app.OpListInventory, a.ListInventoryHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetInventory, a.GetInventoryHandler()))
+			r.Patch("/{id}", a.Authorization(app.OpUpdateInventory, a.UpdateInventoryHandler()))
+			r.Patch("/", a.Authorization(app.OpBatchUpdateInventory, a.BatchUpdateInventoryHandler()))
 		})
 
 		r.Route("/promo-rules", func(r chi.Router) {
