@@ -11,6 +11,15 @@ const (
 	ErrCodeInventoryNotFound string = "inventory/inventory-not-found"
 )
 
+// Shipping Tarrifs
+const (
+	// ErrCodeShippingTarrifCodeExists error
+	ErrCodeShippingTarrifCodeExists string = "shipping-tarrifs/shipping-tarrif-code-exists"
+
+	// ErrCodeShippingTarrifNotFound error
+	ErrCodeShippingTarrifNotFound string = "shipping-tarrifs/shipping-tarrif-not-found"
+)
+
 const (
 	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
 	ErrCodeInternalServerError string = "internal-server-error"
@@ -171,6 +180,13 @@ const (
 	OpListInventory        string = "OpListInventory"
 	OpUpdateInventory      string = "OpUpdateInventory"
 	OpBatchUpdateInventory string = "OpBatchUpdateInventory"
+
+	// Shipping Tarrifs
+	OpCreateShippingTarrif string = "OpCreateShippingTarrif"
+	OpGetShippingTarrif    string = "OpGetShippingTarrif"
+	OpListShippingTarrifs  string = "OpListShippingTarrifs"
+	OpUpdateShippingTarrif string = "OpUpdateShippingTarrif"
+	OpDeleteShippingTarrif string = "OpDeleteShippingTarrif"
 
 	// Promotion Rules
 	OpCreatePromoRule string = "OpCreatePromoRule"

@@ -649,6 +649,15 @@ func main() {
 			r.Put("/", a.Authorization(app.OpUpdateProductPrices, a.UpdateProductPricesHandler()))
 		})
 
+		// Shipping Tarrifs
+		r.Route("/shipping-tarrifs", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreateShippingTarrif, a.CreateShippingTarrifHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetShippingTarrif, a.GetShippingTarrifHandler()))
+			r.Get("/", a.Authorization(app.OpListShippingTarrifs, a.ListShippingTarrifsHandler()))
+			r.Put("/{id}", a.Authorization(app.OpUpdateShippingTarrif, a.UpdateShippingTarrifHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteShippingTarrif, a.DeleteShippingTarrifHandler()))
+		})
+
 		// Carts
 		r.Route("/carts", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateCart, a.CreateCartHandler()))
