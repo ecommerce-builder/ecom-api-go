@@ -169,6 +169,7 @@ func (s *Service) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 func (s *Service) GetUser(ctx context.Context, userID string) (*User, error) {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Debugf("service: GetUser(ctx, userID=%q)", userID)
+
 	c, err := s.model.GetUserByUUID(ctx, userID)
 	if err != nil {
 		if err == postgres.ErrUserNotFound {
