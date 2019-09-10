@@ -628,6 +628,14 @@ func main() {
 			r.Delete("/{id}", a.Authorization(app.OpDeletePromoRule, a.DeletePromoRuleHandler()))
 		})
 
+		// Offers
+		r.Route("/offers", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpActivateOffer, a.ActivateOfferHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetOffer, a.GetOfferHandler()))
+			r.Get("/", a.Authorization(app.OpListOffers, a.ListOffersHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeactivateOffer, a.DeactivateOfferHandler()))
+		})
+
 		// Product Set Items
 		r.Route("/", func(r chi.Router) {
 			r.Get("/{id}", a.Authorization(app.OpGetProductSetItems, a.GetProductSetItemsHandler()))

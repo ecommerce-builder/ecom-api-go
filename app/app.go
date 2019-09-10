@@ -26,6 +26,12 @@ const (
 	ErrCodeProductSetNotFound string = "product-sets/product-set-not-found"
 )
 
+// Offers
+const (
+	// ErrCodeOfferNotFound error
+	ErrCodeOfferNotFound string = "offers/offer-not-found"
+)
+
 const (
 	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
 	ErrCodeInternalServerError string = "internal-server-error"
@@ -42,7 +48,7 @@ const (
 	ErrCodeNoCatalog string = "catalog/no-catalog"
 
 	// ErrCodeCategoryNotFound is sent when referencing a category with an invalid uuid.
-	ErrCodeCategoryNotFound string = "category/category-not-found"
+	ErrCodeCategoryNotFound string = "categories/category-not-found"
 
 	// ErrCodeCategoryNotLeaf is sent when trying to link a product to a non-leaf category.
 	ErrCodeCategoryNotLeaf string = "category/category-not-leaf"
@@ -202,6 +208,12 @@ const (
 	OpGetPromoRule    string = "OpGetPromoRule"
 	OpListPromoRules  string = "OpListPromoRules"
 	OpDeletePromoRule string = "OpDeletePromoRule"
+
+	// Offers
+	OpActivateOffer   string = "OpActivateOffer"
+	OpGetOffer        string = "OpGetOffer"
+	OpListOffers      string = "OpListOffers"
+	OpDeactivateOffer string = "OpDeactivateOffer"
 
 	// Image
 	OpAddImage               string = "OpAddImage"
