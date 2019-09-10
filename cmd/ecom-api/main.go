@@ -620,11 +620,17 @@ func main() {
 			r.Patch("/", a.Authorization(app.OpBatchUpdateInventory, a.BatchUpdateInventoryHandler()))
 		})
 
+		// Promo Rules
 		r.Route("/promo-rules", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreatePromoRule, a.CreatePromoRuleHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetPromoRule, a.GetPromoRuleHandler()))
 			r.Get("/", a.Authorization(app.OpListPromoRules, a.ListPromoRulesHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeletePromoRule, a.DeletePromoRuleHandler()))
+		})
+
+		// Product Set Items
+		r.Route("/", func(r chi.Router) {
+			r.Get("/{id}", a.Authorization(app.OpGetProductSetItems, a.GetProductSetItemsHandler()))
 		})
 
 		// Products, images and prices

@@ -47,10 +47,6 @@ func TestUpdateProduct(t *testing.T) {
 	pu := &ProductCreateUpdate{
 		Path: "updated-url",
 		Name: "Updated Name",
-		Content: ProductContent{
-			Description:   "Updated Description",
-			Specification: "Updated Specification",
-		},
 	}
 	pr, err := model.UpdateProduct(ctx, "DESK-SKU", pu)
 	if err != nil {
@@ -235,7 +231,6 @@ func TestCreateImageEntry(t *testing.T) {
 	ctx := context.Background()
 	cpis := []CreateImage{
 		{ // 0
-			SKU:   "WATER",
 			W:     800,
 			H:     600,
 			Path:  "products/WATER/images/originals/front_view.jpg",
@@ -248,7 +243,6 @@ func TestCreateImageEntry(t *testing.T) {
 			Data:  nil,
 		},
 		{ // 1
-			SKU:   "TV",
 			W:     700,
 			H:     300,
 			Path:  "products/TV/images/originals/side_view.jpg",
@@ -261,7 +255,6 @@ func TestCreateImageEntry(t *testing.T) {
 			Data:  nil,
 		},
 		{ // 2
-			SKU:   "TV",
 			W:     700,
 			H:     300,
 			Path:  "products/TV/images/originals/rear_view.jpg",
@@ -282,7 +275,6 @@ func TestCreateImageEntry(t *testing.T) {
 			if err != nil {
 				t.Fatalf("CreateImageEntry(ctx, %v): %s", c, err)
 			}
-			assert.Equal(t, cpis[i].SKU, pis[i].SKU)
 			assert.Equal(t, int(cpis[i].W), pis[i].W)
 			assert.Equal(t, int(cpis[i].H), pis[i].H)
 			assert.Equal(t, cpis[i].Path, pis[i].Path)
@@ -303,7 +295,6 @@ func TestCreateImageEntry(t *testing.T) {
 		}
 		assert.Equal(t, int(1), cp.productID)
 		assert.Equal(t, pis[0].UUID, cp.UUID)
-		assert.Equal(t, "WATER", cp.SKU)
 		assert.Equal(t, int(800), cp.W)
 		assert.Equal(t, int(600), cp.H)
 		assert.Equal(t, "products/WATER/images/originals/front_view.jpg", pis[0].Path)
@@ -324,7 +315,6 @@ func TestCreateImageEntry(t *testing.T) {
 			idx := j + 1
 			assert.Equal(t, int(pis[idx].ProductID), p.productID)
 			assert.Equal(t, pis[idx].UUID, p.UUID)
-			assert.Equal(t, pis[idx].SKU, p.SKU)
 			assert.Equal(t, int(pis[idx].W), p.W)
 			assert.Equal(t, int(pis[idx].H), p.H)
 			assert.Equal(t, pis[idx].Path, p.Path)

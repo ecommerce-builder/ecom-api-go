@@ -20,6 +20,12 @@ const (
 	ErrCodeShippingTarrifNotFound string = "shipping-tarrifs/shipping-tarrif-not-found"
 )
 
+// Product Set Items
+const (
+	// ErrCodeProductSetNotFound error
+	ErrCodeProductSetNotFound string = "product-sets/product-set-not-found"
+)
+
 const (
 	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
 	ErrCodeInternalServerError string = "internal-server-error"
@@ -180,6 +186,9 @@ const (
 	OpListInventory        string = "OpListInventory"
 	OpUpdateInventory      string = "OpUpdateInventory"
 	OpBatchUpdateInventory string = "OpBatchUpdateInventory"
+
+	// Product Set Items
+	OpGetProductSetItems string = "OpGetProductSetItems"
 
 	// Shipping Tarrifs
 	OpCreateShippingTarrif string = "OpCreateShippingTarrif"

@@ -86,7 +86,6 @@ func (m *PgModel) CreateUser(ctx context.Context, uid, role, email, firstname, l
 
 // GetUsers gets the next size user starting at page page
 func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*PaginationResultSet, error) {
-	fmt.Printf("%+v\n", pq)
 	q := NewQuery("usr", map[string]bool{
 		"id":            true,
 		"uuid":          false,
@@ -155,7 +154,6 @@ func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 		return nil, errors.Wrapf(err, "postgres: query row context query=%q", sql)
 	}
 
-	fmt.Printf("%#+v\n", q)
 	rows, err := m.QueryContextQ(ctx, q)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: model query context q=%v", q)

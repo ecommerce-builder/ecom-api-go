@@ -1991,11 +1991,11 @@ components:
         name:
           type: string
           example: 'Summer specials'
-        starts_at:
+        start_at:
           type: string
           format: date-time
           example: '2019-08-20T21:30:21.984856Z'
-        ends_at:
+        end_at:
           type: string
           format: date-time
           example: '2019-09-20T21:30:21.984856Z'
@@ -2026,11 +2026,11 @@ components:
         name:
           type: string
           example: 'Summer specials'
-        starts_at:
+        start_at:
           type: string
           format: date-time
           example: '2019-08-20T21:30:21.984856Z'
-        ends_at:
+        end_at:
           type: string
           format: date-time
           example: '2019-09-20T21:30:21.984856Z'
