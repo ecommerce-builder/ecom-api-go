@@ -606,19 +606,21 @@ func (m *PgModel) DeleteProduct(ctx context.Context, productUUID string) error {
 	}
 
 	// 8. Remove the product from any product sets to which it belongs (many to many)
-	q8 := "DELETE FROM product_set_list WHERE product_id = $1"
+	q8 := "DELETE FROM product_set_item WHERE product_id = $1"
 	_, err = tx.ExecContext(ctx, q8, productID)
 	if err != nil {
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: exec context q8=%q failed", q8)
 	}
 
-	// 9. Delete the product
-	q9 := "DELETE FROM product WHERE id = $1"
-	_, err = tx.ExecContext(ctx, q9, productID)
+	// TODO: 9. Delete the empty product set.
+
+	// 10. Delete the product
+	q10 := "DELETE FROM product WHERE id = $1"
+	_, err = tx.ExecContext(ctx, q10, productID)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "exec context q9=%q", q9)
+		return errors.Wrapf(err, "exec context q10=%q", q10)
 	}
 
 	if err = tx.Commit(); err != nil {

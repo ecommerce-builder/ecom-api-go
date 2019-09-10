@@ -58,7 +58,6 @@ func (a *App) ListUsersHandler() http.HandlerFunc {
 			return
 		}
 
-		fmt.Printf("%+v\n", pq)
 		paginationResultSet, err := a.Service.GetUsers(ctx, pq)
 		if err != nil {
 			log.Errorf("app: GetUsers(ctx) error: %+v", err)
@@ -75,8 +74,6 @@ func (a *App) ListUsersHandler() http.HandlerFunc {
 			Data   interface{} `json:"data"`
 			Links  links       `json:"links"`
 		}
-
-		fmt.Printf("%#v\n", paginationResultSet)
 
 		results := result{
 			Object: "list",

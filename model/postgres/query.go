@@ -135,9 +135,6 @@ func (q *Query) EndBefore(s string) *Query {
 // QueryContextQ builds an SQL statement based on the given Query q and
 // returns make a call to sql.QueryContext returning a *sql.Rows.
 func (m *PgModel) QueryContextQ(ctx context.Context, q *Query) (*sql.Rows, error) {
-
-	fmt.Printf("%#v\n", q)
-
 	for _, v := range q.sel {
 		_, ok := q.sfields[v]
 		if !ok {

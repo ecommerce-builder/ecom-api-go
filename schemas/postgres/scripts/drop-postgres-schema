@@ -12,7 +12,7 @@ echo "DROP TABLE IF EXISTS usr" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS offer" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS promo_rule" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS shipping_tarrif" | psql --no-psqlrc ecom_dev > /dev/null
-echo "DROP TABLE IF EXISTS product_set_list" | psql --no-psqlrc ecom_dev > /dev/null
+echo "DROP TABLE IF EXISTS product_set_item" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS product_set" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP VIEW IF EXISTS category_leaf" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS product_category" | psql --no-psqlrc ecom_dev > /dev/null
