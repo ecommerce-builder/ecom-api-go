@@ -32,6 +32,18 @@ const (
 	ErrCodeOfferNotFound string = "offers/offer-not-found"
 )
 
+// Coupons
+const (
+	// ErrCodeCouponNotFound error
+	ErrCodeCouponNotFound string = "coupons/coupon-not-found"
+
+	// ErrCodeCouponExists error
+	ErrCodeCouponExists string = "coupons/coupon-exists"
+
+	// ErrCodeCouponInUse occurs when trying to delete a coupon that is in a cart.
+	ErrCodeCouponInUse string = "coupons/coupon-in-use"
+)
+
 const (
 	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
 	ErrCodeInternalServerError string = "internal-server-error"
@@ -214,6 +226,13 @@ const (
 	OpGetOffer        string = "OpGetOffer"
 	OpListOffers      string = "OpListOffers"
 	OpDeactivateOffer string = "OpDeactivateOffer"
+
+	// Coupons
+	OpCreateCoupon string = "OpCreateCoupon"
+	OpGetCoupon    string = "OpGetCoupon"
+	OpListCoupons  string = "OpListCoupons"
+	OpUpdateCoupon string = "OpUpdateCoupon"
+	OpDeleteCoupon string = "OpDeleteCoupon"
 
 	// Image
 	OpAddImage               string = "OpAddImage"
