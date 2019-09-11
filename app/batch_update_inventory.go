@@ -68,7 +68,7 @@ func (a *App) BatchUpdateInventoryHandler() http.HandlerFunc {
 				return
 			}
 
-			contextLogger.Info("app:a.Service.BatchUpdateInventory(ctx, request.Data) failed: %+v", err)
+			contextLogger.Infof("app: a.Service.BatchUpdateInventory(ctx, request.Data) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

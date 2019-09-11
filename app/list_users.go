@@ -26,11 +26,16 @@ func paginationQueryFromQueryParams(v url.Values) (*service.PaginationQuery, err
 
 	orderBy := v.Get("order_by")
 	var orderDirection string
-	if orderBy[0:1] == "-" {
-		orderDirection = "desc"
-		orderBy = orderBy[1:]
+	if orderBy != "" {
+		if orderBy[0:1] == "-" {
+			orderDirection = "desc"
+			orderBy = orderBy[1:]
+		} else {
+			orderDirection = "asc"
+		}
 	} else {
-		orderDirection = "asc"
+		orderBy = "created"
+		orderDirection = "desc"
 	}
 
 	pq := &service.PaginationQuery{

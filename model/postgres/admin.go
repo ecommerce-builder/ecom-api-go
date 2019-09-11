@@ -6,21 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GetAdmin returns a user of role admin for the given UUID.
-func (m *PgModel) GetAdmin(ctx context.Context, uuid string) (*UsrRow, error) {
-	query := `
-		SELECT
-		  id, uuid, uid, role, email, firstname, lastname, created, modified
-		FROM usr WHERE uuid = $1 AND role = 'admin'
-	`
-	u := UsrRow{}
-	row := m.db.QueryRowContext(ctx, query, uuid)
-	if err := row.Scan(&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
-		return nil, errors.Wrapf(err, "postgres: query row context scan query=%q User=%v", query, u)
-	}
-	return &u, nil
-}
-
 // GetAllAdmins returns a slice of users who are all of role admin
 func (m *PgModel) GetAllAdmins(ctx context.Context) ([]*UsrRow, error) {
 	query := `
@@ -58,15 +43,4 @@ func (m *PgModel) IsAdmin(ctx context.Context, uuid string) (bool, error) {
 		return false, errors.Wrapf(err, "postgres: db.QueryRow(ctx, %s)", query)
 	}
 	return exists, nil
-}
-
-// DeleteAdminByUUID deletes the administrator from the usr table
-// with the given UUID.
-func (m *PgModel) DeleteAdminByUUID(ctx context.Context, uuid string) error {
-	query := `DELETE FROM usr WHERE uuid = $1 AND role = 'admin'`
-	_, err := m.db.ExecContext(ctx, query, uuid)
-	if err != nil {
-		return errors.Wrapf(err, "postgres: exec context query=%q", query)
-	}
-	return nil
 }
