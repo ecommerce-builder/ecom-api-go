@@ -22,7 +22,7 @@ func (a *App) DeactivateOfferHandler() http.HandlerFunc {
 				clientError(w, http.StatusNotFound, ErrCodeOfferNotFound, "offer not found")
 				return
 			}
-			contextLogger.Errorf("app: a.Service.DeactivateOffer(ctx, offerID) failed: %+v", offerID, err)
+			contextLogger.Errorf("app: a.Service.DeactivateOffer(ctx, offerID=%q) failed: %+v", offerID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

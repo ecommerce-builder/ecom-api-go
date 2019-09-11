@@ -52,7 +52,7 @@ func (a *App) UpdateShippingTarrifHandler() http.HandlerFunc {
 				return
 			}
 
-			contextLogger.Errorf("app: a.Service.UpdateShippingTarrif(ctx, shippingTarrifID, countryCode, shippingCode, name, price, taxCode) failed: %+v", request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
+			contextLogger.Errorf("app: a.Service.UpdateShippingTarrif(ctx, shippingTarrifID=%q, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", shippingTarrifID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

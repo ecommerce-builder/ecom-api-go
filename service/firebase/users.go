@@ -14,8 +14,17 @@ import (
 // ErrUserNotFound is returned when a user does not exist in the database.
 var ErrUserNotFound = errors.New("service: user not found")
 
+// ErrUserExists is returned when attempting to create a new user that
+// already exists.
+var ErrUserExists = errors.New("service: user exists")
+
+// ErrUserInUse is returned when attempting to delete
+// a user that has previously placed orders
+var ErrUserInUse = errors.New("service: user in use")
+
 // User details
 type User struct {
+	Object      string    `json:"object"`
 	ID          string    `json:"id"`
 	UID         string    `json:"uid"`
 	Role        string    `json:"role"`
@@ -77,14 +86,28 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 	return nil
 }
 
-// CreateUser creates a new user
+// CreateUser attempts creates a new user returning the newly created user
+// or nil with error `ErrUserExists` if that user already exists.
 func (s *Service) CreateUser(ctx context.Context, role, email, password, firstname, lastname string) (*User, error) {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Debugf("s.CreateUser(ctx, role=%q, email=%q, password=%q, firstname=%q, lastname=%q) started", role, email, "*****", firstname, lastname)
+
 	authClient, err := s.fbApp.Auth(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "s.fbApp.Auth(ctx) failed")
 	}
+
+	// check if the user already exists
+	_, err = authClient.GetUserByEmail(ctx, email)
+	if err != nil {
+		if !auth.IsUserNotFound(err) {
+			return nil, errors.Wrapf(err, "authClient.GetUserByEmail(ctx, email=%q) failed", email)
+		}
+	} else {
+		contextLogger.Infof("user with email=%q already exists", email)
+		return nil, ErrUserExists
+	}
+
 	user := (&auth.UserToCreate{}).
 		Email(email).
 		EmailVerified(false).
@@ -93,12 +116,13 @@ func (s *Service) CreateUser(ctx context.Context, role, email, password, firstna
 		Disabled(false)
 	userRecord, err := authClient.CreateUser(ctx, user)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "authClient.CreateUser(ctx, user) failed")
 	}
+	contextLogger.Infof("firebase auth user (uid=%q) created", userRecord.UID)
 
 	c, err := s.model.CreateUser(ctx, userRecord.UID, role, email, firstname, lastname)
 	if err != nil {
-		return nil, fmt.Errorf("model.CreateUser(%s, %s, %s, %s, %s) failed: %v", userRecord.UID, role, email, firstname, lastname, err)
+		return nil, errors.Wrapf(err, "service: s.model.CreateUser(ctx, uid=%q, role=%q, email=%q, firstname=%q, lastname=%q) failed: %v", userRecord.UID, role, email, firstname, lastname, err)
 	}
 
 	// Set the custom claims for this user
@@ -109,19 +133,20 @@ func (s *Service) CreateUser(ctx context.Context, role, email, password, firstna
 	if err != nil {
 		return nil, fmt.Errorf("set custom claims for uid=%s uuid=%s role=%s failed: %v", c.UID, c.UUID, role, err)
 	}
+	contextLogger.Infof("firebase custom claims set ecom_uid=%q ecom_role=%q", c.UUID, role)
 
 	ac := User{
-		ID:        c.UUID,
-		UID:       c.UID,
-		Role:      c.Role,
-		Email:     c.Email,
-		Firstname: c.Firstname,
-		Lastname:  c.Lastname,
-		Created:   c.Created,
-		Modified:  c.Modified,
+		Object:      "user",
+		ID:          c.UUID,
+		UID:         c.UID,
+		Role:        c.Role,
+		PriceListID: c.PriceListUUID,
+		Email:       c.Email,
+		Firstname:   c.Firstname,
+		Lastname:    c.Lastname,
+		Created:     c.Created,
+		Modified:    c.Modified,
 	}
-
-	log.Debugf("%+v", ac)
 	return &ac, nil
 }
 
@@ -142,6 +167,7 @@ func (s *Service) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 	results := make([]*User, 0)
 	for _, v := range prs.RSet.([]*postgres.UsrRow) {
 		c := User{
+			Object:    "user",
 			ID:        v.UUID,
 			UID:       v.UID,
 			Role:      v.Role,
@@ -180,6 +206,7 @@ func (s *Service) GetUser(ctx context.Context, userID string) (*User, error) {
 	contextLogger.Debugf("service: s.model.GetUserByUUID(ctx, userUUID=%s) returned %v", userID, c)
 
 	ac := User{
+		Object:    "object",
 		ID:        c.UUID,
 		UID:       c.UID,
 		Role:      c.Role,
@@ -190,4 +217,32 @@ func (s *Service) GetUser(ctx context.Context, userID string) (*User, error) {
 		Modified:  c.Modified,
 	}
 	return &ac, nil
+}
+
+// DeleteUser attempts to delete a user.
+func (s *Service) DeleteUser(ctx context.Context, userID string) error {
+	contextLogger := log.WithContext(ctx)
+
+	authClient, err := s.fbApp.Auth(ctx)
+	if err != nil {
+		return errors.Wrap(err, "service: failed to get firebase auth client")
+	}
+
+	uid, err := s.model.DeleteUserByUUID(ctx, userID)
+	if err != nil {
+		if err == postgres.ErrUserNotFound {
+			return ErrUserNotFound
+		} else if err == postgres.ErrUserInUse {
+			return ErrUserInUse
+		}
+
+		return errors.Wrapf(err, "service: s.model.DeleteUserByUUID(ctx, userUUID=%q) failed", userID)
+	}
+	contextLogger.Infof("service: deleted user userID=%q from the ecom system returning uid=%q", userID, uid)
+
+	if err = authClient.DeleteUser(ctx, uid); err != nil {
+		return errors.Wrapf(err, "service: firebase auth delete user failed for uid=%q", uid)
+	}
+	contextLogger.Infof("service: delete firebase auth user uid=%q", uid)
+	return nil
 }

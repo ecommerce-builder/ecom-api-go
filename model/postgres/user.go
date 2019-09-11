@@ -11,7 +11,11 @@ import (
 
 // ErrUserNotFound is returned when a query for the user
 // could not be found in the database.
-var ErrUserNotFound = errors.New("model: user not found")
+var ErrUserNotFound = errors.New("postgres: user not found")
+
+// ErrUserInUse is returned when attempting to delete
+// a user that has previously placed orders
+var ErrUserInUse = errors.New("postgres: user in use")
 
 // UsrRow holds details of a single row from the usr table.
 type UsrRow struct {
@@ -65,22 +69,35 @@ type PaginationQuery struct {
 }
 
 // CreateUser creates a new user
-func (m *PgModel) CreateUser(ctx context.Context, uid, role, email, firstname, lastname string) (*UsrRow, error) {
-	query := `
+func (m *PgModel) CreateUser(ctx context.Context, uid, role, email, firstname, lastname string) (*UsrJoinRow, error) {
+	// 1. Look up the default price list
+	var priceListID int
+	var priceListUUID string
+	q1 := "SELECT id, uuid FROM price_list WHERE code = 'default'"
+	err := m.db.QueryRowContext(ctx, q1).Scan(&priceListID, &priceListUUID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrDefaultPriceListNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	q2 := `
 		INSERT INTO usr (
-		  uid, role, email, firstname, lastname
+		  uid, price_list_id, role, email, firstname, lastname
 		) VALUES (
-		  $1, $2, $3, $4, $5
+		  $1, $2, $3, $4, $5, $6
 		)
 		RETURNING
-		  id, uuid, uid, role, email, firstname, lastname, created, modified
+		  id, uuid, uid, price_list_id, role, email, firstname, lastname, created, modified
 	`
-	u := UsrRow{}
-	err := m.db.QueryRowContext(ctx, query, uid, role, email, firstname, lastname).Scan(
-		&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified)
+	u := UsrJoinRow{}
+	err = m.db.QueryRowContext(ctx, q2, uid, priceListID, role, email, firstname, lastname).Scan(
+		&u.id, &u.UUID, &u.UID, &u.priceListID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified)
 	if err != nil {
-		return nil, errors.Wrapf(err, "query row context User=%v", u)
+		return nil, errors.Wrapf(err, "scan failed q2=%q", q2)
 	}
+	u.PriceListUUID = priceListUUID
 	return &u, nil
 }
 
@@ -232,4 +249,72 @@ func (m *PgModel) GetUserIDByUUID(ctx context.Context, userUUID string) (int, er
 		return -1, errors.Wrapf(err, "postgres: query row context query=%q", query)
 	}
 	return id, nil
+}
+
+// DeleteUserByUUID deletes the usr row with the given uuid.
+// Returns the firebase uid of the user.
+func (m *PgModel) DeleteUserByUUID(ctx context.Context, usrUUID string) (string, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "postgres: db.BeginTx")
+	}
+
+	// 1. Check the usr exists
+	q1 := "SELECT id, uid FROM usr WHERE uuid = $1"
+	var usrID int
+	var uid string
+	err = tx.QueryRowContext(ctx, q1, usrUUID).Scan(&usrID, &uid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return "", ErrUserNotFound
+		}
+
+		tx.Rollback()
+		return "", errors.Wrapf(err, "postgres: scan failed for q1=%q", q1)
+	}
+
+	// 2. Check if the usr is in use (we only really care if they've previously
+	// placed an order). Having address and devkeys don't count.
+	q2 := `SELECT COUNT(*) AS count FROM "order" WHERE usr_id = $1`
+	var count int
+	err = tx.QueryRowContext(ctx, q2, usrID).Scan(&count)
+	if err != nil {
+		tx.Rollback()
+		return "", errors.Wrapf(err, "postgres: scan failed for q2=%q", q2)
+	}
+	if count > 0 {
+		tx.Rollback()
+		return "", ErrUserInUse
+	}
+
+	// 3. Delete any addresses belonging to this user.
+	q3 := "DELETE FROM address WHERE usr_id = $1"
+	_, err = tx.ExecContext(ctx, q3, usrID)
+	if err != nil {
+		tx.Rollback()
+		return "", errors.Wrapf(err, "postgres: exec context q3=%q", q3)
+	}
+
+	// 4. Delete any devkeys belonging to
+	q4 := "DELETE FROM usr_devkey WHERE usr_id = $1"
+	_, err = tx.ExecContext(ctx, q4, usrID)
+	if err != nil {
+		tx.Rollback()
+		return "", errors.Wrapf(err, "postgres: exec context q4=%q", q4)
+	}
+
+	// 5. Delete the usr
+	q5 := "DELETE FROM usr WHERE uuid = $1"
+	_, err = tx.ExecContext(ctx, q5, usrUUID)
+	if err != nil {
+		tx.Rollback()
+		return "", errors.Wrapf(err, "postgres: exec context q5=%q", q5)
+	}
+
+	if err = tx.Commit(); err != nil {
+		tx.Rollback()
+		return "", errors.Wrap(err, "postgres: tx.Commit")
+	}
+	return uid, nil
 }

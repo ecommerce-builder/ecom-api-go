@@ -572,18 +572,13 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(a.AuthenticateMiddleware)
 		r.Use(stackdm.XCloudTraceContext)
-		r.Route("/admins", func(r chi.Router) {
-			r.Post("/", a.Authorization(app.OpCreateAdmin, a.CreateAdminHandler()))
-			r.Get("/", a.Authorization(app.OpListAdmins, a.ListAdminsHandler()))
-			r.Delete("/{id}", a.Authorization(app.OpDeleteAdmin, a.DeleteAdminHandler()))
-		})
 
 		// Users
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateUser, a.CreateUserHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetUser, a.GetUserHandler()))
 			r.Get("/", a.Authorization(app.OpListUsers, a.ListUsersHandler()))
-
+			r.Delete("/{id}", a.Authorization(app.OpDeleteUser, a.DeleteUserHandler()))
 		})
 
 		// Addresses

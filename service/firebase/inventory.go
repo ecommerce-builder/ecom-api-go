@@ -34,7 +34,7 @@ type Inventory struct {
 // GetInventory returns a single Inventory by id.
 func (s *Service) GetInventory(ctx context.Context, inventoryUUID string) (*Inventory, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Info("service: GetInventory(ctx, inventoryUUID=%q) started", inventoryUUID)
+	contextLogger.Infof("service: GetInventory(ctx, inventoryUUID=%q) started", inventoryUUID)
 
 	inv, err := s.model.GetInventoryByUUID(ctx, inventoryUUID)
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *Service) GetAllInventory(ctx context.Context) ([]*Inventory, error) {
 // GetInventoryByProductID returns an Inventory for the given product.
 func (s *Service) GetInventoryByProductID(ctx context.Context, productID string) (*Inventory, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Infof("GetInventoryByProductID(ctx, productID=%q")
+	contextLogger.Infof("GetInventoryByProductID(ctx, productID=%q", productID)
 
 	v, err := s.model.GetInventoryByProductUUID(ctx, productID)
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *Service) UpdateInventory(ctx context.Context, inventoryID string, onhol
 		if err == postgres.ErrInventoryNotFound {
 			return nil, ErrInventoryNotFound
 		}
-		return nil, errors.Wrapf(err, "s.model.UpdateInventoryByUUID(ctx, inventoryID, onhold) failed", inventoryID, onhold)
+		return nil, errors.Wrapf(err, "s.model.UpdateInventoryByUUID(ctx, inventoryID=%q, onhold=%d) failed", inventoryID, onhold)
 	}
 
 	inventory := Inventory{
@@ -158,18 +158,17 @@ func (s *Service) BatchUpdateInventory(ctx context.Context, inventoryUpdates []*
 		return nil, errors.Wrap(err, "s.model.BatchUpdateInventory(ctx, inventoryRows) failed")
 	}
 
-
 	results := make([]*Inventory, 0, len(list))
 	for _, i := range list {
 		pc := Inventory{
-			Object:       "inventory",
-			ID:           i.UUID,
-			ProductID:    i.ProductUUID,
-			ProductPath:  i.ProductPath,
-			ProductSKU:   i.ProductSKU,
-			Onhand:       i.Onhand,
-			Created:      i.Created,
-			Modified:     i.Modified,
+			Object:      "inventory",
+			ID:          i.UUID,
+			ProductID:   i.ProductUUID,
+			ProductPath: i.ProductPath,
+			ProductSKU:  i.ProductSKU,
+			Onhand:      i.Onhand,
+			Created:     i.Created,
+			Modified:    i.Modified,
 		}
 		results = append(results, &pc)
 	}

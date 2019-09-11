@@ -8,22 +8,32 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DeleteUserDevKeyHandler deletes a customer Developer Key.
-func (a *App) DeleteUserDevKeyHandler() http.HandlerFunc {
+// DeleteUserHandler creates an HTTP handler that deletes a user.
+func (a *App) DeleteUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: DeleteUserDevKeyHandler started")
+		contextLogger.Info("app: DeleteUserHandler started")
 
-		developerKeyID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteDeveloperKey(ctx, developerKeyID); err != nil {
-			if err == service.ErrDeveloperKeyNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeDeveloperKeyNotFound, "developer key not found")
-				return
-			}
+		userID := chi.URLParam(r, "id")
+		if !IsValidUUID(userID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL parameter id must be a valid v4 UUID")
+			return
 		}
-		contextLogger.Infof("app: Developer Key %s deleted", developerKeyID)
+
+		// Attempt to delete this user.
+		if err := a.Service.DeleteUser(ctx, userID); err != nil {
+			if err == service.ErrUserNotFound {
+				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
+				return
+			} else if err == service.ErrUserInUse {
+				clientError(w, http.StatusConflict, ErrCodeUserInUse, "user cannot be deleted as it is associated with previous orders")
+			}
+			contextLogger.Errorf("app: a.Service.DeleteUser(ctx, userID=%q) failed with error: %+v", userID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
+		}
+		w.Header().Del("Content-Type")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
-		return
 	}
 }
