@@ -636,6 +636,15 @@ func main() {
 			r.Delete("/{id}", a.Authorization(app.OpDeactivateOffer, a.DeactivateOfferHandler()))
 		})
 
+		// Coupons
+		r.Route("/coupons", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreateCoupon, a.CreateCouponHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetCoupon, a.GetCouponHandler()))
+			r.Get("/", a.Authorization(app.OpListCoupons, a.ListCouponsHandler()))
+			r.Patch("/{id}", a.Authorization(app.OpUpdateCoupon, a.UpdateCouponHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteCoupon, a.DeleteCouponHandler()))
+		})
+
 		// Product Set Items
 		r.Route("/", func(r chi.Router) {
 			r.Get("/{id}", a.Authorization(app.OpGetProductSetItems, a.GetProductSetItemsHandler()))

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS coupon (
   uuid           UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
   coupon_code    VARCHAR(64) NOT NULL UNIQUE,
   promo_rule_id  INTEGER NOT NULL,
-  voided         BOOLEAN NOT NULL DEFAULT 'f',
+  void           BOOLEAN NOT NULL DEFAULT 'f',
   reusable       BOOLEAN NOT NULL DEFAULT 'f',
   spend_count    INTEGER NOT NULL DEFAULT 0 CHECK (spend_count >= 0),
   created        TIMESTAMP NOT NULL DEFAULT NOW(),
