@@ -9,24 +9,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UsrDevKey user developer keys.
-type UsrDevKey struct {
+// UsrDevKeyJoinRow contains fields from the usr_devkey joined to usr.
+type UsrDevKeyJoinRow struct {
 	id       int
 	UUID     string
-	Key      string
-	Hash     string
 	usrID    int
-	Created  time.Time
-	Modified time.Time
-}
-
-// UsrDevKeyFull contains fields from the usr_devkey joined to usr.
-type UsrDevKeyFull struct {
-	id       int
-	UUID     string
+	UsrUUID  string
 	Key      string
 	Hash     string
-	UserUUID string
 	Created  time.Time
 	Modified time.Time
 }
@@ -35,8 +25,20 @@ type UsrDevKeyFull struct {
 var ErrDeveloperKeyNotFound = errors.New("postgres: developer key not found")
 
 // CreateUserDevKey generates a user developer key using bcrypt.
-func (m *PgModel) CreateUserDevKey(ctx context.Context, userID int, key string) (*UsrDevKey, error) {
-	query := `
+func (m *PgModel) CreateUserDevKey(ctx context.Context, userUUID string, key string) (*UsrDevKeyJoinRow, error) {
+	// 1. Check the user exists
+	q1 := "SELECT id FROM usr WHERE uuid = $1"
+	var userID int
+	err := m.db.QueryRowContext(ctx, q1, userUUID).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
+	}
+
+	// 2. Insert the new developer key
+	q2 := `
 		INSERT INTO usr_devkey (
 		  key, hash, usr_id, created, modified
 		) VALUES (
@@ -44,54 +46,66 @@ func (m *PgModel) CreateUserDevKey(ctx context.Context, userID int, key string) 
 		) RETURNING
 		  id, uuid, key, hash, usr_id, created, modified
 	`
-	row := UsrDevKey{}
+	row := UsrDevKeyJoinRow{}
 	hash, err := bcrypt.GenerateFromPassword([]byte(key), 14)
-	err = m.db.QueryRowContext(ctx, query, key, string(hash), userID).Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.usrID, &row.Created, &row.Modified)
+	err = m.db.QueryRowContext(ctx, q2, key, string(hash), userID).Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.usrID, &row.Created, &row.Modified)
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: query row context scan query=%q", query)
+		return nil, errors.Wrapf(err, "postgres: query row context scan q2=%q", q2)
 	}
 	return &row, nil
 }
 
-// GetUserDevKeys returns a slice of UsrDevKeys by user primary key.
-func (m *PgModel) GetUserDevKeys(ctx context.Context, usrID int) ([]*UsrDevKey, error) {
-	query := `
+// GetUserDevKeys returns a slice of UsrDevKeyJoinRow by user primary key.
+func (m *PgModel) GetUserDevKeys(ctx context.Context, userUUID string) ([]*UsrDevKeyJoinRow, error) {
+	// 1. Check the user exists
+	q1 := "SELECT id FROM usr WHERE uuid = $1"
+	var userID int
+	err := m.db.QueryRowContext(ctx, q1, userUUID).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
+	}
+
+	q2 := `
 		SELECT
 		  id, uuid, key, hash, usr_id, created, modified
 		FROM usr_devkey
 		WHERE usr_id = $1
 	`
-	rows, err := m.db.QueryContext(ctx, query, usrID)
+	rows, err := m.db.QueryContext(ctx, q2, userID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx, %q, %d)", query, usrID)
+		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx, q2, %q)", userUUID)
 	}
 	defer rows.Close()
 
-	apiKeys := make([]*UsrDevKey, 0, 8)
+	devKeys := make([]*UsrDevKeyJoinRow, 0, 8)
 	for rows.Next() {
-		var row UsrDevKey
+		var row UsrDevKeyJoinRow
 		err = rows.Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.usrID, &row.Created, &row.Modified)
 		if err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
-		apiKeys = append(apiKeys, &row)
+		row.UsrUUID = userUUID
+		devKeys = append(devKeys, &row)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
-	return apiKeys, nil
+	return devKeys, nil
 }
 
 // GetUserDevKey returns a single UserDevKey by UUID.
-func (m *PgModel) GetUserDevKey(ctx context.Context, uuid string) (*UsrDevKeyFull, error) {
+func (m *PgModel) GetUserDevKey(ctx context.Context, uuid string) (*UsrDevKeyJoinRow, error) {
 	query := `
 		SELECT d.id, d.uuid, key, hash, usr_id, u.uuid, d.created, d.modified
 		FROM usr_devkey AS d
 		INNER JOIN usr AS u ON d.usr_id = u.id
 		WHERE A.uuid = $1
 	`
-	row := UsrDevKeyFull{}
-	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.UserUUID, &row.Created, &row.Modified)
+	row := UsrDevKeyJoinRow{}
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.UsrUUID, &row.Created, &row.Modified)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, %q, %q).Scan(...)", query, uuid)
 	}
@@ -99,7 +113,7 @@ func (m *PgModel) GetUserDevKey(ctx context.Context, uuid string) (*UsrDevKeyFul
 }
 
 // GetUserDevKeyByDevKey retrieves a given Developer Key record.
-func (m *PgModel) GetUserDevKeyByDevKey(ctx context.Context, key string) (*UsrDevKeyFull, error) {
+func (m *PgModel) GetUserDevKeyByDevKey(ctx context.Context, key string) (*UsrDevKeyJoinRow, error) {
 	query := `
 		SELECT
 		  A.id as id, A.uuid as uuid, key, hash,
@@ -108,8 +122,8 @@ func (m *PgModel) GetUserDevKeyByDevKey(ctx context.Context, key string) (*UsrDe
 		INNER JOIN usr AS C ON A.usr_id = C.id
 		WHERE key = $1
 	`
-	row := UsrDevKeyFull{}
-	err := m.db.QueryRowContext(ctx, query, key).Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.UserUUID, &row.Created, &row.Modified)
+	row := UsrDevKeyJoinRow{}
+	err := m.db.QueryRowContext(ctx, query, key).Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.UsrUUID, &row.Created, &row.Modified)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err

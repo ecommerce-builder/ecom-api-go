@@ -9,8 +9,14 @@ import (
 )
 
 func validateListUsersDevKeysRequestBody(request *generateUserDevKeyRequestBody) (bool, string) {
-	if request.UserID == "" {
+	// user_id attribute
+	userID := request.UserID
+	if userID == nil {
 		return false, "user_id attribute must be set"
+	}
+
+	if !IsValidUUID(*userID) {
+		return false, "user_id attribute must be a valid v4 UUID"
 	}
 	return true, ""
 }
@@ -32,6 +38,10 @@ func (a *App) ListUsersDevKeysHandler() http.HandlerFunc {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "user_id query param must be set")
 			return
 		}
+		if !IsValidUUID(userID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "user_id query param must be a valid v4 UUID")
+			return
+		}
 
 		developerKeys, err := a.Service.ListUsersDevKeys(ctx, userID)
 		if err != nil {
@@ -39,7 +49,7 @@ func (a *App) ListUsersDevKeysHandler() http.HandlerFunc {
 				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
 				return
 			}
-			contextLogger.Errorf("app: ListUsersDevKeys(ctx, userID=%q) error: %v", userID, err)
+			contextLogger.Errorf("app: ListUsersDevKeys(ctx, userID=%q) error: %+v", userID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

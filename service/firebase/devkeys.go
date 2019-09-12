@@ -27,21 +27,17 @@ type DeveloperKey struct {
 
 // GenerateUserDevKey creates a new API Key for a user
 func (s *Service) GenerateUserDevKey(ctx context.Context, userID string) (*DeveloperKey, error) {
-	uid, err := s.model.GetUserIDByUUID(ctx, userID)
-	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return nil, ErrUserNotFound
-		}
-		return nil, errors.Wrapf(err, "service: s.model.GetUserIDByUUID(ctx, userID=%q)", userID)
-	}
 	data := make([]byte, 32)
-	_, err = rand.Read(data)
+	_, err := rand.Read(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "service: rand.Read(data)")
 	}
 
-	ak, err := s.model.CreateUserDevKey(ctx, uid, base58.Encode(data))
+	ak, err := s.model.CreateUserDevKey(ctx, userID, base58.Encode(data))
 	if err != nil {
+		if err == postgres.ErrUserNotFound {
+			return nil, ErrUserNotFound
+		}
 		return nil, errors.Wrapf(err, "service: s.model.CreateUserDevKey(ctx, userID=%q, ...)", userID)
 	}
 
@@ -68,24 +64,19 @@ func (s *Service) GetUserDevKey(ctx context.Context, id string) (*DeveloperKey, 
 		Object:   "developer_key",
 		ID:       ak.UUID,
 		Key:      ak.Key,
-		UserID:   ak.UserUUID,
+		UserID:   ak.UsrUUID,
 		Created:  ak.Created,
 		Modified: ak.Modified,
 	}, nil
 }
 
 // ListUsersDevKeys gets all API Keys for a user.
-func (s *Service) ListUsersDevKeys(ctx context.Context, userID string) ([]*DeveloperKey, error) {
-	uid, err := s.model.GetUserIDByUUID(ctx, userID)
+func (s *Service) ListUsersDevKeys(ctx context.Context, userUUID string) ([]*DeveloperKey, error) {
+	rows, err := s.model.GetUserDevKeys(ctx, userUUID)
 	if err != nil {
 		if err == postgres.ErrUserNotFound {
 			return nil, ErrUserNotFound
 		}
-		return nil, err
-	}
-
-	rows, err := s.model.GetUserDevKeys(ctx, uid)
-	if err != nil {
 		return nil, err
 	}
 	apiKeys := make([]*DeveloperKey, 0, len(rows))
@@ -94,7 +85,7 @@ func (s *Service) ListUsersDevKeys(ctx context.Context, userID string) ([]*Devel
 			Object:   "developer_key",
 			ID:       row.UUID,
 			Key:      row.Key,
-			UserID:   userID,
+			UserID:   row.UsrUUID,
 			Created:  row.Created,
 			Modified: row.Modified,
 		}
@@ -111,7 +102,7 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 			// if no key matches create a dummy apiKey struct
 			// to ensure the compare hash happens. This mitigates against
 			// timing attacks.
-			ak = &postgres.UsrDevKeyFull{
+			ak = &postgres.UsrDevKeyJoinRow{
 				Key:  "none",
 				Hash: "$2a$14$dRgjB9nBHoCs5txdVgN2EeVopE8rfZ7gLJNpLxw9GYq.u53FD00ny", // "nomatch"
 			}
@@ -125,9 +116,9 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 		return "", nil, errors.Wrap(err, "bcrypt.CompareHashAndPassword([]byte(ak.Hash), []byte(ak.Key))")
 	}
 
-	cust, err := s.model.GetUserByUUID(ctx, ak.UserUUID)
+	cust, err := s.model.GetUserByUUID(ctx, ak.UsrUUID)
 	if err != nil {
-		return "", nil, errors.Wrapf(err, "s.model.GetUserByUUID(ctx, userID=%q)", ak.UserUUID)
+		return "", nil, errors.Wrapf(err, "s.model.GetUserByUUID(ctx, userID=%q)", ak.UsrUUID)
 	}
 
 	authClient, err := s.fbApp.Auth(ctx)

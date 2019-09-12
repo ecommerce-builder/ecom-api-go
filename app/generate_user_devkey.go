@@ -9,12 +9,17 @@ import (
 )
 
 type generateUserDevKeyRequestBody struct {
-	UserID string `json:"user_id"`
+	UserID *string `json:"user_id"`
 }
 
 func validateGenerateUserDevKeyRequestBody(request *generateUserDevKeyRequestBody) (bool, string) {
-	if request.UserID == "" {
+	// user_id attribute
+	userID := request.UserID
+	if userID == nil {
 		return false, "user_id attribute must be set"
+	}
+	if !IsValidUUID(*userID) {
+		return false, "user_id attribute must be a valid v4 UUID"
 	}
 	return true, ""
 }
@@ -32,7 +37,9 @@ func (a *App) GenerateUserDevKeyHandler() http.HandlerFunc {
 		contextLogger.Info("app: GenerateUserDevKeyHandler started")
 
 		request := generateUserDevKeyRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&request); err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
@@ -43,7 +50,7 @@ func (a *App) GenerateUserDevKeyHandler() http.HandlerFunc {
 			return
 		}
 
-		developerKey, err := a.Service.GenerateUserDevKey(ctx, request.UserID)
+		developerKey, err := a.Service.GenerateUserDevKey(ctx, *request.UserID)
 		if err != nil {
 			if err == service.ErrUserNotFound {
 				// 404 Not Found
