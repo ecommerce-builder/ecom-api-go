@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS address (
   city            VARCHAR(512) NOT NULL,
   county          VARCHAR(512),
   postcode        VARCHAR(64) NOT NULL,
-  country         CHAR(2) NOT NULL,
+  country_code    CHAR(2) NOT NULL,
   created         TIMESTAMP NOT NULL DEFAULT NOW(),
   modified        TIMESTAMP NOT NULL DEFAULT NOW(),
   FOREIGN KEY (usr_id) REFERENCES usr (id)

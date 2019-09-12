@@ -235,22 +235,6 @@ func (m *PgModel) GetUserByID(ctx context.Context, userID int) (*UsrRow, error) 
 	return &u, nil
 }
 
-// GetUserIDByUUID converts between user UUID and the underlying
-// primary key.
-func (m *PgModel) GetUserIDByUUID(ctx context.Context, userUUID string) (int, error) {
-	var id int
-	query := `SELECT id FROM usr WHERE uuid = $1`
-	row := m.db.QueryRowContext(ctx, query, userUUID)
-	err := row.Scan(&id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return -1, ErrUserNotFound
-		}
-		return -1, errors.Wrapf(err, "postgres: query row context query=%q", query)
-	}
-	return id, nil
-}
-
 // DeleteUserByUUID deletes the usr row with the given uuid.
 // Returns the firebase uid of the user.
 func (m *PgModel) DeleteUserByUUID(ctx context.Context, usrUUID string) (string, error) {

@@ -3,11 +3,20 @@ package firebase
 import (
 	"context"
 	"time"
+
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
+
+// ErrAddressNotFound error
+var ErrAddressNotFound = errors.New("service: address not found")
 
 // Address contains address information for a user
 type Address struct {
+	Object      string    `json:"object"`
 	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
 	Typ         string    `json:"typ"`
 	ContactName string    `json:"contact_name"`
 	Addr1       string    `json:"addr1"`
@@ -15,25 +24,25 @@ type Address struct {
 	City        string    `json:"city"`
 	County      *string   `json:"county,omitempty"`
 	Postcode    string    `json:"postcode"`
-	Country     string    `json:"country"`
+	CountryCode string    `json:"country_code"`
 	Created     time.Time `json:"created"`
 	Modified    time.Time `json:"modified"`
 }
 
 // CreateAddress creates a new address for a user
-func (s *Service) CreateAddress(ctx context.Context, userUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode string, country string) (*Address, error) {
-	userID, err := s.model.GetUserIDByUUID(ctx, userUUID)
+func (s *Service) CreateAddress(ctx context.Context, userUUID, typ, contactName, addr1 string, addr2 *string, city string, countyCode *string, postcode string, country string) (*Address, error) {
+	a, err := s.model.CreateAddress(ctx, userUUID, typ, contactName, addr1, addr2, city, countyCode, postcode, country)
 	if err != nil {
-		return nil, err
+		if err == postgres.ErrUserNotFound {
+			return nil, ErrUserNotFound
+		}
+		return nil, errors.Wrapf(err, "service: s.model.CreateAddress(ctx, userUUID=%q, typ=%q, contactName=%q, addr1=%q, addr2=%v, city=%q, county=%v, postcode=%q, countryCode=%q) failed", userUUID, typ, contactName, addr1, addr2, city, countyCode, postcode, country)
 	}
 
-	a, err := s.model.CreateAddress(ctx, userID, typ, contactName, addr1, addr2, city, county, postcode, country)
-	if err != nil {
-		return nil, err
-	}
-
-	aa := Address{
+	addr := Address{
+		Object:      "address",
 		ID:          a.UUID,
+		UserID:      a.UsrUUID,
 		Typ:         a.Typ,
 		ContactName: a.ContactName,
 		Addr1:       a.Addr1,
@@ -41,44 +50,38 @@ func (s *Service) CreateAddress(ctx context.Context, userUUID, typ, contactName,
 		City:        a.City,
 		County:      a.County,
 		Postcode:    a.Postcode,
-		Country:     a.Country,
+		CountryCode: a.CountryCode,
 		Created:     a.Created,
 		Modified:    a.Modified,
 	}
-	return &aa, nil
+	return &addr, nil
 }
 
-// GetAddress gets an address by ID.
-func (s *Service) GetAddress(ctx context.Context, id string) (*Address, error) {
-	addr, err := s.model.GetAddressByUUID(ctx, id)
+// GetAddress return a single Address.
+func (s *Service) GetAddress(ctx context.Context, addressID string) (*Address, error) {
+	a, err := s.model.GetAddressByUUID(ctx, addressID)
 	if err != nil {
-		if s.model.IsNotExist(err) {
-			if ne, ok := err.(*ResourceError); ok {
-				return nil, &ResourceError{
-					Op:       "GetAddress",
-					Resource: "address",
-					ID:       id,
-					Err:      ne.Err,
-				}
-			}
+		if err == postgres.ErrAddressNotFound {
+			return nil, ErrAddressNotFound
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "s.model.GetAddressByUUID(ctx, addressID=%q) failed", addressID)
 	}
-
-	aa := Address{
-		ID:          addr.UUID,
-		Typ:         addr.Typ,
-		ContactName: addr.ContactName,
-		Addr1:       addr.Addr1,
-		Addr2:       addr.Addr2,
-		City:        addr.City,
-		County:      addr.County,
-		Postcode:    addr.Postcode,
-		Country:     addr.Country,
-		Created:     addr.Created,
-		Modified:    addr.Modified,
+	addr := Address{
+		Object:      "address",
+		ID:          a.UUID,
+		UserID:      a.UsrUUID,
+		Typ:         a.Typ,
+		ContactName: a.ContactName,
+		Addr1:       a.Addr1,
+		Addr2:       a.Addr2,
+		City:        a.City,
+		County:      a.County,
+		Postcode:    a.Postcode,
+		CountryCode: a.CountryCode,
+		Created:     a.Created,
+		Modified:    a.Modified,
 	}
-	return &aa, nil
+	return &addr, nil
 }
 
 // GetAddressOwner returns the user that owns the address with the given ID.
@@ -91,42 +94,75 @@ func (s *Service) GetAddressOwner(ctx context.Context, id string) (*string, erro
 }
 
 // GetAddresses gets a slice of addresses for a given user
-func (s *Service) GetAddresses(ctx context.Context, userUUID string) ([]*Address, error) {
-	userID, err := s.model.GetUserIDByUUID(ctx, userUUID)
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) GetAddresses(ctx context.Context, userID string) ([]*Address, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Infof("service: GetAddresses(ctx, userID=%q) started", userID)
 
 	al, err := s.model.GetAddresses(ctx, userID)
 	if err != nil {
-		return nil, err
-	}
-
-	results := make([]*Address, 0, 32)
-	for _, v := range al {
-		i := Address{
-			ID:          v.UUID,
-			Typ:         v.Typ,
-			ContactName: v.ContactName,
-			Addr1:       v.Addr1,
-			Addr2:       v.Addr2,
-			City:        v.City,
-			County:      v.County,
-			Postcode:    v.Postcode,
-			Country:     v.Country,
-			Created:     v.Created,
-			Modified:    v.Modified,
+		if err == postgres.ErrAddressNotFound {
+			return nil, ErrAddressNotFound
 		}
-		results = append(results, &i)
+		return nil, errors.Wrapf(err, "service: s.model.GetAddresses(ctx, userID=%q)", userID)
 	}
 
-	return results, nil
+	addresses := make([]*Address, 0, 32)
+	for _, a := range al {
+		addr := Address{
+			Object:      "address",
+			ID:          a.UUID,
+			UserID:      a.UsrUUID,
+			Typ:         a.Typ,
+			ContactName: a.ContactName,
+			Addr1:       a.Addr1,
+			Addr2:       a.Addr2,
+			City:        a.City,
+			County:      a.County,
+			Postcode:    a.Postcode,
+			CountryCode: a.CountryCode,
+			Created:     a.Created,
+			Modified:    a.Modified,
+		}
+		addresses = append(addresses, &addr)
+	}
+	return addresses, nil
+}
+
+// PartialUpdateAddress updates one or more fields of the given
+// address record returing the updates address.
+func (s *Service) PartialUpdateAddress(ctx context.Context, addressID string, typ, contactName, addr1, addr2, city, county, postcode, countryCode *string) (*Address, error) {
+	a, err := s.model.PartialUpdateAddress(ctx, addressID, typ, contactName, addr1, addr2, city, county, postcode, countryCode)
+	if err != nil {
+		if err == postgres.ErrAddressNotFound {
+			return nil, ErrAddressNotFound
+		}
+		return nil, errors.Wrapf(err, "service: s.model.PartialUpdateAddress(ctx, addressID=%q, typ=%v)", addressID, typ)
+	}
+	addr := Address{
+		Object:      "address",
+		ID:          a.UUID,
+		UserID:      a.UsrUUID,
+		Typ:         a.Typ,
+		ContactName: a.ContactName,
+		Addr1:       a.Addr1,
+		Addr2:       a.Addr2,
+		City:        a.City,
+		County:      a.County,
+		Postcode:    a.Postcode,
+		CountryCode: a.CountryCode,
+		Created:     a.Created,
+		Modified:    a.Modified,
+	}
+	return &addr, nil
 }
 
 // DeleteAddress deletes an address by ID.
 func (s *Service) DeleteAddress(ctx context.Context, addrUUID string) error {
 	err := s.model.DeleteAddressByUUID(ctx, addrUUID)
 	if err != nil {
+		if err == postgres.ErrAddressNotFound {
+			return ErrAddressNotFound
+		}
 		return err
 	}
 

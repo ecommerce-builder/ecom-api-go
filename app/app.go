@@ -1,6 +1,9 @@
 package app
 
 import (
+	"encoding/json"
+	"net/http"
+
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
 
@@ -102,6 +105,9 @@ const (
 	OpCreateAddress     string = "OpCreateAddress"
 	OpGetAddress        string = "OpGetAddress"
 	OpDeleteAddress     string = "OpDeleteAddress"
+
+	// ErrCodeAddressNotFound error
+	ErrCodeAddressNotFound string = "addresses/address-not-found"
 )
 
 // Categories
@@ -167,6 +173,9 @@ const (
 
 	// ErrCodeBadRequest is sent as the error code for 400 Bad Request.
 	ErrCodeBadRequest string = "bad-request"
+
+	// ErrCodeNotImplemented to indicate a operation is not yet implemented in code.
+	ErrCodeNotImplemented string = "not-implemented"
 
 	// ErrCodeAssocsExist is sent when the consumer attempts to purge the catalog
 	// before purging the catalog associations.
@@ -308,4 +317,32 @@ const (
 // App defines the API application
 type App struct {
 	Service *firebase.Service
+}
+
+func clientError(w http.ResponseWriter, statusCode int, code string, message string) {
+	// 4xx (Client Error): The request contains bad syntax or cannot be fulfilled
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(struct {
+		Status  int    `json:"status"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}{
+		statusCode,
+		code,
+		message,
+	})
+}
+
+func serverError(w http.ResponseWriter, statusCode int, code string, message string) {
+	// 5xx (Server Error): The server failed to fulfill an apparently valid request
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(struct {
+		Status  int    `json:"status"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}{
+		statusCode,
+		code,
+		message,
+	})
 }
