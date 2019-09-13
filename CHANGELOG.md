@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.58.1 (Fri 13 Sep 2019)
++ Fixes issues with the Postgres table creation script order in which the tables are created.
+
 ## v0.58.0 (Fri 13 Sep 2019)
 + ecom binary `ECOM_FIREBASE_PROJECT_ID` deprecated.
 + ecom binary `ECOM_FIREBASE_WEB_API_KEY` and `ECOM_FIREBASE_CREDENTIALS` become `ECOM_FIREBASE_PUBLIC_CONFIG` and `ECOM_FIREBASE_PRIVATE_CREDENTIALS` respectively.
