@@ -77,10 +77,12 @@ func (a *App) CreateCouponHandler() http.HandlerFunc {
 				return
 			} else if err == service.ErrPromoRuleNotFound {
 				clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
+				return
 			}
 
 			contextLogger.Errorf("a.Service.CreateCoupon(ctx, couponCode=%q, promoRuleID=%q, reusable=%t) failed: %+v", *request.CouponCode, *request.PromoRuleID, *request.Reusable, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(&coupon)

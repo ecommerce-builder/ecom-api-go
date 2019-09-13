@@ -76,6 +76,15 @@ const (
 
 	// ErrCodeCouponInUse occurs when trying to delete a coupon that is in a cart.
 	ErrCodeCouponInUse string = "coupons/coupon-in-use"
+
+	// ErrCodeCouponExpired error
+	ErrCodeCouponExpired string = "coupons/coupon-expired"
+
+	// ErrCodeCouponVoid error
+	ErrCodeCouponVoid string = "coupons/coupon-void"
+
+	// ErrCodeCouponUsed error
+	ErrCodeCouponUsed string = "coupons/coupon-used"
 )
 
 // User operations and error codes
@@ -158,6 +167,13 @@ const (
 
 // Carts
 const (
+	OpCreateCart        string = "OpCreateCart"
+	OpAddProductToCart  string = "OpAddProductToCart"
+	OpGetCartProducts   string = "OpGetCartProducts"
+	OpUpdateCartProduct string = "OpUpdateCartProduct"
+	OpDeleteCartProduct string = "OpDeleteCartProduct"
+	OpEmptyCartProducts string = "OpEmptyCartProducts"
+
 	// ErrCodeCartProductExists is sent when attempting to add a product to a cart
 	// and that product is already in the cart.
 	ErrCodeCartProductExists string = "carts/cart-product-exists"
@@ -165,6 +181,17 @@ const (
 	// ErrCodeCartNotFound is sent when attempting to do cart operation of a non existing
 	// cart.
 	ErrCodeCartNotFound string = "carts/cart-not-found"
+)
+
+// Carts Coupons
+const (
+	OpApplyCouponToCart string = "OpApplyCouponToCart"
+
+	// ErrCodeCartCouponExists error
+	ErrCodeCartCouponExists string = "carts-coupons/cart-coupon-exists"
+
+	// ErrCodeCouponNotAtStartDate error
+	ErrCodeCouponNotAtStartDate string = "carts/coupon"
 )
 
 const (
@@ -219,14 +246,6 @@ const (
 
 // Cart operation sentinel values.
 const (
-	// Cart
-	OpCreateCart        string = "OpCreateCart"
-	OpAddProductToCart  string = "OpAddProductToCart"
-	OpGetCartProducts   string = "OpGetCartProducts"
-	OpUpdateCartProduct string = "OpUpdateCartProduct"
-	OpDeleteCartProduct string = "OpDeleteCartProduct"
-	OpEmptyCartProducts string = "OpEmptyCartProducts"
-
 	// Orders
 	OpPlaceOrder string = "OpPlaceOrder"
 

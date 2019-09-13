@@ -681,6 +681,11 @@ func main() {
 			r.Post("/", a.Authorization(app.OpCreateCart, a.CreateCartHandler()))
 		})
 
+		// Cart Coupons
+		r.Route("/carts-coupons", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpApplyCouponToCart, a.ApplyCartCouponHandler()))
+		})
+
 		r.Route("/carts-products", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpAddProductToCart, a.AddProductToCartHandler()))
 			r.Get("/", a.Authorization(app.OpGetCartProducts, a.GetCartProductsHandler()))
