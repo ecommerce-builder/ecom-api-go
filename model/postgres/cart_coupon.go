@@ -23,6 +23,9 @@ var ErrCouponVoid = errors.New("postgres: coupon voided")
 // ErrCouponUsed error
 var ErrCouponUsed = errors.New("postgres: coupon used")
 
+// ErrCartCouponNotFound error
+var ErrCartCouponNotFound = errors.New("postgres: cart coupon not found")
+
 // ErrCartCouponExists error
 var ErrCartCouponExists = errors.New("postgres: cart coupon exists")
 
@@ -164,4 +167,25 @@ func (m *PgModel) AddCartCoupon(ctx context.Context, cartUUID, couponUUID string
 	}
 
 	return &c, nil
+}
+
+// DeleteCartCoupon deletes a single cart_coupon row from the cart_coupon table.
+func (m *PgModel) DeleteCartCoupon(ctx context.Context, cartCouponUUID string) error {
+	// 1. Check the cart_coupon exists
+	q1 := "SELECT id FROM cart_coupon WHERE uuid = $1"
+	var cartCouponID int
+	err := m.db.QueryRowContext(ctx, q1, cartCouponUUID).Scan(&cartCouponID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrCartCouponNotFound
+		}
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	// 2. Delete the cart_coupon
+	q2 := "DELETE FROM cart_coupon WHERE id = $1"
+	if _, err = m.db.ExecContext(ctx, q2, cartCouponID); err != nil {
+		return errors.Wrapf(err, "model: delete category q2=%q", q2)
+	}
+	return nil
 }

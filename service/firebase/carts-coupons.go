@@ -20,6 +20,9 @@ var ErrCouponVoid = errors.New("service: coupon voided")
 // ErrCouponUsed error
 var ErrCouponUsed = errors.New("service: coupon used")
 
+// ErrCartCouponNotFound error
+var ErrCartCouponNotFound = errors.New("service: cart coupon not found")
+
 // ErrCartCouponExists error
 var ErrCartCouponExists = errors.New("service: cart coupon exists")
 
@@ -71,4 +74,16 @@ func (s *Service) ApplyCouponToCart(ctx context.Context, cartID, couponID string
 		Modified:    prow.Modified,
 	}
 	return &cartCoupon, nil
+}
+
+// UnapplyCartCoupon unapplies a coupon from a cart.
+func (s *Service) UnapplyCartCoupon(ctx context.Context, cartCouponID string) error {
+	err := s.model.DeleteCartCoupon(ctx, cartCouponID)
+	if err != nil {
+		if err == postgres.ErrCartCouponNotFound {
+			return ErrCartCouponNotFound
+		}
+		return errors.Wrapf(err, "service: s.model.DeleteCartCoupon(ctx, cartCouponID=%q) failed", cartCouponID)
+	}
+	return nil
 }
