@@ -1,4 +1,34 @@
 # CHANGELOG
+## v0.58.0 (Fri 13 Sep 2019)
++ ecom binary `ECOM_FIREBASE_PROJECT_ID` deprecated.
++ ecom binary `ECOM_FIREBASE_WEB_API_KEY` and `ECOM_FIREBASE_CREDENTIALS` become `ECOM_FIREBASE_PUBLIC_CONFIG` and `ECOM_FIREBASE_PRIVATE_CREDENTIALS` respectively.
++ README.md removes all documenation (held in separate repo and in the Open API Spec Definition).
++ `OpActivateOffer`
++ New handlers for product to category relations.
++ New handlers for adding products to carts.
++ Implements Shipping Tarrifs.
++ Implements Price Lists.
++ Implements Coupons.
++ Implements Promo Rules.
++ Implements Inventory.
++ Implements Offers.
++ Implements Carts Products.
++ Improve Developer Keys
++ Implements Addresses.
++ Implements Prices.
++ `/users` has pagination skeleton but not yet working.
++ New `/products-categories` resource.
++ Implements `/products?include=prices,images` although it's not determined if it will be used in the SDK.
++ Merged `/admin` resource to universal `/users` resource.
++ `categories-tree` handles hierarchial data. `categories` handles flat nested set lists.
++ `clientError` and `serverError` functions introduced to remove boilerplate code.
++ Context values use named types to prevent golint errors.
++ Firebase Config is returned in the `/config` resource so the client doesn't need to hard code it.
++ Fixes CORS issue with `PUT` not being allowed.
++ Fixes golint warnings.
++ Postgres Schema changes.
++ Open API Definition file is not up to date with this release.
+
 ## v0.57.0 (Mon 5 Aug 2019)
 + Cart split into `carts` and `cart_items` tables.
 + Fix CORS bug with public routes.
