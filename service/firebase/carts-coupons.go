@@ -1,0 +1,74 @@
+package firebase
+
+import (
+	"context"
+	"time"
+
+	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
+	"github.com/pkg/errors"
+)
+
+// ErrCouponExpired error
+var ErrCouponExpired = errors.New("service: coupon expired")
+
+// ErrCouponNotAtStartDate error
+var ErrCouponNotAtStartDate = errors.New("service: coupon not at start date")
+
+// ErrCouponVoid error
+var ErrCouponVoid = errors.New("service: coupon voided")
+
+// ErrCouponUsed error
+var ErrCouponUsed = errors.New("service: coupon used")
+
+// ErrCartCouponExists error
+var ErrCartCouponExists = errors.New("service: cart coupon exists")
+
+// CartCoupon represents a coupon applied with a cart
+type CartCoupon struct {
+	Object      string    `json:"object"`
+	ID          string    `json:"id"`
+	CartID      string    `json:"cart_id"`
+	CouponID    string    `json:"coupon_id"`
+	CouponCode  string    `json:"coupon_code"`
+	PromoRuleID string    `json:"promo_rule_id"`
+	Created     time.Time `json:"created"`
+	Modified    time.Time `json:"modified"`
+}
+
+// ApplyCouponToCart applies a coupon to a cart provided that coupon
+// exists and has not expired, been voided or previously used (for a
+// non-reusable coupon)
+func (s *Service) ApplyCouponToCart(ctx context.Context, cartID, couponID string) (*CartCoupon, error) {
+	prow, err := s.model.AddCartCoupon(ctx, cartID, couponID)
+	if err != nil {
+		if err == postgres.ErrCartNotFound {
+			return nil, ErrCartNotFound
+		} else if err == postgres.ErrCouponNotFound {
+			return nil, ErrCouponNotFound
+		} else if err == postgres.ErrCartCouponExists {
+			return nil, ErrCartCouponExists
+		} else if err == postgres.ErrCouponNotAtStartDate {
+			return nil, ErrCouponNotAtStartDate
+		} else if err == postgres.ErrCouponExpired {
+			return nil, ErrCouponExpired
+		} else if err == postgres.ErrCouponVoid {
+			return nil, ErrCouponVoid
+		} else if err == postgres.ErrCouponUsed {
+			return nil, ErrCouponUsed
+		}
+
+		return nil, errors.Wrapf(err, "s.model.AddCartCoupon(ctx, cartID=%q, couponID=%q) failed", cartID, couponID)
+	}
+
+	cartCoupon := CartCoupon{
+		Object:      "cart_coupon",
+		ID:          prow.UUID,
+		CartID:      prow.CartUUID,
+		CouponID:    prow.CouponUUID,
+		CouponCode:  prow.CouponCode,
+		PromoRuleID: prow.PromoRuleUUID,
+		Created:     prow.Created,
+		Modified:    prow.Modified,
+	}
+	return &cartCoupon, nil
+}
