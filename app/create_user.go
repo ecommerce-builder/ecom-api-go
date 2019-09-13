@@ -70,7 +70,7 @@ func (a *App) CreateUserHandler() http.HandlerFunc {
 		contextLogger.Info("app: CreateUserHandler called")
 
 		if r.Body == nil {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
+			// 400 Bad Request
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "missing request body")
 			return
 		}

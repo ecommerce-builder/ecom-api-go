@@ -67,6 +67,7 @@ func (a *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
 		if err != nil {
 			contextLogger.Errorf("app: a.Service.GetSchemaVersion(ctx) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
 		}
 		si.Env.PG.SchemaVersion = *version
 		w.WriteHeader(http.StatusOK) // 200 OK

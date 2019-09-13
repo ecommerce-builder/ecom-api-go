@@ -31,7 +31,9 @@ func (a *App) AddImageHandler() http.HandlerFunc {
 		contextLogger.Info("app: AddImageHandler started")
 
 		request := addImageRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&request); err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}

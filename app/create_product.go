@@ -32,7 +32,9 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 		contextLogger.Info("app: CreateProductHandler called")
 
 		request := service.ProductCreateRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&request); err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}

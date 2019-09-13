@@ -48,12 +48,14 @@ func (a *App) CreateShippingTarrifHandler() http.HandlerFunc {
 
 		// parse the request body
 		if r.Body == nil {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Request
+			// 400 Bad Request
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "missing request body")
 			return
 		}
 		request := createShippingTarrifRequestBody{}
-		err := json.NewDecoder(r.Body).Decode(&request)
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		err := dec.Decode(&request)
 		if err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
