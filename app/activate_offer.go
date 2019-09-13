@@ -26,7 +26,6 @@ func validateActivateOfferRequest(request *activateOfferRequest) (bool, string) 
 
 // ActivateOfferHandler creates a new product
 func (a *App) ActivateOfferHandler() http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)

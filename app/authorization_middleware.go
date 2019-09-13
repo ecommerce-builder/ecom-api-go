@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"crypto/subtle"
-	"encoding/json"
 	"net/http"
 
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
@@ -124,16 +123,9 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			contextLogger.Errorf("a.Service.UserCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
-			w.WriteHeader(http.StatusForbidden) // 403 Forbidden
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusForbidden,
-				ErrCodePriceListForbiddenPriceList,
-				"forbidden access to prices with the given price list",
-			})
+
+			// 403 Forbidden
+			clientError(w, http.StatusForbidden, ErrCodePriceListForbiddenPriceList, "forbidden access to prices with the given price list")
 			return
 		case OpCreateAddress, OpGetUser, OpGetUsersAddresses, OpUpdateAddress, OpGenerateUserDevKey, OpListUsersDevKeys:
 			// Check the JWT Claim's user UUID and safely compare it to the user UUID in the route

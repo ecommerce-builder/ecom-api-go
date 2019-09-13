@@ -26,6 +26,7 @@ func (a *App) ListAddressesHandler() http.HandlerFunc {
 		if err != nil {
 			if err == service.ErrAddressNotFound {
 				clientError(w, http.StatusNotFound, ErrCodeAddressNotFound, "address not found")
+				return
 			}
 			contextLogger.Errorf("a.Service.GetAddresses(ctx, customerID=%q) error: %v", userID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error

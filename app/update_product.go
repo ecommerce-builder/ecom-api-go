@@ -35,61 +35,27 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 
 		productID := chi.URLParam(r, "id")
 		pu := service.ProductUpdateRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&pu); err != nil {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&pu); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
 		if err := validateProductUpdateRequestBody(&pu); err != nil {
-			w.WriteHeader(http.StatusBadRequest) // 400 Bad Requst
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusConflict,
-				ErrCodeBadRequest,
-				err.Error(),
-			})
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 
 		product, err := a.Service.UpdateProduct(ctx, productID, &pu)
 		if err != nil {
 			if err == service.ErrProductNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusNotFound,
-					ErrCodeProductNotFound,
-					"product not found",
-				})
+				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
 				return
 			} else if err == service.ErrProductPathExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeProductPathExists,
-					"product path already exists",
-				})
+				clientError(w, http.StatusConflict, ErrCodeProductPathExists, "product path already exists")
 				return
 			} else if err == service.ErrProductSKUExists {
-				w.WriteHeader(http.StatusConflict) // 409 Conflict
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusConflict,
-					ErrCodeProductSKUExists,
-					"product sku already exists",
-				})
+				clientError(w, http.StatusConflict, ErrCodeProductSKUExists, "product sku already exists")
 				return
 			}
 			contextLogger.Errorf("update product failed: %+v", err)

@@ -63,29 +63,11 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 		unaccepted, includeList, err := parseIncludeQueryParam(include, []string{"images", "prices"})
 		if err != nil {
 			if err == ErrIncludeQueryParamParseError {
-				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusBadRequest,
-					ErrCodeIncludeQueryParamParseError,
-					"include query parameter not valid",
-				})
+				clientError(w, http.StatusBadRequest, ErrCodeIncludeQueryParamParseError, "include query parameter not valid")
 				return
 
 			} else if err == ErrIncludeQueryContainUnacceptedValue {
-				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode(struct {
-					Status  int    `json:"status"`
-					Code    string `json:"code"`
-					Message string `json:"message"`
-				}{
-					http.StatusBadRequest,
-					ErrCodeIncludeQueryParamParseError,
-					fmt.Sprintf("%s is not an acceptable value for an include in this context", unaccepted),
-				})
+				clientError(w, http.StatusBadRequest, ErrCodeIncludeQueryParamParseError, fmt.Sprintf("%s is not an acceptable value for an include in this context", unaccepted))
 				return
 			}
 			contextLogger.Errorf("app: parseIncludeQueryParam(include=%q) error: %+v", include, err)

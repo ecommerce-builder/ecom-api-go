@@ -19,7 +19,9 @@ func (a *App) UpdateCategoriesTreeHandler() http.HandlerFunc {
 		contextLogger.Info("app: UpdateCategoriesTreeHandler started")
 
 		catRequest := service.CategoryRequest{}
-		if err := json.NewDecoder(r.Body).Decode(&catRequest); err != nil {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&catRequest); err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}

@@ -39,7 +39,9 @@ func (a *App) AddProductToCartHandler() http.HandlerFunc {
 		contextLogger.Info("app: AddProductToCartHandler started")
 
 		request := addProductToCartRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&request); err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}

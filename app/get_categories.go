@@ -23,7 +23,6 @@ func (a *App) GetCategoriesHandler() http.HandlerFunc {
 
 		categories, err := a.Service.GetCategories(ctx)
 		if err != nil {
-
 			contextLogger.Errorf("app: a.Service.GetCategories(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

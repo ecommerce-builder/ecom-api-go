@@ -28,7 +28,9 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 			return
 		}
 		o := signInRequestBody{}
-		err := json.NewDecoder(r.Body).Decode(&o)
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		err := dec.Decode(&o)
 		if err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return

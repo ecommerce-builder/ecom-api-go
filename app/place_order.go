@@ -47,7 +47,9 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 		contextLogger.Info("app: PlaceOrderHandler started")
 
 		req := orderRequestBody{}
-		err := json.NewDecoder(r.Body).Decode(&req)
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		err := dec.Decode(&req)
 		if err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return

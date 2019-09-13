@@ -59,7 +59,7 @@ func (a *App) ListUsersHandler() http.HandlerFunc {
 		pq, err := paginationQueryFromQueryParams(r.URL.Query())
 		if err != nil {
 			log.Errorf("app: pagination query (query params=%s) from query params failed: %v", r.URL, err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
 

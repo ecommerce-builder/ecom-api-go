@@ -40,7 +40,9 @@ func (a *App) CreatePriceListHandler() http.HandlerFunc {
 		contextLogger.Info("app: CreatePriceListHandler called")
 
 		requestBody := service.PriceListCreate{}
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&requestBody); err != nil {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
