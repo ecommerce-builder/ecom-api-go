@@ -685,6 +685,7 @@ func main() {
 		r.Route("/carts-coupons", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpApplyCouponToCart, a.ApplyCartCouponHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetCartCoupon, a.GetCartCouponHandler()))
+			r.Get("/", a.Authorization(app.OpListCartCoupons, a.ListCartCouponsHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpUnapplyCouponFromCart, a.UnapplyCartCouponHandler()))
 		})
 
