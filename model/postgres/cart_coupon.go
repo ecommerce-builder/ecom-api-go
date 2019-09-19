@@ -198,6 +198,59 @@ func (m *PgModel) GetCartCoupon(ctx context.Context, cartCouponUUID string) (*Ca
 	return &c, nil
 }
 
+// GetCartCouponsByCartUUID returns all cart coupons for a given cart uuid.
+func (m *PgModel) GetCartCouponsByCartUUID(ctx context.Context, cartUUID string) ([]*CartCouponJoinRow, error) {
+	// 1. Check the cart exists
+	q1 := "SELECT id FROM cart WHERE uuid = $1"
+	var cartID int
+	err := m.db.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCartNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	// 2. Get all the coupons applied to this cart.
+	q2 := `
+		SELECT
+		  p.id, p.uuid, p.cart_id, c.uuid as cart_uuid, p.coupon_id,
+		  u.uuid as coupon_uuid, u.coupon_code as coupon_code,
+		  r.uuid as promo_rule_uuid, p.created, p.modified
+		FROM cart_coupon AS p
+		INNER JOIN cart AS c
+		  ON c.id = p.cart_id
+		INNER JOIN coupon AS u
+		  ON u.id = p.coupon_id
+		INNER JOIN promo_rule AS r
+		  ON r.id = u.promo_rule_id
+		WHERE p.cart_id = $1
+	`
+	rows, err := m.db.QueryContext(ctx, q2, cartID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
+	}
+	defer rows.Close()
+
+	cartCoupons := make([]*CartCouponJoinRow, 0)
+	for rows.Next() {
+		var c CartCouponJoinRow
+		if err = rows.Scan(&c.id, &c.UUID, &c.cartID, &c.CartUUID, &c.couponID,
+			&c.CouponUUID, &c.CouponCode, &c.PromoRuleUUID, &c.Created, &c.Modified); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, ErrPriceListNotFound
+			}
+			return nil, errors.Wrap(err, "postgres: scan failed")
+		}
+		cartCoupons = append(cartCoupons, &c)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "postgres: rows.Err()")
+	}
+	return cartCoupons, nil
+
+}
+
 // DeleteCartCoupon deletes a single cart_coupon row from the cart_coupon table.
 func (m *PgModel) DeleteCartCoupon(ctx context.Context, cartCouponUUID string) error {
 	// 1. Check the cart_coupon exists

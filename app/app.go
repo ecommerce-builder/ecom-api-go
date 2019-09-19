@@ -2,8 +2,8 @@ package app
 
 import (
 	"encoding/json"
-	"regexp"
 	"net/http"
+	"regexp"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 )
@@ -188,6 +188,7 @@ const (
 const (
 	OpApplyCouponToCart     string = "OpApplyCouponToCart"
 	OpGetCartCoupon         string = "OpGetCartCoupon"
+	OpListCartCoupons       string = "OpListCartCoupons"
 	OpUnapplyCouponFromCart string = "OpUnapplyCouponFromCart"
 
 	// ErrCodeCartCouponExists error
@@ -195,8 +196,6 @@ const (
 
 	// ErrCodeCartCouponNotFound error
 	ErrCodeCartCouponNotFound string = "carts-coupons/cart-coupon-not-found"
-
-
 
 	// ErrCodeCouponNotAtStartDate error
 	ErrCodeCouponNotAtStartDate string = "carts/coupon"
@@ -376,6 +375,6 @@ func serverError(w http.ResponseWriter, statusCode int, code string, message str
 
 // IsValidUUID checks for a valid UUID v4.
 func IsValidUUID(uuid string) bool {
-        r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
-        return r.MatchString(uuid)
+	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
+	return r.MatchString(uuid)
 }

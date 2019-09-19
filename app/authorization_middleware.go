@@ -64,7 +64,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpGetTierPricing, OpMapPricingByTier, OpGetImage, OpGetProductCategoryRel,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetPriceList,
 			OpListInventory, OpGetInventory, OpGetShippingTarrif, OpListShippingTarrifs,
-			OpGetProductSetItems, OpGetOffer, OpListOffers, OpApplyCouponToCart, OpUnapplyCouponFromCart:
+			OpGetProductSetItems, OpGetOffer, OpListOffers, OpApplyCouponToCart, OpUnapplyCouponFromCart,
+			OpListCartCoupons:
 			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		// Operations that required at least RoleAdmin privileges

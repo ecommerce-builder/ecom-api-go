@@ -98,6 +98,33 @@ func (s *Service) GetCartCoupon(ctx context.Context, cartCouponID string) (*Cart
 	return &cartCoupon, nil
 }
 
+// GetCartCoupons returns a slice of cart coupons.
+func (s *Service) GetCartCoupons(ctx context.Context, cartID string) ([]*CartCoupon, error) {
+	prows, err := s.model.GetCartCouponsByCartUUID(ctx, cartID)
+	if err != nil {
+		if err == postgres.ErrCartNotFound {
+			return nil, ErrCartNotFound
+		}
+		return nil, errors.Wrapf(err, "")
+	}
+
+	cartCoupons := make([]*CartCoupon, 0, len(prows))
+	for _, row := range prows {
+		c := CartCoupon{
+			Object:      "cart_coupon",
+			ID:          row.UUID,
+			CartID:      row.CartUUID,
+			CouponID:    row.CouponUUID,
+			CouponCode:  row.CouponCode,
+			PromoRuleID: row.PromoRuleUUID,
+			Created:     row.Created,
+			Modified:    row.Modified,
+		}
+		cartCoupons = append(cartCoupons, &c)
+	}
+	return cartCoupons, nil
+}
+
 // UnapplyCartCoupon unapplies a coupon from a cart.
 func (s *Service) UnapplyCartCoupon(ctx context.Context, cartCouponID string) error {
 	err := s.model.DeleteCartCoupon(ctx, cartCouponID)
