@@ -76,6 +76,28 @@ func (s *Service) ApplyCouponToCart(ctx context.Context, cartID, couponID string
 	return &cartCoupon, nil
 }
 
+// GetCartCoupon retrieves a cart coupon relation by id.
+func (s *Service) GetCartCoupon(ctx context.Context, cartCouponID string) (*CartCoupon, error) {
+	row, err := s.model.GetCartCoupon(ctx, cartCouponID)
+	if err != nil {
+		if err == postgres.ErrCartCouponNotFound {
+			return nil, ErrCartCouponNotFound
+		}
+		return nil, errors.Wrapf(err, "service: s.model.GetCartCoupon(ctx, cartCouponID=%q) failed", cartCouponID)
+	}
+	cartCoupon := CartCoupon{
+		Object:      "cart_coupon",
+		ID:          row.UUID,
+		CartID:      row.CartUUID,
+		CouponID:    row.CouponUUID,
+		CouponCode:  row.CouponCode,
+		PromoRuleID: row.PromoRuleUUID,
+		Created:     row.Created,
+		Modified:    row.Modified,
+	}
+	return &cartCoupon, nil
+}
+
 // UnapplyCartCoupon unapplies a coupon from a cart.
 func (s *Service) UnapplyCartCoupon(ctx context.Context, cartCouponID string) error {
 	err := s.model.DeleteCartCoupon(ctx, cartCouponID)

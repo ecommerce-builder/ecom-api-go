@@ -187,6 +187,7 @@ const (
 // Carts Coupons
 const (
 	OpApplyCouponToCart     string = "OpApplyCouponToCart"
+	OpGetCartCoupon         string = "OpGetCartCoupon"
 	OpUnapplyCouponFromCart string = "OpUnapplyCouponFromCart"
 
 	// ErrCodeCartCouponExists error
@@ -194,6 +195,8 @@ const (
 
 	// ErrCodeCartCouponNotFound error
 	ErrCodeCartCouponNotFound string = "carts-coupons/cart-coupon-not-found"
+
+
 
 	// ErrCodeCouponNotAtStartDate error
 	ErrCodeCouponNotAtStartDate string = "carts/coupon"

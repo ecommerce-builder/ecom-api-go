@@ -64,7 +64,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpGetTierPricing, OpMapPricingByTier, OpGetImage, OpGetProductCategoryRel,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetPriceList,
 			OpListInventory, OpGetInventory, OpGetShippingTarrif, OpListShippingTarrifs,
-			OpGetProductSetItems, OpGetOffer, OpListOffers:
+			OpGetProductSetItems, OpGetOffer, OpListOffers, OpApplyCouponToCart, OpUnapplyCouponFromCart:
 			next.ServeHTTP(w, r.WithContext(ctx2))
 			return
 		// Operations that required at least RoleAdmin privileges
@@ -78,7 +78,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpUpdateInventory, OpBatchUpdateInventory,
 			OpCreateShippingTarrif, OpUpdateShippingTarrif, OpDeleteShippingTarrif,
 			OpActivateOffer, OpDeactivateOffer,
-			OpCreateCoupon, OpGetCoupon, OpListCoupons, OpUpdateCoupon, OpDeleteCoupon:
+			OpCreateCoupon, OpGetCoupon, OpListCoupons, OpUpdateCoupon, OpDeleteCoupon,
+			OpGetCartCoupon:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
