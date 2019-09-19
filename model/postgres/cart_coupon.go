@@ -169,6 +169,35 @@ func (m *PgModel) AddCartCoupon(ctx context.Context, cartUUID, couponUUID string
 	return &c, nil
 }
 
+// GetCartCoupon retrieves a single cart_coupon row by uuid. If the row
+// does not exist returns nil, and a `ErrCartCouponNotFound` error.
+func (m *PgModel) GetCartCoupon(ctx context.Context, cartCouponUUID string) (*CartCouponJoinRow, error) {
+	q1 := `
+		SELECT
+		  p.id, p.uuid, p.cart_id, c.uuid as cart_uuid, p.coupon_id,
+		  u.uuid as coupon_uuid, u.coupon_code as coupon_code,
+		  r.uuid as promo_rule_uuid, p.created, p.modified
+		FROM cart_coupon AS p
+		INNER JOIN cart AS c
+		  ON c.id = p.cart_id
+		INNER JOIN coupon AS u
+		  ON u.id = p.coupon_id
+		INNER JOIN promo_rule AS r
+		  ON r.id = u.promo_rule_id
+		WHERE p.uuid = $1
+	`
+	var c CartCouponJoinRow
+	err := m.db.QueryRowContext(ctx, q1, cartCouponUUID).Scan(&c.id, &c.UUID, &c.cartID, &c.CartUUID, &c.couponID,
+		&c.CouponUUID, &c.CouponCode, &c.PromoRuleUUID, &c.Created, &c.Modified)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCartCouponNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+	return &c, nil
+}
+
 // DeleteCartCoupon deletes a single cart_coupon row from the cart_coupon table.
 func (m *PgModel) DeleteCartCoupon(ctx context.Context, cartCouponUUID string) error {
 	// 1. Check the cart_coupon exists
