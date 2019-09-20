@@ -201,6 +201,20 @@ const (
 	ErrCodeCouponNotAtStartDate string = "carts/coupon"
 )
 
+// Promo Rules
+const (
+	OpCreatePromoRule string = "OpCreatePromoRule"
+	OpGetPromoRule    string = "OpGetPromoRule"
+	OpListPromoRules  string = "OpListPromoRules"
+	OpDeletePromoRule string = "OpDeletePromoRule"
+
+	// ErrCodePromoRuleExists error
+	ErrCodePromoRuleExists string = "promo-rules/promo-rule-exists"
+
+	// ErrCodePromoRuleNotFound error
+	ErrCodePromoRuleNotFound string = "promo-rules/promo-rule-not-found"
+)
+
 const (
 	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
 	ErrCodeInternalServerError string = "internal-server-error"
@@ -237,9 +251,6 @@ const (
 
 	// ErrCodeImageNotFound is returned whilst attempting to get an image.
 	ErrCodeImageNotFound string = "images/image-not-found"
-
-	// ErrCodePromoRuleNotFound error
-	ErrCodePromoRuleNotFound string = "promo-rules/promo-rule-not-found"
 
 	// ErrCodeIncludeQueryParamParseError occurs when the include query param is invalid.
 	ErrCodeIncludeQueryParamParseError string = "query/include-query-param-invalid"
@@ -279,12 +290,6 @@ const (
 	OpListShippingTarrifs  string = "OpListShippingTarrifs"
 	OpUpdateShippingTarrif string = "OpUpdateShippingTarrif"
 	OpDeleteShippingTarrif string = "OpDeleteShippingTarrif"
-
-	// Promotion Rules
-	OpCreatePromoRule string = "OpCreatePromoRule"
-	OpGetPromoRule    string = "OpGetPromoRule"
-	OpListPromoRules  string = "OpListPromoRules"
-	OpDeletePromoRule string = "OpDeletePromoRule"
 
 	// Offers
 	OpActivateOffer   string = "OpActivateOffer"

@@ -12,6 +12,7 @@ END$$;
 CREATE TABLE IF NOT EXISTS promo_rule (
   id                 SERIAL PRIMARY KEY,
   uuid               UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+  promo_rule_code    VARCHAR(32) NOT NULL UNIQUE,
   product_id         INTEGER NULL DEFAULT NULL,
   product_set_id     INTEGER NULL DEFAULT NULL,
   category_id        INTEGER NULL DEFAULT NULL,

@@ -32,14 +32,20 @@ func (a *App) CreatePromoRuleHandler() http.HandlerFunc {
 
 		promoRule, err := a.Service.CreatePromoRule(ctx, &request)
 		if err != nil {
-			if err == service.ErrProductNotFound {
+			if err == service.ErrPromoRuleExists {
+				clientError(w, http.StatusConflict, ErrCodePromoRuleExists, "promo rule code already exists")
+				return
+			} else if err == service.ErrProductNotFound {
 				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
+				return
 			} else if err == service.ErrCategoryNotFound {
 				clientError(w, http.StatusNotFound, ErrCodeCategoryNotFound, "category not found")
+				return
 			} else if err == service.ErrShippingTarrifNotFound {
 				clientError(w, http.StatusNotFound, ErrCodeShippingTarrifNotFound, "shipping tarrif not found")
+				return
 			}
-			contextLogger.Errorf("app: a.Service.CreatePromoRule(ctx, pr=%v)) error: %+v", request, err)
+			contextLogger.Errorf("app: a.Service.CreatePromoRule(ctx, pr=%v) error: %+v", request, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
@@ -49,6 +55,10 @@ func (a *App) CreatePromoRuleHandler() http.HandlerFunc {
 }
 
 func validatePromoRuleCreateRequestBody(request *service.PromoRuleCreateRequestBody) (bool, string) {
+	if request.PromoRuleCode == "" {
+		return false, "attribute promo_rule_code is empty"
+	}
+
 	if request.Name == "" {
 		return false, "attribute name is empty and must be given a promotion rule name"
 	}
@@ -85,7 +95,7 @@ func validatePromoRuleCreateRequestBody(request *service.PromoRuleCreateRequestB
 			return false, "product_id attribute must be a valid v4 UUID"
 		}
 	} else if request.Target == "productset" {
-		if request.ProductSet.Data == nil {
+		if request.ProductSet == nil {
 			return false, "target is set to product_set so attribute a list of products must be set"
 		}
 
