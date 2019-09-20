@@ -12,6 +12,9 @@ import (
 // ErrPromoRuleNotFound error
 var ErrPromoRuleNotFound = errors.New("service: promo rule not found")
 
+// ErrPromoRuleExists error
+var ErrPromoRuleExists = errors.New("service: promo rule exists")
+
 // PromoRuleProduct for a set a product inside a promo rule.
 type PromoRuleProduct struct {
 	ProductID string `json:"product_id"`
@@ -21,6 +24,7 @@ type PromoRuleProduct struct {
 type PromoRule struct {
 	Object             string     `json:"object"`
 	ID                 string     `json:"id"`
+	PromoRuleCode      string     `json:"promo_rule_code"`
 	ProductID          string     `json:"product_id,omitempty"`
 	ProductPath        string     `json:"product_path,omitempty"`
 	ProductSKU         string     `json:"product_sku,omitempty"`
@@ -53,6 +57,7 @@ type PromoRuleProductSetRequestBody struct {
 
 // PromoRuleCreateRequestBody request body for creating a new promo rule.
 type PromoRuleCreateRequestBody struct {
+	PromoRuleCode    string                          `json:"promo_rule_code"`
 	Name             string                          `json:"name"`
 	StartAt          *time.Time                      `json:"start_at"`
 	EndAt            *time.Time                      `json:"end_at"`
@@ -70,26 +75,18 @@ type PromoRuleCreateRequestBody struct {
 func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateRequestBody) (*PromoRule, error) {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Infof("service: CreatePromoRule(ctx, ...) started")
-	// contextLogger.WithFields(log.Fields{
-	// 	"pr":             pr,
-	// 	"Name":           pr.Name,
-	// 	"StartAt":        pr.StartAt,
-	// 	"EndAt":          pr.EndAt,
-	// 	"Amount":         pr.Amount,
-	// 	"TotalThreshold": pr.TotalThreshold,
-	// 	"ProductID":      pr.ProductID,
-	// 	"CategoryID":     pr.CategoryID,
-	// 	"Type":           pr.Type,
-	// 	"Target":         pr.Target,
-	// }).Debug("request body")
 
 	var row *postgres.PromoRuleJoinProductRow
 	var rule PromoRule
 	if pr.Target == "product" {
+		contextLogger.Infof("service: promo rule target is a product")
+
 		var err error
-		row, err = s.model.CreatePromoRuleTargetProduct(ctx, *pr.ProductID, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
+		row, err = s.model.CreatePromoRuleTargetProduct(ctx, *pr.ProductID, pr.PromoRuleCode, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
 		if err != nil {
-			if err == postgres.ErrProductNotFound {
+			if err == postgres.ErrPromoRuleExists {
+				return nil, ErrPromoRuleExists
+			} else if err == postgres.ErrProductNotFound {
 				return nil, ErrProductNotFound
 			}
 			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetProduct(ctx, productUUID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, typ=%q, target=%q)", *pr.ProductID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
@@ -112,6 +109,8 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Modified:       row.Modified,
 		}
 	} else if pr.Target == "productset" {
+		contextLogger.Infof("service: promo rule target is a productset")
+
 		productSet := make([]*postgres.PromoRuleCreateProduct, 0, len(pr.ProductSet.Data))
 		for _, p := range pr.ProductSet.Data {
 			product := postgres.PromoRuleCreateProduct{
@@ -121,9 +120,11 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		}
 
 		var err error
-		row, err = s.model.CreatePromoRuleTargetProductSet(ctx, productSet, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
+		row, err = s.model.CreatePromoRuleTargetProductSet(ctx, productSet, pr.PromoRuleCode, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
 		if err != nil {
-			if err == postgres.ErrProductNotFound {
+			if err == postgres.ErrPromoRuleExists {
+				return nil, ErrPromoRuleExists
+			} else if err == postgres.ErrProductNotFound {
 				return nil, ErrProductNotFound
 			}
 			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetProductSet(ctx, products=%v, name=%q, startAt=%v, endAt=%v, amount=%d, typ=%q, target=%q)", pr.ProductSet.Data, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
@@ -144,10 +145,14 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Modified:       row.Modified,
 		}
 	} else if pr.Target == "category" {
+		contextLogger.Infof("service: promo rule target is a category")
+
 		var err error
-		row, err = s.model.CreatePromoRuleTargetCategory(ctx, *pr.CategoryID, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
+		row, err = s.model.CreatePromoRuleTargetCategory(ctx, *pr.CategoryID, pr.PromoRuleCode, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
 		if err != nil {
-			if err == postgres.ErrCategoryNotFound {
+			if err == postgres.ErrPromoRuleExists {
+				return nil, ErrPromoRuleExists
+			} else if err == postgres.ErrCategoryNotFound {
 				return nil, ErrCategoryNotFound
 			}
 			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetCategory(ctx, categoryUUID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, typ=%q, target=%q)", *pr.CategoryID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
@@ -169,10 +174,14 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Modified:       row.Modified,
 		}
 	} else if pr.Target == "shipping_tarrif" {
+		contextLogger.Infof("service: promo rule target is a shipping_tarrif")
+
 		var err error
-		row, err = s.model.CreatePromoRuleTargetShippingTarrif(ctx, *pr.ShippingTarrifID, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
+		row, err = s.model.CreatePromoRuleTargetShippingTarrif(ctx, *pr.ShippingTarrifID, pr.PromoRuleCode, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
 		if err != nil {
-			if err == postgres.ErrShippingTarrifNotFound {
+			if err == postgres.ErrPromoRuleExists {
+				return nil, ErrPromoRuleExists
+			} else if err == postgres.ErrShippingTarrifNotFound {
 				return nil, ErrShippingTarrifNotFound
 			}
 			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetShippingTarrif(ctx, shippingTarrifID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, type=%q, target=%q)", *pr.ShippingTarrifID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
@@ -194,10 +203,14 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Modified:           row.Modified,
 		}
 	} else if pr.Target == "total" {
+		contextLogger.Infof("service: promo rule target is a total")
+
 		var err error
-		row, err = s.model.CreatePromoRuleTargetTotal(ctx, *pr.TotalThreshold, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
+		row, err = s.model.CreatePromoRuleTargetTotal(ctx, *pr.TotalThreshold, pr.PromoRuleCode, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
 		if err != nil {
-			if err == postgres.ErrShippingTarrifNotFound {
+			if err == postgres.ErrPromoRuleExists {
+				return nil, ErrPromoRuleExists
+			} else if err == postgres.ErrShippingTarrifNotFound {
 				return nil, ErrShippingTarrifNotFound
 			}
 			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetShippingTarrif(ctx, shippingTarrifID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, type=%q, target=%q)", *pr.ShippingTarrifID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
@@ -218,6 +231,7 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		}
 	}
 
+	contextLogger.Infof("service: CreatePromoRule(ctx, ...) finished returning new rule=%v", rule)
 	return &rule, nil
 }
 
