@@ -50,7 +50,14 @@ func (a *App) ActivateOfferHandler() http.HandlerFunc {
 			if err == service.ErrPriceListCodeExists {
 				clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
 				return
+			} else if err == service.ErrOfferExists {
+				contextLogger.Infof("app: offer promo rule %q has already been activated - no action taken", request.PromoRuleID)
+				clientError(w, http.StatusConflict, ErrCodeOfferExists, "offer has already been activated")
+				return
 			}
+			contextLogger.Errorf("app: a.Service.ActivateOffer(ctx, promoRuleID=%q) failed: %+v", request.PromoRuleID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(priceList)

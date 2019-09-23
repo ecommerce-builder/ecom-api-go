@@ -20,6 +20,26 @@ type PromoRuleCreateProduct struct {
 	ProductUUID string
 }
 
+// PromoRuleRow holds a single row in the promo_rule table.
+type PromoRuleRow struct {
+	id               int
+	UUID             string
+	PromoRuleCode    string
+	productID        *int
+	productSetID     *int
+	categoryID       *int
+	shippingTarrifID *int
+	Name             string
+	StartAt          *time.Time
+	EndAt            *time.Time
+	Amount           int
+	TotalThreshold   *int
+	Type             string
+	Target           string
+	Created          time.Time
+	Modified         time.Time
+}
+
 // PromoRuleJoinProductRow maps to a single row in the promo_rule table.
 type PromoRuleJoinProductRow struct {
 	id                 int

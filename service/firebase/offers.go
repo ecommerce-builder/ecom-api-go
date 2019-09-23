@@ -11,6 +11,9 @@ import (
 // ErrOfferNotFound error
 var ErrOfferNotFound = errors.New("service: offer not found")
 
+// ErrOfferExists error
+var ErrOfferExists = errors.New("service: offer exists")
+
 // Offer struct
 type Offer struct {
 	Object      string    `json:"object"`
@@ -26,8 +29,19 @@ func (s *Service) ActivateOffer(ctx context.Context, promoRuleID string) (*Offer
 	if err != nil {
 		if err == postgres.ErrPromoRuleNotFound {
 			return nil, ErrPromoRuleNotFound
+		} else if err == postgres.ErrOfferExists {
+			return nil, ErrOfferExists
 		}
-		return nil, errors.Wrapf(err, "s.model.AddOffer(ctx, promoRuleUUID=%q)", promoRuleID)
+		return nil, errors.Wrapf(err, "s.model.AddOffer(ctx, promoRuleUUID=%q) failed", promoRuleID)
+	}
+
+	err = s.model.CalcOfferPrices(ctx)
+	if err != nil {
+		if err == postgres.ErrCategoryNotFound {
+			return nil, ErrCategoryNotFound
+		}
+
+		return nil, errors.Wrap(err, "s.model.CalcOfferPrices(ctx) failed")
 	}
 
 	offer := Offer{

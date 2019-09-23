@@ -59,6 +59,9 @@ const (
 const (
 	// ErrCodeOfferNotFound error
 	ErrCodeOfferNotFound string = "offers/offer-not-found"
+
+	// ErrCodeOfferExists error
+	ErrCodeOfferExists string = "offers/offer-exists"
 )
 
 // Coupons
