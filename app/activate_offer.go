@@ -47,8 +47,8 @@ func (a *App) ActivateOfferHandler() http.HandlerFunc {
 
 		priceList, err := a.Service.ActivateOffer(ctx, request.PromoRuleID)
 		if err != nil {
-			if err == service.ErrPriceListCodeExists {
-				clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
+			if err == service.ErrPromoRuleNotFound {
+				clientError(w, http.StatusConflict, ErrCodePromoRuleNotFound, "promo rule not found")
 				return
 			} else if err == service.ErrOfferExists {
 				contextLogger.Infof("app: offer promo rule %q has already been activated - no action taken", request.PromoRuleID)
