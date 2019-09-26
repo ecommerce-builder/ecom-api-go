@@ -72,6 +72,11 @@ const (
 	ErrPPAssocGroupContainsAssocs string = "product-to-product-assocs-groups/assoc-group-contains-assocs"
 )
 
+// Product to products associations
+const (
+	OpBatchUpdateProductToProductAssocs string = "OpBatchUpdateProductToProductAssocs"
+)
+
 // Offers
 const (
 	// ErrCodeOfferNotFound error

@@ -675,6 +675,16 @@ func main() {
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProductToProductAssocGroup, a.DeletePPAssocGroupHandler()))
 		})
 
+		// Product to product assocations
+		r.Route("/products-assocs", func(r chi.Router) {
+			// r.Get("/", a.Authorization(app.OpGetProductToProductAssocs), a.GetPPAssocsHandler())
+			// r.Delete("/{id}", a.Authorization(app.OpDeleteProductToProductAssoc), a.DeletePPAssocHandler())
+		})
+
+		r.Route("/products-assocs:batch-update", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpBatchUpdateProductToProductAssocs, a.BatchUpdatePPAssocsHandler()))
+		})
+
 		// Shipping Tariffs
 		r.Route("/shipping-tariffs", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateShippingTariff, a.CreateShippingTariffHandler()))
