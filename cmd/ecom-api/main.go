@@ -667,6 +667,14 @@ func main() {
 			r.Put("/", a.Authorization(app.OpUpdateProductPrices, a.UpdateProductPricesHandler()))
 		})
 
+		// Product to product associations groups
+		r.Route("/products-assocs-groups", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreateProductToProductAssocGroup, a.CreatePPAssocGroupHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetProductToProductAssocGroup, a.GetPPAssocGroupHandler()))
+			r.Get("/", a.Authorization(app.OpListProductToProductAssocGroups, a.ListPPAssocGroupsHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteProductToProductAssocGroup, a.DeletePPAssocGroupHandler()))
+		})
+
 		// Shipping Tariffs
 		r.Route("/shipping-tariffs", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateShippingTariff, a.CreateShippingTariffHandler()))
