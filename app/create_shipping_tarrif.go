@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type createShippingTarrifRequestBody struct {
+type createShippingTariffRequestBody struct {
 	CountryCode  string `json:"country_code"`
 	ShippingCode string `json:"shipping_code"`
 	Name         string `json:"name"`
@@ -16,7 +16,7 @@ type createShippingTarrifRequestBody struct {
 	TaxCode      string `json:"tax_code"`
 }
 
-func validateCreateShippingTarrifRequest(request *createShippingTarrifRequestBody) (bool, string) {
+func validateCreateShippingTariffRequest(request *createShippingTariffRequestBody) (bool, string) {
 	if request.CountryCode == "" {
 		return false, "attribute country_code must be set"
 	}
@@ -39,12 +39,12 @@ func validateCreateShippingTarrifRequest(request *createShippingTarrifRequestBod
 	return true, ""
 }
 
-// CreateShippingTarrifHandler creates a shipping tarrif
-func (a *App) CreateShippingTarrifHandler() http.HandlerFunc {
+// CreateShippingTariffHandler creates a shipping tariff
+func (a *App) CreateShippingTariffHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: CreateShippingTarrifHandler called")
+		contextLogger.Info("app: CreateShippingTariffHandler called")
 
 		// parse the request body
 		if r.Body == nil {
@@ -52,7 +52,7 @@ func (a *App) CreateShippingTarrifHandler() http.HandlerFunc {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "missing request body")
 			return
 		}
-		request := createShippingTarrifRequestBody{}
+		request := createShippingTariffRequestBody{}
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&request)
@@ -62,25 +62,25 @@ func (a *App) CreateShippingTarrifHandler() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		valid, message := validateCreateShippingTarrifRequest(&request)
+		valid, message := validateCreateShippingTariffRequest(&request)
 		if !valid {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
 			return
 		}
 
-		// attempt to create the shipping tarrif
-		tarrif, err := a.Service.CreateShippingTarrif(ctx, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode)
+		// attempt to create the shipping tariff
+		tariff, err := a.Service.CreateShippingTariff(ctx, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode)
 		if err != nil {
-			if err == service.ErrShippingTarrifCodeExists {
-				clientError(w, http.StatusConflict, ErrCodeShippingTarrifCodeExists, "shipping tarrif code already exists")
+			if err == service.ErrShippingTariffCodeExists {
+				clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists, "shipping tariff code already exists")
 				return
 			}
-			contextLogger.Errorf("app: a.Service.CreateShippingTarrif(ctx, countryCode=%q, shippingcode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
+			contextLogger.Errorf("app: a.Service.CreateShippingTariff(ctx, countryCode=%q, shippingcode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(&tarrif)
+		json.NewEncoder(w).Encode(&tariff)
 	}
 }

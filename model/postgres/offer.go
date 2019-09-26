@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/pkg/errors"
@@ -79,26 +80,32 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Debugf("postgres: CalcOfferPrices(ctx context.Context) started")
 
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "postgres: db.BeginTx")
+	}
+	contextLogger.Debugf("postgres: db begin transaction")
+
 	// 1. Get a list of all promo rules applied to offers.
 	q1 := `
 		SELECT
 		  r.id, r.uuid, promo_rule_code, product_id, product_set_id,
-		  category_id, shipping_tarrif_id, name, start_at, end_at,
+		  category_id, shipping_tariff_id, name, start_at, end_at,
 		  amount, total_threshold, type, target, r.created, r.modified
 		FROM promo_rule AS r
 		INNER JOIN offer AS o
 		  ON o.promo_rule_id = r.id
 	`
-	rows, err := m.db.QueryContext(ctx, q1)
+	rows, err := tx.QueryContext(ctx, q1)
 	if err != nil {
-		return errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
+		return errors.Wrapf(err, "postgres: tx.QueryContext(ctx) failed")
 	}
 	defer rows.Close()
 
 	promos := make([]*PromoRuleRow, 0, 2)
 	for rows.Next() {
 		var p PromoRuleRow
-		if err = rows.Scan(&p.id, &p.UUID, &p.PromoRuleCode, &p.productID, &p.productSetID, &p.categoryID, &p.shippingTarrifID, &p.Name, &p.StartAt, &p.EndAt, &p.Amount, &p.TotalThreshold, &p.Type, &p.Target, &p.Created, &p.Modified); err != nil {
+		if err = rows.Scan(&p.id, &p.UUID, &p.PromoRuleCode, &p.productID, &p.productSetID, &p.categoryID, &p.shippingTariffID, &p.Name, &p.StartAt, &p.EndAt, &p.Amount, &p.TotalThreshold, &p.Type, &p.Target, &p.Created, &p.Modified); err != nil {
 			return errors.Wrap(err, "postgres: scan failed")
 		}
 		promos = append(promos, &p)
@@ -139,11 +146,13 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 
 		contextLogger.Infof("postgres: offer promo %q has a target of %q", promo.PromoRuleCode, promo.Target)
 		if promo.Target == "category" {
+			categories := make([]int, 0)
+
 			// 2. Read the category to determine if its a leaf or non-leaf
 			// Non-leafs should get all leaf category descendants.
-			q2 := "SELECT lft, rgt FROM category WHERE id = $1"
-			var lft, rgt int
-			err = m.db.QueryRowContext(ctx, q2, *promo.categoryID).Scan(&lft, &rgt)
+			q2 := "SELECT id, lft, rgt FROM category WHERE id = $1"
+			var categoryID, lft, rgt int
+			err = tx.QueryRowContext(ctx, q2, *promo.categoryID).Scan(&categoryID, &lft, &rgt)
 			if err != nil {
 				if err == sql.ErrNoRows {
 					return ErrCategoryNotFound
@@ -151,12 +160,15 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 				return errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 			}
 
-			// if this is a non-leaf category get a list of leaf categories
-			if lft != rgt-1 {
-				q3 := "SELECT * FROM category WHERE lft > 34 AND rgt < 119 AND lft = rgt-1"
-				rows, err := m.db.QueryContext(ctx, q3)
+			if lft == rgt-1 {
+				// leaf category
+				categories = append(categories, categoryID)
+			} else {
+				// non-leaf category
+				q3 := "SELECT * FROM category WHERE lft > $1 AND rgt < $2 AND lft = rgt-1"
+				rows, err := tx.QueryContext(ctx, q3)
 				if err != nil {
-					return errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
+					return errors.Wrapf(err, "postgres: tx.QueryContext(ctx) failed")
 				}
 				defer rows.Close()
 
@@ -167,13 +179,118 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 						return errors.Wrap(err, "postgres: scan failed")
 					}
 					leafCategories = append(leafCategories, &c)
+					categories = append(categories, c.id)
 				}
 				if err = rows.Err(); err != nil {
 					return errors.Wrap(err, "postgres: rows.Err()")
 				}
 			}
+
+			// build a list of products for the categories
+			q4 := `
+				SELECT
+				  id, uuid, product_id, category_id, pri, created, modified
+				FROM product_category
+				WHERE category_id IN ($1)
+			`
+			rows, err := tx.QueryContext(ctx, q4)
+			if err != nil {
+				return errors.Wrapf(err, "postgres: tx.QueryContext(ctx) failed")
+			}
+			defer rows.Close()
+
+			productCategoryList := make([]*ProductCategoryRow, 0)
+			for rows.Next() {
+				var c ProductCategoryRow
+				if err = rows.Scan(&c.id, &c.UUID, &c.productID, &c.categoryID, &c.Pri, &c.Created, &c.Modified); err != nil {
+					return errors.Wrap(err, "postgres: scan failed")
+				}
+				productCategoryList = append(productCategoryList, &c)
+			}
+			if err = rows.Err(); err != nil {
+				return errors.Wrap(err, "postgres: rows.Err()")
+			}
+
+			// for each product, calculate the discounted price and store it
+			// for every price break of that product.
+			fmt.Println("products...")
+
+			// 5. Prepare get product
+			q5 := `
+				SELECT
+				  id, uuid, product_id, price_list_id, break, unit_price, created, modified
+				FROM price
+				WHERE product_id = $1
+			`
+			stmt3, err := tx.PrepareContext(ctx, q5)
+			if err != nil {
+				tx.Rollback()
+				return errors.Wrapf(err, "postgres: tx prepare for q5=%q", q5)
+			}
+			defer stmt3.Close()
+
+			// 6. Preprare price update
+			q6 := `
+				UPDATE price
+				SET offer_price = $1, modified = NOW()
+				WHERE id = $2
+			`
+			stmt6, err := tx.PrepareContext(ctx, q6)
+			if err != nil {
+				tx.Rollback()
+				return errors.Wrapf(err, "postgres: tx prepare for q6=%q", q6)
+			}
+			defer stmt6.Close()
+
+			for _, productID := range productCategoryList {
+				fmt.Printf("%+v\n", productID)
+
+				rows, err := stmt3.QueryContext(ctx, productID)
+				if err != nil {
+					tx.Rollback()
+					return errors.Wrapf(err, "postgres: stmt3.QueryContext(ctx, ...) failed q6=%q", q6)
+				}
+				defer rows.Close()
+
+				prices := make([]*PriceRow, 0, 1)
+				for rows.Next() {
+					var p PriceRow
+					if err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.priceListID, &p.Break, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+						return errors.Wrap(err, "postgres: scan failed")
+					}
+					prices = append(prices, &p)
+				}
+				if err = rows.Err(); err != nil {
+					return errors.Wrap(err, "postgres: rows.Err()")
+				}
+
+				for _, price := range prices {
+					var offerPrice int
+					if promo.Type == "fixed" {
+						contextLogger.Debug("postgres: promo type is fixed with amount %d", promo.Amount)
+						offerPrice = price.UnitPrice - promo.Amount
+					} else if promo.Type == "percentage" {
+						contextLogger.Debug("postgres: promo type is percentage with amount %d", promo.Amount)
+						// percentage is stored as a integer between 0 to 10,000
+						// 0 = 0.00% and 9,999 = 99.99% discount.
+						fraction := float64(promo.Amount) / 10000.0
+						offerPrice = int(math.Round(float64(price.UnitPrice) * fraction))
+					}
+
+					contextLogger.Infof("postgres: offerPrice=%d (price uuid=%q productID=%d priceListID=%d Break=%d UnitPrice=%d)", offerPrice, price.UUID, price.productID, price.priceListID, price.Break, price.UnitPrice)
+					_, err := stmt6.ExecContext(ctx, offerPrice, price.id)
+					if err != nil {
+						return errors.Wrapf(err, "postgres: stmt4.ExecContext(ctx, offerPrice=%d, price.id=%d) failed", offerPrice, price.id)
+					}
+				}
+			}
 		}
 	}
+
+	if err = tx.Commit(); err != nil {
+		return errors.Wrap(err, "postgres: tx.Commit")
+	}
+	contextLogger.Debugf("postgres: db commit succeeded")
 
 	return nil
 }

@@ -41,8 +41,8 @@ func (a *App) CreatePromoRuleHandler() http.HandlerFunc {
 			} else if err == service.ErrCategoryNotFound {
 				clientError(w, http.StatusNotFound, ErrCodeCategoryNotFound, "category not found")
 				return
-			} else if err == service.ErrShippingTarrifNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeShippingTarrifNotFound, "shipping tarrif not found")
+			} else if err == service.ErrShippingTariffNotFound {
+				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff not found")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.CreatePromoRule(ctx, pr=%v) error: %+v", request, err)
@@ -68,8 +68,8 @@ func validatePromoRuleCreateRequestBody(request *service.PromoRuleCreateRequestB
 	}
 
 	if request.Target != "product" && request.Target != "productset" &&
-		request.Target != "category" && request.Target != "total" && request.Target != "shipping_tarrif" {
-		return false, "attribute target must be set to a value of product, productset, category, total or shipping_tarrif"
+		request.Target != "category" && request.Target != "total" && request.Target != "shipping_tariff" {
+		return false, "attribute target must be set to a value of product, productset, category, total or shipping_tariff"
 	}
 
 	// A target of "product" requires that the request body contains a product_id attribute
@@ -87,8 +87,8 @@ func validatePromoRuleCreateRequestBody(request *service.PromoRuleCreateRequestB
 		if request.TotalThreshold != nil {
 			return false, "target is set to product so attribute total_threshold must not be set"
 		}
-		if request.ShippingTarrifID != nil {
-			return false, "target is set to product so attribute shipping_tarrif_id must not be set"
+		if request.ShippingTariffID != nil {
+			return false, "target is set to product so attribute shipping_tariff_id must not be set"
 		}
 
 		if !IsValidUUID(*request.ProductID) {
@@ -108,8 +108,8 @@ func validatePromoRuleCreateRequestBody(request *service.PromoRuleCreateRequestB
 		if request.TotalThreshold != nil {
 			return false, "target is set to product_set so attribute total_threshold must not be set"
 		}
-		if request.ShippingTarrifID != nil {
-			return false, "target is set to product_set so attribute shipping_tarrif_id must not be set"
+		if request.ShippingTariffID != nil {
+			return false, "target is set to product_set so attribute shipping_tariff_id must not be set"
 		}
 
 		// TODO: build a map and validate on duplicates
@@ -137,33 +137,33 @@ func validatePromoRuleCreateRequestBody(request *service.PromoRuleCreateRequestB
 		if request.TotalThreshold != nil {
 			return false, "target is set to category so attribute total_threshold must not be set"
 		}
-		if request.ShippingTarrifID != nil {
-			return false, "target is set to category so attribute shipping_tarrif_id must not be set"
+		if request.ShippingTariffID != nil {
+			return false, "target is set to category so attribute shipping_tariff_id must not be set"
 		}
 
 		if !IsValidUUID(*request.CategoryID) {
 			return false, "category_id attribute must be a valid v4 UUID"
 		}
-	} else if request.Target == "shipping_tarrif" {
-		if request.ShippingTarrifID == nil {
-			return false, "attribute target is set to shipping_tarrif so you must pass an additional attribute shipping_tarrif_id"
+	} else if request.Target == "shipping_tariff" {
+		if request.ShippingTariffID == nil {
+			return false, "attribute target is set to shipping_tariff so you must pass an additional attribute shipping_tariff_id"
 		}
 
 		if request.ProductID != nil {
-			return false, "target is set to shipping_tarrif so attribute product_id must not be set"
+			return false, "target is set to shipping_tariff so attribute product_id must not be set"
 		}
 		if request.ProductSet != nil {
-			return false, "target is set to shipping_tarrif so attribute product_set must not be set"
+			return false, "target is set to shipping_tariff so attribute product_set must not be set"
 		}
 		if request.CategoryID != nil {
-			return false, "target is set to shipping_tarrif so attribute category_id must not be set"
+			return false, "target is set to shipping_tariff so attribute category_id must not be set"
 		}
 		if request.TotalThreshold != nil {
-			return false, "target is set to shipping_tarrif so attribute total_threshold must not be set"
+			return false, "target is set to shipping_tariff so attribute total_threshold must not be set"
 		}
 
-		if !IsValidUUID(*request.ShippingTarrifID) {
-			return false, "shipping_tarrif_id attribute must be a valid v4 UUID"
+		if !IsValidUUID(*request.ShippingTariffID) {
+			return false, "shipping_tariff_id attribute must be a valid v4 UUID"
 		}
 	} else if request.Target == "total" {
 		if request.TotalThreshold == nil {
@@ -179,8 +179,8 @@ func validatePromoRuleCreateRequestBody(request *service.PromoRuleCreateRequestB
 		if request.CategoryID != nil {
 			return false, "target is set to total so attribute category_id must not be set"
 		}
-		if request.ShippingTarrifID != nil {
-			return false, "target is set to total so attribute shipping_tarrif must not be set"
+		if request.ShippingTariffID != nil {
+			return false, "target is set to total so attribute shipping_tariff must not be set"
 		}
 	}
 

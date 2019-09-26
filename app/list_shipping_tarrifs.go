@@ -8,29 +8,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ListShippingTarrifsHandler creates a handler function that returns a
-// list of shipping tarrifs.
-func (a *App) ListShippingTarrifsHandler() http.HandlerFunc {
+// ListShippingTariffsHandler creates a handler function that returns a
+// list of shipping tariffs.
+func (a *App) ListShippingTariffsHandler() http.HandlerFunc {
 	type listPromoRulesResponse struct {
 		Object string                    `json:"object"`
-		Data   []*service.ShippingTarrif `json:"data"`
+		Data   []*service.ShippingTariff `json:"data"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: ListShippingTarrifsHandler started")
+		contextLogger.Info("app: ListShippingTariffsHandler started")
 
-		shippingTarrifs, err := a.Service.GetShippingTarrifs(ctx)
+		shippingTariffs, err := a.Service.GetShippingTariffs(ctx)
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.GetShippingTarrifs(ctx) error: %+v", err)
+			contextLogger.Errorf("app: a.Service.GetShippingTariffs(ctx) error: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 
 		list := listPromoRulesResponse{
 			Object: "list",
-			Data:   shippingTarrifs,
+			Data:   shippingTariffs,
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(&list)

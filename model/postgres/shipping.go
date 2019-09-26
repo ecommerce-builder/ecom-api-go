@@ -9,14 +9,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ErrShippingTarrifCodeExists error for duplicates.
-var ErrShippingTarrifCodeExists = errors.New("postgres: shipping tarrif code exists")
+// ErrShippingTariffCodeExists error for duplicates.
+var ErrShippingTariffCodeExists = errors.New("postgres: shipping tariff code exists")
 
-// ErrShippingTarrifNotFound error
-var ErrShippingTarrifNotFound = errors.New("postgres: shipping tarrif not found")
+// ErrShippingTariffNotFound error
+var ErrShippingTariffNotFound = errors.New("postgres: shipping tariff not found")
 
-// ShippingTarrifRow maps to a row in the shipping_tarrif table.
-type ShippingTarrifRow struct {
+// ShippingTariffRow maps to a row in the shipping_tariff table.
+type ShippingTariffRow struct {
 	id           int
 	UUID         string
 	CountryCode  string
@@ -28,64 +28,64 @@ type ShippingTarrifRow struct {
 	Modified     time.Time
 }
 
-// CreateShippingTarrif attempts to create a new shipping tarrif row.
-func (m *PgModel) CreateShippingTarrif(ctx context.Context, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTarrifRow, error) {
+// CreateShippingTariff attempts to create a new shipping tariff row.
+func (m *PgModel) CreateShippingTariff(ctx context.Context, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTariffRow, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("postgres: CreateShippingTarrif(ctx context.Context, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q, ...) started", countryCode, shippingCode, name, price, taxCode)
+	contextLogger.Debugf("postgres: CreateShippingTariff(ctx context.Context, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q, ...) started", countryCode, shippingCode, name, price, taxCode)
 
 	// 1. Check if the shipping code exists
-	q1 := `SELECT EXISTS(SELECT 1 FROM shipping_tarrif WHERE shipping_code = $1) AS exists`
+	q1 := `SELECT EXISTS(SELECT 1 FROM shipping_tariff WHERE shipping_code = $1) AS exists`
 	var exists bool
 	err := m.db.QueryRowContext(ctx, q1, shippingCode).Scan(&exists)
 	if err != nil {
 		return nil, errors.Wrapf(err, "model: tx.QueryRowContext(ctx, q2=%q, shippingCode=%q)", q1, shippingCode)
 	}
 	if exists {
-		return nil, ErrShippingTarrifCodeExists
+		return nil, ErrShippingTariffCodeExists
 	}
 
-	// 2. Insert the new shipping tarrif
+	// 2. Insert the new shipping tariff
 	q2 := `
-		INSERT INTO shipping_tarrif
+		INSERT INTO shipping_tariff
 		(country_code, shipping_code, name, price, tax_code, created, modified)
 		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
 		RETURNING
 		  id, uuid, country_code, shipping_code, name, price, tax_code, created, modified
 	`
-	s := ShippingTarrifRow{}
+	s := ShippingTariffRow{}
 	row := m.db.QueryRowContext(ctx, q2, countryCode, shippingCode, name, price, taxCode)
 	if err := row.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price, &s.TaxCode, &s.Created, &s.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q2=%q failed", q2)
 	}
-	contextLogger.Debugf("postgres: q2 created new shipping tarrif with id=%d, uuid=%s", s.id, s.UUID)
+	contextLogger.Debugf("postgres: q2 created new shipping tariff with id=%d, uuid=%s", s.id, s.UUID)
 
 	return &s, nil
 }
 
-// GetShippingTarrifByUUID return a single ShippingTarrifRow by uuid.
-func (m *PgModel) GetShippingTarrifByUUID(ctx context.Context, shippingTarrifUUID string) (*ShippingTarrifRow, error) {
+// GetShippingTariffByUUID return a single ShippingTariffRow by uuid.
+func (m *PgModel) GetShippingTariffByUUID(ctx context.Context, shippingTariffUUID string) (*ShippingTariffRow, error) {
 	q1 := `
 		SELECT id, uuid, country_code, shipping_code, name, price, tax_code, created, modified
-		FROM shipping_tarrif
+		FROM shipping_tariff
 		WHERE uuid = $1
 	`
-	s := ShippingTarrifRow{}
-	row := m.db.QueryRowContext(ctx, q1, shippingTarrifUUID)
+	s := ShippingTariffRow{}
+	row := m.db.QueryRowContext(ctx, q1, shippingTariffUUID)
 	if err := row.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price, &s.TaxCode, &s.Created, &s.Modified); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrShippingTarrifNotFound
+			return nil, ErrShippingTariffNotFound
 		}
-		return nil, errors.Wrapf(err, "postgres: query scan shippingTarrifUUID=%q q1=%q failed", shippingTarrifUUID, q1)
+		return nil, errors.Wrapf(err, "postgres: query scan shippingTariffUUID=%q q1=%q failed", shippingTariffUUID, q1)
 	}
 	return &s, nil
 }
 
-// GetShippingTarrifs returns a list of all ShippingTarrifRows from the
-// shipping_tarrif table.
-func (m *PgModel) GetShippingTarrifs(ctx context.Context) ([]*ShippingTarrifRow, error) {
+// GetShippingTariffs returns a list of all ShippingTariffRows from the
+// shipping_tariff table.
+func (m *PgModel) GetShippingTariffs(ctx context.Context) ([]*ShippingTariffRow, error) {
 	q1 := `
 		SELECT id, uuid, country_code, shipping_code, name, price, tax_code, created, modified
-		FROM shipping_tarrif
+		FROM shipping_tariff
 	`
 	rows, err := m.db.QueryContext(ctx, q1)
 	if err != nil {
@@ -93,37 +93,37 @@ func (m *PgModel) GetShippingTarrifs(ctx context.Context) ([]*ShippingTarrifRow,
 	}
 	defer rows.Close()
 
-	tarrifs := make([]*ShippingTarrifRow, 0, 4)
+	tariffs := make([]*ShippingTariffRow, 0, 4)
 	for rows.Next() {
-		var s ShippingTarrifRow
+		var s ShippingTariffRow
 		if err = rows.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price, &s.TaxCode, &s.Created, &s.Modified); err != nil {
 			if err == sql.ErrNoRows {
-				return nil, ErrShippingTarrifNotFound
+				return nil, ErrShippingTariffNotFound
 			}
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
-		tarrifs = append(tarrifs, &s)
+		tariffs = append(tariffs, &s)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
-	return tarrifs, nil
+	return tariffs, nil
 }
 
-// UpdateShippingTarrif updates a shipping tarrif.
-func (m *PgModel) UpdateShippingTarrif(ctx context.Context, shoppingTarrifUUID, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTarrifRow, error) {
+// UpdateShippingTariff updates a shipping tariff.
+func (m *PgModel) UpdateShippingTariff(ctx context.Context, shoppingTariffUUID, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTariffRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
-	q1 := "SELECT id FROM shipping_tarrif WHERE uuid = $1"
-	var shippingTarrifID int
-	err = tx.QueryRowContext(ctx, q1, shoppingTarrifUUID).Scan(&shippingTarrifID)
+	q1 := "SELECT id FROM shipping_tariff WHERE uuid = $1"
+	var shippingTariffID int
+	err = tx.QueryRowContext(ctx, q1, shoppingTariffUUID).Scan(&shippingTariffID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
-			return nil, ErrShippingTarrifNotFound
+			return nil, ErrShippingTariffNotFound
 		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
@@ -132,25 +132,25 @@ func (m *PgModel) UpdateShippingTarrif(ctx context.Context, shoppingTarrifUUID, 
 	// The clause
 	//   AND id != $2
 	// ensures we are allowed to update our own price list name and description.
-	q2 := "SELECT EXISTS(SELECT 1 FROM shipping_tarrif WHERE shipping_code = $1 AND id != $2) AS exists"
+	q2 := "SELECT EXISTS(SELECT 1 FROM shipping_tariff WHERE shipping_code = $1 AND id != $2) AS exists"
 	var exists bool
-	err = tx.QueryRowContext(ctx, q2, shippingCode, shippingTarrifID).Scan(&exists)
+	err = tx.QueryRowContext(ctx, q2, shippingCode, shippingTariffID).Scan(&exists)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q2=%q, shippingCode=%q)", q2, shippingCode)
 	}
 	if exists {
-		return nil, ErrShippingTarrifCodeExists
+		return nil, ErrShippingTariffCodeExists
 	}
 
 	q3 := `
-		UPDATE shipping_tarrif
+		UPDATE shipping_tariff
 		SET country_code = $1, shipping_code = $2, name = $3, price = $4, tax_code = $5, modified = NOW()
 		WHERE id = $6
 		RETURNING
 		  id, uuid, country_code, shipping_code, name, price, tax_code, created, modified
 	`
-	s := ShippingTarrifRow{}
-	row := tx.QueryRowContext(ctx, q3, countryCode, shippingCode, name, price, taxCode, shippingTarrifID)
+	s := ShippingTariffRow{}
+	row := tx.QueryRowContext(ctx, q3, countryCode, shippingCode, name, price, taxCode, shippingTariffID)
 	if err := row.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price, &s.TaxCode, &s.Created, &s.Modified); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context q3=%q", q3)
@@ -163,28 +163,28 @@ func (m *PgModel) UpdateShippingTarrif(ctx context.Context, shoppingTarrifUUID, 
 
 }
 
-// DeleteShippingTarrifByUUID deletes a shipping tarrif by uuid.
-func (m *PgModel) DeleteShippingTarrifByUUID(ctx context.Context, shippingTarrifUUID string) error {
+// DeleteShippingTariffByUUID deletes a shipping tariff by uuid.
+func (m *PgModel) DeleteShippingTariffByUUID(ctx context.Context, shippingTariffUUID string) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "postgres: db.BeginTx")
 	}
 
-	q1 := "SELECT id FROM shipping_tarrif WHERE uuid = $1"
-	var shippingTarrifID int
-	err = tx.QueryRowContext(ctx, q1, shippingTarrifUUID).Scan(&shippingTarrifID)
+	q1 := "SELECT id FROM shipping_tariff WHERE uuid = $1"
+	var shippingTariffID int
+	err = tx.QueryRowContext(ctx, q1, shippingTariffUUID).Scan(&shippingTariffID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
-			return ErrShippingTarrifNotFound
+			return ErrShippingTariffNotFound
 		}
 		tx.Rollback()
 
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
-	q2 := "DELETE FROM shipping_tarrif WHERE id = $1"
-	_, err = tx.ExecContext(ctx, q2, shippingTarrifID)
+	q2 := "DELETE FROM shipping_tariff WHERE id = $1"
+	_, err = tx.ExecContext(ctx, q2, shippingTariffID)
 	if err != nil {
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)

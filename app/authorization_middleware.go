@@ -63,7 +63,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpGetProduct, OpListProducts, OpGetProductCategoryRelations,
 			OpGetTierPricing, OpMapPricingByTier, OpGetImage, OpGetProductCategoryRel,
 			OpListProductImages, OpPlaceOrder, OpStripeCheckout, OpGetPriceList,
-			OpListInventory, OpGetInventory, OpGetShippingTarrif, OpListShippingTarrifs,
+			OpListInventory, OpGetInventory, OpGetShippingTariff, OpListShippingTariffs,
 			OpGetProductSetItems, OpGetOffer, OpListOffers, OpApplyCouponToCart, OpUnapplyCouponFromCart,
 			OpListCartCoupons:
 			next.ServeHTTP(w, r.WithContext(ctx2))
@@ -77,7 +77,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpCreatePriceList, OpListPriceLists, OpUpdatePriceList, OpDeletePriceList,
 			OpCreatePromoRule, OpDeletePromoRule, OpGetPromoRule, OpListPromoRules,
 			OpUpdateInventory, OpBatchUpdateInventory,
-			OpCreateShippingTarrif, OpUpdateShippingTarrif, OpDeleteShippingTarrif,
+			OpCreateShippingTariff, OpUpdateShippingTariff, OpDeleteShippingTariff,
 			OpActivateOffer, OpDeactivateOffer,
 			OpCreateCoupon, OpGetCoupon, OpListCoupons, OpUpdateCoupon, OpDeleteCoupon,
 			OpGetCartCoupon:

@@ -15,13 +15,13 @@ const (
 	ErrCodeInventoryNotFound string = "inventory/inventory-not-found"
 )
 
-// Shipping Tarrifs
+// Shipping Tariffs
 const (
-	// ErrCodeShippingTarrifCodeExists error
-	ErrCodeShippingTarrifCodeExists string = "shipping-tarrifs/shipping-tarrif-code-exists"
+	// ErrCodeShippingTariffCodeExists error
+	ErrCodeShippingTariffCodeExists string = "shipping-tariffs/shipping-tariff-code-exists"
 
-	// ErrCodeShippingTarrifNotFound error
-	ErrCodeShippingTarrifNotFound string = "shipping-tarrifs/shipping-tarrif-not-found"
+	// ErrCodeShippingTariffNotFound error
+	ErrCodeShippingTariffNotFound string = "shipping-tariffs/shipping-tariff-not-found"
 )
 
 // Product Set Items
@@ -287,12 +287,12 @@ const (
 	// Product Set Items
 	OpGetProductSetItems string = "OpGetProductSetItems"
 
-	// Shipping Tarrifs
-	OpCreateShippingTarrif string = "OpCreateShippingTarrif"
-	OpGetShippingTarrif    string = "OpGetShippingTarrif"
-	OpListShippingTarrifs  string = "OpListShippingTarrifs"
-	OpUpdateShippingTarrif string = "OpUpdateShippingTarrif"
-	OpDeleteShippingTarrif string = "OpDeleteShippingTarrif"
+	// Shipping Tariffs
+	OpCreateShippingTariff string = "OpCreateShippingTariff"
+	OpGetShippingTariff    string = "OpGetShippingTariff"
+	OpListShippingTariffs  string = "OpListShippingTariffs"
+	OpUpdateShippingTariff string = "OpUpdateShippingTariff"
+	OpDeleteShippingTariff string = "OpDeleteShippingTariff"
 
 	// Offers
 	OpActivateOffer   string = "OpActivateOffer"

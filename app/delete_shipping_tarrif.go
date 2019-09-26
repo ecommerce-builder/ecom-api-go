@@ -8,20 +8,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DeleteShippingTarrifHandler create a handler to delete a shipping tarrif.
-func (a *App) DeleteShippingTarrifHandler() http.HandlerFunc {
+// DeleteShippingTariffHandler create a handler to delete a shipping tariff.
+func (a *App) DeleteShippingTariffHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: DeleteShippingTarrifHandler started")
+		contextLogger.Info("app: DeleteShippingTariffHandler started")
 
-		shippingTarrifID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteShippingTarrif(ctx, shippingTarrifID); err != nil {
-			if err == service.ErrShippingTarrifNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeShippingTarrifNotFound, "shipping tarrif not found")
+		shippingTariffID := chi.URLParam(r, "id")
+		if err := a.Service.DeleteShippingTariff(ctx, shippingTariffID); err != nil {
+			if err == service.ErrShippingTariffNotFound {
+				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff not found")
 				return
 			}
-			contextLogger.Errorf("app DeleteShippingTarrif(ctx, shippingTarrifID=%q) failed: %+v", shippingTarrifID, err)
+			contextLogger.Errorf("app DeleteShippingTariff(ctx, shippingTariffID=%q) failed: %+v", shippingTariffID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

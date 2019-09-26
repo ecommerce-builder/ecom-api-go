@@ -9,22 +9,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GetShippingTarrifHandler creates a handler function that returns a
-// shipping tarrif by id.
-func (a *App) GetShippingTarrifHandler() http.HandlerFunc {
+// GetShippingTariffHandler creates a handler function that returns a
+// shipping tariff by id.
+func (a *App) GetShippingTariffHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: GetShippingTarrifHandler called")
+		contextLogger.Info("app: GetShippingTariffHandler called")
 
-		shippingTarrifID := chi.URLParam(r, "id")
-		promoRule, err := a.Service.GetShippingTarrif(ctx, shippingTarrifID)
+		shippingTariffID := chi.URLParam(r, "id")
+		promoRule, err := a.Service.GetShippingTariff(ctx, shippingTariffID)
 		if err != nil {
 			if err == service.ErrPromoRuleNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeShippingTarrifNotFound, "shopping tarrif not found")
+				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shopping tariff not found")
 				return
 			}
-			contextLogger.Errorf("app: a.Service.GetShippingTarrif(ctx, shippingTarrifID=%q) failed: %+v", shippingTarrifID, err)
+			contextLogger.Errorf("app: a.Service.GetShippingTariff(ctx, shippingTariffID=%q) failed: %+v", shippingTariffID, err)
 
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 		}

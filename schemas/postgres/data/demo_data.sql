@@ -227,24 +227,24 @@ INSERT INTO price (price_list_id, product_id, break, unit_price) VALUES(
     (SELECT id FROM price_list WHERE code = 'seabass'),
     (SELECT id FROM product WHERE sku = 'DESK-SKU'), 1, 1984200);
 
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('GB', 'free_delivery', 'Standard Delivery (3-5 working days)', 24583, 'T20');
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('GB', 'next_day_delivery', 'Next Day Delivery', 41250, 'T20');
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('GB', 'next_day_pre10', 'Next Day Pre-10:30 Delivery', 124167, 'T20');
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('GB', 'saturday_delivery', 'Saturday Delivery', 79167, 'T20');
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('GB', 'sunday_delivery', 'Sunday Delivery', 82500, 'T20');
 
 
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('FR', 'international_standard', 'International Standard (3-5 working days)', 83333, 'T20');
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('FR', 'international_express', 'International Express (1-2 working days)', 150000, 'T20');
 
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('NO', 'international_standard', 'International Standard (3-5 working days)', 120000, 'T0');
-INSERT INTO shipping_tarrif (country_code, shipping_code, name, price, tax_code)
+INSERT INTO shipping_tariff (country_code, shipping_code, name, price, tax_code)
   VALUES ('NO', 'international_express', 'International Express (1-2 working days)', 220000, 'T0');

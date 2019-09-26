@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS price (
   price_list_id    INTEGER,
   break            INTEGER NOT NULL CHECK (break >= 1),
   unit_price       INTEGER NOT NULL CHECK (unit_price >= 0),
+  offer_price      INTEGER NULL CHECK (offer_price IS NULL OR offer_price >= 0),
   created          TIMESTAMP NOT NULL DEFAULT NOW(),
   modified         TIMESTAMP NOT NULL DEFAULT NOW(),
   FOREIGN KEY (product_id) REFERENCES product (id),

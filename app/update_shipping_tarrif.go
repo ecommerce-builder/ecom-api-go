@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type updateShippingTarrifRequest struct {
+type updateShippingTariffRequest struct {
 	ID           string `json:"id"`
 	CountryCode  string `json:"country_code"`
 	ShippingCode string `json:"shipping_code"`
@@ -18,16 +18,16 @@ type updateShippingTarrifRequest struct {
 	TaxCode      string `json:"tax_code"`
 }
 
-// UpdateShippingTarrifHandler creates a handler function that updates
-// a shipping tarrif with the given id.
-func (a *App) UpdateShippingTarrifHandler() http.HandlerFunc {
+// UpdateShippingTariffHandler creates a handler function that updates
+// a shipping tariff with the given id.
+func (a *App) UpdateShippingTariffHandler() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: UpdateShippingTarrifHandler started")
+		contextLogger.Info("app: UpdateShippingTariffHandler started")
 
-		request := createShippingTarrifRequestBody{}
+		request := createShippingTariffRequestBody{}
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&request); err != nil {
@@ -35,30 +35,30 @@ func (a *App) UpdateShippingTarrifHandler() http.HandlerFunc {
 			return
 		}
 
-		ok, message := validateCreateShippingTarrifRequest(&request)
+		ok, message := validateCreateShippingTariffRequest(&request)
 		if !ok {
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
 			return
 		}
 
-		shippingTarrifID := chi.URLParam(r, "id")
-		shippingTarrif, err := a.Service.UpdateShippingTarrif(ctx, shippingTarrifID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode)
+		shippingTariffID := chi.URLParam(r, "id")
+		shippingTariff, err := a.Service.UpdateShippingTariff(ctx, shippingTariffID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode)
 		if err != nil {
-			if err == service.ErrShippingTarrifNotFound {
+			if err == service.ErrShippingTariffNotFound {
 				// 404 Not Found
-				clientError(w, http.StatusNotFound, ErrCodeShippingTarrifNotFound, "shipping tarrif code not found")
+				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff code not found")
 				return
-			} else if err == service.ErrShippingTarrifCodeExists {
+			} else if err == service.ErrShippingTariffCodeExists {
 				// 409 Conflict
-				clientError(w, http.StatusConflict, ErrCodeShippingTarrifCodeExists, "shipping tarrif code already exists")
+				clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists, "shipping tariff code already exists")
 				return
 			}
 
-			contextLogger.Errorf("app: a.Service.UpdateShippingTarrif(ctx, shippingTarrifID=%q, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", shippingTarrifID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
+			contextLogger.Errorf("app: a.Service.UpdateShippingTariff(ctx, shippingTariffID=%q, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", shippingTariffID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(&shippingTarrif)
+		json.NewEncoder(w).Encode(&shippingTariff)
 	}
 }

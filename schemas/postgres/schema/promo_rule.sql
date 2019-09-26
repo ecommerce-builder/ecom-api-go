@@ -5,7 +5,7 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'promo_rule_target_t') THEN
-        CREATE TYPE promo_rule_target_t AS ENUM ('product', 'productset', 'category', 'total', 'shipping_tarrif');
+        CREATE TYPE promo_rule_target_t AS ENUM ('product', 'productset', 'category', 'total', 'shipping_tariff');
     END IF;
 END$$;
 
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS promo_rule (
   product_id         INTEGER NULL DEFAULT NULL,
   product_set_id     INTEGER NULL DEFAULT NULL,
   category_id        INTEGER NULL DEFAULT NULL,
-  shipping_tarrif_id INTEGER NULL DEFAULT NULL,
+  shipping_tariff_id INTEGER NULL DEFAULT NULL,
   name               VARCHAR(255) NOT NULL DEFAULT '',
   start_at           TIMESTAMP NULL,
   end_at             TIMESTAMP NULL,
@@ -29,5 +29,5 @@ CREATE TABLE IF NOT EXISTS promo_rule (
   FOREIGN KEY        (product_id) REFERENCES product (id),
   FOREIGN KEY        (product_set_id) REFERENCES product_set (id),
   FOREIGN KEY        (category_id) REFERENCES category (id),
-  FOREIGN KEY        (shipping_tarrif_id) REFERENCES shipping_tarrif (id)
+  FOREIGN KEY        (shipping_tariff_id) REFERENCES shipping_tariff (id)
 );

@@ -28,7 +28,7 @@ type PromoRuleRow struct {
 	productID        *int
 	productSetID     *int
 	categoryID       *int
-	shippingTarrifID *int
+	shippingTariffID *int
 	Name             string
 	StartAt          *time.Time
 	EndAt            *time.Time
@@ -54,9 +54,9 @@ type PromoRuleJoinProductRow struct {
 	categoryID         *int
 	CategoryUUID       *string
 	CategoryPath       *string
-	shippingTarrifID   *int
-	ShippingTarrifUUID *string
-	ShippingTarrifCode *string
+	shippingTariffID   *int
+	ShippingTariffUUID *string
+	ShippingTariffCode *string
 	Name               string
 	StartAt            *time.Time
 	EndAt              *time.Time
@@ -123,12 +123,12 @@ func (m *PgModel) CreatePromoRuleTargetProduct(ctx context.Context, productUUID,
 		  (product_id, promo_rule_code, name, start_at, end_at, amount, type, target, created, modified)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 		RETURNING
-		  id, uuid, product_id, product_set_id, category_id, shipping_tarrif_id,
+		  id, uuid, product_id, product_set_id, category_id, shipping_tariff_id,
 		  name, start_at, end_at, amount, total_threshold, type, target, created, modified
 	`
 	r := PromoRuleJoinProductRow{}
 	row := m.db.QueryRowContext(ctx, q3, productID, promoRuleCode, name, startAt, endAt, amount, typ, target)
-	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTarrifID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
+	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTariffID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q3=%q", q3)
 	}
 	r.ProductUUID = &productUUID
@@ -256,12 +256,12 @@ func (m *PgModel) CreatePromoRuleTargetProductSet(ctx context.Context, products 
 		(product_set_id, promo_rule_code, name, start_at, end_at, amount, type, target, created, modified)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 		RETURNING
-		id, uuid, product_id, product_set_id, category_id, shipping_tarrif_id,
+		id, uuid, product_id, product_set_id, category_id, shipping_tariff_id,
 		name, start_at, end_at, amount, total_threshold, type, target, created, modified
 `
 	r := PromoRuleJoinProductRow{}
 	row := tx.QueryRowContext(ctx, q5, productSetID, promoRuleCode, name, startAt, endAt, amount, typ, target)
-	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTarrifID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
+	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTariffID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q5=%q", q5)
 	}
 	r.ProductSetUUID = &productSetUUID
@@ -320,12 +320,12 @@ func (m *PgModel) CreatePromoRuleTargetCategory(ctx context.Context, categoryUUI
 		  (category_id, promo_rule_code, name, start_at, end_at, amount, type, target, created, modified)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 		RETURNING
-		  id, uuid, product_id, promo_rule_code, product_set_id, category_id, shipping_tarrif_id,
+		  id, uuid, product_id, promo_rule_code, product_set_id, category_id, shipping_tariff_id,
 		  name, start_at, end_at, amount, total_threshold, type, target, created, modified
 	`
 	r := PromoRuleJoinProductRow{}
 	row := m.db.QueryRowContext(ctx, q3, categoryID, promoRuleCode, name, startAt, endAt, amount, typ, target)
-	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.PromoRuleCode, &r.productSetID, &r.categoryID, &r.shippingTarrifID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
+	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.PromoRuleCode, &r.productSetID, &r.categoryID, &r.shippingTariffID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q3=%q", q3)
 	}
 	r.CategoryUUID = &categoryUUID
@@ -339,10 +339,10 @@ func (m *PgModel) CreatePromoRuleTargetCategory(ctx context.Context, categoryUUI
 	return &r, nil
 }
 
-// CreatePromoRuleTargetShippingTarrif create a promo rule associated to a shipping tarrif.
-func (m *PgModel) CreatePromoRuleTargetShippingTarrif(ctx context.Context, shippingTarrifUUID, promoRuleCode, name string, startAt, endAt *time.Time, amount int, typ, target string) (*PromoRuleJoinProductRow, error) {
+// CreatePromoRuleTargetShippingTariff create a promo rule associated to a shipping tariff.
+func (m *PgModel) CreatePromoRuleTargetShippingTariff(ctx context.Context, shippingTariffUUID, promoRuleCode, name string, startAt, endAt *time.Time, amount int, typ, target string) (*PromoRuleJoinProductRow, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("postgres: CreatePromoRuleTargetShippingTarrif(ctx, shippingTarrifUUID=%q, promoRuleCode=%q, name=%q, startAt=%v, endAt=%v, amount=%d, typ=%q, target=%q)", shippingTarrifUUID, promoRuleCode, name, startAt, endAt, amount, typ, target)
+	contextLogger.Debugf("postgres: CreatePromoRuleTargetShippingTariff(ctx, shippingTariffUUID=%q, promoRuleCode=%q, name=%q, startAt=%v, endAt=%v, amount=%d, typ=%q, target=%q)", shippingTariffUUID, promoRuleCode, name, startAt, endAt, amount, typ, target)
 
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -351,18 +351,18 @@ func (m *PgModel) CreatePromoRuleTargetShippingTarrif(ctx context.Context, shipp
 	contextLogger.Debugf("postgres: db begin transaction")
 
 	// 1. Check if the category exists.
-	q1 := "SELECT id, shipping_code FROM shipping_tarrif WHERE uuid = $1"
-	var shippingTarrifID int
-	var shippingTarrifCode string
-	err = tx.QueryRowContext(ctx, q1, shippingTarrifUUID).Scan(&shippingTarrifID, &shippingTarrifCode)
+	q1 := "SELECT id, shipping_code FROM shipping_tariff WHERE uuid = $1"
+	var shippingTariffID int
+	var shippingTariffCode string
+	err = tx.QueryRowContext(ctx, q1, shippingTariffUUID).Scan(&shippingTariffID, &shippingTariffCode)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrShippingTarrifNotFound
+			return nil, ErrShippingTariffNotFound
 		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: tx prepare for q1=%q", q1)
 	}
-	contextLogger.Debugf("postgres: shipping tarrif id %q found. id=%d, shipping_code=%q", shippingTarrifUUID, shippingTarrifID, shippingTarrifCode)
+	contextLogger.Debugf("postgres: shipping tariff id %q found. id=%d, shipping_code=%q", shippingTariffUUID, shippingTariffID, shippingTariffCode)
 
 	// 2. Check if the promo rule code exists.
 	q2 := "SELECT EXISTS(SELECT 1 FROM promo_rule WHERE promo_rule_code = $1) AS exists"
@@ -379,19 +379,19 @@ func (m *PgModel) CreatePromoRuleTargetShippingTarrif(ctx context.Context, shipp
 	// 2. Create the promo rule with the shipping_tarif as its target.
 	q3 := `
 		INSERT INTO promo_rule
-		  (shipping_tarrif_id, promo_rule_code, name, start_at, end_at, amount, type, target, created, modified)
+		  (shipping_tariff_id, promo_rule_code, name, start_at, end_at, amount, type, target, created, modified)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 		RETURNING
-		  id, uuid, product_id, product_set_id, category_id, shipping_tarrif_id,
+		  id, uuid, product_id, product_set_id, category_id, shipping_tariff_id,
 		  name, start_at, end_at, amount, total_threshold, type, target, created, modified
 	`
 	r := PromoRuleJoinProductRow{}
-	row := m.db.QueryRowContext(ctx, q3, shippingTarrifID, promoRuleCode, name, startAt, endAt, amount, typ, target)
-	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTarrifID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
+	row := m.db.QueryRowContext(ctx, q3, shippingTariffID, promoRuleCode, name, startAt, endAt, amount, typ, target)
+	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTariffID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q3=%q", q3)
 	}
-	r.ShippingTarrifUUID = &shippingTarrifUUID
-	r.ShippingTarrifCode = &shippingTarrifCode
+	r.ShippingTariffUUID = &shippingTariffUUID
+	r.ShippingTariffCode = &shippingTariffCode
 
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
@@ -420,12 +420,12 @@ func (m *PgModel) CreatePromoRuleTargetTotal(ctx context.Context, totalThreshold
 		  (total_threshold, promo_rule_code, name, start_at, end_at, amount, type, target, created, modified)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 		RETURNING
-		  id, uuid, product_id, product_set_id, category_id, shipping_tarrif_id,
+		  id, uuid, product_id, product_set_id, category_id, shipping_tariff_id,
 		  name, start_at, end_at, amount, total_threshold, type, target, created, modified
 	`
 	r := PromoRuleJoinProductRow{}
 	row := m.db.QueryRowContext(ctx, q2, totalThreshold, promoRuleCode, name, startAt, endAt, amount, typ, target)
-	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTarrifID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
+	if err := row.Scan(&r.id, &r.UUID, &r.productID, &r.productSetID, &r.categoryID, &r.shippingTariffID, &r.Name, &r.StartAt, &r.EndAt, &r.Amount, &r.TotalThreshold, &r.Type, &r.Target, &r.Created, &r.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q2=%q", q2)
 	}
 	r.TotalThreshold = &totalThreshold

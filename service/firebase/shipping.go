@@ -8,14 +8,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrShippingTarrifCodeExists error for duplicates.
-var ErrShippingTarrifCodeExists = errors.New("service: shipping tarrif code exists")
+// ErrShippingTariffCodeExists error for duplicates.
+var ErrShippingTariffCodeExists = errors.New("service: shipping tariff code exists")
 
-// ErrShippingTarrifNotFound error
-var ErrShippingTarrifNotFound = errors.New("service: shipping tarrif not found")
+// ErrShippingTariffNotFound error
+var ErrShippingTariffNotFound = errors.New("service: shipping tariff not found")
 
-// ShippingTarrif holds a single shipping tarrif.
-type ShippingTarrif struct {
+// ShippingTariff holds a single shipping tariff.
+type ShippingTariff struct {
 	Object       string    `json:"object"`
 	ID           string    `json:"id"`
 	CountryCode  string    `json:"country_code"`
@@ -27,63 +27,63 @@ type ShippingTarrif struct {
 	Modified     time.Time `json:"modified"`
 }
 
-// CreateShippingTarrif creates a new shipping tarrif entry.
-func (s *Service) CreateShippingTarrif(ctx context.Context, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTarrif, error) {
-	ptarrif, err := s.model.CreateShippingTarrif(ctx, countryCode, shippingCode, name, price, taxCode)
+// CreateShippingTariff creates a new shipping tariff entry.
+func (s *Service) CreateShippingTariff(ctx context.Context, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTariff, error) {
+	ptariff, err := s.model.CreateShippingTariff(ctx, countryCode, shippingCode, name, price, taxCode)
 	if err != nil {
-		if err == postgres.ErrShippingTarrifCodeExists {
-			return nil, ErrShippingTarrifCodeExists
+		if err == postgres.ErrShippingTariffCodeExists {
+			return nil, ErrShippingTariffCodeExists
 		}
-		return nil, errors.Wrapf(err, "s.model.CreateShippingTarrif(ctx, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed", countryCode, shippingCode, name, price, taxCode)
+		return nil, errors.Wrapf(err, "s.model.CreateShippingTariff(ctx, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed", countryCode, shippingCode, name, price, taxCode)
 	}
 
-	shippingTarrif := ShippingTarrif{
-		Object:       "shipping_tarrif",
-		ID:           ptarrif.UUID,
-		CountryCode:  ptarrif.CountryCode,
-		ShippingCode: ptarrif.ShippingCode,
-		Name:         ptarrif.Name,
-		Price:        ptarrif.Price,
-		TaxCode:      ptarrif.TaxCode,
+	shippingTariff := ShippingTariff{
+		Object:       "shipping_tariff",
+		ID:           ptariff.UUID,
+		CountryCode:  ptariff.CountryCode,
+		ShippingCode: ptariff.ShippingCode,
+		Name:         ptariff.Name,
+		Price:        ptariff.Price,
+		TaxCode:      ptariff.TaxCode,
 	}
-	return &shippingTarrif, nil
+	return &shippingTariff, nil
 }
 
-// GetShippingTarrif returns a ShippingTarrif by ID
-func (s *Service) GetShippingTarrif(ctx context.Context, shippingTarrifID string) (*ShippingTarrif, error) {
-	ptarrif, err := s.model.GetShippingTarrifByUUID(ctx, shippingTarrifID)
+// GetShippingTariff returns a ShippingTariff by ID
+func (s *Service) GetShippingTariff(ctx context.Context, shippingTariffID string) (*ShippingTariff, error) {
+	ptariff, err := s.model.GetShippingTariffByUUID(ctx, shippingTariffID)
 	if err != nil {
-		if err == postgres.ErrShippingTarrifCodeExists {
-			return nil, ErrShippingTarrifCodeExists
+		if err == postgres.ErrShippingTariffCodeExists {
+			return nil, ErrShippingTariffCodeExists
 		}
-		return nil, errors.Wrapf(err, "s.model.GetShippingTarrif(ctx, shippingTarrifID=%q)", shippingTarrifID)
+		return nil, errors.Wrapf(err, "s.model.GetShippingTariff(ctx, shippingTariffID=%q)", shippingTariffID)
 	}
 
-	shippingTarrif := ShippingTarrif{
-		Object:       "shipping_tarrif",
-		ID:           ptarrif.UUID,
-		CountryCode:  ptarrif.CountryCode,
-		ShippingCode: ptarrif.ShippingCode,
-		Name:         ptarrif.Name,
-		Price:        ptarrif.Price,
-		TaxCode:      ptarrif.TaxCode,
-		Created:      ptarrif.Created,
-		Modified:     ptarrif.Modified,
+	shippingTariff := ShippingTariff{
+		Object:       "shipping_tariff",
+		ID:           ptariff.UUID,
+		CountryCode:  ptariff.CountryCode,
+		ShippingCode: ptariff.ShippingCode,
+		Name:         ptariff.Name,
+		Price:        ptariff.Price,
+		TaxCode:      ptariff.TaxCode,
+		Created:      ptariff.Created,
+		Modified:     ptariff.Modified,
 	}
-	return &shippingTarrif, nil
+	return &shippingTariff, nil
 }
 
-// GetShippingTarrifs returns a list of ShippingTarrifs.
-func (s *Service) GetShippingTarrifs(ctx context.Context) ([]*ShippingTarrif, error) {
-	ptarrifs, err := s.model.GetShippingTarrifs(ctx)
+// GetShippingTariffs returns a list of ShippingTariffs.
+func (s *Service) GetShippingTariffs(ctx context.Context) ([]*ShippingTariff, error) {
+	ptariffs, err := s.model.GetShippingTariffs(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.GetShippingTarrifs(ctx) failed")
+		return nil, errors.Wrapf(err, "s.model.GetShippingTariffs(ctx) failed")
 	}
 
-	shippingTarrifList := make([]*ShippingTarrif, 0, len(ptarrifs))
-	for _, s := range ptarrifs {
-		shippingTarrif := ShippingTarrif{
-			Object:       "shipping_tarrif",
+	shippingTariffList := make([]*ShippingTariff, 0, len(ptariffs))
+	for _, s := range ptariffs {
+		shippingTariff := ShippingTariff{
+			Object:       "shipping_tariff",
 			ID:           s.UUID,
 			CountryCode:  s.CountryCode,
 			ShippingCode: s.ShippingCode,
@@ -93,45 +93,45 @@ func (s *Service) GetShippingTarrifs(ctx context.Context) ([]*ShippingTarrif, er
 			Created:      s.Created,
 			Modified:     s.Modified,
 		}
-		shippingTarrifList = append(shippingTarrifList, &shippingTarrif)
+		shippingTariffList = append(shippingTariffList, &shippingTariff)
 	}
-	return shippingTarrifList, nil
+	return shippingTariffList, nil
 }
 
-// UpdateShippingTarrif updates a shipping tarrif.
-func (s *Service) UpdateShippingTarrif(ctx context.Context, shoppingTarrifID, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTarrif, error) {
-	ptarrif, err := s.model.UpdateShippingTarrif(ctx, shoppingTarrifID, countryCode, shippingCode, name, price, taxCode)
+// UpdateShippingTariff updates a shipping tariff.
+func (s *Service) UpdateShippingTariff(ctx context.Context, shoppingTariffID, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTariff, error) {
+	ptariff, err := s.model.UpdateShippingTariff(ctx, shoppingTariffID, countryCode, shippingCode, name, price, taxCode)
 	if err != nil {
-		if err == postgres.ErrShippingTarrifNotFound {
-			return nil, ErrShippingTarrifNotFound
-		} else if err == postgres.ErrShippingTarrifCodeExists {
-			return nil, ErrShippingTarrifCodeExists
+		if err == postgres.ErrShippingTariffNotFound {
+			return nil, ErrShippingTariffNotFound
+		} else if err == postgres.ErrShippingTariffCodeExists {
+			return nil, ErrShippingTariffCodeExists
 		}
-		return nil, errors.Wrapf(err, ".model.UpdateShippingTarrif(ctx, shoppingTarrifID=%q, countryCode=%q, shippingcode=%q, name=%q, price=%d, taxCode=%q)", shoppingTarrifID, countryCode, shoppingTarrifID, name, price, taxCode)
+		return nil, errors.Wrapf(err, ".model.UpdateShippingTariff(ctx, shoppingTariffID=%q, countryCode=%q, shippingcode=%q, name=%q, price=%d, taxCode=%q)", shoppingTariffID, countryCode, shoppingTariffID, name, price, taxCode)
 	}
 
-	shippingTarrif := ShippingTarrif{
-		Object:       "shipping_tarrif",
-		ID:           ptarrif.UUID,
-		CountryCode:  ptarrif.CountryCode,
-		ShippingCode: ptarrif.ShippingCode,
-		Name:         ptarrif.Name,
-		Price:        ptarrif.Price,
-		TaxCode:      ptarrif.TaxCode,
-		Created:      ptarrif.Created,
-		Modified:     ptarrif.Modified,
+	shippingTariff := ShippingTariff{
+		Object:       "shipping_tariff",
+		ID:           ptariff.UUID,
+		CountryCode:  ptariff.CountryCode,
+		ShippingCode: ptariff.ShippingCode,
+		Name:         ptariff.Name,
+		Price:        ptariff.Price,
+		TaxCode:      ptariff.TaxCode,
+		Created:      ptariff.Created,
+		Modified:     ptariff.Modified,
 	}
-	return &shippingTarrif, nil
+	return &shippingTariff, nil
 }
 
-// DeleteShippingTarrif delete a shipping tarrif.
-func (s *Service) DeleteShippingTarrif(ctx context.Context, shippingTarrifID string) error {
-	err := s.model.DeleteShippingTarrifByUUID(ctx, shippingTarrifID)
+// DeleteShippingTariff delete a shipping tariff.
+func (s *Service) DeleteShippingTariff(ctx context.Context, shippingTariffID string) error {
+	err := s.model.DeleteShippingTariffByUUID(ctx, shippingTariffID)
 	if err != nil {
-		if err == postgres.ErrShippingTarrifNotFound {
-			return ErrShippingTarrifNotFound
+		if err == postgres.ErrShippingTariffNotFound {
+			return ErrShippingTariffNotFound
 		}
-		return errors.Wrapf(err, "s.model.DeleteShippingTarrifByUUID(ctx, shippingTarrifUUID=%q)", shippingTarrifID)
+		return errors.Wrapf(err, "s.model.DeleteShippingTariffByUUID(ctx, shippingTariffUUID=%q)", shippingTariffID)
 	}
 	return nil
 }

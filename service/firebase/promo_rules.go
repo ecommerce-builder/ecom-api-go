@@ -30,8 +30,8 @@ type PromoRule struct {
 	ProductSKU         string     `json:"product_sku,omitempty"`
 	CategoryID         string     `json:"category_id,omitempty"`
 	CategoryPath       string     `json:"category_path,omitempty"`
-	ShippingTarrifID   string     `json:"shipping_tarrif_id,omitempty"`
-	ShippingTarrifCode string     `json:"shipping_tarrif_code,omitempty"`
+	ShippingTariffID   string     `json:"shipping_tariff_id,omitempty"`
+	ShippingTariffCode string     `json:"shipping_tariff_code,omitempty"`
 	ProductSetID       string     `json:"product_set_id,omitempty"`
 	Name               string     `json:"name"`
 	StartAt            *time.Time `json:"start_at"`
@@ -65,7 +65,7 @@ type PromoRuleCreateRequestBody struct {
 	TotalThreshold   *int                            `json:"total_threshold"`
 	ProductID        *string                         `json:"product_id"`
 	CategoryID       *string                         `json:"category_id"`
-	ShippingTarrifID *string                         `json:"shipping_tarrif_id"`
+	ShippingTariffID *string                         `json:"shipping_tariff_id"`
 	ProductSet       *PromoRuleProductSetRequestBody `json:"product_set"`
 	Type             string                          `json:"type"`
 	Target           string                          `json:"target"`
@@ -173,25 +173,25 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Created:        row.Created,
 			Modified:       row.Modified,
 		}
-	} else if pr.Target == "shipping_tarrif" {
-		contextLogger.Infof("service: promo rule target is a shipping_tarrif")
+	} else if pr.Target == "shipping_tariff" {
+		contextLogger.Infof("service: promo rule target is a shipping_tariff")
 
 		var err error
-		row, err = s.model.CreatePromoRuleTargetShippingTarrif(ctx, *pr.ShippingTarrifID, pr.PromoRuleCode, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
+		row, err = s.model.CreatePromoRuleTargetShippingTariff(ctx, *pr.ShippingTariffID, pr.PromoRuleCode, pr.Name, pr.StartAt, pr.EndAt, *pr.Amount, pr.Type, pr.Target)
 		if err != nil {
 			if err == postgres.ErrPromoRuleExists {
 				return nil, ErrPromoRuleExists
-			} else if err == postgres.ErrShippingTarrifNotFound {
-				return nil, ErrShippingTarrifNotFound
+			} else if err == postgres.ErrShippingTariffNotFound {
+				return nil, ErrShippingTariffNotFound
 			}
-			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetShippingTarrif(ctx, shippingTarrifID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, type=%q, target=%q)", *pr.ShippingTarrifID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
+			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetShippingTariff(ctx, shippingTariffID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, type=%q, target=%q)", *pr.ShippingTariffID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
 		}
 
 		rule = PromoRule{
 			Object:             "promo_rule",
 			ID:                 row.UUID,
-			ShippingTarrifID:   *row.ShippingTarrifUUID,
-			ShippingTarrifCode: *row.ShippingTarrifCode,
+			ShippingTariffID:   *row.ShippingTariffUUID,
+			ShippingTariffCode: *row.ShippingTariffCode,
 			Name:               row.Name,
 			StartAt:            row.StartAt,
 			EndAt:              row.EndAt,
@@ -210,10 +210,10 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		if err != nil {
 			if err == postgres.ErrPromoRuleExists {
 				return nil, ErrPromoRuleExists
-			} else if err == postgres.ErrShippingTarrifNotFound {
-				return nil, ErrShippingTarrifNotFound
+			} else if err == postgres.ErrShippingTariffNotFound {
+				return nil, ErrShippingTariffNotFound
 			}
-			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetShippingTarrif(ctx, shippingTarrifID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, type=%q, target=%q)", *pr.ShippingTarrifID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
+			return nil, errors.Wrapf(err, "service: s.model.CreatePromoRuleTargetShippingTariff(ctx, shippingTariffID=%q, name=%q, startAt=%v, endAt=%v, amount=%d, type=%q, target=%q)", *pr.ShippingTariffID, pr.Name, pr.StartAt, pr.EndAt, pr.Amount, pr.Type, pr.Target)
 		}
 
 		rule = PromoRule{

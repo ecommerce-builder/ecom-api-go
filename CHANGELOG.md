@@ -9,7 +9,7 @@
 + `OpActivateOffer`
 + New handlers for product to category relations.
 + New handlers for adding products to carts.
-+ Implements Shipping Tarrifs.
++ Implements Shipping Tariffs.
 + Implements Price Lists.
 + Implements Coupons.
 + Implements Promo Rules.
