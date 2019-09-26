@@ -9,6 +9,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ErrPPAssocNotFound error
+var ErrPPAssocNotFound = errors.New("postgres: product to product association not found")
+
 // BatchUpdatePPAssocs attempts to batch update a set of product to product associations.
 func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, productFromUUID string, productUUIDs []string) error {
 	contextLogger := log.WithContext(ctx)
@@ -113,5 +116,29 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 	}
 
 	contextLogger.Debugf("postgres: db commit succeeded")
+	return nil
+}
+
+// DeletePPAssoc attempts to delete a product to product association row
+// from the pp_assoc table. Returns `ErrPPAssocNotFound` if the row is
+// not matched.
+func (m *PgModel) DeletePPAssoc(ctx context.Context, ppAssocUUID string) error {
+	// 1. Check the product to product assocations exists
+	q1 := "SELECT id FROM pp_assoc WHERE uuid = $1"
+	var ppAssocID int
+	err := m.db.QueryRowContext(ctx, q1, ppAssocUUID).Scan(&ppAssocID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrPPAssocNotFound
+		}
+		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	// 2. Delete the association
+	q2 := "DELETE FROM pp_assoc WHERE id = $1"
+	_, err = m.db.ExecContext(ctx, q2, ppAssocID)
+	if err != nil {
+		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
+	}
 	return nil
 }

@@ -2,12 +2,14 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
+
+// ErrPPAssocNotFound error
+var ErrPPAssocNotFound = errors.New("service: product to product association not found")
 
 // ProductToUpdate a single product to update
 type ProductToUpdate struct {
@@ -27,8 +29,6 @@ func (s *Service) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupID, prod
 	}
 	contextLogger.Debugf("postgres: product ids in the to set %v", products)
 
-	fmt.Println(ppAssocsGroupID, productFrom, products)
-
 	if err := s.model.BatchUpdatePPAssocs(ctx, ppAssocsGroupID, productFrom, products); err != nil {
 		if err == postgres.ErrPPAssocGroupNotFound {
 			return ErrPPAssocGroupNotFound
@@ -36,6 +36,20 @@ func (s *Service) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupID, prod
 			return ErrProductNotFound
 		}
 		return errors.Wrapf(err, "service: s.model.BatchUpdatePPAssocs(ctx, ppAssocsGroupID=%q, productFrom=%q, products=%v)", ppAssocsGroupID, productFrom, products)
+	}
+	return nil
+}
+
+// DeletePPAssoc deletes a single product to product association
+func (s *Service) DeletePPAssoc(ctx context.Context, ppAssocID string) error {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("service: DeletePPAssoc(ctx, ppAssocID=%q)", ppAssocID)
+
+	if err := s.model.DeletePPAssoc(ctx, ppAssocID); err != nil {
+		if err == postgres.ErrPPAssocNotFound {
+			return ErrPPAssocNotFound
+		}
+		return errors.Wrapf(err, "s.model.DeletePPAssoc(ctx, ppAssocUUID=%q) failed", ppAssocID)
 	}
 	return nil
 }
