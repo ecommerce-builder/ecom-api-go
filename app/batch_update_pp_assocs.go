@@ -16,7 +16,7 @@ type ProductToSet struct {
 
 type batchUpdateRequest struct {
 	PPAssocsGroupID *string       `json:"pp_assocs_group_id"`
-	ProductFrom     *string       `json:"product_from"`
+	ProductFromID   *string       `json:"product_from_id"`
 	ProductToSet    *ProductToSet `json:"product_to_set"`
 }
 
@@ -30,12 +30,12 @@ func validateBatchUpdatePPAssocsRequestMemoize() func(*batchUpdateRequest) (bool
 			return false, "pp_assocs_group_id must be a valid v4 UUID"
 		}
 
-		// product_from attribute
-		if request.ProductFrom == nil {
-			return false, "product_from attribute must be set"
+		// product_from attribute_id
+		if request.ProductFromID == nil {
+			return false, "product_from_id attribute must be set"
 		}
-		if !IsValidUUID(*request.ProductFrom) {
-			return false, "product_from must be a valid v4 UUID"
+		if !IsValidUUID(*request.ProductFromID) {
+			return false, "product_from_id must be a valid v4 UUID"
 		}
 
 		// product_to_set attribute
@@ -71,9 +71,9 @@ func (a *App) BatchUpdatePPAssocsHandler() http.HandlerFunc {
 			return
 		}
 
-		err := a.Service.BatchUpdatePPAssocs(ctx, *request.PPAssocsGroupID, *request.ProductFrom, request.ProductToSet.Data)
+		err := a.Service.BatchUpdatePPAssocs(ctx, *request.PPAssocsGroupID, *request.ProductFromID, request.ProductToSet.Data)
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.BatchUpdatePPAssocs(ctx, ppAssocsGroupID=%q, productFrom=%q, productToSet=%v) failed: %+v", *request.PPAssocsGroupID, *request.ProductFrom, *request.ProductToSet, err)
+			contextLogger.Errorf("app: a.Service.BatchUpdatePPAssocs(ctx, ppAssocsGroupID=%q, productFrom=%q, productToSet=%v) failed: %+v", *request.PPAssocsGroupID, *request.ProductFromID, *request.ProductToSet, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

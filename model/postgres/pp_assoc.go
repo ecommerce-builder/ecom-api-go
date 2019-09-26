@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +12,21 @@ import (
 
 // ErrPPAssocNotFound error
 var ErrPPAssocNotFound = errors.New("postgres: product to product association not found")
+
+// PPAssocJoinRow contains a single row from the pp_assoc table
+// joined with the pp_assoc_group and product table.
+type PPAssocJoinRow struct {
+	id               int
+	UUID             string
+	ppAssocGroupID   int
+	PPAssocGroupUUID string
+	productFrom      int
+	ProductFromUUID  string
+	productTo        int
+	ProductToUUID    string
+	Created          time.Time
+	Modified         time.Time
+}
 
 // BatchUpdatePPAssocs attempts to batch update a set of product to product associations.
 func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, productFromUUID string, productUUIDs []string) error {
@@ -35,7 +51,7 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
-	// 2. Check the product with product_from exists.
+	// 2. Check the product with product_from_id exists.
 	q2 := "SELECT id FROM product WHERE uuid = $1"
 	var productFromID int
 	err = tx.QueryRowContext(ctx, q2, productFromUUID).Scan(&productFromID)
@@ -76,23 +92,23 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 	// check for missing products
 	for _, puuid := range productUUIDs {
 		if _, ok := pmap[puuid]; !ok {
-			// TODO: differentiate between missing product_from
+			// TODO: differentiate between missing product_from_id
 			// and a missing product to.
 			return ErrProductNotFound
 		}
 	}
 
-	// 4. Delete any old associations for this group and product_from combo.
-	q4 := "DELETE FROM pp_assoc WHERE pp_assoc_group_id = $1 AND product_from = $2"
+	// 4. Delete any old associations for this group and product_from_id combo.
+	q4 := "DELETE FROM pp_assoc WHERE pp_assoc_group_id = $1 AND product_from_id = $2"
 	_, err = tx.ExecContext(ctx, q4, ppAssocsGroupID, productFromID)
 	if err != nil {
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: exec context q4=%q", q4)
 	}
 
-	// 5. Insert the new associations for this group and product_from combo.
+	// 5. Insert the new associations for this group and product_from_id combo.
 	q5 := `
-		INSERT INTO pp_assoc (pp_assoc_group_id, product_from, product_to)
+		INSERT INTO pp_assoc (pp_assoc_group_id, product_from_id, product_to_id)
 		VALUES ($1, $2, $3)
 		RETURNING id
 	`
@@ -117,6 +133,84 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 
 	contextLogger.Debugf("postgres: db commit succeeded")
 	return nil
+}
+
+// GetPPAssocs returns a list of pp_assoc rows joined with the
+// pp_assoc_group and product tables
+func (m *PgModel) GetPPAssocs(ctx context.Context, ppAssocGroupUUID, productFromUUID string) ([]*PPAssocJoinRow, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("postgres: GetPPAssocs(ctx, ppAssocGroupUUID=%q, productFromUUID=%q)", ppAssocGroupUUID, productFromUUID)
+
+	// 1. Check the product to product associations group exists.
+	q1 := "SELECT id FROM pp_assoc_group WHERE uuid = $1"
+	var ppAssocGroupID int
+	err := m.db.QueryRowContext(ctx, q1, ppAssocGroupUUID).Scan(&ppAssocGroupID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrPPAssocGroupNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
+	}
+
+	// 2. If the product from uuid is passed, then check the product_from_id
+	var productFromID int
+	if productFromUUID != "" {
+		q2 := "SELECT id FROM product WHERE uuid = $1"
+		err = m.db.QueryRowContext(ctx, q2, productFromUUID).Scan(&productFromID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, ErrProductNotFound
+			}
+			return nil, errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, q2=%q, productFromUUID=%q) failed", q2, productFromUUID)
+		}
+	}
+
+	// 3. Get a list of all product to product associations in this group
+	// joined with the product table.
+	var where string
+	where = "WHERE a.pp_assoc_group_id = $1"
+	if productFromUUID != "" {
+		where = where + " AND a.product_from_id = $2"
+	}
+
+	q3 := `
+		SELECT
+		  a.id, a.uuid, a.pp_assoc_group_id, a.product_from_id, p1.uuid as product_from_uuid,
+		  a.product_to_id, p2.uuid as product_to_uuid, a.created, a.modified
+		FROM
+		  pp_assoc AS a
+		INNER JOIN product AS p1
+		  ON a.product_from_id = p1.id
+		INNER JOIN product AS p2
+		  ON a.product_to_id = p2.id
+		%WHERECLAUSE%
+	 `
+	q3 = strings.Replace(q3, "%WHERECLAUSE%", where, 1)
+	var rows *sql.Rows
+	if productFromUUID != "" {
+		rows, err = m.db.QueryContext(ctx, q3, ppAssocGroupID, productFromID)
+	} else {
+		rows, err = m.db.QueryContext(ctx, q3, ppAssocGroupID)
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
+	}
+	defer rows.Close()
+
+	list := make([]*PPAssocJoinRow, 0, 128)
+	for rows.Next() {
+		var a PPAssocJoinRow
+		if err = rows.Scan(&a.id, &a.UUID, &a.ppAssocGroupID, &a.productFrom, &a.ProductFromUUID, &a.productTo, &a.ProductToUUID, &a.Created, &a.Modified); err != nil {
+			return nil, errors.Wrap(err, "postgres: scan failed")
+		}
+		a.PPAssocGroupUUID = ppAssocGroupUUID
+		list = append(list, &a)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "postgres: rows.Err()")
+	}
+
+	return list, nil
 }
 
 // DeletePPAssoc attempts to delete a product to product association row

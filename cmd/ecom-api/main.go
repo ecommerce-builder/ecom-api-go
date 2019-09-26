@@ -677,7 +677,7 @@ func main() {
 
 		// Product to product assocations
 		r.Route("/products-assocs", func(r chi.Router) {
-			// r.Get("/", a.Authorization(app.OpGetProductToProductAssocs), a.GetPPAssocsHandler())
+			r.Get("/", a.Authorization(app.OpListProductToProductAssocs, a.ListPPAssocsHandler()))
 			r.Delete("/{id}", a.Authorization(app.OpDeleteProductToProductAssoc, a.DeletePPAssocHandler()))
 		})
 

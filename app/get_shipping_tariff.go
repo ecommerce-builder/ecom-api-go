@@ -27,6 +27,7 @@ func (a *App) GetShippingTariffHandler() http.HandlerFunc {
 			contextLogger.Errorf("app: a.Service.GetShippingTariff(ctx, shippingTariffID=%q) failed: %+v", shippingTariffID, err)
 
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(&promoRule)

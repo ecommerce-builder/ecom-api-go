@@ -251,7 +251,6 @@ func (m *PgModel) PartialUpdateAddress(ctx context.Context, addressUUID string, 
 	`
 	q2 = strings.Replace(q2, "%SET_QUERY%", setQuery, 1)
 	q2 = strings.Replace(q2, "%ARG_COUNTER%", fmt.Sprintf("$%d", argCounter), 1)
-	fmt.Println(q2)
 
 	a := AddressJoinRow{}
 	row := m.db.QueryRowContext(ctx, q2, queryArgs...)

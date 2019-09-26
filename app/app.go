@@ -75,6 +75,7 @@ const (
 // Product to products associations
 const (
 	OpBatchUpdateProductToProductAssocs string = "OpBatchUpdateProductToProductAssocs"
+	OpListProductToProductAssocs        string = "OpListProductToProductAssocs"
 	OpDeleteProductToProductAssoc       string = "OpDeleteProductToProductAssoc"
 
 	// ErrCodeErrPPAssocNotFound error
