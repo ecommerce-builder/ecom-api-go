@@ -58,7 +58,7 @@ func (a *App) CreatePPAssocGroupHandler() http.HandlerFunc {
 				clientError(w, http.StatusConflict, ErrCodePPAssocGroupExists, "product to product assoc group code is already in use")
 				return
 			}
-			contextLogger.Errorf("app: a.Service.CreateProductToProductAssocGroup(ctx, code=%q, name=%q) failed: %+v", request.Code, request.Name, err)
+			contextLogger.Errorf("app: a.Service.CreateProductToProductAssocGroup(ctx, code=%q, name=%q) failed: %+v", *request.Code, *request.Name, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

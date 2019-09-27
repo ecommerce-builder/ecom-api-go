@@ -24,7 +24,7 @@ func (a *App) GetCartCouponHandler() http.HandlerFunc {
 				clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
 				return
 			}
-			contextLogger.Errorf("app: a.Service.GetCartCoupon(ctx, cartCouponID) failed: %+v", cartCouponID, err)
+			contextLogger.Errorf("app: a.Service.GetCartCoupon(ctx, cartCouponID=%q) failed: %+v", cartCouponID, err)
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

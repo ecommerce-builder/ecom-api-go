@@ -57,7 +57,7 @@ func (a *App) GenerateUserDevKeyHandler() http.HandlerFunc {
 				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
 				return
 			}
-			contextLogger.Errorf("app: GenerateUserAPIKey(ctx, userID=%q) error: %v", request.UserID, err)
+			contextLogger.Errorf("app: GenerateUserAPIKey(ctx, userID=%q) error: %+v", *request.UserID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
