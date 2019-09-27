@@ -1654,6 +1654,26 @@ paths:
                     status: 409
                     code: 'product-to-product-assocs-groups/assoc-group-exists'
                     message: product to product assoc group code is already exists
+    get:
+      security:
+      - bearerAuth: []
+      summary: List product to product association groups
+      description: |
+        Retrieves all product to product associations.
+
+        `OpListProductToProductAssocGroups` requires `RoleShopper` privileges or higher.
+      operationId: OpListProductToProductAssocGroups
+      tags:
+      - Product Associations
+      responses:
+        '200':
+          description: list of pp_assoc_group objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PPAssocGroup'
   /products-assocs-groups/{id}:
     parameters:
       - name: id
