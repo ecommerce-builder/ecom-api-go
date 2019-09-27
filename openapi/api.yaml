@@ -1623,6 +1623,8 @@ paths:
       - bearerAuth: []
       summary: Create a new product to product association group
       description: |
+        Creates a new product to product assoication group with the given `pp_assoc_group_code` and `name` attributes. `pp_assoc_group_code` is a unique human readable identifier.
+
         `OpCreateProductToProductAssocGroup` requires `RoleAdmin` privileges or higher.
       operationId: OpCreateProductToProductAssocGroup
       tags:
@@ -1652,6 +1654,46 @@ paths:
                     status: 409
                     code: 'product-to-product-assocs-groups/assoc-group-exists'
                     message: product to product assoc group code is already exists
+  /products-assocs-groups/{id}:
+    parameters:
+      - name: id
+        required: true
+        in: path
+        description: A unique identifier for the product to product association group.
+        schema:
+          type: string
+          example: '96ad0d7c-c07b-4766-b0d0-e45eb100a397'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get an individual product to product association group by id
+      description: |
+        Retrieves a single product to product association by id.
+
+        `OpGetProductToProductAssocGroup` retuires `AdminShopper` privileges or higher.
+      operationId: OpGetProductToProductAssocGroup
+      tags:
+      - Product Associations
+      responses:
+        '200':
+          description: pp_assoc_group object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPAssocGroup'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-not-found:
+                  summary: product-to-product-assocs-groups/assoc-group-not-found
+                  value:
+                    status: 409
+                    code: 'product-to-product-assocs-groups/assoc-group-not-found'
+                    message: product to product association group not found
   /price-lists:
     post:
       security:
