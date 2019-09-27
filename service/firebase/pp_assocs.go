@@ -52,10 +52,34 @@ func (s *Service) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupID, prod
 	return nil
 }
 
+// GetPPAssoc returns a single product to product association.
+func (s *Service) GetPPAssoc(ctx context.Context, ppAssocID string) (*PPAssoc, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("service: GetPPAssoc(ctx, ppAssocID=%q) started", ppAssocID)
+
+	prow, err := s.model.GetPPAssoc(ctx, ppAssocID)
+	if err != nil {
+		if err == postgres.ErrPPAssocNotFound {
+			return nil, ErrPPAssocNotFound
+		}
+		return nil, errors.Wrapf(err, "service: s.model.GetPPAssoc(ctx, ppAssocUUID=%q) failed", ppAssocID)
+	}
+	ppAssoc := PPAssoc{
+		Object:         "pp_assoc",
+		ID:             prow.UUID,
+		PPAssocGroupID: prow.PPAssocGroupUUID,
+		ProductFromID:  prow.ProductFromUUID,
+		ProductToID:    prow.ProductToUUID,
+		Created:        prow.Created,
+		Modified:       prow.Modified,
+	}
+	return &ppAssoc, nil
+}
+
 // GetPPAssocs returns a list of product to product associations
 func (s *Service) GetPPAssocs(ctx context.Context, ppAssocGroupID, productFromID string) ([]*PPAssoc, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("service: GetPPAssocs(ctx, ppAssocGroupID=%q, productFromID=%q)", ppAssocGroupID, productFromID)
+	contextLogger.Infof("service: GetPPAssocs(ctx, ppAssocGroupID=%q, productFromID=%q) started", ppAssocGroupID, productFromID)
 
 	prows, err := s.model.GetPPAssocs(ctx, ppAssocGroupID, productFromID)
 	if err != nil {
@@ -86,7 +110,7 @@ func (s *Service) GetPPAssocs(ctx context.Context, ppAssocGroupID, productFromID
 // DeletePPAssoc deletes a single product to product association
 func (s *Service) DeletePPAssoc(ctx context.Context, ppAssocID string) error {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("service: DeletePPAssoc(ctx, ppAssocID=%q)", ppAssocID)
+	contextLogger.Infof("service: DeletePPAssoc(ctx, ppAssocID=%q) started", ppAssocID)
 
 	if err := s.model.DeletePPAssoc(ctx, ppAssocID); err != nil {
 		if err == postgres.ErrPPAssocNotFound {

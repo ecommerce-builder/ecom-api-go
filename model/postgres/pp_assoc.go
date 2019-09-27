@@ -135,6 +135,39 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 	return nil
 }
 
+// GetPPAssoc returns a single pp_assoc row joined with the pp_assoc_group table.
+func (m *PgModel) GetPPAssoc(ctx context.Context, ppAssocUUID string) (*PPAssocJoinRow, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("postgres: GetPPAssoc(ctx, ppAssocUUID=%q)", ppAssocUUID)
+
+	// 1. Get the pp_assoc row by uuid.
+	q1 := `
+		SELECT
+		a.id, a.uuid, a.pp_assoc_group_id, g.uuid as pp_assoc_group_uuid,
+		a.product_from_id, p1.uuid as product_from_uuid,
+		a.product_to_id, p2.uuid as product_to_uuid, a.created, a.modified
+		FROM
+		  pp_assoc AS a
+		INNER JOIN pp_assoc_group AS g
+		  ON a.pp_assoc_group_id = g.id
+		INNER JOIN product AS p1
+		  ON a.product_from_id = p1.id
+		INNER JOIN product AS p2
+		  ON a.product_to_id = p2.id
+		WHERE a.uuid = $1
+	`
+	var a PPAssocJoinRow
+	row := m.db.QueryRowContext(ctx, q1, ppAssocUUID)
+	if err := row.Scan(&a.id, &a.UUID, &a.ppAssocGroupID, &a.PPAssocGroupUUID, &a.productFrom, &a.ProductFromUUID, &a.productTo, &a.ProductToUUID, &a.Created, &a.Modified); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrPPAssocNotFound
+		}
+		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
+	}
+
+	return &a, nil
+}
+
 // GetPPAssocs returns a list of pp_assoc rows joined with the
 // pp_assoc_group and product tables
 func (m *PgModel) GetPPAssocs(ctx context.Context, ppAssocGroupUUID, productFromUUID string) ([]*PPAssocJoinRow, error) {

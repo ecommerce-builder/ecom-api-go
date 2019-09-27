@@ -75,11 +75,12 @@ const (
 // Product to products associations
 const (
 	OpBatchUpdateProductToProductAssocs string = "OpBatchUpdateProductToProductAssocs"
+	OpGetProductToProductAssoc          string = "OpGetProductToProductAssoc"
 	OpListProductToProductAssocs        string = "OpListProductToProductAssocs"
 	OpDeleteProductToProductAssoc       string = "OpDeleteProductToProductAssoc"
 
-	// ErrCodeErrPPAssocNotFound error
-	ErrCodeErrPPAssocNotFound string = "product-to-product-assocs/assoc-not-found"
+	// ErrCodePPAssocNotFound error
+	ErrCodePPAssocNotFound string = "product-to-product-assocs/assoc-not-found"
 )
 
 // Offers
