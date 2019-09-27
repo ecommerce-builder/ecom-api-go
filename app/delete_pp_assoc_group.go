@@ -21,7 +21,7 @@ func (a *App) DeletePPAssocGroupHandler() http.HandlerFunc {
 				clientError(w, http.StatusNotFound, ErrCodePPAssocGroupNotFound, "product to product associations group not found")
 				return
 			} else if err == service.ErrPPAssocGroupContainsAssocs {
-				clientError(w, http.StatusNotFound, ErrPPAssocGroupContainsAssocs, "product to product assocations group contains associations - delete them first")
+				clientError(w, http.StatusConflict, ErrPPAssocGroupContainsAssocs, "product to product assocations group contains associations - delete them first")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.DeletePPAssocGroup(ctx, ppAssocGroupID=%q) failed: %+v", ppAssocGroupID, err)

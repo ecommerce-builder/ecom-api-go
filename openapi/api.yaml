@@ -1670,7 +1670,7 @@ paths:
       description: |
         Retrieves a single product to product association by id.
 
-        `OpGetProductToProductAssocGroup` retuires `AdminShopper` privileges or higher.
+        `OpGetProductToProductAssocGroup` requires `RoleShopper` privileges or higher.
       operationId: OpGetProductToProductAssocGroup
       tags:
       - Product Associations
@@ -1694,6 +1694,45 @@ paths:
                     status: 409
                     code: 'product-to-product-assocs-groups/assoc-group-not-found'
                     message: product to product association group not found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete an individual product to product association group
+      description: |
+        The product to product association group must be empty before it can be deleted. Attemping to delete a group that contains product to product associations will result in a `409 Conflict` error response.
+
+        `OpDeleteProductToProductAssocGroup` requires `RoleAdmin` privileges or higher.
+      tags:
+      - Product Associations
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-not-found:
+                  summary: product-to-product-assocs-groups/assoc-group-not-found
+                  value:
+                    status: 404
+                    code: 'product-to-product-assocs-groups/assoc-group-not-found'
+                    message: product to product associations group not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-contains-assocs:
+                  summary: product-to-product-assocs-groups/assoc-group-contains-assocs
+                  value:
+                    status: 404
+                    code: 'product-to-product-assocs-groups/assoc-group-contains-assocs'
+                    message: product to product assocations group contains associations - delete them first
   /price-lists:
     post:
       security:
