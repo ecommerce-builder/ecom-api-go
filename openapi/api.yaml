@@ -1676,13 +1676,14 @@ paths:
                   $ref: '#/components/schemas/PPAssocGroup'
   /products-assocs-groups/{id}:
     parameters:
-      - name: id
-        required: true
-        in: path
-        description: A unique identifier for the product to product association group.
-        schema:
-          type: string
-          example: '96ad0d7c-c07b-4766-b0d0-e45eb100a397'
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the product to product association group.
+      schema:
+        type: string
+        format: uuid
+        example: '96ad0d7c-c07b-4766-b0d0-e45eb100a397'
     get:
       security:
       - bearerAuth: []
@@ -1799,6 +1800,46 @@ paths:
       responses:
         '204':
           description: No Content
+  /products-assocs/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the product to product association.
+      schema:
+        type: string
+        format: uuid
+        example: 'd5521fc8-6084-4154-9eb0-a77eb3db31a9'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get an individual product to product association
+      description: |
+        `OpGetProductToProductAssoc` requires `RoleShopper` privileges or higher.
+      operationId: OpGetProductToProductAssoc
+      tags:
+      - Product Associations
+      responses:
+        '200':
+          description: pg_assoc object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPAssoc'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs/assoc-not-found:
+                  summary: product-to-product-assocs/assoc-not-found
+                  value:
+                    status: 404
+                    code: product-to-product-assocs/assoc-not-found
+                    message: product to product association not found
+
   /price-lists:
     post:
       security:
@@ -2843,6 +2884,35 @@ components:
         modified:
           type: string
           format: date-time
+          example: '2019-09-26 13:19:15.685272Z'
+    PPAssoc:
+      properties:
+        object:
+          type: string
+          example: pp_assoc
+        id:
+          type: string
+          format: uuid
+          example: 'd5521fc8-6084-4154-9eb0-a77eb3db31a9'
+        pp_assoc_group_id:
+          type: string
+          format: uuid
+          example: 'd4a2608b-1552-4972-845c-f08ca809ea67'
+        product_from_id:
+          type: string
+          format: uuid
+          example: '8e36be24-4854-4b6d-9763-eec4a19e4003'
+        product_to_id:
+          type: string
+          format: uuid
+          example: '3479242b-7e4f-4d2b-9cab-1ea6cb5bee40'
+        created:
+          type: string
+          format: uuid
+          example: '2019-09-26 13:19:15.685272Z'
+        modified:
+          type: string
+          format: uuid
           example: '2019-09-26 13:19:15.685272Z'
     SystemConfig:
       properties:
