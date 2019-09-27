@@ -22,7 +22,7 @@ var ErrPPAssocGroupContainsAssocs = errors.New("service: product to product asso
 type PPAssocGroup struct {
 	Object   string    `json:"object"`
 	ID       string    `json:"id"`
-	Code     string    `json:"pp_assocs_group_code"`
+	Code     string    `json:"pp_assoc_group_code"`
 	Name     string    `json:"name"`
 	Created  time.Time `json:"created"`
 	Modified time.Time `json:"modified"`

@@ -10,7 +10,7 @@ import (
 
 // ProductToProductAssocGroupRequestBody request body
 type ProductToProductAssocGroupRequestBody struct {
-	Code *string `json:"pp_assocs_group_code"`
+	Code *string `json:"pp_assoc_group_code"`
 	Name *string `json:"name"`
 }
 
@@ -55,7 +55,7 @@ func (a *App) CreatePPAssocGroupHandler() http.HandlerFunc {
 		pToPAssocGroup, err := a.Service.CreateProductToProductAssocGroup(ctx, *request.Code, *request.Name)
 		if err != nil {
 			if err == service.ErrPPAssocGroupExists {
-				clientError(w, http.StatusConflict, ErrCodePPAssocGroupExists, "product to product assoc group code is already in use")
+				clientError(w, http.StatusConflict, ErrCodePPAssocGroupExists, "product to product assoc group code is already exists")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.CreateProductToProductAssocGroup(ctx, code=%q, name=%q) failed: %+v", *request.Code, *request.Name, err)

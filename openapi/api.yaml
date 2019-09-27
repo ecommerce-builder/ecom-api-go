@@ -5,7 +5,7 @@ servers:
 - description: Ecom Test API Service
   url: http://localhost:8080
 - description: Ecom Test API Service Ngrok
-  url: https://a7c46957.ngrok.io
+  url: https://c30972ed.ngrok.io
 info:
   description: |
     # Ecom API
@@ -77,7 +77,9 @@ paths:
       - bearerAuth: []
       summary: Create a new shopping cart
       description: |
-        OpCreateCart requires `RoleShopper` privileges. Creates an empty shopping cart. A shopping cart consists of products, offers and coupons. The request body contains a unique identifier for the new cart.
+        Creates an empty shopping cart. A shopping cart contains products and coupons. The response body `id` attribute contains a unique identifier for the newly created cart.
+
+        OpCreateCart requires `RoleShopper` privileges.
       operationId: OpCreateCart
       tags:
       - Carts
@@ -93,10 +95,7 @@ paths:
                 id: '30ad2997-3d19-4001-88d9-e2568d8cf720'
                 locked: false
                 created: '2019-08-02T12:02:42.217936Z'
-                modified: 2019-08-02T12:02:42.217936Z'
-                items:
-                  object: 'list'
-                  data: []
+                modified: '2019-08-02T12:02:42.217936Z'
   /carts/{id}:
     parameters:
     - name: id
@@ -112,7 +111,7 @@ paths:
       - bearerAuth: []
       summary: Get a shoping cart including cart products, cart offers and cart coupons
       description: |
-        OpGetCart requires `RoleShopper` privileges. Retrives an existing shopping cart with the given cart ID.
+        Retrives an existing shopping cart with the given cart ID. OpGetCart requires `RoleShopper` privileges.
       tags:
       - Carts
       responses:
@@ -1618,6 +1617,41 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Product'
+  /products-assocs-groups:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new product to product association group
+      description: |
+        `OpCreateProductToProductAssocGroup` requires `RoleAdmin` privileges or higher.
+      operationId: OpCreateProductToProductAssocGroup
+      tags:
+      - Product Associations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PPAssocGroupRequest'
+      responses:
+        '201':
+          description: pp_assoc_group object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPAssocGroup'
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-exists:
+                  summary: product-to-product-assocs-groups/assoc-group-exists
+                  value:
+                    status: 409
+                    code: 'product-to-product-assocs-groups/assoc-group-exists'
+                    message: product to product assoc group code is already exists
   /price-lists:
     post:
       security:
@@ -2303,33 +2337,6 @@ components:
           type: string
           format: date-time
           example: '2019-06-26T10:26:14.047Z'
-    AssocProduct:
-      properties:
-        sku:
-          type: string
-          example: 'NCIP9WFBB'
-        created:
-          type: string
-          format: date-time
-          example: '2019-07-30T13:57:23.269373Z'
-        modified:
-          type: string
-          format: date-time
-          example: '2019-07-30T13:57:23.269373Z'
-    AssocProductIDRequest:
-      type: object
-      additionalProperties:
-        properties:
-          products:
-            type: array
-            items:
-              required:
-              - product_id
-              properties:
-                sku:
-                  type: string
-                  format: uuid
-                  example: 'e0130bb0-5996-451f-95a0-e5c5afa207d7'
     CreateProductsCategories:
       required:
       - product_id
@@ -2498,22 +2505,6 @@ components:
           type: string
           format: date-time
           example: '2019-08-13 17:51:49.45419'
-    PricingMap:
-      type: object
-      additionalProperties:
-        type: object
-        properties:
-          unit_price:
-            type: integer
-            example: 2066250
-          created:
-            type: string
-            format: date-time
-            example: '2019-07-31T17:03:17.673329Z'
-          modified:
-            type: string
-            format: date-time
-            example: '2019-07-31T17:03:17.673329Z'
     Price:
       properties:
         object:
@@ -2672,6 +2663,40 @@ components:
           type: string
           format: date-time
           example: '2019-08-22T09:31:35.430Z'
+    PPAssocGroupRequest:
+      required:
+      - pp_assoc_group_code
+      - name
+      properties:
+        pp_assoc_group_code:
+          type: string
+          example: UPSELL
+        name:
+          type: string
+          example: Upselling Group
+    PPAssocGroup:
+      properties:
+        object:
+          type: string
+          example: pp_assoc_group
+        id:
+          type: string
+          format: uuid
+          example: d4a2608b-1552-4972-845c-f08ca809ea67
+        pp_assoc_group_code:
+          type: string
+          example: UPSELLS
+        name:
+          type: string
+          example: Upselling Group
+        created:
+          type: string
+          format: date-time
+          example: '2019-09-26 13:19:15.685272Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-09-26 13:19:15.685272Z'
     SystemConfig:
       properties:
         object:
@@ -2747,29 +2772,3 @@ components:
         message:
           type: string
           example: "product to category relations already exist"
-    PutAssocsConflict:
-      properties:
-        status:
-          type: integer
-          example: 409
-        code:
-          type: string
-          example: "assocs/assocs-already-exists"
-        message:
-          type: string
-          example: "product to category relations already exist"
-        data:
-          type: object
-          properties:
-            missing_paths:
-              type: array
-              items:
-                type: string
-            non_leaf_paths:
-              type: array
-              items:
-                type: string
-            missing_skus:
-              type: array
-              items:
-                type: string
