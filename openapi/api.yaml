@@ -1815,6 +1815,10 @@ paths:
         required: false
         in: query
         description: The unique identifier for the product
+        schema:
+          type: string
+          format: uuid
+          example: '3afe2260-e5b4-4b60-9d21-e963d3dbba6b'
       security:
       - bearerAuth: []
       summary: List product to product associations
