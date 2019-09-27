@@ -1628,7 +1628,7 @@ paths:
         `OpCreateProductToProductAssocGroup` requires `RoleAdmin` privileges or higher.
       operationId: OpCreateProductToProductAssocGroup
       tags:
-      - Product Associations
+      - Product Associations Groups
       requestBody:
         content:
           application/json:
@@ -1664,7 +1664,7 @@ paths:
         `OpListProductToProductAssocGroups` requires `RoleShopper` privileges or higher.
       operationId: OpListProductToProductAssocGroups
       tags:
-      - Product Associations
+      - Product Associations Groups
       responses:
         '200':
           description: list of pp_assoc_group objects
@@ -1693,7 +1693,7 @@ paths:
         `OpGetProductToProductAssocGroup` requires `RoleShopper` privileges or higher.
       operationId: OpGetProductToProductAssocGroup
       tags:
-      - Product Associations
+      - Product Associations Groups
       responses:
         '200':
           description: pp_assoc_group object
@@ -1723,7 +1723,7 @@ paths:
 
         `OpDeleteProductToProductAssocGroup` requires `RoleAdmin` privileges or higher.
       tags:
-      - Product Associations
+      - Product Associations Groups
       responses:
         '204':
           description: No Content
@@ -1753,6 +1753,52 @@ paths:
                     status: 404
                     code: 'product-to-product-assocs-groups/assoc-group-contains-assocs'
                     message: product to product assocations group contains associations - delete them first
+  /products-assocs:batch-update:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Batch update product to product associations for a given prodoct to product associations group.
+      description: |
+
+      operationId: OpBatchUpdateProductToProductAssocs
+      tags:
+      - Product Associations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - pp_assoc_group_id
+              - product_from_id
+              - product_to_set
+              properties:
+                pp_assoc_group_id:
+                  type: string
+                  example: 'd4a2608b-1552-4972-845c-f08ca809ea67'
+                product_from_id:
+                  type: string
+                  example: '8e36be24-4854-4b6d-9763-eec4a19e4003'
+                product_to_set:
+                  type: object
+                  required:
+                  - object
+                  - data
+                  properties:
+                    object:
+                      type: string
+                      example: list
+                    data:
+                      type: array
+                      items:
+                        required:
+                        - product_id
+                        properties:
+                          product_id:
+                            type: string
+                            example: '3479242b-7e4f-4d2b-9cab-1ea6cb5bee40'
+      responses:
+        '204':
+          description: No Content
   /price-lists:
     post:
       security:

@@ -15,7 +15,7 @@ type ProductToSet struct {
 }
 
 type batchUpdateRequest struct {
-	PPAssocsGroupID *string       `json:"pp_assocs_group_id"`
+	PPAssocsGroupID *string       `json:"pp_assoc_group_id"`
 	ProductFromID   *string       `json:"product_from_id"`
 	ProductToSet    *ProductToSet `json:"product_to_set"`
 }
