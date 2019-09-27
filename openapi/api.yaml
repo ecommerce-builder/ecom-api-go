@@ -1839,7 +1839,31 @@ paths:
                     status: 404
                     code: product-to-product-assocs/assoc-not-found
                     message: product to product association not found
-
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete an individual product to product association
+      description: |
+        `OpDeleteProductToProductAssoc` requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteProductToProductAssoc
+      tags:
+      - Product Associations
+      responses:
+        '204':
+          description: No Content
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                examples:
+                  product-to-product-assocs/assoc-not-found:
+                    summary: product-to-product-assocs/assoc-not-found
+                    value:
+                      status: 404
+                      code: product-to-product-assocs/assoc-not-found
+                      message: product to product association not found
   /price-lists:
     post:
       security:
