@@ -1800,6 +1800,51 @@ paths:
       responses:
         '204':
           description: No Content
+  /products-assocs:
+    get:
+      parameters:
+      - name: pp_assoc_group_id
+        required: true
+        in: query
+        description: The unique identifier for the product to product associations group.
+        schema:
+          type: string
+          format: uuid
+          example: 'd4a2608b-1552-4972-845c-f08ca809ea67'
+      - name: product_from_id
+        required: false
+        in: query
+        description: The unique identifier for the product
+      security:
+      - bearerAuth: []
+      summary: List product to product associations
+      description: |
+        Product to product associations provide a bi-directional association between products. Each set of of associations is grouped by a product to product association group.
+
+        Associations are stored as sets of from -> to pairs, organised into distinct groups.
+
+        The query parameters `pp_assoc_group_id` must be set to restrict the result set to a single product to product associations group.
+
+        The query parameter `product_from_id` is optional and filters the results by the product 'from' id.
+
+        `OpListProductToProductAssocs` requires `RoleShopper` privileges or higher.
+      tags:
+      - Product Associations
+      responses:
+        '200':
+          description: list of pg_assoc objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PPAssoc'
   /products-assocs/{id}:
     parameters:
     - name: id
