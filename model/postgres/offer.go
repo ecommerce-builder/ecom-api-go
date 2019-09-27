@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"math"
 	"time"
 
@@ -133,7 +132,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 			diffEnd := now.Sub(*promo.EndAt)
 			minsOverEnd := diffEnd.Minutes()
 			if minsOverEnd > 0 {
-				contextLogger.Infof("postgres: offer promo %q is %.1f mins over the end at datetime... skipping", minsOverEnd)
+				contextLogger.Infof("postgres: offer promo %q is %.1f mins over the end at datetime... skipping", promo.PromoRuleCode, minsOverEnd)
 				continue
 			}
 
@@ -141,8 +140,6 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 		} else {
 			contextLogger.Debugf("postgres: startAt for offer promo rule code %q is nil so no time constraints for this offer promo", promo.PromoRuleCode)
 		}
-
-		fmt.Printf("%#v\n", promo)
 
 		contextLogger.Infof("postgres: offer promo %q has a target of %q", promo.PromoRuleCode, promo.Target)
 		if promo.Target == "category" {
@@ -213,7 +210,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 
 			// for each product, calculate the discounted price and store it
 			// for every price break of that product.
-			fmt.Println("products...")
+			// fmt.Println("products...")
 
 			// 5. Prepare get product
 			q5 := `
@@ -243,7 +240,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 			defer stmt6.Close()
 
 			for _, productID := range productCategoryList {
-				fmt.Printf("%+v\n", productID)
+				// fmt.Printf("%+v\n", productID)
 
 				rows, err := stmt3.QueryContext(ctx, productID)
 				if err != nil {
@@ -267,10 +264,10 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 				for _, price := range prices {
 					var offerPrice int
 					if promo.Type == "fixed" {
-						contextLogger.Debug("postgres: promo type is fixed with amount %d", promo.Amount)
+						contextLogger.Debugf("postgres: promo type is fixed with amount %d", promo.Amount)
 						offerPrice = price.UnitPrice - promo.Amount
 					} else if promo.Type == "percentage" {
-						contextLogger.Debug("postgres: promo type is percentage with amount %d", promo.Amount)
+						contextLogger.Debugf("postgres: promo type is percentage with amount %d", promo.Amount)
 						// percentage is stored as a integer between 0 to 10,000
 						// 0 = 0.00% and 9,999 = 99.99% discount.
 						fraction := float64(promo.Amount) / 10000.0

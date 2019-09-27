@@ -55,6 +55,34 @@ const (
 	ErrCodePriceListForbiddenPriceList string = "price-lists/forbidden-access-price-list"
 )
 
+// Product to product association groups
+const (
+	OpCreateProductToProductAssocGroup string = "OpCreateProductToProductAssocGroup"
+	OpGetProductToProductAssocGroup    string = "OpGetProductToProductAssocGroup"
+	OpListProductToProductAssocGroups  string = "OpListProductToProductAssocGroups"
+	OpDeleteProductToProductAssocGroup string = "OpDeleteProductToProductAssocGroup"
+
+	// ErrCodePPAssocGroupNotFound error
+	ErrCodePPAssocGroupNotFound string = "product-to-product-assocs-groups/assoc-group-not-found"
+
+	// ErrCodePPAssocGroupExists error
+	ErrCodePPAssocGroupExists string = "product-to-product-assocs-groups/assoc-group-exists"
+
+	// ErrCodePPAssocGroupContainsAssocs error
+	ErrPPAssocGroupContainsAssocs string = "product-to-product-assocs-groups/assoc-group-contains-assocs"
+)
+
+// Product to products associations
+const (
+	OpBatchUpdateProductToProductAssocs string = "OpBatchUpdateProductToProductAssocs"
+	OpGetProductToProductAssoc          string = "OpGetProductToProductAssoc"
+	OpListProductToProductAssocs        string = "OpListProductToProductAssocs"
+	OpDeleteProductToProductAssoc       string = "OpDeleteProductToProductAssoc"
+
+	// ErrCodePPAssocNotFound error
+	ErrCodePPAssocNotFound string = "product-to-product-assocs/assoc-not-found"
+)
+
 // Offers
 const (
 	// ErrCodeOfferNotFound error

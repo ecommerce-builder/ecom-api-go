@@ -30,7 +30,7 @@ func (a *App) UnapplyCartCouponHandler() http.HandlerFunc {
 				clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
 				return
 			}
-			contextLogger.Errorf("app: a.Service.UnapplyCartCoupon(ctx, cartCouponID) error: %+v", cartCouponID, err)
+			contextLogger.Errorf("app: a.Service.UnapplyCartCoupon(ctx, cartCouponID=%q) error: %+v", cartCouponID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

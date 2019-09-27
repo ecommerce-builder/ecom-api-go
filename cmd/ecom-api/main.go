@@ -667,6 +667,25 @@ func main() {
 			r.Put("/", a.Authorization(app.OpUpdateProductPrices, a.UpdateProductPricesHandler()))
 		})
 
+		// Product to product associations groups
+		r.Route("/products-assocs-groups", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreateProductToProductAssocGroup, a.CreatePPAssocGroupHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetProductToProductAssocGroup, a.GetPPAssocGroupHandler()))
+			r.Get("/", a.Authorization(app.OpListProductToProductAssocGroups, a.ListPPAssocGroupsHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteProductToProductAssocGroup, a.DeletePPAssocGroupHandler()))
+		})
+
+		// Product to product assocations
+		r.Route("/products-assocs", func(r chi.Router) {
+			r.Get("/{id}", a.Authorization(app.OpGetProductToProductAssoc, a.GetPPAssocHandler()))
+			r.Get("/", a.Authorization(app.OpListProductToProductAssocs, a.ListPPAssocsHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteProductToProductAssoc, a.DeletePPAssocHandler()))
+		})
+
+		r.Route("/products-assocs:batch-update", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpBatchUpdateProductToProductAssocs, a.BatchUpdatePPAssocsHandler()))
+		})
+
 		// Shipping Tariffs
 		r.Route("/shipping-tariffs", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpCreateShippingTariff, a.CreateShippingTariffHandler()))

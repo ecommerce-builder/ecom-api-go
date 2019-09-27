@@ -83,7 +83,7 @@ func (a *App) ApplyCartCouponHandler() http.HandlerFunc {
 				return
 			}
 
-			contextLogger.Errorf("app: a.Service.ApplyCouponToCart(ctx, *request.CartID, *request.CouponID) failed: %+v", *request.CartID, *request.CouponID, err)
+			contextLogger.Errorf("app: a.Service.ApplyCouponToCart(ctx, crtID=%q, couponID=%q) failed: %+v", *request.CartID, *request.CouponID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
