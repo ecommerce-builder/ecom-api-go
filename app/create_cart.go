@@ -7,24 +7,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CreateCartHandler create a new shopping cart
+// CreateCartHandler returns an http.HandlerFunc that creates a new shopping cart.
 func (a *App) CreateCartHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: CreateCartHandler called")
 
 		cart, err := a.Service.CreateCart(ctx)
 		if err != nil {
-			contextLogger.Errorf("app: failed to create cart: %v", err)
+			contextLogger.Errorf("app: a.Service.CreateCart(ctx) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
-
-		response := cartResponseBody{
-			Object: "cart",
-			Cart:   cart,
-		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(&response)
+		json.NewEncoder(w).Encode(&cart)
 	}
 }

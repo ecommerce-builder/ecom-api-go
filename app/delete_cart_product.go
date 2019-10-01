@@ -27,7 +27,7 @@ func (a *App) DeleteCartProductHandler() http.HandlerFunc {
 				clientError(w, http.StatusNotFound, ErrCodeCartProductNotFound, "cart product not found")
 				return
 			}
-			contextLogger.Errorf("app: a.Service.DeleteCartProduct(ctx, cartProductID=%q) error: %v", cartProductID, err)
+			contextLogger.Errorf("app: a.Service.DeleteCartProduct(ctx, cartProductID=%q) error: %+v", cartProductID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

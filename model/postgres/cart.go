@@ -457,7 +457,7 @@ func (m *PgModel) DeleteCartProduct(ctx context.Context, cartProductUUID string)
 	if err = tx.QueryRowContext(ctx, q1, cartProductUUID).Scan(&cartProductID); err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
-			return ErrCartNotFound
+			return ErrCartProductNotFound
 		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)

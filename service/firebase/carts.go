@@ -29,6 +29,7 @@ var (
 
 // Cart holds the details of a shopping cart.
 type Cart struct {
+	Object   string    `json:"object"`
 	ID       string    `json:"id"`
 	Locked   bool      `json:"locked"`
 	Created  time.Time `json:"created"`
@@ -56,6 +57,7 @@ func (s *Service) CreateCart(ctx context.Context) (*Cart, error) {
 		return nil, errors.Wrap(err, "service: s.model.CreateCart(ctx) failed")
 	}
 	cart := Cart{
+		Object:   "cart",
 		ID:       cartRow.UUID,
 		Locked:   cartRow.Locked,
 		Created:  cartRow.Created,
@@ -122,7 +124,7 @@ func (s *Service) GetCartProducts(ctx context.Context, userID, cartID string) ([
 		} else if err == postgres.ErrDefaultPriceListNotFound {
 			return nil, ErrDefaultPriceListNotFound
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "service: s.model.GetCartProducts(ctx, cartID=%q, userID=%q) failed", userID, cartID)
 	}
 
 	results := make([]*CartProduct, 0, 32)

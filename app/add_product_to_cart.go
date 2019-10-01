@@ -9,22 +9,34 @@ import (
 )
 
 type addProductToCartRequestBody struct {
-	CartID    string `json:"cart_id"`
-	ProductID string `json:"product_id"`
-	Qty       int    `json:"qty"`
+	CartID    *string `json:"cart_id"`
+	ProductID *string `json:"product_id"`
+	Qty       *int    `json:"qty"`
 }
 
 func validateAddProductRequestBody(request *addProductToCartRequestBody) (bool, string) {
-	if request.Qty < 1 {
+	// cart_id attribute
+	if request.CartID == nil {
+		return false, "cart_id attribute must be set"
+	}
+	if !IsValidUUID(*request.CartID) {
+		return false, "cart_id attribute must be a valid v4 UUID"
+	}
+
+	// product_id attribute
+	if request.ProductID == nil {
+		return false, "product_id attribute must be set"
+	}
+	if !IsValidUUID(*request.ProductID) {
+		return false, "product_id attribute must be a valid v4 UUID"
+	}
+
+	// qty attribute
+	if request.Qty == nil {
+		return false, "qty attribute must be set"
+	}
+	if *request.Qty < 1 {
 		return false, "qty attribute must be set to at least 1"
-	}
-
-	if request.CartID == "" {
-		return false, "product_id attribute must be set"
-	}
-
-	if request.ProductID == "" {
-		return false, "product_id attribute must be set"
 	}
 
 	return true, ""
@@ -32,7 +44,6 @@ func validateAddProductRequestBody(request *addProductToCartRequestBody) (bool, 
 
 // AddProductToCartHandler creates a handler to add a product to a given cart
 func (a *App) AddProductToCartHandler() http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
@@ -53,10 +64,10 @@ func (a *App) AddProductToCartHandler() http.HandlerFunc {
 		}
 
 		userID := ctx.Value(ecomUIDKey).(string)
-		product, err := a.Service.AddProductToCart(ctx, userID, request.CartID, request.ProductID, request.Qty)
+		product, err := a.Service.AddProductToCart(ctx, userID, *request.CartID, *request.ProductID, *request.Qty)
 		if err != nil {
 			if err == service.ErrCartNotFound {
-				w.WriteHeader(http.StatusNotFound) // 404 Not Found
+				clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
 				return
 			} else if err == service.ErrUserNotFound {
 				// 409 Conflict
@@ -81,7 +92,7 @@ func (a *App) AddProductToCartHandler() http.HandlerFunc {
 				return
 			}
 
-			contextLogger.Errorf("service AddProductToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %+v", request.CartID, request.ProductID, request.Qty, err)
+			contextLogger.Errorf("service AddProductToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %+v", *request.CartID, *request.ProductID, *request.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
