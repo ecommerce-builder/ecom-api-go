@@ -19,17 +19,19 @@ var ErrWebhookNotFound = errors.New("postgres: webhook not found")
 
 // WebhookRow holds a single row in the webhook table.
 type WebhookRow struct {
-	id       int
-	UUID     string
-	URL      string
-	Events   []string
-	Enabled  bool
-	Created  time.Time
-	Modified time.Time
+	id         int
+	UUID       string
+	SigningKey string
+	URL        string
+	Events     []string
+	Enabled    bool
+	Created    time.Time
+	Modified   time.Time
 }
 
-// CreateWebhook adds a new row to the webhook table.
-func (m *PgModel) CreateWebhook(ctx context.Context, url string, events []string) (*WebhookRow, error) {
+// CreateWebhook adds a new row to the webhook table. You should
+// pass a cryptographically strong signing key.
+func (m *PgModel) CreateWebhook(ctx context.Context, signingKey, url string, events []string) (*WebhookRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx failed")
@@ -48,13 +50,13 @@ func (m *PgModel) CreateWebhook(ctx context.Context, url string, events []string
 
 	// 2. Insert the new webhook
 	q2 := `
-		INSERT INTO webhook (url, events, enabled)
-		VALUES ($1, $2, true)
-		RETURNING id, uuid, url, events, enabled, created, modified
+		INSERT INTO webhook (signing_key, url, events, enabled)
+		VALUES ($1, $2, $3, true)
+		RETURNING id, uuid, signing_key, url, events, enabled, created, modified
 	`
 	var w WebhookRow
-	row := tx.QueryRowContext(ctx, q2, url, pq.Array(events))
-	if err := row.Scan(&w.id, &w.UUID, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified); err != nil {
+	row := tx.QueryRowContext(ctx, q2, signingKey, url, pq.Array(events))
+	if err := row.Scan(&w.id, &w.UUID, &w.SigningKey, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q2=%q", q2)
 	}
 
@@ -67,12 +69,12 @@ func (m *PgModel) CreateWebhook(ctx context.Context, url string, events []string
 // GetWebhook retrieves a single webhook by uuid.
 func (m *PgModel) GetWebhook(ctx context.Context, webhookUUID string) (*WebhookRow, error) {
 	q1 := `
-		SELECT id, uuid, url, events, enabled, created, modified
+		SELECT id, uuid, signing_key, url, events, enabled, created, modified
 		FROM webhook
 		WHERE uuid = $1
 	`
 	var w WebhookRow
-	err := m.db.QueryRowContext(ctx, q1, webhookUUID).Scan(&w.id, &w.UUID, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified)
+	err := m.db.QueryRowContext(ctx, q1, webhookUUID).Scan(&w.id, &w.UUID, &w.SigningKey, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrWebhookNotFound
@@ -84,7 +86,7 @@ func (m *PgModel) GetWebhook(ctx context.Context, webhookUUID string) (*WebhookR
 
 // GetWebhooks retrieves all webhooks.
 func (m *PgModel) GetWebhooks(ctx context.Context) ([]*WebhookRow, error) {
-	q1 := "SELECT id, uuid, url, events, enabled, created, modified FROM webhook"
+	q1 := "SELECT id, uuid, signing_key, url, events, enabled, created, modified FROM webhook"
 	rows, err := m.db.QueryContext(ctx, q1)
 	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
@@ -94,7 +96,7 @@ func (m *PgModel) GetWebhooks(ctx context.Context) ([]*WebhookRow, error) {
 	webhooks := make([]*WebhookRow, 0)
 	for rows.Next() {
 		var w WebhookRow
-		if err = rows.Scan(&w.id, &w.UUID, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified); err != nil {
+		if err = rows.Scan(&w.id, &w.UUID, &w.SigningKey, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified); err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		webhooks = append(webhooks, &w)
@@ -148,11 +150,11 @@ func (m *PgModel) UpdateWebhook(ctx context.Context, webhookUUID string, url *st
 		UPDATE webhook
 		SET %s
 		WHERE id = $%d
-		RETURNING id, uuid, url, events, enabled, created, modified
+		RETURNING id, uuid, signing_key, url, events, enabled, created, modified
 	`, strings.Join(set, ", "), argCounter)
 	w := WebhookRow{}
 	row := m.db.QueryRowContext(ctx, q2, queryArgs...)
-	if err := row.Scan(&w.id, &w.UUID, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified); err != nil {
+	if err := row.Scan(&w.id, &w.UUID, &w.URL, &w.SigningKey, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q2=%q failed", q2)
 	}
 	return &w, nil

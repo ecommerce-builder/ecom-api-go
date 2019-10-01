@@ -2,9 +2,11 @@ package firebase
 
 import (
 	"context"
+	"crypto/rand"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
+	"github.com/btcsuite/btcutil/base58"
 	"github.com/pkg/errors"
 )
 
@@ -32,13 +34,14 @@ func init() {
 
 // Webhook holds a single webhook.
 type Webhook struct {
-	Object   string    `json:"object"`
-	ID       string    `json:"id"`
-	URL      string    `json:"url"`
-	Events   []string  `json:"events"`
-	Enabled  bool      `json:"enabled"`
-	Created  time.Time `json:"created"`
-	Modified time.Time `json:"modified"`
+	Object     string    `json:"object"`
+	ID         string    `json:"id"`
+	SigningKey string    `json:"signing_key"`
+	URL        string    `json:"url"`
+	Events     []string  `json:"events"`
+	Enabled    bool      `json:"enabled"`
+	Created    time.Time `json:"created"`
+	Modified   time.Time `json:"modified"`
 }
 
 // CreateWebhook creates a new webhook with the given url that triggers
@@ -60,7 +63,15 @@ func (s *Service) CreateWebhook(ctx context.Context, url string, events []string
 		}
 	}
 
-	row, err := s.model.CreateWebhook(ctx, url, events)
+	// Generate a cryptographically strong signing key
+	// to be used later with HMAC SHA256.
+	data := make([]byte, 32)
+	_, err := rand.Read(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "service: rand.Read(data)")
+	}
+
+	row, err := s.model.CreateWebhook(ctx, base58.Encode(data), url, events)
 	if err != nil {
 		if err == postgres.ErrWebhookExists {
 			return nil, ErrWebhookExists
@@ -68,13 +79,14 @@ func (s *Service) CreateWebhook(ctx context.Context, url string, events []string
 		return nil, errors.Wrapf(err, "s.model.CreateWebhook(ctx, url=%q, events=%v) failed", url, events)
 	}
 	webhook := Webhook{
-		Object:   "webhook",
-		ID:       row.UUID,
-		URL:      row.URL,
-		Events:   row.Events,
-		Enabled:  row.Enabled,
-		Created:  row.Created,
-		Modified: row.Modified,
+		Object:     "webhook",
+		ID:         row.UUID,
+		SigningKey: row.SigningKey,
+		URL:        row.URL,
+		Events:     row.Events,
+		Enabled:    row.Enabled,
+		Created:    row.Created,
+		Modified:   row.Modified,
 	}
 	return &webhook, nil
 }
@@ -90,13 +102,14 @@ func (s *Service) GetWebhook(ctx context.Context, webhookID string) (*Webhook, e
 		return nil, errors.Wrapf(err, "s.model.GetWebhook(ctx, webhookUUID=%q) failed", webhookID)
 	}
 	webhook := Webhook{
-		Object:   "webhook",
-		ID:       row.UUID,
-		URL:      row.URL,
-		Events:   row.Events,
-		Enabled:  row.Enabled,
-		Created:  row.Created,
-		Modified: row.Modified,
+		Object:     "webhook",
+		ID:         row.UUID,
+		SigningKey: row.SigningKey,
+		URL:        row.URL,
+		Events:     row.Events,
+		Enabled:    row.Enabled,
+		Created:    row.Created,
+		Modified:   row.Modified,
 	}
 	return &webhook, nil
 }
@@ -111,13 +124,14 @@ func (s *Service) GetWebhooks(ctx context.Context) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, len(rows))
 	for _, row := range rows {
 		wh := Webhook{
-			Object:   "webhook",
-			ID:       row.UUID,
-			URL:      row.URL,
-			Events:   row.Events,
-			Enabled:  row.Enabled,
-			Created:  row.Created,
-			Modified: row.Modified,
+			Object:     "webhook",
+			ID:         row.UUID,
+			SigningKey: row.SigningKey,
+			URL:        row.URL,
+			Events:     row.Events,
+			Enabled:    row.Enabled,
+			Created:    row.Created,
+			Modified:   row.Modified,
 		}
 		webhooks = append(webhooks, &wh)
 	}
@@ -146,13 +160,14 @@ func (s *Service) UpdateWebhook(ctx context.Context, webhookUUID string, url *st
 	}
 
 	webhook := Webhook{
-		Object:   "webhook",
-		ID:       row.UUID,
-		URL:      row.URL,
-		Events:   row.Events,
-		Enabled:  row.Enabled,
-		Created:  row.Created,
-		Modified: row.Modified,
+		Object:     "webhook",
+		ID:         row.UUID,
+		SigningKey: row.SigningKey,
+		URL:        row.URL,
+		Events:     row.Events,
+		Enabled:    row.Enabled,
+		Created:    row.Created,
+		Modified:   row.Modified,
 	}
 	return &webhook, nil
 }
