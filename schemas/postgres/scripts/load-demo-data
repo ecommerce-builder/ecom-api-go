@@ -2,4 +2,4 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 datadir=$DIR/../data
 
-cat $datadir/demo_data.sql | psql --no-psqlrc ecom_dev
+cat $datadir/demo_data.sql | psql --no-psqlrc ecom_dev > /dev/null

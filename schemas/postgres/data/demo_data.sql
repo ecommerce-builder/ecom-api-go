@@ -4,7 +4,7 @@ INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid1', 'customer', 'joe@example.com', 'Joe', 'Blogs');
 
 -- address: id=1
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('billing', 1, 'Joe Blogs', '4524 Mulberry Avenue', 'LittleRock', '72209', 'US');
 
 
@@ -13,7 +13,7 @@ INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid2', 'customer', 'sammy@example.com', 'Sammy', 'Peterson');
 
 -- address: id=2
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('billing', 2, 'Sammy Peterson', '138 Ermin Street', 'Wrentham', 'NR34 9TT', 'UK');
 
 
@@ -22,23 +22,23 @@ INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid3', 'customer', 'faith@example.com', 'Faith', 'Bowman');
 
 -- address: id=3
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('shipping', 3, 'Faith Bowman', '18 Pier Road', 'Statham', 'WA13 3DW', 'UK');
 
 -- address: id=4
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('shipping', 3, 'Faith Bowman', '115 Spilman Street', 'Gossops Green', 'RH11 9SP', 'UK');
 
 -- address: id=5
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('shipping', 3, 'Faith Bowman', '43 Shannon Way', 'Chipping Campden', 'GL55 9XZ', 'UK');
 
 -- address: id=6
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('billing', 3, 'Faith Bowman', '38 Walden Road', 'Greenburn', 'DD5 8AU','UK');
 
 -- address: id=7
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('billing', 3, 'Faith Bowman', '99  Wrexham Rd', 'Faceby', 'TS9 4QL', 'UK');
 
 
@@ -47,7 +47,7 @@ INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid4', 'customer', 'clifton@example.com', 'Clifton', 'Delgado');
 
 -- address: id=8
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('billing', 4, 'Clifton Delgado', '131 Caxton Place', 'Byfield', 'NN11 7FN', 'UK');
 
 
@@ -56,11 +56,11 @@ INSERT INTO usr (uid, role, email, firstname, lastname)
   VALUES ('uid5', 'customer', 'bernadette@example.com', 'Bernadette', 'Graham');
 
 -- address: id=9
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('shipping',5, 'Bernadette Graham', '89 Cubbine Road', 'Southburracoppin', '6421', 'AU');
 
 -- address: id=10
-INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country)
+INSERT INTO address (typ, usr_id, contact_name, addr1, city, postcode, country_code)
   VALUES('billing',5, 'Bernadette Graham', '38 Porana Place', 'Woolgorong', '6630', 'AU');
 
 

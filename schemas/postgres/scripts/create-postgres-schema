@@ -2,80 +2,29 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 schemadir=$DIR/../schema
 
-echo "Initialising"
 cat $schemadir/init.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating schema_version() function"
 cat $schemadir/schema_version_function.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating products table"
 cat $schemadir/product.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating inventory table"
 cat $schemadir/inventory.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating shipping_tariff table"
 cat $schemadir/shipping_tariff.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating product_set table"
 cat $schemadir/product_set.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating product_set_item table"
 cat $schemadir/product_set_item.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating carts table"
 cat $schemadir/cart.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Createing cart_product table"
 cat $schemadir/cart_product.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating price_list table"
 cat $schemadir/price_list.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating price table"
 cat $schemadir/price.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating images table"
 cat $schemadir/image.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating categories table"
 cat $schemadir/category.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating product_category (is_leaf, is_leaf_path functions and product_category table)"
 cat $schemadir/product_category.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating category_leaf view"
 cat $schemadir/category_leaf.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating promo_rule table"
 cat $schemadir/promo_rule.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating coupon table"
 cat $schemadir/coupon.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating cart_coupon table"
 cat $schemadir/cart_coupon.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating offer table"
 cat $schemadir/offer.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating usr table"
 cat $schemadir/usr.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating usr_devkey table"
 cat $schemadir/usr_devkey.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating address table"
 cat $schemadir/address.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating order table"
 cat $schemadir/order.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating order_item table"
 cat $schemadir/order_item.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating payment table"
 cat $schemadir/payment.sql | psql --no-psqlrc ecom_dev > /dev/null
-
-echo "Creating webhook table"
 cat $schemadir/webhook.sql | psql --no-psqlrc ecom_dev > /dev/null

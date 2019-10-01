@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.60.1 (Tue 1 Oct 2019)
++ Minor fixes to schema (`shipping_code` on `shipping_tariff` table made non unique)
++ Remove verbosity of schema create, drop and load shell scripts.
+
 ## v0.60.0 (Tue 1 Oct 2019)
 + Webhooks CRUDL for configuration only.
 + Google Pub/sub connection on startup.
