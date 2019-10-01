@@ -87,7 +87,7 @@ func (a *App) CreateWebhookHandler() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(&webhook)
 	}
 }
