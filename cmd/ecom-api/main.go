@@ -19,10 +19,12 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
 	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	"cloud.google.com/go/pubsub"
 	firebase "firebase.google.com/go"
 	_ "firebase.google.com/go/auth"
 	stackdriver "github.com/andyfusniak/stackdriver-gae-logrus-plugin"
 	stackdm "github.com/andyfusniak/stackdriver-gae-logrus-plugin/middleware"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
@@ -140,6 +142,8 @@ const (
 
 	// directory in the secret volume that holds all Service Account Credentials files
 	sacDir = "service_account_credentials"
+
+	pubsubTopic = "ecom-api"
 )
 
 func initLogging() {
@@ -175,6 +179,16 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 func testDelayHandler(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Second * 30)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func googlePropertyVerificationHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("google-site-verification: googleae3066b83fcfab45.html\n"))
+}
+
+func pubSubHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r)
+	w.WriteHeader(http.StatusOK)
 }
 
 func exists(path string) (bool, error) {
@@ -505,7 +519,6 @@ func main() {
 	// build a Google Firebase App
 	var fbApp *firebase.App
 
-	ctx := context.Background()
 	var opt option.ClientOption
 	if fbCredentialsEnv[0] == '/' {
 		opt = option.WithCredentialsFile(fbCredentialsEnv)
@@ -516,13 +529,40 @@ func main() {
 		}
 		opt = option.WithCredentialsJSON(decoded)
 	}
+	ctx := context.Background()
 	fbApp, err = firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
 	}
 
+	// Google Pub Sub
+	pubSubClient, err := pubsub.NewClient(ctx, gaeProjectIDEnv, opt)
+	if err != nil {
+		log.Fatalf("pubsub.NewClient(ctx, gaeProjectIDEnv) failed: %+v", err)
+	}
+	log.Infof("initializing Google PubSub client for project %s", gaeProjectIDEnv)
+
+	topic := pubSubClient.Topic(pubsubTopic)
+	defer topic.Stop()
+	log.Infof("created pubsub topic %v", topic.String())
+
+	// Create a new topic with the given name.
+	// topic, err := pubSubClient.CreateTopic(ctx, pubsubTopic)
+	// if err != nil {
+	// 	// TODO: Handle error.
+	// 	log.Errorf("client.CreateTopic(ctx, pubsubTopic) failed: %+v", err)
+	// }
+
+	// Broadcast startup message
+	topic.Publish(ctx, &pubsub.Message{
+		Data: []byte("hello world"),
+	})
+
+	// serverID, err := publishResult.Get(ctx)
+	// fmt.Println(serverID, err)
+
 	// build a Firebase service injecting in the model and firebase app as dependencies
-	fbSrv := service.NewService(pgModel, fbApp)
+	fbSrv := service.NewService(pgModel, fbApp, pubSubClient)
 
 	// ensure the root user has been created
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
@@ -746,6 +786,15 @@ func main() {
 		r.Route("/sysinfo", func(r chi.Router) {
 			r.Get("/", a.Authorization(app.OpSystemInfo, a.SystemInfoHandler(si)))
 		})
+
+		// Webhooks
+		r.Route("/webhooks", func(r chi.Router) {
+			r.Post("/", a.Authorization(app.OpCreateWebhook, a.CreateWebhookHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetWebhook, a.GetWebhookHandler()))
+			r.Get("/", a.Authorization(app.OpListWebhooks, a.ListWebhooksHandler()))
+			r.Patch("/{id}", a.Authorization(app.OpUpdateWebhook, a.UpdateWebhookHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteWebhook, a.DeleteWebhookHandler()))
+		})
 	})
 
 	// public routes including GET / for Google Kuberenetes default healthcheck
@@ -758,6 +807,14 @@ func main() {
 		r.Get("/config", a.ConfigHandler(si.Env.Firebase))
 		r.Route("/stripe-webhook", func(r chi.Router) {
 			r.Post("/", a.StripeWebhookHandler(stripeSigningSecret))
+		})
+
+		r.Route("/googleae3066b83fcfab45.html", func(r chi.Router) {
+			r.Get("/", googlePropertyVerificationHandler)
+		})
+
+		r.Route("/private-pub-sub", func(r chi.Router) {
+			r.Post("/", pubSubHandler)
 		})
 	})
 
