@@ -1,4 +1,17 @@
 # CHANGELOG
+## v0.60.0 (Tue 1 Oct 2019)
++ Webhooks CRUDL for configuration only.
++ Google Pub/sub connection on startup.
++ Product to product group associations impemented.
++ Product to product associations implemented.
++ Coupons in the cart implemented.
++ Inventory implemented.
++ Shipping Tariffs implemented.
++ `offer_price` added to `price` table in schema.
++ Offer activation.
++ Cart products fixes and Open API def updates.
++ Shipping Tariffs spelling change.
+
 ## v0.58.1 (Fri 13 Sep 2019)
 + Fixes issues with the Postgres table creation script order in which the tables are created.
 
