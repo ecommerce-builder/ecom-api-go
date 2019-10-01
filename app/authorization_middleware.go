@@ -83,7 +83,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpCreateCoupon, OpGetCoupon, OpListCoupons, OpUpdateCoupon, OpDeleteCoupon,
 			OpGetCartCoupon, OpCreateProductToProductAssocGroup,
 			OpDeleteProductToProductAssocGroup, OpDeleteProductToProductAssoc,
-			OpBatchUpdateProductToProductAssocs:
+			OpBatchUpdateProductToProductAssocs, OpCreateWebhook, OpGetWebhook, OpListWebhooks,
+			OpUpdateWebhook, OpDeleteWebhook:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return

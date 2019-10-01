@@ -5,7 +5,7 @@ servers:
 - description: Ecom Test API Service
   url: http://localhost:8080
 - description: Ecom Test API Service Ngrok
-  url: https://c30972ed.ngrok.io
+  url: https://c90e3367.ngrok.io
 info:
   description: |
     # Ecom API
@@ -2138,6 +2138,136 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StripeCheckoutSession'
+  /webhooks:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new webhook
+      description: |
+        Creates a new webhook with the given `url` and list of `events`.
+      operationId: OpCreateWebhook
+      tags:
+      - Webhooks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCreateRequest'
+      responses:
+        '201':
+          description: webhook object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of webhooks
+      description: |
+        Retrieve a list of all webhooks in the system.
+
+        `OpListWebhooks` requires `RoleAdmin` privileges or higher.
+      operationId: OpListWebhooks
+      tags:
+      - Webhooks
+      responses:
+        '200':
+          description: list of webhook objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+  /webhooks/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the webhook.
+      schema:
+        type: string
+        format: uuid
+        example: '9d91fa17-3219-493e-afaf-4deec6bed4e4'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Retrieve a single webhook by id
+      description: |
+        `OpGetWebhook` requires `RoleAdmin` privileges or higher.
+      operationId: OpGetWebhook
+      tags:
+      - Webhooks
+      responses:
+        '200':
+          description: webhook object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update part of all of a webhook
+      description: |
+        Update the `url`, `events` or `enabled` flag for the webhook identified in the `id` URL parameter.
+
+        `OpUpdateWebhook` requires `AdminRole` privileges or higher.
+      tags:
+      - Webhooks
+      requestBody:
+        description: webhook update request
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: 'https://congruous-riverbed.glitch.me/webhook'
+                events:
+                  type: object
+                  properties:
+                    object:
+                      type: string
+                      example: list
+                    data:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                      - 'order.created'
+                enabled:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: webhook object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a single webhook
+      description: |
+        `OpDeleteWebhook` requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteWebhook
+      tags:
+      - Webhooks
+      responses:
+        '204':
+          description: No Content
   /stripe-webhook:
     post:
       security:
@@ -2987,6 +3117,59 @@ components:
           type: string
           format: uuid
           example: '2019-09-26 13:19:15.685272Z'
+    Webhook:
+      properties:
+        object:
+          type: string
+          example: webhook
+        id:
+          type: string
+          example: '9d91fa17-3219-493e-afaf-4deec6bed4e4'
+        signing_key:
+          type: string
+          example: naJQqCYBptg1jft7SsJWX1dEF6wEv8VDQ7BoqPerQjc
+        url:
+          type: string
+          format: uri
+          example: https://congruous-riverbed.glitch.me/webhook
+        events:
+          type: array
+          example: ['order.created']
+        enabled:
+          type: boolean
+          example: true
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-01T11:49:50.663221Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-01T11:50:54.547336Z'
+    WebhookCreateRequest:
+      required:
+      - url
+      - events
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://congruous-riverbed.glitch.me/webhook
+        events:
+          type: object
+          required:
+          - object
+          - data
+          properties:
+            object:
+              type: string
+              example: list
+            data:
+              type: array
+              items:
+                type: string
+              example:
+              - 'order.created'
     SystemConfig:
       properties:
         object:

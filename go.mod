@@ -3,7 +3,7 @@ module bitbucket.org/andyfusniakteam/ecom-api-go
 go 1.12
 
 require (
-	cloud.google.com/go v0.40.0 // indirect
+	cloud.google.com/go v0.40.0
 	firebase.google.com/go v3.8.1+incompatible
 	github.com/andyfusniak/stackdriver-gae-logrus-plugin v0.1.3
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d

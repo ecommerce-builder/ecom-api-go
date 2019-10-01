@@ -22,6 +22,7 @@ echo "DROP TABLE IF EXISTS inventory" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS image" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS product" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP TABLE IF EXISTS price_list" | psql --no-psqlrc ecom_dev > /dev/null
+echo "DROP TALBE IF EXISTS webhook" | psql --no-psqlrc ecom_dec > /dev/null
 
 echo "DROP FUNCTION IF EXISTS schema_version()" | psql --no-psqlrc ecom_dev > /dev/null
 echo "DROP FUNCTION IF EXISTS is_leaf(integer)" | psql --no-psqlrc ecom_dev > /dev/null

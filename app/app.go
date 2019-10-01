@@ -246,6 +246,24 @@ const (
 	ErrCodePromoRuleNotFound string = "promo-rules/promo-rule-not-found"
 )
 
+// Webhooks
+const (
+	OpCreateWebhook string = "OpCreateWebhook"
+	OpGetWebhook    string = "OpGetWebhook"
+	OpListWebhooks  string = "OpListWebhooks"
+	OpUpdateWebhook string = "OpUpdateWebhook"
+	OpDeleteWebhook string = "OpDeleteWebhook"
+
+	// ErrCodeWebhookNotFound error
+	ErrCodeWebhookNotFound string = "webhooks/webhook-not-found"
+
+	// ErrCodeWebhookExists error
+	ErrCodeWebhookExists string = "webhooks/webhook-exists"
+
+	// ErrCodeEventTypeNotFound error
+	ErrCodeEventTypeNotFound string = "webhooks/event-type-not-found"
+)
+
 const (
 	// ErrCodeInternalServerError is sent as the error code for 500 Internal Server Errors.
 	ErrCodeInternalServerError string = "internal-server-error"

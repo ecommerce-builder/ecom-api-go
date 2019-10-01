@@ -100,6 +100,7 @@ func (a *App) UpdateAddressHandler() http.HandlerFunc {
 			}
 			contextLogger.Errorf("app: a.Service.PartialUpdateAddress(ctx, request.Typ=%v) failed: %+v", request.Typ, err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK) // 200 OK

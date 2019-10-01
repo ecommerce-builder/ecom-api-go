@@ -51,6 +51,7 @@ func (a *App) UpdateInventoryHandler() http.HandlerFunc {
 				return
 			}
 			contextLogger.Errorf("app: a.Service.GetInventory(ctx, inventoryUUID=%q) failed: %+v", inventoryID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 

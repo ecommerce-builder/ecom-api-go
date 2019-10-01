@@ -76,3 +76,6 @@ cat $schemadir/order_item.sql | psql --no-psqlrc ecom_dev > /dev/null
 
 echo "Creating payment table"
 cat $schemadir/payment.sql | psql --no-psqlrc ecom_dev > /dev/null
+
+echo "Creating webhook table"
+cat $schemadir/webhook.sql | psql --no-psqlrc ecom_dev > /dev/null
