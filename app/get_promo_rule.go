@@ -18,10 +18,14 @@ func (a *App) GetPromoRuleHandler() http.HandlerFunc {
 		contextLogger.Info("app: GetPromoRuleHandler called")
 
 		promoRuleID := chi.URLParam(r, "id")
+		if !IsValidUUID(promoRuleID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL parameter id must be a valid v4 UUID")
+			return
+		}
 		promoRule, err := a.Service.GetPromoRule(ctx, promoRuleID)
 		if err != nil {
 			if err == service.ErrPromoRuleNotFound {
-				w.WriteHeader(http.StatusNotFound)
+				clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
 				return
 			}
 			contextLogger.Errorf("app: a.Service.GetPromoRule(ctx, promoRuleID=%q)", promoRuleID)

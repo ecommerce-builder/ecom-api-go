@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -24,6 +25,7 @@ import (
 	_ "firebase.google.com/go/auth"
 	stackdriver "github.com/andyfusniak/stackdriver-gae-logrus-plugin"
 	stackdm "github.com/andyfusniak/stackdriver-gae-logrus-plugin/middleware"
+	"github.com/pkg/errors"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -114,6 +116,7 @@ var (
 	gaeProjectIDEnv   = os.Getenv("ECOM_GAE_PROJECT_ID")
 	fbPublicConfigEnv = os.Getenv("ECOM_FIREBASE_PUBLIC_CONFIG")
 	fbCredentialsEnv  = os.Getenv("ECOM_FIREBASE_PRIVATE_CREDENTIALS")
+	pubSubPushToken   = os.Getenv("ECOM_GOOGLE_PUBSUB_PUSH_TOKEN")
 
 	// Stripe settings (optional)
 	stripeSecretKey     = os.Getenv("ECOM_STRIPE_SECRET_KEY")
@@ -134,6 +137,7 @@ var (
 	maxIdleConnsEnv             = os.Getenv("ECOM_APP_MAX_IDLE_CONNS")
 	connMaxLifetimeEnv          = os.Getenv("ECOM_APP_CONN_MAX_LIFETIME")
 	enableStackDriverLoggingEnv = os.Getenv("ECOM_APP_ENABLE_STACKDRIVER_LOGGING")
+	appEndpoint                 = os.Getenv("ECOM_APP_ENDPOINT")
 )
 
 const (
@@ -143,7 +147,12 @@ const (
 	// directory in the secret volume that holds all Service Account Credentials files
 	sacDir = "service_account_credentials"
 
-	pubsubTopic = "ecom-api"
+	// events-topic handles the initial event before publishing multiple messages
+	// (one per registered webhook listening for those events) to broadcast-topic
+	pubSubEventsTopic          = "ecom-api-events-topic"
+	pubSubEventsSubscription   = "ecom-api-events-subscription"
+	pubSubWebhooksTopic        = "ecom-api-broadcast-topic"
+	pubSubWebhooksSubscription = "ecom-api-broadcast-subscription"
 )
 
 func initLogging() {
@@ -184,11 +193,6 @@ func testDelayHandler(w http.ResponseWriter, r *http.Request) {
 func googlePropertyVerificationHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("google-site-verification: googleae3066b83fcfab45.html\n"))
-}
-
-func pubSubHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r)
-	w.WriteHeader(http.StatusOK)
 }
 
 func exists(path string) (bool, error) {
@@ -339,6 +343,46 @@ func main() {
 
 	log.Infof("firebase apiKey set to %s", fbConfig.Firebase.APIKEY)
 	log.Infof("firebase projectID set to %s", fbConfig.Firebase.ProjectID)
+
+	// ECOM_GOOGLE_PUBSUB_PUSH_TOKEN must be set.
+	if pubSubPushToken == "" {
+		log.Fatalf("missing google pubsub events push token. Use ECOM_GOOGLE_PUBSUB_PUSH_TOKEN to set this to a secret string token")
+	}
+
+	// ECOM_APP_ENDPOINT must be set to an absolute, secure URL endpoint.
+	// It is used to derive the events and webhook cloud pubsub URL endpoints.
+	if appEndpoint == "" {
+		log.Fatalf("missing app endpoint. Use ECOM_APP_ENDPOINT to set this to an absolute secure URL")
+	}
+	u, err := url.Parse(appEndpoint)
+	if err != nil {
+		log.Fatalf("failed to url.Parse(%q)", appEndpoint)
+	}
+	if u.Scheme != "https" {
+		log.Fatalf("ECOM_APP_ENDPOINT must be set to a secure URL - got %s", appEndpoint)
+	}
+	if !u.IsAbs() {
+		log.Fatalf("ECOM_APP_ENDPOINT must be set to an absolute URL - got %s", appEndpoint)
+	}
+	log.Infof("ECOM_APP_ENDPOINT set to %s", appEndpoint)
+
+	pubSubEventsPushEndpoint, err := url.Parse(appEndpoint + "/private-pubsub-events")
+	if err != nil {
+		log.Fatalf("main: url.Parse(rawurl=%q) failed: %+v", appEndpoint, err)
+	}
+	q := pubSubEventsPushEndpoint.Query()
+	q.Set("token", pubSubPushToken)
+	pubSubEventsPushEndpoint.RawQuery = q.Encode()
+	log.Infof("using %s/private-pubsub-events?token=***** as the events push endpoint", appEndpoint)
+
+	pubSubBroadcastPushEndpoint, err := url.Parse(appEndpoint + "/private-pubsub-broadcast")
+	if err != nil {
+		log.Fatalf("main: url.Parse(rawurl=%q) failed: %+v", appEndpoint, err)
+	}
+	q = pubSubBroadcastPushEndpoint.Query()
+	q.Set("token", pubSubPushToken)
+	pubSubBroadcastPushEndpoint.RawQuery = q.Encode()
+	log.Infof("using %s/private-pubsub-broadcast?token=***** as the pubsub broadcast push endpoint", appEndpoint)
 
 	// 4. Stripe Secret Key and Signing Key.
 	if stripeSecretKey == "" && stripeSigningSecret == "" {
@@ -542,9 +586,24 @@ func main() {
 	}
 	log.Infof("initializing Google PubSub client for project %s", gaeProjectIDEnv)
 
-	topic := pubSubClient.Topic(pubsubTopic)
-	defer topic.Stop()
-	log.Infof("created pubsub topic %v", topic.String())
+	// var eventsTopic *pubsub.Topic
+	// var webhooksTopic *pubsub.Topic
+
+	// Create the topics and push subscriptions if they don't exist.
+	eventsTopic, err := createTopicAndSubscription(ctx, pubSubClient,
+		pubSubEventsTopic, pubSubEventsSubscription, pubSubEventsPushEndpoint.String())
+	if err != nil {
+		log.Fatalf("app: failed to create cloud pubsub topic and subscription for events topic: %+v", err)
+	}
+
+	whBroadcastTopic, err := createTopicAndSubscription(ctx, pubSubClient,
+		pubSubWebhooksTopic, pubSubWebhooksSubscription, pubSubBroadcastPushEndpoint.String())
+	if err != nil {
+		log.Fatalf("app: failed to create cloud pubsub topic and subscription for broadcast topic: %+v", err)
+	}
+	// topic := pubSubClient.Topic(pubsubTopic)
+	// defer topic.Stop()
+	// log.Infof("created reference to pubsub topic %v", topic.String())
 
 	// Create a new topic with the given name.
 	// topic, err := pubSubClient.CreateTopic(ctx, pubsubTopic)
@@ -553,16 +612,11 @@ func main() {
 	// 	log.Errorf("client.CreateTopic(ctx, pubsubTopic) failed: %+v", err)
 	// }
 
-	// Broadcast startup message
-	topic.Publish(ctx, &pubsub.Message{
-		Data: []byte("hello world"),
-	})
-
 	// serverID, err := publishResult.Get(ctx)
 	// fmt.Println(serverID, err)
 
 	// build a Firebase service injecting in the model and firebase app as dependencies
-	fbSrv := service.NewService(pgModel, fbApp, pubSubClient)
+	fbSrv := service.NewService(pgModel, fbApp, eventsTopic, whBroadcastTopic)
 
 	// ensure the root user has been created
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
@@ -813,8 +867,11 @@ func main() {
 			r.Get("/", googlePropertyVerificationHandler)
 		})
 
-		r.Route("/private-pub-sub", func(r chi.Router) {
-			r.Post("/", pubSubHandler)
+		r.Route("/private-pubsub-events", func(r chi.Router) {
+			r.Post("/", a.PubSubEventHandler(pubSubPushToken))
+		})
+		r.Route("/private-pubsub-broadcast", func(r chi.Router) {
+			r.Post("/", a.PubSubBroadcastHandler(pubSubPushToken))
 		})
 	})
 
@@ -856,6 +913,15 @@ func main() {
 		close(idleConnsClosed)
 	}()
 
+	// Broadcast startup message on the events topic
+	_ = eventsTopic.Publish(ctx, &pubsub.Message{
+		Attributes: map[string]string{
+			"event": "service.started",
+		},
+		Data: []byte(`{"name":"started"}`),
+	})
+	log.Info("pubsub startup message published")
+
 	// tlsMode determines whether to serve HTTPS traffic directly.
 	// If tlsMode is false, you can enable HTTPS with a GKE Layer 7 load balancer
 	// using an Ingress.
@@ -867,7 +933,45 @@ func main() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
-
 	}
+
 	<-idleConnsClosed
+}
+
+func createTopicAndSubscription(ctx context.Context, pubSubClient *pubsub.Client, topicName, subscrName, endpoint string) (*pubsub.Topic, error) {
+	topic := pubSubClient.Topic(topicName)
+	exists, err := topic.Exists(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "main: topic.Exists(ctx) failed")
+	}
+	if !exists {
+		log.Printf("pubsub topic %q does not exist - creating it", topicName)
+		topic, err = pubSubClient.CreateTopic(ctx, topicName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "main: pubSubClient.CreateTopic(ctx, id=%q) failed", topicName)
+		}
+	}
+
+	eventsSubscription := pubSubClient.Subscription(subscrName)
+	exists, err = eventsSubscription.Exists(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "main: eventsSubscription.Exists(ctx) failed for subscrName=%q", subscrName)
+	}
+	if !exists {
+		cfg := pubsub.SubscriptionConfig{
+			Topic: topic,
+			PushConfig: pubsub.PushConfig{
+				Endpoint: endpoint,
+			},
+		}
+
+		if _, err = pubSubClient.CreateSubscription(ctx, subscrName, cfg); err != nil {
+			return nil, errors.Wrapf(err, "main: pubSubClient.CreateSubscription(ctx, subscrName=%q, cfg) failed", subscrName)
+		}
+		log.Infof("google pubsub subscription %q created", subscrName)
+	} else {
+		log.Infof("google pubsub subscription %q already exists", subscrName)
+	}
+
+	return topic, nil
 }

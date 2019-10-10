@@ -44,7 +44,7 @@ The Google configuration includes Firebase Auth and is mandatory since the API r
 | **`ECOM_APP_ROOT_EMAIL`**   | Optional |         |
 | **`ECOM_APP_ROOT_PASSWORD`** | Required |         |
 | **`ECOM_APP_ENABLE_STACKDRIVER_LOGGING`** | Optional | on | Accepts a value of `on` or `off` to switch the stack driver JSON formatted logging. |
-
+| **`ECOM_APP_ENDPOINT`** | Required | | An absolute and secure URL endpoint to the API Service. Example URL https://c90e3367.ngrok.iolocalhost:8080. |
 
 
 #### <a name="env-google"></a>Google
@@ -54,6 +54,7 @@ The Google configuration includes Firebase Auth and is mandatory since the API r
 | **`ECOM_GAE_PROJECT_ID`**       | Required |         | Set the value to the Google Project ID where the GAE App is running. For example, `open247-gae`. |
 | **`ECOM_FIREBASE_PUBLIC_CONFIG`**  | Required |         | base64 encoded string firebase config JSON string. |
 | **`ECOM_FIREBASE_PRIVATE_CREDENTIALS`** | Required |         | Use either the filepath of the Firebase Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
+| **`ECOM_GOOGLE_PUBSUB_EVENTS_TOKEN`** | Required | A secret token used for basic auth to the push endpoint. |
 
 #### <a name="env-stripe"></a>Stripe
 

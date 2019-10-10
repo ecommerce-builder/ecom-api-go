@@ -1,4 +1,9 @@
 # CHANGELOG
+
+## v0.60.2 (Tue 1 Oct 2019)
++ `OpGetPromoRule` GetPromoRuleHandler validation fix for URL param.
++ `OpGetPromoRule` fix 404 response for promo rule not found.
+
 ## v0.60.1 (Tue 1 Oct 2019)
 + Minor fixes to schema (`shipping_code` on `shipping_tariff` table made non unique)
 + Remove verbosity of schema create, drop and load shell scripts.

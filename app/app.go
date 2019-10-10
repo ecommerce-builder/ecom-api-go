@@ -262,6 +262,9 @@ const (
 
 	// ErrCodeEventTypeNotFound error
 	ErrCodeEventTypeNotFound string = "webhooks/event-type-not-found"
+
+	// ErrCodeWebhookPostFailed error
+	ErrCodeWebhookPostFailed string = "webhooks/http-post-failed"
 )
 
 const (
