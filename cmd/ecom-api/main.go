@@ -25,7 +25,6 @@ import (
 	_ "firebase.google.com/go/auth"
 	stackdriver "github.com/andyfusniak/stackdriver-gae-logrus-plugin"
 	stackdm "github.com/andyfusniak/stackdriver-gae-logrus-plugin/middleware"
-	"github.com/pkg/errors"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -590,13 +589,13 @@ func main() {
 	// var webhooksTopic *pubsub.Topic
 
 	// Create the topics and push subscriptions if they don't exist.
-	eventsTopic, err := createTopicAndSubscription(ctx, pubSubClient,
+	eventsTopic, err := service.CreateTopicAndSubscription(ctx, pubSubClient,
 		pubSubEventsTopic, pubSubEventsSubscription, pubSubEventsPushEndpoint.String())
 	if err != nil {
 		log.Fatalf("app: failed to create cloud pubsub topic and subscription for events topic: %+v", err)
 	}
 
-	whBroadcastTopic, err := createTopicAndSubscription(ctx, pubSubClient,
+	whBroadcastTopic, err := service.CreateTopicAndSubscription(ctx, pubSubClient,
 		pubSubWebhooksTopic, pubSubWebhooksSubscription, pubSubBroadcastPushEndpoint.String())
 	if err != nil {
 		log.Fatalf("app: failed to create cloud pubsub topic and subscription for broadcast topic: %+v", err)
@@ -914,13 +913,9 @@ func main() {
 	}()
 
 	// Broadcast startup message on the events topic
-	_ = eventsTopic.Publish(ctx, &pubsub.Message{
-		Attributes: map[string]string{
-			"event": "service.started",
-		},
-		Data: []byte(`{"name":"started"}`),
+	fbSrv.PublishTopicEvent(ctx, service.EventServiceStarted, service.ServiceStartedEventData{
+		Name: "started",
 	})
-	log.Info("pubsub startup message published")
 
 	// tlsMode determines whether to serve HTTPS traffic directly.
 	// If tlsMode is false, you can enable HTTPS with a GKE Layer 7 load balancer
@@ -936,42 +931,4 @@ func main() {
 	}
 
 	<-idleConnsClosed
-}
-
-func createTopicAndSubscription(ctx context.Context, pubSubClient *pubsub.Client, topicName, subscrName, endpoint string) (*pubsub.Topic, error) {
-	topic := pubSubClient.Topic(topicName)
-	exists, err := topic.Exists(ctx)
-	if err != nil {
-		return nil, errors.Wrapf(err, "main: topic.Exists(ctx) failed")
-	}
-	if !exists {
-		log.Printf("pubsub topic %q does not exist - creating it", topicName)
-		topic, err = pubSubClient.CreateTopic(ctx, topicName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "main: pubSubClient.CreateTopic(ctx, id=%q) failed", topicName)
-		}
-	}
-
-	eventsSubscription := pubSubClient.Subscription(subscrName)
-	exists, err = eventsSubscription.Exists(ctx)
-	if err != nil {
-		return nil, errors.Wrapf(err, "main: eventsSubscription.Exists(ctx) failed for subscrName=%q", subscrName)
-	}
-	if !exists {
-		cfg := pubsub.SubscriptionConfig{
-			Topic: topic,
-			PushConfig: pubsub.PushConfig{
-				Endpoint: endpoint,
-			},
-		}
-
-		if _, err = pubSubClient.CreateSubscription(ctx, subscrName, cfg); err != nil {
-			return nil, errors.Wrapf(err, "main: pubSubClient.CreateSubscription(ctx, subscrName=%q, cfg) failed", subscrName)
-		}
-		log.Infof("google pubsub subscription %q created", subscrName)
-	} else {
-		log.Infof("google pubsub subscription %q already exists", subscrName)
-	}
-
-	return topic, nil
 }

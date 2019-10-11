@@ -39,10 +39,19 @@ func (a *App) PubSubBroadcastHandler(secret string) http.HandlerFunc {
 
 		decoded, err := base64.StdEncoding.DecodeString(req.Message.Data)
 		if err != nil {
-			log.Errorf("app: base64.StdEncoding.DecodeString(data=%) failed: %+v", req.Message.Data, err)
+			log.Errorf("app: base64.StdEncoding.DecodeString(data=%v) failed: %+v", req.Message.Data, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
-		err = a.Service.CallWebhook(ctx, req.Message.Attributes.WebhookID, req.Message.Attributes.Event, decoded)
+		v, err := service.DecodeEventData(req.Message.Attributes.Event, decoded)
+		if err != nil {
+			log.Errorf("app: service.DecodeEventData(event=%q, data=%v) failed: %+v", req.Message.Attributes.Event, decoded, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = a.Service.CallWebhook(ctx, req.Message.MessageID, req.Message.Attributes.WebhookID, req.Message.Attributes.Event, v)
 		if err == service.ErrWebhookPostFailed {
 			clientError(w, http.StatusConflict, ErrCodeWebhookPostFailed, err.Error())
 			return

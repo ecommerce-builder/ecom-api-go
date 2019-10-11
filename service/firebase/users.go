@@ -3,11 +3,9 @@ package firebase
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
-	"cloud.google.com/go/pubsub"
 	"firebase.google.com/go/auth"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -150,19 +148,9 @@ func (s *Service) CreateUser(ctx context.Context, role, email, password, firstna
 		Modified:    c.Modified,
 	}
 
-	publishResult := s.eventsTopic.Publish(ctx, &pubsub.Message{
-		Attributes: map[string]string{
-			"event": "user.created",
-		},
-		Data: []byte("test"),
-	})
-	serverID, err := publishResult.Get(ctx)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%+v", err)
+	if err := s.PublishTopicEvent(ctx, EventUserCreated, &ac); err != nil {
+		return nil, errors.Wrapf(err, "service: s.PublishTopicEvent(ctx, event=%q, data=%v) failed", EventUserCreated, ac)
 	}
-	fmt.Printf("serverID=%s\n", serverID)
-	contextLogger.Debugf("published a message to pubsub")
-
 	return &ac, nil
 }
 

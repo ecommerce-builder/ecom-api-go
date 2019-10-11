@@ -1,17 +1,13 @@
 package firebase
 
 import (
-	"bytes"
 	"context"
-	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"net/http"
 	"time"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
-	"cloud.google.com/go/pubsub"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -252,12 +248,6 @@ func (s *Service) BroadcastEvents(ctx context.Context, msg PubSubMsg) error {
 	}
 	log.Debugf("service: base64 decoded string data=%q", data)
 
-	// var v interface{}
-	// err = json.Unmarshal(data, &v)
-	// if err != nil {
-	// 	return errors.Wrapf(err, "service: json.Unmarshal(data=%q, v=%v)", msg.Data, v)
-	// }
-
 	for _, wh := range webhooks {
 		if !wh.Enabled {
 			log.Infof("service: webhook not enabled - skipping id=%q, url=%s", wh.ID, wh.URL)
@@ -266,72 +256,12 @@ func (s *Service) BroadcastEvents(ctx context.Context, msg PubSubMsg) error {
 
 		if contains(wh.Events, msg.Attributes.Event) {
 			log.Debugf("service: webhook id=%q, url=%s matched on event %q", wh.ID, wh.URL, msg.Attributes.Event)
-			publishResult := s.whBroadcastTopic.Publish(ctx, &pubsub.Message{
-				Attributes: map[string]string{
-					"event":      msg.Attributes.Event,
-					"webhook_id": wh.ID,
-				},
-				Data: []byte(data),
-			})
-			serverID, err := publishResult.Get(ctx)
-			if err != nil {
-				log.Errorf("service: publishResult.Get(ctx) failed: %s", err.Error())
-				return errors.Wrapf(err, "publishResult.Get(ctx) returned an error")
+			if err := s.PublishBroadcastEvent(ctx, msg.Attributes.Event, wh.ID, []byte(data)); err != nil {
+				return errors.Wrapf(err, "service: s.PublishBroadcastEvent(ctx, event=%q, webhookID=%q, data=%s) failed", msg.Attributes.Event, wh.ID, []byte(data))
 			}
-			contextLogger.Infof("service: server-generated message ID %q", serverID)
-			contextLogger.Infof("service: successfully published a message to pubsub")
 		} else {
 			log.Infof("service: webhook id=%q, url=%s, events=%q no matches on %q event", wh.ID, wh.URL, wh.Events, msg.Attributes.Event)
 		}
 	}
 	return nil
-}
-
-// CallWebhook does a HTTP POST request to the webhook URL
-// passing the event data.
-func (s *Service) CallWebhook(ctx context.Context, webhookID, eventName string, rawData []byte) error {
-	contextLogger := log.WithContext(ctx)
-	contextLogger.Infof("service: CallWebhook(ctx, webhookID=%q, eventName=%q, data=%s) started", webhookID, eventName, string(rawData))
-
-	webhook, err := s.model.GetWebhook(ctx, webhookID)
-	if err == ErrWebhookNotFound {
-		return ErrWebhookNotFound
-	}
-	if err != nil {
-		return errors.Wrapf(err, "service: s.model.GetWebhook(ctx, webhookUUID=%q) failed", webhookID)
-	}
-
-	// Create a new HMAC by defining the hash type and the key (as byte array)
-	h := hmac.New(sha256.New, []byte(webhook.SigningKey))
-	_, err = h.Write(rawData)
-	if err != nil {
-		return errors.Wrapf(err, "service: h.Write(rawData=%q) failed", string(rawData))
-	}
-	sha := base64.StdEncoding.EncodeToString(h.Sum(nil))
-
-	req, err := http.NewRequest("POST", webhook.URL, bytes.NewReader(rawData))
-	if err != nil {
-		return errors.Wrapf(err, "service: http.NewRequest(method=%q, url=%q, body=%s)", "POST", webhook.URL, string(rawData))
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Ecom-Hmac-SHA256", sha)
-
-	res, err := client.Do(req)
-	if err != nil {
-		contextLogger.Warnf("service: client.Do(req=%+v) failed: %+v", req, err)
-		return ErrWebhookPostFailed
-	}
-	defer res.Body.Close()
-
-	// A push endpoint needs to handle incoming messages and return an HTTP
-	// status code to indicate success or failure. A success response is
-	// equivalent to acknowledging a messages. The status codes interpreted
-	// as message acknowledgements by the ecom system are:
-	// 200, 201, 202, 204, or 102.
-	c := res.StatusCode
-	if c == 200 || c == 201 || c == 202 || c == 204 || c == 102 {
-		return nil
-	}
-
-	return ErrWebhookPostFailed
 }
