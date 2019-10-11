@@ -12,17 +12,19 @@ import (
 
 // Service firebase implementation
 type Service struct {
-	model        *postgres.PgModel
-	fbApp        *firebase.App
-	pubSubClient *pubsub.Client
+	model            *postgres.PgModel
+	fbApp            *firebase.App
+	eventsTopic      *pubsub.Topic
+	whBroadcastTopic *pubsub.Topic
 }
 
 // NewService creates a new Service
-func NewService(model *postgres.PgModel, fbApp *firebase.App, pubSubClient *pubsub.Client) *Service {
+func NewService(model *postgres.PgModel, fbApp *firebase.App, eventsTopic, whBroadcastTopic *pubsub.Topic) *Service {
 	return &Service{
-		model:        model,
-		fbApp:        fbApp,
-		pubSubClient: pubSubClient,
+		model:            model,
+		fbApp:            fbApp,
+		eventsTopic:      eventsTopic,
+		whBroadcastTopic: whBroadcastTopic,
 	}
 }
 

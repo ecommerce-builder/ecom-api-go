@@ -147,6 +147,10 @@ func (s *Service) CreateUser(ctx context.Context, role, email, password, firstna
 		Created:     c.Created,
 		Modified:    c.Modified,
 	}
+
+	if err := s.PublishTopicEvent(ctx, EventUserCreated, &ac); err != nil {
+		return nil, errors.Wrapf(err, "service: s.PublishTopicEvent(ctx, event=%q, data=%v) failed", EventUserCreated, ac)
+	}
 	return &ac, nil
 }
 
