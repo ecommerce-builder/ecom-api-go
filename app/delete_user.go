@@ -17,23 +17,25 @@ func (a *App) DeleteUserHandler() http.HandlerFunc {
 
 		userID := chi.URLParam(r, "id")
 		if !IsValidUUID(userID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL parameter id must be a valid v4 UUID")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"URL parameter id must be a valid v4 UUID") // 400
 			return
 		}
 
 		// Attempt to delete this user.
 		if err := a.Service.DeleteUser(ctx, userID); err != nil {
 			if err == service.ErrUserNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
+				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found") // 404
 				return
 			} else if err == service.ErrUserInUse {
-				clientError(w, http.StatusConflict, ErrCodeUserInUse, "user cannot be deleted as it is associated with previous orders")
+				clientError(w, http.StatusConflict, ErrCodeUserInUse,
+					"user cannot be deleted as it is associated with previous orders") // 409
 			}
 			contextLogger.Errorf("app: a.Service.DeleteUser(ctx, userID=%q) failed with error: %+v", userID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
+		w.WriteHeader(http.StatusNoContent) // 204
 	}
 }

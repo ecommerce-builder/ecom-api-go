@@ -168,20 +168,21 @@ func (s *Service) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 		return nil, err
 	}
 
-	results := make([]*User, 0)
-	for _, v := range prs.RSet.([]*postgres.UsrRow) {
+	users := make([]*User, 0)
+	for _, row := range prs.RSet.([]*postgres.UsrJoinRow) {
 		c := User{
-			Object:    "user",
-			ID:        v.UUID,
-			UID:       v.UID,
-			Role:      v.Role,
-			Email:     v.Email,
-			Firstname: v.Firstname,
-			Lastname:  v.Lastname,
-			Created:   v.Created,
-			Modified:  v.Modified,
+			Object:      "user",
+			ID:          row.UUID,
+			UID:         row.UID,
+			Role:        row.Role,
+			PriceListID: row.PriceListUUID,
+			Email:       row.Email,
+			Firstname:   row.Firstname,
+			Lastname:    row.Lastname,
+			Created:     row.Created,
+			Modified:    row.Modified,
 		}
-		results = append(results, &c)
+		users = append(users, &c)
 	}
 
 	aprs := &PaginationResultSet{
@@ -190,7 +191,7 @@ func (s *Service) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 			FirstID: prs.RContext.FirstUUID,
 			LastID:  prs.RContext.LastUUID,
 		},
-		RSet: results,
+		RSet: users,
 	}
 	return aprs, nil
 }
@@ -200,27 +201,28 @@ func (s *Service) GetUser(ctx context.Context, userID string) (*User, error) {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Debugf("service: GetUser(ctx, userID=%q)", userID)
 
-	c, err := s.model.GetUserByUUID(ctx, userID)
+	row, err := s.model.GetUserByUUID(ctx, userID)
+	if err == postgres.ErrUserNotFound {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return nil, ErrUserNotFound
-		}
-		return nil, err
+		return nil, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userUUID=%q) failed", userID)
 	}
-	contextLogger.Debugf("service: s.model.GetUserByUUID(ctx, userUUID=%s) returned %v", userID, c)
+	contextLogger.Debugf("service: s.model.GetUserByUUID(ctx, userUUID=%s) returned %v", userID, row)
 
-	ac := User{
-		Object:    "object",
-		ID:        c.UUID,
-		UID:       c.UID,
-		Role:      c.Role,
-		Email:     c.Email,
-		Firstname: c.Firstname,
-		Lastname:  c.Lastname,
-		Created:   c.Created,
-		Modified:  c.Modified,
+	user := User{
+		Object:      "user",
+		ID:          row.UUID,
+		UID:         row.UID,
+		Role:        row.Role,
+		PriceListID: row.PriceListUUID,
+		Email:       row.Email,
+		Firstname:   row.Firstname,
+		Lastname:    row.Lastname,
+		Created:     row.Created,
+		Modified:    row.Modified,
 	}
-	return &ac, nil
+	return &user, nil
 }
 
 // DeleteUser attempts to delete a user.
@@ -233,13 +235,13 @@ func (s *Service) DeleteUser(ctx context.Context, userID string) error {
 	}
 
 	uid, err := s.model.DeleteUserByUUID(ctx, userID)
+	if err == postgres.ErrUserNotFound {
+		return ErrUserNotFound
+	}
+	if err == postgres.ErrUserInUse {
+		return ErrUserInUse
+	}
 	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return ErrUserNotFound
-		} else if err == postgres.ErrUserInUse {
-			return ErrUserInUse
-		}
-
 		return errors.Wrapf(err, "service: s.model.DeleteUserByUUID(ctx, userUUID=%q) failed", userID)
 	}
 	contextLogger.Infof("service: deleted user userID=%q from the ecom system returning uid=%q", userID, uid)

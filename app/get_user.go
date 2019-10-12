@@ -19,12 +19,11 @@ func (a *App) GetUserHandler() http.HandlerFunc {
 
 		userID := chi.URLParam(r, "id")
 		user, err := a.Service.GetUser(ctx, userID)
+		if err == service.ErrUserNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found") // 404
+			return
+		}
 		if err != nil {
-			if err == service.ErrUserNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
-				return
-			}
-
 			contextLogger.Errorf("app: GetUser(ctx, userID=%q) error: %+v", userID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

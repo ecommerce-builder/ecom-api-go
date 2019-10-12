@@ -148,27 +148,27 @@ func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 		q = q.EndBefore(pq.EndBefore)
 	}
 
-	// calculate the total count, first and last items in the result set
+	// 1. calculate the total count, first and last items in the result set
 	pr := PaginationResultSet{}
-	sql := "SELECT COUNT(*) AS count FROM %s"
-	sql = fmt.Sprintf(sql, q.table)
-	err := m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.Total)
+	q1 := "SELECT COUNT(*) AS count FROM %s"
+	q1 = fmt.Sprintf(q1, q.table)
+	err := m.db.QueryRowContext(ctx, q1).Scan(&pr.RContext.Total)
 	if err != nil {
-		return nil, errors.Wrapf(err, "query row context scan query=%q", sql)
+		return nil, errors.Wrapf(err, "query row context scan q1=%q", q1)
 	}
 
-	// book mark either end of the result set
-	sql = "SELECT uuid FROM %s ORDER BY %s %s, id %s FETCH FIRST 1 ROW ONLY"
-	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir), string(q.orderDir))
-	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.FirstUUID)
+	// 2. book mark either end of the result set
+	q2 := "SELECT uuid FROM %s ORDER BY %s %s, id %s FETCH FIRST 1 ROW ONLY"
+	q2 = fmt.Sprintf(q2, q.table, q.orderBy, string(q.orderDir), string(q.orderDir))
+	err = m.db.QueryRowContext(ctx, q2).Scan(&pr.RContext.FirstUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: query row context query=%q", sql)
+		return nil, errors.Wrapf(err, "postgres: query row context q2=%q", q2)
 	}
-	sql = "SELECT uuid FROM %s ORDER BY %s %s, id %s FETCH FIRST 1 ROW ONLY"
-	sql = fmt.Sprintf(sql, q.table, q.orderBy, string(q.orderDir.toggle()), string(q.orderDir.toggle()))
-	err = m.db.QueryRowContext(ctx, sql).Scan(&pr.RContext.LastUUID)
+	q3 := "SELECT uuid FROM %s ORDER BY %s %s, id %s FETCH FIRST 1 ROW ONLY"
+	q3 = fmt.Sprintf(q3, q.table, q.orderBy, string(q.orderDir.toggle()), string(q.orderDir.toggle()))
+	err = m.db.QueryRowContext(ctx, q3).Scan(&pr.RContext.LastUUID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: query row context query=%q", sql)
+		return nil, errors.Wrapf(err, "postgres: query row context q3=%q", q3)
 	}
 
 	rows, err := m.QueryContextQ(ctx, q)
@@ -177,9 +177,9 @@ func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 	}
 	defer rows.Close()
 
-	usrs := make([]*UsrRow, 0)
+	usrs := make([]*UsrJoinRow, 0)
 	for rows.Next() {
-		var u UsrRow
+		var u UsrJoinRow
 		if err = rows.Scan(&u.id, &u.UUID, &u.UID, &u.priceListID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
 			return nil, errors.Wrapf(err, "postgres: rows scan User=%v", u)
 		}
