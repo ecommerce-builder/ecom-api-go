@@ -19,37 +19,44 @@ func (a *App) CreatePromoRuleHandler() http.HandlerFunc {
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&request); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error()) // 400
 			return
 		}
 		defer r.Body.Close()
 
 		valid, message := validatePromoRuleCreateRequestBody(&request)
 		if !valid {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message) // 400
 			return
 		}
 
 		promoRule, err := a.Service.CreatePromoRule(ctx, &request)
-		if err != nil {
-			if err == service.ErrPromoRuleExists {
-				clientError(w, http.StatusConflict, ErrCodePromoRuleExists, "promo rule code already exists")
-				return
-			} else if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			} else if err == service.ErrCategoryNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCategoryNotFound, "category not found")
-				return
-			} else if err == service.ErrShippingTariffNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff not found")
-				return
-			}
-			contextLogger.Errorf("app: a.Service.CreatePromoRule(ctx, pr=%v) error: %+v", request, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		if err == service.ErrPromoRuleExists {
+			clientError(w, http.StatusConflict, ErrCodePromoRuleExists,
+				"promo rule code already exists") // 409
 			return
 		}
-		w.WriteHeader(http.StatusCreated) // 201 Created
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound,
+				"product not found") // 404
+			return
+		}
+		if err == service.ErrCategoryNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCategoryNotFound,
+				"category not found") // 404
+			return
+		}
+		if err == service.ErrShippingTariffNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound,
+				"shipping tariff not found") // 404
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.CreatePromoRule(ctx, pr=%v) error: %+v", request, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+		w.WriteHeader(http.StatusCreated) // 201
 		json.NewEncoder(w).Encode(&promoRule)
 	}
 }

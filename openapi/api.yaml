@@ -540,6 +540,62 @@ paths:
       - bearerAuth: []
       summary: Create a new promotion rule
       description: |
+        Attempt to create a new promotion rule that can later be used in offers or coupons. **A promo rule by itself is free standing and has no influence until it has been applied to an offer or coupon.**.
+
+        A promo rule request must contain `name`, `amount`, `type`, `promo_rule_code` and `target` attributes including an identifier for its corresponding type.
+
+        The `name` attribute is a human readable string for convenience.
+
+        The `promo_rule_code` provides a short code of upper case characters including the digits 0 through 9. It provides a more usable means to reference that the promo_rule object id passed back in the response body. However, all interaction with the API currently uses object ids only. Typically, a `promo_rule_code` would likely match the companies internal references. Example, 'SUMMERSALE20', 'SPECIALWINTER50' etc. The value used is up to the caller.
+
+        `type` should be a value of `percentage` or `fixed`. If the `type` attribute has a value of `fixed` the `amount` attribute value should contain the amount to discount to 4 decimal places. e.g. £19.95 would be expressed as 199500. If the `type` attribute has a value of `percentage` the `amount` attribute value should contain the amount to discount as a percentage to 2 decimal places. i.e. between 0 and 9999. For 50% use 5000. For 25.50% use 2550 and so on.
+
+        The `target` attribute determes _what_ the rule should be applied to. Acceptable values for this attribute are `product`, `productset`, `category`, `shipping_tariff` and `total` for a single product, set of products, all products under a particular category ancestry, shipping tariff discount and order total respectively.
+
+        If the `target` attribute is set to a value of `product` an additional attribute `product_id` must be passed in the request body identifying the product of which to apply the rule.
+
+        If the `target` attribute is set to a value of `productset` an additional attribute `product_set` must be passed containing an object with a list of products. See the example request payloads below.
+
+        ```
+        {
+          "target": "productset",
+          "product_set": {
+            "object": "list",
+            "data": [
+              {
+                "product_id": "<first product id>"
+              },
+              {
+                "product_id": "<second product id>"
+              },
+              ...
+            ]
+          }
+        }
+        ```
+
+        If the `target` attribute is set to a value of `category` an additional attribute `category_id` must be passed containing the category id. If the category id is a leaf category in the tree, the rule will apply to all products within that category.
+        If the category is a non-leaf category in the tree, the rule will apply to all products of all leaf categories that are descendants of the non-leaf category.
+
+        In the tree below, category A is a non-leaf category containing sub categories B and C. Category B contains two products, 1 and 2. Category B contains two products, 3 and 4. If the attribute `category_id` references the id of category A, the rule will be applied to products 1, 2, 3 and 4 since categories B and C are descendants of A.
+        ```
+              A
+            /   \
+           B      C
+          / \    / \
+         1   2  3   4
+         ```
+
+         Note, products are only be ever applied to leaf nodes in the hierarchy. It is not possible to link a product directly to category A.
+
+        If the `target` attribute is set to a value of `shipping_tariff` the promo rule will apply to orders that are intended to be shipped to that shipping tariff's corresponding country and courier.
+
+        If the `target` attribute is set to a value of `total`, an additional attribute `total_threshold` must be passed in the request body. The `total_threshold` attribute should contain the price amount, to 4 decimal places, to discount from the order total at checkout. e.g. £19.95 would be expressed as 199500.
+
+        `start_at` and `end_at` attributes indicate the timeframe when the promotion rule will be active and are optional attributes.
+
+        Once you have created a promo rule, see the Offers and Coupons endpoints to apply the rule and make it active.
+
         OpCreatePromoRule requires `RoleAdmin` privileges.
       operationId: OpCreatePromoRule
       tags:
@@ -2515,13 +2571,17 @@ components:
       type: object
       required:
       - name
+      - promo_rule_code
       - amount
       - type
       - target
       properties:
         name:
           type: string
-          example: 'Summer specials'
+          example: Summer specials
+        promo_rule_code:
+          type: string
+          example: SUMMERSALE20
         start_at:
           type: string
           format: date-time
@@ -2539,11 +2599,11 @@ components:
         type:
           type: string
           enum: ['percentage', 'fixed']
-          example: 'percentage'
+          example: percentage
         target:
           type: string
           enum: ['product', 'productset', 'category', 'total', 'shipping']
-          example: 'category'
+          example: category
     PromoRule:
       type: object
       properties:
