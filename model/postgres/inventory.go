@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,6 +18,7 @@ var ErrInventoryNotFound = errors.New("postgres: inventory not found")
 type InventoryRowUpdate struct {
 	ProductUUID string
 	Onhand      int
+	Overselling bool
 }
 
 // A InventoryJoinRow represents a single row from the inventory table
@@ -28,6 +31,7 @@ type InventoryJoinRow struct {
 	ProductPath string
 	ProductSKU  string
 	Onhand      int
+	Overselling bool
 	Created     time.Time
 	Modified    time.Time
 }
@@ -38,7 +42,7 @@ func (m *PgModel) GetInventoryByUUID(ctx context.Context, inventoryUUID string) 
 		SELECT
 		  v.id, v.uuid, v.product_id, p.uuid AS product_uuid,
 		  p.path AS product_path, p.sku AS product_sku,
-		  onhand, v.created, v.modified
+		  onhand, overselling, v.created, v.modified
 		FROM inventory AS v
 		INNER JOIN product AS p
 		ON v.product_id = p.id
@@ -46,7 +50,8 @@ func (m *PgModel) GetInventoryByUUID(ctx context.Context, inventoryUUID string) 
 	`
 	row := m.db.QueryRowContext(ctx, q1, inventoryUUID)
 	var v InventoryJoinRow
-	if err := row.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID, &v.ProductPath, &v.ProductSKU, &v.Onhand, &v.Created, &v.Modified); err != nil {
+	if err := row.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID,
+		&v.ProductPath, &v.ProductSKU, &v.Onhand, &v.Overselling, &v.Created, &v.Modified); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrInventoryNotFound
 		}
@@ -61,21 +66,22 @@ func (m *PgModel) GetInventoryByProductUUID(ctx context.Context, productUUID str
 		SELECT
 		  v.id, v.uuid, v.product_id, p.uuid AS product_uuid,
 		  p.path AS product_path, p.sku AS product_sku,
-		  onhand, v.created, v.modified
+		  onhand, overselling, v.created, v.modified
 		FROM inventory AS v
 		INNER JOIN product AS p
 		ON v.product_id = p.id
 		WHERE p.uuid = $1
 	`
 	var v InventoryJoinRow
-	err := m.db.QueryRowContext(ctx, q1, productUUID).Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID, &v.ProductPath, &v.ProductSKU, &v.Onhand, &v.Created, &v.Modified)
+	err := m.db.QueryRowContext(ctx, q1, productUUID).Scan(&v.id, &v.UUID, &v.productID,
+		&v.ProductUUID, &v.ProductPath, &v.ProductSKU, &v.Onhand,
+		&v.Overselling, &v.Created, &v.Modified)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProductNotFound
 		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
-
 	return &v, nil
 }
 
@@ -85,7 +91,7 @@ func (m *PgModel) GetAllInventory(ctx context.Context) ([]*InventoryJoinRow, err
 		SELECT
 		  v.id, v.uuid, v.product_id, p.uuid AS product_uuid,
 		  p.path AS product_path, p.sku AS product_sku,
-		  onhand, v.created, v.modified
+		  onhand, overselling, v.created, v.modified
 		FROM inventory AS v
 		INNER JOIN product AS p
 		ON v.product_id = p.id
@@ -99,7 +105,8 @@ func (m *PgModel) GetAllInventory(ctx context.Context) ([]*InventoryJoinRow, err
 	list := make([]*InventoryJoinRow, 0, 128)
 	for rows.Next() {
 		var v InventoryJoinRow
-		if err = rows.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID, &v.ProductPath, &v.ProductSKU, &v.Onhand, &v.Created, &v.Modified); err != nil {
+		if err = rows.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID, &v.ProductPath,
+			&v.ProductSKU, &v.Onhand, &v.Overselling, &v.Created, &v.Modified); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, ErrInventoryNotFound
 			}
@@ -110,13 +117,12 @@ func (m *PgModel) GetAllInventory(ctx context.Context) ([]*InventoryJoinRow, err
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
-
 	return list, nil
 }
 
 // UpdateInventoryByUUID updates the inventory with the given uuid
 // returning the new inventory.
-func (m *PgModel) UpdateInventoryByUUID(ctx context.Context, inventoryUUID string, onhand int) (*InventoryJoinRow, error) {
+func (m *PgModel) UpdateInventoryByUUID(ctx context.Context, inventoryUUID string, onhand *int, overselling *bool) (*InventoryJoinRow, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "postgres: db.BeginTx failed")
@@ -126,42 +132,61 @@ func (m *PgModel) UpdateInventoryByUUID(ctx context.Context, inventoryUUID strin
 	q1 := "SELECT id FROM inventory WHERE uuid = $1"
 	var inventoryID int
 	err = tx.QueryRowContext(ctx, q1, inventoryUUID).Scan(&inventoryID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrInventoryNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrInventoryNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
-	// 2. Update the inventory row with the new onhold value.
+	// 2. Update the inventory row with the new onhand value.
+	var set []string
+	var queryArgs []interface{}
+	argCounter := 1
+	if onhand != nil {
+		set = append(set, fmt.Sprintf("onhand = $%d", argCounter))
+		argCounter++
+		queryArgs = append(queryArgs, *onhand)
+	}
+	if overselling != nil {
+		set = append(set, fmt.Sprintf("overselling = $%d", argCounter))
+		argCounter++
+		queryArgs = append(queryArgs, *overselling)
+	}
+
+	queryArgs = append(queryArgs, inventoryID)
+	setQuery := strings.Join(set, ", ")
 	q2 := `
-		UPDATE inventory SET onhand = $1, modified = NOW()
-		WHERE id = $2
+		UPDATE inventory
+		SET %SET_QUERY%, modified = NOW()
+		WHERE id = %ARG_COUNTER%
 		RETURNING
-		  id, uuid, product_id, onhand, created, modified
+		  id, uuid, product_id, onhand, overselling, created, modified
 	`
-	row := tx.QueryRowContext(ctx, q2, onhand, inventoryID)
+	q2 = strings.Replace(q2, "%SET_QUERY%", setQuery, 1)
+	q2 = strings.Replace(q2, "%ARG_COUNTER%", fmt.Sprintf("$%d", argCounter), 1)
+	row := tx.QueryRowContext(ctx, q2, queryArgs...)
 	v := InventoryJoinRow{}
-	if err := row.Scan(&v.id, &v.UUID, &v.productID, &v.Onhand, &v.Created, &v.Modified); err != nil {
+	if err := row.Scan(&v.id, &v.UUID, &v.productID, &v.Onhand, &v.Overselling, &v.Created, &v.Modified); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context q2=%q failed", q2)
 	}
 
 	q3 := "SELECT uuid, path, sku FROM product WHERE id = $1"
 	row = tx.QueryRowContext(ctx, q3, v.productID)
-	if err = row.Scan(&v.ProductUUID, &v.ProductPath, &v.ProductSKU); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrProductNotFound
-		}
+	err = row.Scan(&v.ProductUUID, &v.ProductPath, &v.ProductSKU)
+	if err == sql.ErrNoRows {
+		return nil, ErrProductNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: scan failed")
 	}
 
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
 	}
-
 	return &v, nil
 }
 
@@ -216,7 +241,7 @@ func (m *PgModel) BatchUpdateInventory(ctx context.Context, inventoryList []*Inv
 		UPDATE inventory
 		SET onhand = $1, modified = NOW()
 		WHERE product_id = $2
-		RETURNING id, uuid, product_id, onhand, created, modified
+		RETURNING id, uuid, product_id, onhand, overselling, created, modified
 	`
 	stmt2, err := tx.PrepareContext(ctx, q2)
 	if err != nil {
@@ -229,8 +254,9 @@ func (m *PgModel) BatchUpdateInventory(ctx context.Context, inventoryList []*Inv
 	for _, i := range inventoryList {
 		product := productMap[i.ProductUUID]
 
-		inventory := InventoryJoinRow{}
-		if err := stmt2.QueryRowContext(ctx, i.Onhand, product.id).Scan(&inventory.id, &inventory.UUID, &inventory.productID, &inventory.Onhand, &inventory.Created, &inventory.Modified); err != nil {
+		v := InventoryJoinRow{}
+		if err := stmt2.QueryRowContext(ctx, i.Onhand, product.id).Scan(&v.id, &v.UUID, &v.productID,
+			&v.Onhand, &v.Overselling, &v.Created, &v.Modified); err != nil {
 			if err == sql.ErrNoRows {
 				tx.Rollback()
 				return nil, ErrProductCategoryNotFound
@@ -238,16 +264,15 @@ func (m *PgModel) BatchUpdateInventory(ctx context.Context, inventoryList []*Inv
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: stmt2.QueryRowContext(ctx, ...) failed q2%q", q2)
 		}
-		inventory.ProductUUID = product.uuid
-		inventory.ProductPath = product.path
-		inventory.ProductSKU = product.sku
+		v.ProductUUID = product.uuid
+		v.ProductPath = product.path
+		v.ProductSKU = product.sku
 
-		inventoryResults = append(inventoryResults, &inventory)
+		inventoryResults = append(inventoryResults, &v)
 	}
 
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
 	}
-
 	return inventoryResults, nil
 }

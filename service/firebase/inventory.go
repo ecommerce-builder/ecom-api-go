@@ -15,8 +15,9 @@ var ErrInventoryNotFound = errors.New("service: inventory not found")
 
 // InventoryUpdateRequest for a single inventory update.
 type InventoryUpdateRequest struct {
-	ProductID string `json:"product_id"`
-	Onhand    int    `json:"onhold"`
+	ProductID   *string `json:"product_id"`
+	Onhand      *int    `json:"onhand"`
+	Overselling *bool   `json:"overselling"`
 }
 
 // Inventory holds inventory for a single product
@@ -26,34 +27,36 @@ type Inventory struct {
 	ProductID   string    `json:"product_id"`
 	ProductPath string    `json:"product_path"`
 	ProductSKU  string    `json:"product_sku"`
-	Onhand      int       `json:"onhold"`
+	Onhand      int       `json:"onhand"`
+	Overselling bool      `json:"overselling"`
 	Created     time.Time `json:"created"`
 	Modified    time.Time `json:"modified"`
 }
 
 // GetInventory returns a single Inventory by id.
-func (s *Service) GetInventory(ctx context.Context, inventoryUUID string) (*Inventory, error) {
+func (s *Service) GetInventory(ctx context.Context, inventoryID string) (*Inventory, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Infof("service: GetInventory(ctx, inventoryUUID=%q) started", inventoryUUID)
+	contextLogger.Infof("service: GetInventory(ctx, inventoryUUID=%q) started", inventoryID)
 
-	inv, err := s.model.GetInventoryByUUID(ctx, inventoryUUID)
+	row, err := s.model.GetInventoryByUUID(ctx, inventoryID)
+	if err == postgres.ErrInventoryNotFound {
+		return nil, ErrInventoryNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrInventoryNotFound {
-			return nil, ErrInventoryNotFound
-		}
+		return nil, errors.Wrapf(err, "service: s.model.GetInventoryByUUID(ctx, inventoryUUID=%q)", inventoryID)
 	}
 
 	inventory := Inventory{
 		Object:      "inventory",
-		ID:          inv.UUID,
-		ProductID:   inv.ProductUUID,
-		ProductPath: inv.ProductPath,
-		ProductSKU:  inv.ProductSKU,
-		Onhand:      inv.Onhand,
-		Created:     inv.Created,
-		Modified:    inv.Modified,
+		ID:          row.UUID,
+		ProductID:   row.ProductUUID,
+		ProductPath: row.ProductPath,
+		ProductSKU:  row.ProductSKU,
+		Onhand:      row.Onhand,
+		Overselling: row.Overselling,
+		Created:     row.Created,
+		Modified:    row.Modified,
 	}
-
 	return &inventory, nil
 }
 
@@ -62,25 +65,26 @@ func (s *Service) GetAllInventory(ctx context.Context) ([]*Inventory, error) {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Info("service: GetAllInventory(ctx) started")
 
-	pinv, err := s.model.GetAllInventory(ctx)
+	rows, err := s.model.GetAllInventory(ctx)
+	if err == postgres.ErrInventoryNotFound {
+		return nil, ErrInventoryNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrInventoryNotFound {
-			return nil, ErrInventoryNotFound
-		}
-		return nil, errors.Wrapf(err, "s.model.GetAllInventory(ctx) failed")
+		return nil, errors.Wrapf(err, "service: s.model.GetAllInventory(ctx) failed")
 	}
 
-	inventory := make([]*Inventory, 0, len(pinv))
-	for _, v := range pinv {
+	inventory := make([]*Inventory, 0, len(rows))
+	for _, row := range rows {
 		inv := Inventory{
 			Object:      "inventory",
-			ID:          v.UUID,
-			ProductID:   v.ProductUUID,
-			ProductPath: v.ProductPath,
-			ProductSKU:  v.ProductSKU,
-			Onhand:      v.Onhand,
-			Created:     v.Created,
-			Modified:    v.Modified,
+			ID:          row.UUID,
+			ProductID:   row.ProductUUID,
+			ProductPath: row.ProductPath,
+			ProductSKU:  row.ProductSKU,
+			Onhand:      row.Onhand,
+			Overselling: row.Overselling,
+			Created:     row.Created,
+			Modified:    row.Modified,
 		}
 		inventory = append(inventory, &inv)
 	}
@@ -90,87 +94,95 @@ func (s *Service) GetAllInventory(ctx context.Context) ([]*Inventory, error) {
 // GetInventoryByProductID returns an Inventory for the given product.
 func (s *Service) GetInventoryByProductID(ctx context.Context, productID string) (*Inventory, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Infof("GetInventoryByProductID(ctx, productID=%q", productID)
+	contextLogger.Infof("GetInventoryByProductID(ctx, productID=%q) started", productID)
 
-	v, err := s.model.GetInventoryByProductUUID(ctx, productID)
+	row, err := s.model.GetInventoryByProductUUID(ctx, productID)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		}
+		return nil, errors.Wrapf(err, "service: s.model.GetInventoryByProductUUID(ctx, productUUID=%q)", productID)
 	}
 
 	inventory := Inventory{
 		Object:      "inventory",
-		ID:          v.UUID,
-		ProductID:   v.ProductUUID,
-		ProductPath: v.ProductPath,
-		ProductSKU:  v.ProductSKU,
-		Onhand:      v.Onhand,
-		Created:     v.Created,
-		Modified:    v.Modified,
+		ID:          row.UUID,
+		ProductID:   row.ProductUUID,
+		ProductPath: row.ProductPath,
+		ProductSKU:  row.ProductSKU,
+		Onhand:      row.Onhand,
+		Overselling: row.Overselling,
+		Created:     row.Created,
+		Modified:    row.Modified,
 	}
 	return &inventory, nil
 }
 
 // UpdateInventory updates the inventory with the given inventoryID,
-// to the new onhold value.
-func (s *Service) UpdateInventory(ctx context.Context, inventoryID string, onhold int) (*Inventory, error) {
+// to the new onhand value.
+func (s *Service) UpdateInventory(ctx context.Context, inventoryID string, onhand *int, overselling *bool) (*Inventory, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Infof("UpdateInventory(ctx, inventoryID=%q, onhold=%d)", inventoryID, onhold)
+	contextLogger.Infof("service: UpdateInventory(ctx, inventoryID=%q, onhand=%v, overselling=%v) started", inventoryID, onhand, overselling)
 
-	v, err := s.model.UpdateInventoryByUUID(ctx, inventoryID, onhold)
+	row, err := s.model.UpdateInventoryByUUID(ctx, inventoryID, onhand, overselling)
+	if err == postgres.ErrInventoryNotFound {
+		return nil, ErrInventoryNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrInventoryNotFound {
-			return nil, ErrInventoryNotFound
-		}
-		return nil, errors.Wrapf(err, "s.model.UpdateInventoryByUUID(ctx, inventoryID=%q, onhold=%d) failed", inventoryID, onhold)
+		return nil, errors.Wrapf(err, "service: s.model.UpdateInventoryByUUID(ctx, inventoryID=%q, onhand=%d) failed", inventoryID, onhand)
 	}
 
 	inventory := Inventory{
 		Object:      "inventory",
-		ID:          v.UUID,
-		ProductID:   v.ProductUUID,
-		ProductPath: v.ProductPath,
-		ProductSKU:  v.ProductSKU,
-		Onhand:      v.Onhand,
-		Created:     v.Created,
-		Modified:    v.Modified,
+		ID:          row.UUID,
+		ProductID:   row.ProductUUID,
+		ProductPath: row.ProductPath,
+		ProductSKU:  row.ProductSKU,
+		Onhand:      row.Onhand,
+		Overselling: row.Overselling,
+		Created:     row.Created,
+		Modified:    row.Modified,
 	}
 	return &inventory, nil
 }
 
 // BatchUpdateInventory updates the inventory for multiple products in a single operations.
 func (s *Service) BatchUpdateInventory(ctx context.Context, inventoryUpdates []*InventoryUpdateRequest) ([]*Inventory, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Info("service: BatchUpdateInventory(ctx, inventoryUpdates) started")
+
 	inventoryRows := make([]*postgres.InventoryRowUpdate, 0, len(inventoryUpdates))
 	for _, i := range inventoryUpdates {
 		pinv := postgres.InventoryRowUpdate{
-			ProductUUID: i.ProductID,
-			Onhand:      i.Onhand,
+			ProductUUID: *i.ProductID,
+			Onhand:      *i.Onhand,
+			Overselling: *i.Overselling,
 		}
 		inventoryRows = append(inventoryRows, &pinv)
 	}
 
-	list, err := s.model.BatchUpdateInventory(ctx, inventoryRows)
+	rows, err := s.model.BatchUpdateInventory(ctx, inventoryRows)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		}
-		return nil, errors.Wrap(err, "s.model.BatchUpdateInventory(ctx, inventoryRows) failed")
+		return nil, errors.Wrap(err, "service: s.model.BatchUpdateInventory(ctx, inventoryRows) failed")
 	}
 
-	results := make([]*Inventory, 0, len(list))
-	for _, i := range list {
+	inventory := make([]*Inventory, 0, len(rows))
+	for _, row := range rows {
 		pc := Inventory{
 			Object:      "inventory",
-			ID:          i.UUID,
-			ProductID:   i.ProductUUID,
-			ProductPath: i.ProductPath,
-			ProductSKU:  i.ProductSKU,
-			Onhand:      i.Onhand,
-			Created:     i.Created,
-			Modified:    i.Modified,
+			ID:          row.UUID,
+			ProductID:   row.ProductUUID,
+			ProductPath: row.ProductPath,
+			ProductSKU:  row.ProductSKU,
+			Onhand:      row.Onhand,
+			Overselling: row.Overselling,
+			Created:     row.Created,
+			Modified:    row.Modified,
 		}
-		results = append(results, &pc)
+		inventory = append(inventory, &pc)
 	}
-	return results, nil
+	return inventory, nil
 }

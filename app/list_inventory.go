@@ -16,6 +16,7 @@ func (a *App) ListInventoryHandler() http.HandlerFunc {
 		Object string               `json:"object"`
 		Data   []*service.Inventory `json:"data"`
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
@@ -24,30 +25,29 @@ func (a *App) ListInventoryHandler() http.HandlerFunc {
 		productID := r.URL.Query().Get("product_id")
 		if productID != "" {
 			inventory, err := a.Service.GetInventoryByProductID(ctx, productID)
+			if err == postgres.ErrProductNotFound {
+				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found") // 404
+				return
+			}
 			if err != nil {
-				if err == postgres.ErrProductNotFound {
-					clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-					return
-				}
-
-				contextLogger.Errorf("app: GetInventoryByProductID failed: %+v", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				contextLogger.Errorf("app: a.Service.GetInventoryByProductID(ctx, productID=%q) failed: %+v", productID, err)
+				w.WriteHeader(http.StatusInternalServerError) // 500
 				return
 			}
 
-			w.WriteHeader(http.StatusOK) // 200 OK
+			w.WriteHeader(http.StatusOK) // 200
 			json.NewEncoder(w).Encode(&inventory)
 			return
 		}
 
 		inventoryList, err := a.Service.GetAllInventory(ctx)
+		if err == postgres.ErrInventoryNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeInventoryNotFound, "inventory not found") // 404
+			return
+		}
 		if err != nil {
-			if err == postgres.ErrInventoryNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeInventoryNotFound, "inventory not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetAllInventory(ctx) failed: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 

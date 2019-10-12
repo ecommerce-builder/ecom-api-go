@@ -24,11 +24,28 @@ func validateBatchUpdateInventoryRequest(request *batchUpdateInventoryRequest) (
 	}
 
 	for _, update := range request.Data {
-		if !IsValidUUID(update.ProductID) {
-			return false, fmt.Sprintf("product %s not a valid uuid", update.ProductID)
+		// product_id attribute
+		productID := update.ProductID
+		if productID == nil {
+			return false, "attribute product_id must be set for all items"
 		}
-		if update.Onhand < 0 {
-			return false, fmt.Sprintf("onhand must be a positive integer for product %s", update.ProductID)
+		if !IsValidUUID(*productID) {
+			return false, fmt.Sprintf("product %s not a valid uuid", *update.ProductID)
+		}
+
+		// onhand attribute
+		onhand := update.Onhand
+		if onhand == nil {
+			return false, "attribute onhand must be set for all items"
+		}
+		if *onhand < 0 {
+			return false, fmt.Sprintf("onhand must be a positive integer for product=%q", *update.ProductID)
+		}
+
+		// overselling attribute
+		overselling := update.Overselling
+		if overselling == nil {
+			return false, "attribute overselling must be set for all items"
 		}
 	}
 
@@ -53,29 +70,29 @@ func (a *App) BatchUpdateInventoryHandler() http.HandlerFunc {
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&request); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error()) // 400
 			return
 		}
 		valid, message := validateBatchUpdateInventoryRequest(&request)
 		if !valid {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message) // 400
 			return
 		}
 
 		// do the batch updates
 		inventoryList, err := a.Service.BatchUpdateInventory(ctx, request.Data)
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound,
+				ErrCodeProductNotFound, "one or more products could not be found") // 404
+			return
+		}
 		if err != nil {
-			if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "one or more products could not be found")
-				return
-			}
-
 			contextLogger.Infof("app: a.Service.BatchUpdateInventory(ctx, request.Data) failed: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusOK) // 200
 		list := response{
 			Object: "list",
 			Data:   inventoryList,

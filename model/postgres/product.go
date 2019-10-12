@@ -213,7 +213,7 @@ func (m *PgModel) CreateProduct(ctx context.Context, userUUID string, path, sku,
 	}
 	contextLogger.Debugf("postgres: q5 created a single empty price for product.id=%d, p.UUID=%s", p.id, p.UUID)
 
-	// 6. Set the inventory for this product to onhold = 0
+	// 6. Set the inventory for this product to onhand = 0
 	q6 := `
 		INSERT INTO inventory (product_id, onhand, created, modified)
 		VALUES ($1, 0, NOW(), NOW())

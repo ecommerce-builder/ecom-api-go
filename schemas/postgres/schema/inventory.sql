@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   uuid             UUID DEFAULT uuid_generate_v4() UNIQUE,
   product_id       INTEGER NOT NULL,
   onhand           INTEGER CHECK (onhand >= 0),
+  overselling      BOOLEAN NOT NULL DEFAULT true,
   created          TIMESTAMP NOT NULL DEFAULT NOW(),
   modified         TIMESTAMP NOT NULL DEFAULT NOW(),
   FOREIGN KEY (product_id) REFERENCES product (id)

@@ -18,17 +18,25 @@ func (a *App) GetInventoryHandler() http.HandlerFunc {
 		contextLogger.Info("app: GetInventoryHandler called")
 
 		inventoryID := chi.URLParam(r, "id")
-		inventory, err := a.Service.GetInventory(ctx, inventoryID)
-		if err != nil {
-			if err == service.ErrInventoryNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeInventoryNotFound, "inventory not found")
-				return
-			}
-			contextLogger.Errorf("app: a.Service.GetInventory(ctx, inventoryUUID=%q) failed: %+v", inventoryID, err)
+		if !IsValidUUID(inventoryID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"url parameter id must be a valid v4 UUID") // 400
 			return
 		}
 
-		w.WriteHeader(http.StatusOK) // 200 OK
+		inventory, err := a.Service.GetInventory(ctx, inventoryID)
+		if err == service.ErrInventoryNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeInventoryNotFound,
+				"inventory not found") // 404
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.GetInventory(ctx, inventoryID=%q) failed: %+v", inventoryID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&inventory)
 	}
 }

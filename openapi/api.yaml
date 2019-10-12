@@ -2052,6 +2052,155 @@ paths:
                     status: 409
                     code: 'price-list/price-list-in-use'
                     message: price list is already in use
+  /inventory:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of all invetory objects
+      description: |
+        Retrieves a list of all inventory objects.
+
+        OpListInventory requires `RoleShopper` privileges.
+      operationId: OpListInventory
+      tags:
+      - Inventory
+      responses:
+        '200':
+          description: list of inventory objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Inventory'
+  /inventory/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the inventory object.
+      schema:
+        type: string
+        format: uuid
+        example: '5659fec5-afd1-44a0-bf40-71d63067fd36'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a single inventory object by id
+      description: |
+        Retrieves a single inventory object by id.
+
+        OpGetInventory requires `RoleShopper` privileges.
+      operationId: OpGetInventory
+      tags:
+      - Inventory
+      responses:
+        '200':
+          description: inventory object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                examples:
+                  inventory/inventory-not-found:
+                    summary: inventory/inventory-not-found
+                    value:
+                      status: 404
+                      code: inventory/inventory-not-found
+                      message: inventory not found
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update a single inventory object
+      description: |
+        Partially updates a single inventory object by id. The request body accepts `onhand` (a positive integer or zero) and `overselling` a boolean value.
+
+        If `overselling` is set to true there will be no restriction on the number of items that can be added to the shopping cart and placed in an order.
+
+        `OpUpdateInventory` requires `RoleAdmin` privileges or higher.
+      operationId: OpUpdateInventory
+      tags:
+      - Inventory
+      requestBody:
+        description: Order to place in the system
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                onhand:
+                  type: integer
+                  minimum: 0
+                  maximum: 99999
+                  example: 50
+                overselling:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: inventory object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                examples:
+                  inventory/inventory-not-found:
+                    summary: inventory/inventory-not-found
+                    value:
+                      status: 404
+                      code: inventory/inventory-not-found
+                      message: inventory not found
+  /inventory:batch-update:
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Batch update inventory
+      description: |
+        OpBatchUpdateInventory requires `RoleAdmin` privileges or higher.
+      operationId: OpBatchUpdateInventory
+      tags:
+      - Inventory
+      requestBody:
+        description: list of inventory to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateRequest'
+      responses:
+        '200':
+          description: list of inventory objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Inventory'
   /orders:
     post:
       security:
@@ -2619,6 +2768,64 @@ components:
             $ref: '#/components/schemas/AddressRequest'
         shipping_address:
             $ref: '#/components/schemas/AddressRequest'
+    BatchUpdateRequest:
+      required:
+      - object
+      - data
+      properties:
+        object:
+          type: string
+          example: list
+        data:
+          type: array
+          items:
+            required:
+            - product_id
+            properties:
+              product_id:
+                type: string
+                example: '3479242b-7e4f-4d2b-9cab-1ea6cb5bee40'
+              onhand:
+                type: integer
+                minimum: 0
+                maximum: 99999
+                example: 40
+              overselling:
+                type: boolean
+                example: true
+    Inventory:
+      properties:
+        object:
+          type: string
+          example: inventory
+        id:
+          type: string
+          format: uuid
+          example: '5659fec5-afd1-44a0-bf40-71d63067fd36'
+        product_id:
+          type: string
+          format: uuid
+          example: 'b3d23452-95b7-46e2-902d-721a5c21f680'
+        product_path:
+          type: string
+          example: quad-processor-split-screen-cctv-system
+        product_sku:
+          type: string
+          example: QUAD01
+        onhand:
+          type: integer
+          example: 50
+        overselling:
+          type: boolean
+          example: true
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-01 16:53:24.590938Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-01 16:53:24.590938Z'
     Order:
       properties:
         billing_address:
