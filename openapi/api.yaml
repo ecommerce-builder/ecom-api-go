@@ -670,100 +670,41 @@ paths:
                     status: 409
                     code: 'discount/discount-leaf-category-zero-products'
                     message: discounts can only be applied to leaf categories containing products
-  /admins:
-    post:
-      security:
-      - bearerAuth: []
-      summary: Create a new administrator
-      description: |
-        OpCreateAdmin requires `RoleAdmin` privileges.
-      operationId: OpCreateAdmin
-      tags:
-      - Admins
-      requestBody:
-        description: New administrator details
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustomerRequest'
-      responses:
-        '201':
-          description: A customer object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Customer'
-    get:
-      security:
-      - bearerAuth: []
-      summary: List all administrators
-      description: |
-        OpListAdmins requires `RoleAdmin` privileges.
-      operationId: OpListAdmins
-      tags:
-      - Admins
-      responses:
-        '200':
-          description: A list of customer objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Customer'
-  /admins/{id}:
-    parameters:
-    - name: id
-      required: true
-      in: path
-      description: A unique identifier for the administrator.
-      schema:
-        type: string
-        format: uuid
-        example: '2d8661d3-0fac-4b72-8219-90731fb1935d'
-    delete:
-      security:
-      - bearerAuth: []
-      summary: Delete an administrator
-      description: |
-        OpDeleteAdmin requires `RoleSuperUser` privileges.
-      operationId: OpDeleteAdmin
-      tags:
-      - Admins
-      responses:
-        '204':
-          description: No content
   /users:
     post:
-      summary: Create and sign up a new customer
+      security:
+      - bearerAuth: []
+      summary: Create and signup a new user
       description: |
-        Sign up a new customer creates a new customer with the role of `RoleCustomer` only.
-        ### Auth
+        Sign up a new customer creates a new user.
+
         OpCreateCustomer requires no JSON Web Token.
       operationId: OpCreateCustomer
       tags:
       - Users
       requestBody:
-        description: New customer details
+        description: New user details
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerRequest'
+              $ref: '#/components/schemas/UserRequest'
       responses:
         '201':
           description: Customer object
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Customer'
+                $ref: '#/components/schemas/User'
     get:
       security:
       - bearerAuth: []
       summary: List all users
       description: |
         OpListUsers requires `RoleAdmin` privileges.
+
+        ## Known Issues
+        Currently, the list of user objects are missing the `price_list_id` attribute value. Use OpGetUser as a workaround.
       operationId: OpListUsers
       tags:
       - Users
@@ -775,7 +716,123 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Customer'
+                  $ref: '#/components/schemas/User'
+  /users/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the user.
+      schema:
+        type: string
+        format: uuid
+        example: '88920da9-72c6-4f33-ac2b-306080b5e92c'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a customer object
+      description: |
+        OpGetCustomer requires `RoleCustomer` privileges.
+      operationId: OpGetCustomer
+      tags:
+      - Users
+      parameters:
+      - name: id
+        required: true
+        in: path
+        description: Customer ID
+        schema:
+          type: string
+          example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+      responses:
+        '201':
+          description: Customer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a user
+      description: |
+        Attempts to delete a user from the system. If this user has previously created addresses or developer keys, these will be delete too.
+
+        If the user has previously placed any orders, a status of 409 Conflict will be retuned with `users/user-in-use` returned in the `code` attribute of the response body.
+
+        OpDeleteUser requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteUser
+      tags:
+      - Users
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'users/not-found'
+                message: user not found
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                users/user-in-use:
+                  summary: users/user-in-use
+                  value:
+                    status: 409
+                    code: 'users/user-in-use'
+                    message: user cannot be deleted as it is associated with previous orders
+  /users/{id}/devkeys:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: Customer ID
+      schema:
+        type: string
+        example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+    post:
+      security:
+      - bearerAuth: []
+      summary: Generate a new developer key
+      description: |
+        OpGenerateCustomerDevKey requires `RoleCustomer` privileges.
+      operationId: OpGenerateCustomerDevKey
+      tags:
+      - Developer Keys
+      responses:
+        '201':
+          description: Developer Key object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevKey'
+    get:
+      security:
+      - bearerAuth: []
+      summary: List a customer's developer keys
+      description: |
+        OpListUsersDevKeys requires `RoleCustomer` privileges.
+      operationId: OpListUsersDevKeys
+      tags:
+      - Developer Keys
+      responses:
+        '200':
+          description: List of Developer Key objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DevKey'
   /categories:
     put:
       security:
@@ -965,74 +1022,6 @@ paths:
       responses:
         '204':
           description: No Content
-  /users/{id}:
-    get:
-      security:
-      - bearerAuth: []
-      summary: Get a customer object
-      description: |
-        OpGetCustomer requires `RoleCustomer` privileges.
-      operationId: OpGetCustomer
-      tags:
-      - Users
-      parameters:
-      - name: id
-        required: true
-        in: path
-        description: Customer ID
-        schema:
-          type: string
-          example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
-      responses:
-        '201':
-          description: Customer object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Customer'
-  /users/{id}/devkeys:
-    parameters:
-    - name: id
-      required: true
-      in: path
-      description: Customer ID
-      schema:
-        type: string
-        example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
-    post:
-      security:
-      - bearerAuth: []
-      summary: Generate a new developer key
-      description: |
-        OpGenerateCustomerDevKey requires `RoleCustomer` privileges.
-      operationId: OpGenerateCustomerDevKey
-      tags:
-      - Developer Keys
-      responses:
-        '201':
-          description: Developer Key object
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DevKey'
-    get:
-      security:
-      - bearerAuth: []
-      summary: List a customer's developer keys
-      description: |
-        OpListUsersDevKeys requires `RoleCustomer` privileges.
-      operationId: OpListUsersDevKeys
-      tags:
-      - Developer Keys
-      responses:
-        '200':
-          description: List of Developer Key objects
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DevKey'
   /devkeys/{id}:
     delete:
       security:
@@ -2589,13 +2578,13 @@ components:
         target:
           type: string
           enum: ['product', 'productset', 'category', 'total', 'shipping']
-          example: 'category'
+          example: category
     Offer:
       type: object
       properties:
         object:
           type: string
-          example: 'offer'
+          example: offer
         id:
           type: string
           format: uuid
@@ -2620,52 +2609,62 @@ components:
         discount_id:
           type: string
           example: '2597d93e-12bf-46be-b712-2a7d2d6b5d29'
-    CustomerRequest:
+    UserRequest:
       type: object
       required:
+      - role
       - email
       - password
       - firstname
       - lastname
       properties:
+        role:
+          type: string
+          enum: ['customer', 'admin']
         email:
           type: string
           format: email
-          example: 'john.doe@example.com'
+          example: john.doe@example.com
         password:
           type: string
-          example: 'Xxaks9SfmcT5avBR'
+          example: Xxaks9SfmcT5avBR
         firstname:
           type: string
-          example: 'John'
+          example: John
         lastname:
           type: string
-          example: 'Doe'
-    Customer:
+          example: Doe
+    User:
       type: object
       properties:
         object:
           type: string
-          example: 'customer'
+          example: user
         id:
           type: string
           format: uuid
           example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
         uid:
           type: string
+          example: eocNauyyf3WchJG6WRWXePEqbTE2
         role:
           type: string
-          example: 'eocNauyyf3WchJG6WRWXePEqbTE2'
+          enum: ['customer', 'admin']
+          example: customer
+        price_list_id:
+          type: string
+          format: uuid
+          example: '9f0fb310-6fac-4a06-9438-ca1c2f8bee7b'
         email:
           type: string
           format: email
-          example: 'john.doe@example.com'
+          example: john.doe@example.com
         firstname:
           type: string
-          example: 'John'
+          example: John
         lastname:
           type: string
-          example: 'Doe'
+          example: Doe
         created:
           type: string
           format: date-time
@@ -2679,7 +2678,7 @@ components:
       properties:
         object:
           type: string
-          example: 'developer_key'
+          example: developer_key
         id:
           type: string
           example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'

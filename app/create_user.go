@@ -79,7 +79,7 @@ func (a *App) CreateUserHandler() http.HandlerFunc {
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&request)
 		if err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error()) // 400
 			return
 		}
 		defer r.Body.Close()
@@ -87,7 +87,7 @@ func (a *App) CreateUserHandler() http.HandlerFunc {
 		// valid the request body
 		valid, message := validateCreateUserRequest(&request)
 		if !valid {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message) // 400
 			return
 		}
 
@@ -107,25 +107,24 @@ func (a *App) CreateUserHandler() http.HandlerFunc {
 
 			if role != "root" {
 				contextLogger.Info("app: request.Role is admin but JWT does not super user access")
-				clientError(w, http.StatusForbidden, ErrCodeCreateUserForbidden, "create admin forbidden")
+				clientError(w, http.StatusForbidden, ErrCodeCreateUserForbidden, "create admin forbidden") // 403
 				return
 			}
 
 		}
 
 		user, err := a.Service.CreateUser(ctx, *request.Role, *request.Email, *request.Password, *request.Firstname, *request.Lastname)
+		if err == service.ErrUserExists {
+			clientError(w, http.StatusConflict, ErrCodeUserExists, "user with this email already exists") // 409
+			return
+		}
 		if err != nil {
-			if err == service.ErrUserExists {
-				clientError(w, http.StatusConflict, ErrCodeUserExists, "user with this email already exists")
-				return
-			}
-
 			contextLogger.Errorf("app: CreateUserHandler: failed Service.CreateUser(ctx, %q, %s, %s, %s, %s) with error: %v", "customer", *request.Email, "*****", *request.Firstname, *request.Lastname, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
-		contextLogger.Infof("user created (id=%q, uid=%q, priceListID=%q, role=%q, email=%q, firstname=%q, lastname=%q)", user.ID, user.UID, user.PriceListID, user.Role, user.Email, user.Firstname, user.Lastname)
+		contextLogger.Infof("app: user created (id=%q, uid=%q, priceListID=%q, role=%q, email=%q, firstname=%q, lastname=%q)", user.ID, user.UID, user.PriceListID, user.Role, user.Email, user.Firstname, user.Lastname)
 
 		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(&user)

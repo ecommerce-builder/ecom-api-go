@@ -32,6 +32,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 
 		if role == "" {
 			role = RoleShopper
+			log.Debug("authorization: setting role to RoleShopper (anon)")
 		} else {
 			if val, ok := decodedToken.Claims["ecom_uid"]; ok {
 				cid = val.(string)
