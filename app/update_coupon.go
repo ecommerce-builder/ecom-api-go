@@ -30,7 +30,7 @@ func (a *App) UpdateCouponHandler() http.HandlerFunc {
 
 		// parse request body
 		// example
-		// { "onhold": 4 }
+		// { "onhand": 4 }
 		var request updateCouponRequest
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()

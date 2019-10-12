@@ -705,6 +705,9 @@ func main() {
 			r.Get("/", a.Authorization(app.OpListInventory, a.ListInventoryHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetInventory, a.GetInventoryHandler()))
 			r.Patch("/{id}", a.Authorization(app.OpUpdateInventory, a.UpdateInventoryHandler()))
+		})
+
+		r.Route("/inventory:batch-update", func(r chi.Router) {
 			r.Patch("/", a.Authorization(app.OpBatchUpdateInventory, a.BatchUpdateInventoryHandler()))
 		})
 
