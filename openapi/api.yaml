@@ -846,49 +846,107 @@ paths:
                     status: 409
                     code: 'users/user-in-use'
                     message: user cannot be deleted as it is associated with previous orders
-  /users/{id}/devkeys:
-    parameters:
-    - name: id
-      required: true
-      in: path
-      description: Customer ID
-      schema:
-        type: string
-        example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+  /developer-keys:
     post:
       security:
       - bearerAuth: []
       summary: Generate a new developer key
       description: |
-        OpGenerateCustomerDevKey requires `RoleCustomer` privileges.
-      operationId: OpGenerateCustomerDevKey
+        OpGenerateUserDevKey requires `RoleAdmin` privileges or higher.
+      operationId: OpGenerateUserDevKey
       tags:
       - Developer Keys
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - user_id
+              properties:
+                user_id:
+                  type: string
+                  example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
       responses:
-        '201':
-          description: Developer Key object
+        '404':
+          description: Not Found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DevKey'
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'users/user-not-found'
+                message: user not found
+        '201':
+          description: developer_key object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeveloperKey'
     get:
+      parameters:
+      - name: user_id
+        required: true
+        in: query
+        description: A unique identifier for the user
+        schema:
+          type: string
+          example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
       security:
       - bearerAuth: []
-      summary: List a customer's developer keys
+      summary: Get a list of all developer keys for a given user id
       description: |
-        OpListUsersDevKeys requires `RoleCustomer` privileges.
+        OpListUsersDevKeys requires `RoleAdmin` privileges or higher.
       operationId: OpListUsersDevKeys
       tags:
       - Developer Keys
       responses:
-        '200':
-          description: List of Developer Key objects
+        '201':
+          description: developer_key object
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DevKey'
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeveloperKey'
+  /developer-keys/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the developer key
+      schema:
+        type: string
+        example: 'c2ae4ed9-5785-4963-8d16-1b925252ae88'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a developer key
+      description: |
+        Deleting a developer key revokes access.
+        OpDeleteUserDevKey requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteUserDevKey
+      tags:
+      - Developer Keys
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'developer-keys/developer-key-not-found'
+                message: developer key not found
   /categories:
     put:
       security:
@@ -1078,29 +1136,6 @@ paths:
       responses:
         '204':
           description: No Content
-  /devkeys/{id}:
-    delete:
-      security:
-      - bearerAuth: []
-      summary: Delete a developer key
-      description: |
-        OpDeleteCustomerDevKey requires `RoleAdmin` privileges.
-      operationId: OpDeleteCustomerDevKey
-      tags:
-      - Developer Keys
-      parameters:
-      - name: id
-        required: true
-        in: path
-        description: Developer Key ID
-        schema:
-          type: string
-          example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
-      responses:
-        '204':
-          description: No Content
-        '404':
-          description: Not Found
   /signin-with-devkey:
     post:
       summary: Signin with a developer key
@@ -2733,7 +2768,7 @@ components:
           type: string
           format: date-time
           example: '2019-07-30 14:23:31.756204Z'
-    DevKey:
+    DeveloperKey:
       type: object
       properties:
         object:
@@ -2742,11 +2777,12 @@ components:
         id:
           type: string
           example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
-        key:
-          type: string
-        customer_id:
+        user_id:
           type: string
           example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
+        key:
+          type: string
+          example: '2Z1uUw7Vo81sHneDKfkbUTfNoQ2UXLEkrd5224tapmK1'
         created:
           type: string
           format: date-time
