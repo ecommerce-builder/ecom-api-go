@@ -51,12 +51,12 @@ func (a *App) GenerateUserDevKeyHandler() http.HandlerFunc {
 		}
 
 		developerKey, err := a.Service.GenerateUserDevKey(ctx, *request.UserID)
+		if err == service.ErrUserNotFound {
+			// 404 Not Found
+			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrUserNotFound {
-				// 404 Not Found
-				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
-				return
-			}
 			contextLogger.Errorf("app: GenerateUserAPIKey(ctx, userID=%q) error: %+v", *request.UserID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

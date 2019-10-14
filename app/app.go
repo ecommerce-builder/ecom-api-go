@@ -127,7 +127,7 @@ const (
 	OpDeleteUser string = "OpDeleteUser"
 
 	// ErrCodeUserNotFound is sent if a user cannot be located
-	ErrCodeUserNotFound string = "users/not-found"
+	ErrCodeUserNotFound string = "users/user-not-found"
 
 	// ErrCodeCreateUserForbidden error
 	ErrCodeCreateUserForbidden string = "users/create-admin-forbidden"
