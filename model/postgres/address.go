@@ -136,7 +136,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, usrUUID string) ([]*AddressJ
 	err := m.db.QueryRowContext(ctx, q1, usrUUID).Scan(&usrID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrAddressNotFound
+			return nil, ErrUserNotFound
 		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
 	}
@@ -173,24 +173,15 @@ func (m *PgModel) GetAddresses(ctx context.Context, usrUUID string) ([]*AddressJ
 	return addresses, nil
 }
 
-// UpdateAddressByUUID updates an address for a given user
-func (m *PgModel) UpdateAddressByUUID(ctx context.Context, UUID string) (*AddressJoinRow, error) {
-	// TO BE DONE
-	//
-	//query := `UPDATE address SET`
-	var addr AddressJoinRow
-	return &addr, nil
-}
-
 // PartialUpdateAddress updates on or more columns in a single address row
 func (m *PgModel) PartialUpdateAddress(ctx context.Context, addressUUID string, typ, contactName, addr1, addr2, city, county, postcode, countryCode *string) (*AddressJoinRow, error) {
 	q1 := "SELECT id FROM address WHERE uuid = $1"
 	var addressID int
 	err := m.db.QueryRowContext(ctx, q1, addressUUID).Scan(&addressID)
+	if err == sql.ErrNoRows {
+		return nil, ErrAddressNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrAddressNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
 	}
 
@@ -246,19 +237,19 @@ func (m *PgModel) PartialUpdateAddress(ctx context.Context, addressUUID string, 
 		  %SET_QUERY%, modified = NOW()
 		WHERE id = %ARG_COUNTER%
 		RETURNING
-		  id, uuid, usr_id, typ, contact_name, addr1, addr2, city,
+		  id, uuid, usr_id,
+		  (SELECT uuid FROM usr WHERE id = usr_id),
+		  typ, contact_name, addr1, addr2, city,
 		  county, postcode, country_code, created, modified
 	`
 	q2 = strings.Replace(q2, "%SET_QUERY%", setQuery, 1)
 	q2 = strings.Replace(q2, "%ARG_COUNTER%", fmt.Sprintf("$%d", argCounter), 1)
-
 	a := AddressJoinRow{}
 	row := m.db.QueryRowContext(ctx, q2, queryArgs...)
-	if err := row.Scan(&a.id, &a.UUID, &a.usrID, &a.Typ, &a.ContactName, &a.Addr1,
+	if err := row.Scan(&a.id, &a.UUID, &a.usrID, &a.UsrUUID, &a.Typ, &a.ContactName, &a.Addr1,
 		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.CountryCode, &a.Created, &a.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q2=%q", q2)
 	}
-	// a.UsrUUID =
 
 	return &a, nil
 }
