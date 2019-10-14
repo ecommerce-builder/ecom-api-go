@@ -1178,15 +1178,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignInDevKeyCustomToken'
-  /users/{id}/addresses:
-    parameters:
-    - name: id
-      required: true
-      in: path
-      description: Customer ID
-      schema:
-        type: string
-        example: '7835fa6e-38de-4959-8838-c88ab3e073b3'
+  /addresses:
     post:
       security:
       - bearerAuth: []
@@ -1209,6 +1201,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/Address'
     get:
+      parameters:
+      - name: user_id
+        required: true
+        in: query
+        description: A unique identifier for the user
+        schema:
+          type: string
+          example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
       security:
       - bearerAuth: []
       summary: Get all addresses for a given customer
@@ -1223,9 +1223,25 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Address'
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Address'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'users/user-not-found'
+                message: user not found
   /addresses/{id}:
     parameters:
     - name: id
@@ -1248,7 +1264,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddressRequest'
+              $ref: '#/components/schemas/AddressUpdateRequest'
       responses:
         '200':
           description: Address object
@@ -1256,12 +1272,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Address'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'addresses/address-not-found'
+                message: address not found
     get:
       security:
       - bearerAuth: []
       summary: Get an address object
       description: |
-        OpGetAddress requires `RoleCustomer` privileges.
+        OpGetAddress requires `RoleCustomer` privileges. The id of the address must also match the customer id in the caller's JWT - that is you can only retrieve your own addresses.
       operationId: OpGetAddress
       tags:
       - Addresses
@@ -1272,6 +1298,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Address'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'addresses/address-not-found'
+                message: address not found
     delete:
       security:
       - bearerAuth: []
@@ -1284,6 +1320,16 @@ paths:
       responses:
         '204':
           description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'addresses/address-not-found'
+                message: address not found
   /prices:
     parameters:
     - name: product_id
@@ -2927,17 +2973,9 @@ components:
           $ref: '#/components/schemas/Address'
         shipping_address:
           $ref: '#/components/schemas/Address'
-    AddressRequest:
-      required:
-      - typ
-      - contact_name
-      - addr1
-      - city
-      - county
-      - postcode
-      - country
+    AddressUpdateRequest:
       properties:
-        typ:
+        type:
           type: string
           enum: [shipping, billing]
           example: 'billing'
@@ -2953,10 +2991,53 @@ components:
         city:
           type: string
           example: 'Cambridge'
+        county:
+          type: string
+          example: 'Cambridgeshire'
         postcode:
           type: string
           example: 'CB1 9ZZ'
-        country:
+        country_code:
+          type: string
+          example: 'GB'
+    AddressRequest:
+      required:
+      - user_id
+      - type
+      - contact_name
+      - addr1
+      - city
+      - county
+      - postcode
+      - country
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
+        type:
+          type: string
+          enum: [shipping, billing]
+          example: 'billing'
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        county:
+          type: string
+          example: 'Cambridgeshire'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country_code:
           type: string
           example: 'GB'
     Address:
@@ -2968,7 +3049,7 @@ components:
           type: string
           format: uuid
           example: 'c7c9ff19-4bc9-4953-a1bd-9dee0b41b4fe'
-        typ:
+        type:
           type: string
           enum: [shipping, billing]
           example: 'billing'

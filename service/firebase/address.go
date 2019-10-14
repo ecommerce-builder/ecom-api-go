@@ -17,7 +17,7 @@ type Address struct {
 	Object      string    `json:"object"`
 	ID          string    `json:"id"`
 	UserID      string    `json:"user_id"`
-	Typ         string    `json:"typ"`
+	Typ         string    `json:"type"`
 	ContactName string    `json:"contact_name"`
 	Addr1       string    `json:"addr1"`
 	Addr2       *string   `json:"addr2,omitempty"`
@@ -100,8 +100,8 @@ func (s *Service) GetAddresses(ctx context.Context, userID string) ([]*Address, 
 
 	al, err := s.model.GetAddresses(ctx, userID)
 	if err != nil {
-		if err == postgres.ErrAddressNotFound {
-			return nil, ErrAddressNotFound
+		if err == postgres.ErrUserNotFound {
+			return nil, ErrUserNotFound
 		}
 		return nil, errors.Wrapf(err, "service: s.model.GetAddresses(ctx, userID=%q)", userID)
 	}
@@ -132,10 +132,10 @@ func (s *Service) GetAddresses(ctx context.Context, userID string) ([]*Address, 
 // address record returing the updates address.
 func (s *Service) PartialUpdateAddress(ctx context.Context, addressID string, typ, contactName, addr1, addr2, city, county, postcode, countryCode *string) (*Address, error) {
 	a, err := s.model.PartialUpdateAddress(ctx, addressID, typ, contactName, addr1, addr2, city, county, postcode, countryCode)
+	if err == postgres.ErrAddressNotFound {
+		return nil, ErrAddressNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrAddressNotFound {
-			return nil, ErrAddressNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.PartialUpdateAddress(ctx, addressID=%q, typ=%v)", addressID, typ)
 	}
 	addr := Address{
