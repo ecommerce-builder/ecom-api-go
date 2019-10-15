@@ -43,23 +43,28 @@ type CartCoupon struct {
 // non-reusable coupon)
 func (s *Service) ApplyCouponToCart(ctx context.Context, cartID, couponID string) (*CartCoupon, error) {
 	prow, err := s.model.AddCartCoupon(ctx, cartID, couponID)
+	if err == postgres.ErrCartNotFound {
+		return nil, ErrCartNotFound
+	}
+	if err == postgres.ErrCouponNotFound {
+		return nil, ErrCouponNotFound
+	}
+	if err == postgres.ErrCartCouponExists {
+		return nil, ErrCartCouponExists
+	}
+	if err == postgres.ErrCouponNotAtStartDate {
+		return nil, ErrCouponNotAtStartDate
+	}
+	if err == postgres.ErrCouponExpired {
+		return nil, ErrCouponExpired
+	}
+	if err == postgres.ErrCouponVoid {
+		return nil, ErrCouponVoid
+	}
+	if err == postgres.ErrCouponUsed {
+		return nil, ErrCouponUsed
+	}
 	if err != nil {
-		if err == postgres.ErrCartNotFound {
-			return nil, ErrCartNotFound
-		} else if err == postgres.ErrCouponNotFound {
-			return nil, ErrCouponNotFound
-		} else if err == postgres.ErrCartCouponExists {
-			return nil, ErrCartCouponExists
-		} else if err == postgres.ErrCouponNotAtStartDate {
-			return nil, ErrCouponNotAtStartDate
-		} else if err == postgres.ErrCouponExpired {
-			return nil, ErrCouponExpired
-		} else if err == postgres.ErrCouponVoid {
-			return nil, ErrCouponVoid
-		} else if err == postgres.ErrCouponUsed {
-			return nil, ErrCouponUsed
-		}
-
 		return nil, errors.Wrapf(err, "s.model.AddCartCoupon(ctx, cartID=%q, couponID=%q) failed", cartID, couponID)
 	}
 
@@ -79,10 +84,10 @@ func (s *Service) ApplyCouponToCart(ctx context.Context, cartID, couponID string
 // GetCartCoupon retrieves a cart coupon relation by id.
 func (s *Service) GetCartCoupon(ctx context.Context, cartCouponID string) (*CartCoupon, error) {
 	row, err := s.model.GetCartCoupon(ctx, cartCouponID)
+	if err == postgres.ErrCartCouponNotFound {
+		return nil, ErrCartCouponNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrCartCouponNotFound {
-			return nil, ErrCartCouponNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.GetCartCoupon(ctx, cartCouponID=%q) failed", cartCouponID)
 	}
 	cartCoupon := CartCoupon{
@@ -101,10 +106,10 @@ func (s *Service) GetCartCoupon(ctx context.Context, cartCouponID string) (*Cart
 // GetCartCoupons returns a slice of cart coupons.
 func (s *Service) GetCartCoupons(ctx context.Context, cartID string) ([]*CartCoupon, error) {
 	prows, err := s.model.GetCartCouponsByCartUUID(ctx, cartID)
+	if err == postgres.ErrCartNotFound {
+		return nil, ErrCartNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrCartNotFound {
-			return nil, ErrCartNotFound
-		}
 		return nil, errors.Wrapf(err, "")
 	}
 
@@ -128,10 +133,10 @@ func (s *Service) GetCartCoupons(ctx context.Context, cartID string) ([]*CartCou
 // UnapplyCartCoupon unapplies a coupon from a cart.
 func (s *Service) UnapplyCartCoupon(ctx context.Context, cartCouponID string) error {
 	err := s.model.DeleteCartCoupon(ctx, cartCouponID)
+	if err == postgres.ErrCartCouponNotFound {
+		return ErrCartCouponNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrCartCouponNotFound {
-			return ErrCartCouponNotFound
-		}
 		return errors.Wrapf(err, "service: s.model.DeleteCartCoupon(ctx, cartCouponID=%q) failed", cartCouponID)
 	}
 	return nil

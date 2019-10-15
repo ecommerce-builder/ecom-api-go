@@ -17,14 +17,16 @@ func (a *App) DeleteCouponHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeleteCouponHandler started")
 
 		couponID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteCoupon(ctx, couponID); err != nil {
-			if err == service.ErrCouponNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
-				return
-			} else if err == service.ErrCouponInUse {
-				clientError(w, http.StatusConflict, ErrCodeCouponInUse, "coupon is already in use, consider making it void")
-				return
-			}
+		err := a.Service.DeleteCoupon(ctx, couponID)
+		if err == service.ErrCouponNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
+			return
+		}
+		if err == service.ErrCouponInUse {
+			clientError(w, http.StatusConflict, ErrCodeCouponInUse, "coupon is already in use, consider making it void")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.DeleteCoupon(ctx, couponID=%q) error: %+v", couponID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

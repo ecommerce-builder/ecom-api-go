@@ -23,11 +23,11 @@ func (a *App) DeleteAddressHandler() http.HandlerFunc {
 		}
 
 		err := a.Service.DeleteAddress(ctx, addressID)
+		if err == service.ErrAddressNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeAddressNotFound, "address not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrAddressNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeAddressNotFound, "address not found")
-				return
-			}
 			contextLogger.Errorf("app: DeleteAddress(ctx, addressID=%q) failed with error: %v", addressID, err)
 			return
 		}

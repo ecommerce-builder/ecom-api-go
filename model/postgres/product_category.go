@@ -77,10 +77,10 @@ func (m *PgModel) AddProductCategory(ctx context.Context, productUUID, categoryU
 	q1 := "SELECT id, lft, rgt FROM category WHERE uuid = $1"
 	var categoryID, lft, rgt int
 	err = tx.QueryRowContext(ctx, q1, categoryUUID).Scan(&categoryID, &lft, &rgt)
+	if err == sql.ErrNoRows {
+		return nil, ErrCategoryNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCategoryNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: tx prepare for q1=%q", q1)
 	}
@@ -93,11 +93,11 @@ func (m *PgModel) AddProductCategory(ctx context.Context, productUUID, categoryU
 	q2 := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, q2, productUUID).Scan(&productID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrProductNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 	}
@@ -140,7 +140,7 @@ func (m *PgModel) AddProductCategory(ctx context.Context, productUUID, categoryU
 		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q4, ...) failed q4=%q", q4)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return &pc, nil
@@ -162,11 +162,12 @@ func (m *PgModel) GetProductCategory(ctx context.Context, productCategoryUUID st
 		`
 	var pc ProductCategoryBasicJoinRow
 	row := m.db.QueryRowContext(ctx, q1, productCategoryUUID)
-	if err := row.Scan(&pc.id, &pc.UUID, &pc.productID, &pc.ProductUUID,
-		&pc.categoryID, &pc.CategoryUUID, &pc.Pri, &pc.Created, &pc.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrProductCategoryNotFound
-		}
+	err := row.Scan(&pc.id, &pc.UUID, &pc.productID, &pc.ProductUUID,
+		&pc.categoryID, &pc.CategoryUUID, &pc.Pri, &pc.Created, &pc.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrProductCategoryNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, q1, productCategoryUUID=%q).Scan failed q1=%q", q1, productCategoryUUID)
 	}
 	return &pc, nil
@@ -183,11 +184,11 @@ func (m *PgModel) DeleteProductCategory(ctx context.Context, productCategoryUUID
 	q1 := "SELECT id FROM product_category WHERE uuid = $1"
 	var productCategoryID int
 	err = tx.QueryRowContext(ctx, q1, productCategoryUUID).Scan(&productCategoryID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrProductCategoryNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrProductCategoryNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -199,7 +200,7 @@ func (m *PgModel) DeleteProductCategory(ctx context.Context, productCategoryUUID
 		return errors.Wrapf(err, "tx.ExecContext(ctx, q2, productCategoryID=%d)", productCategoryID)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil
@@ -271,8 +272,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 		categoryMap[c.uuid] = &c
 	}
 
-	if err = rows2.Err(); err != nil {
-
+	if err := rows2.Err(); err != nil {
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: rows.Err()")
 	}
@@ -329,11 +329,12 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 		category := categoryMap[r.CategoryUUID]
 
 		c := ProductCategoryJoinRow{}
-		if err := stmt4.QueryRowContext(ctx, product.id, category.id, category.id).Scan(&c.id, &c.UUID, &c.productID, &c.categoryID, &c.Pri, &c.Created, &c.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				tx.Rollback()
-				return nil, ErrProductCategoryNotFound
-			}
+		err := stmt4.QueryRowContext(ctx, product.id, category.id, category.id).Scan(&c.id, &c.UUID, &c.productID, &c.categoryID, &c.Pri, &c.Created, &c.Modified)
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductCategoryNotFound
+		}
+		if err != nil {
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: stmt4.QueryRowContext(ctx, ...) failed q4=%q", q4)
 		}
@@ -347,7 +348,7 @@ func (m *PgModel) UpdateProductsCategories(ctx context.Context, cps []*CreatePro
 		productsCategories = append(productsCategories, &c)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return productsCategories, nil
@@ -410,24 +411,23 @@ func (m *PgModel) CreateProductCategoryRelations(ctx context.Context, cpas map[s
 	for path, pids := range cpas {
 		var categoryID int
 		err = stmt3.QueryRowContext(ctx, path).Scan(&categoryID)
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return ErrLeafCategoryNotFound
+		}
 		if err != nil {
-			if err == sql.ErrNoRows {
-				tx.Rollback()
-				return ErrLeafCategoryNotFound
-			}
 			tx.Rollback()
 			return errors.Wrapf(err, "postgres: query row context failed for query=%q", q3)
 		}
 
 		for _, pid := range pids {
-
 			var productID int
 			err = stmt4.QueryRowContext(ctx, pid).Scan(&productID)
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+				return ErrProductNotFound
+			}
 			if err != nil {
-				if err == sql.ErrNoRows {
-					tx.Rollback()
-					return ErrProductNotFound
-				}
 				tx.Rollback()
 				return errors.Wrapf(err, "postgres: query row context failed for query=%q", q4)
 			}
@@ -440,7 +440,7 @@ func (m *PgModel) CreateProductCategoryRelations(ctx context.Context, cpas map[s
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil
@@ -477,7 +477,7 @@ func (m *PgModel) GetProductsCategories(ctx context.Context) ([]*ProductCategory
 		}
 		cpas = append(cpas, &n)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrapf(err, "postgres: rows.Err()")
 	}
 	return cpas, nil
@@ -504,6 +504,7 @@ func (m *PgModel) GetProductCategoryRelationsFull(ctx context.Context) ([]*Produ
 		return nil, errors.Wrapf(err, "postgres: query context query=%q", query)
 	}
 	defer rows.Close()
+
 	cpas := make([]*ProductCategoryJoinRow, 0, 32)
 	for rows.Next() {
 		var n ProductCategoryJoinRow
@@ -514,7 +515,7 @@ func (m *PgModel) GetProductCategoryRelationsFull(ctx context.Context) ([]*Produ
 		}
 		cpas = append(cpas, &n)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrapf(err, "postgres: rows.Err()")
 	}
 	return cpas, nil
@@ -534,40 +535,6 @@ func (m *PgModel) HasProductCategoryRelations(ctx context.Context) (bool, error)
 	}
 	return true, nil
 }
-
-// UpdateProductCategoryAssocs updates all entries in the product_category
-// associations table.
-// func (m *PgModel) UpdateProductCategoryAssocs(ctx context.Context, cpo []*ProductCategoryJoinRow) error {
-// 	tx, err := m.db.BeginTx(ctx, nil)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	stmt, err := tx.PrepareContext(ctx, `
-// 		INSERT INTO product_category
-// 			(category_id, product_id, path, sku, pri)
-// 		VALUES (
-// 			(SELECT id FROM category WHERE path = $1),
-// 			(SELECT id FROM product WHERE sku = $2),
-// 			$3,
-// 			$4,
-// 			$5
-// 		)
-// 	`)
-// 	if err != nil {
-// 		tx.Rollback()
-// 		fmt.Fprintf(os.Stderr, "%v", err)
-// 		return err
-// 	}
-// 	defer stmt.Close()
-// 	for _, c := range cpo {
-// 		if _, err := stmt.ExecContext(ctx, c.Path, c.SKU, c.Path, c.SKU, c.Pri); err != nil {
-// 			tx.Rollback()
-// 			fmt.Fprintf(os.Stderr, "%v", err)
-// 			return err
-// 		}
-// 	}
-// 	return tx.Commit()
-// }
 
 // DeleteAllProductCategoryRelations delete all product to category relationships.
 func (m *PgModel) DeleteAllProductCategoryRelations(ctx context.Context) error {

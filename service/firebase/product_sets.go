@@ -25,16 +25,16 @@ type ProductSetItem struct {
 
 // GetProductSetItems returns a list of product set items for a given product set id.
 func (s *Service) GetProductSetItems(ctx context.Context, productSetID string) ([]*ProductSetItem, error) {
-	prows, err := s.model.GetProductSetItems(ctx, productSetID)
+	rows, err := s.model.GetProductSetItems(ctx, productSetID)
+	if err == postgres.ErrProductSetNotFound {
+		return nil, ErrProductSetNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductSetNotFound {
-			return nil, ErrProductSetNotFound
-		}
 		return nil, errors.Wrapf(err, "s.model.GetProductSetItems(ctx, productSetID=%q)", productSetID)
 	}
 
-	productSetItems := make([]*ProductSetItem, 0, len(prows))
-	for _, row := range prows {
+	productSetItems := make([]*ProductSetItem, 0, len(rows))
+	for _, row := range rows {
 		productSetItem := ProductSetItem{
 			Object:       "product_set_item",
 			ID:           row.UUID,

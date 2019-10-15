@@ -17,11 +17,12 @@ func (a *App) DeactivateOfferHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeactivateOfferHandler started")
 
 		offerID := chi.URLParam(r, "id")
-		if err := a.Service.DeactivateOffer(ctx, offerID); err != nil {
-			if err == service.ErrOfferNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeOfferNotFound, "offer not found")
-				return
-			}
+		err := a.Service.DeactivateOffer(ctx, offerID)
+		if err == service.ErrOfferNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeOfferNotFound, "offer not found")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.DeactivateOffer(ctx, offerID=%q) failed: %+v", offerID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

@@ -19,17 +19,20 @@ func (a *App) GetPPAssocGroupHandler() http.HandlerFunc {
 
 		ppAssocGroupID := chi.URLParam(r, "id")
 		if !IsValidUUID(ppAssocGroupID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL parameter id must be a valid v4 UUID")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"URL parameter id must be a valid v4 UUID") // 400
 			return
 		}
 		ppAssocGroup, err := a.Service.GetPPAssocGroup(ctx, ppAssocGroupID)
+		if err == service.ErrPPAssocGroupNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePPAssocGroupNotFound,
+				"product to product association group not found") // 404
+			return
+		}
 		if err != nil {
-			if err == service.ErrPPAssocGroupNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePPAssocGroupNotFound, "product to product association group not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetPPAssocGroup(ctx, ppAssocGroupID=%q)", ppAssocGroupID)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(&ppAssocGroup)

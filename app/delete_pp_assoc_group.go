@@ -16,14 +16,16 @@ func (a *App) DeletePPAssocGroupHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeletePPAssocGroupHandler started")
 
 		ppAssocGroupID := chi.URLParam(r, "id")
-		if err := a.Service.DeletePPAssocGroup(ctx, ppAssocGroupID); err != nil {
-			if err == service.ErrPPAssocGroupNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePPAssocGroupNotFound, "product to product associations group not found")
-				return
-			} else if err == service.ErrPPAssocGroupContainsAssocs {
-				clientError(w, http.StatusConflict, ErrPPAssocGroupContainsAssocs, "product to product assocations group contains associations - delete them first")
-				return
-			}
+		err := a.Service.DeletePPAssocGroup(ctx, ppAssocGroupID)
+		if err == service.ErrPPAssocGroupNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePPAssocGroupNotFound, "product to product associations group not found")
+			return
+		}
+		if err == service.ErrPPAssocGroupContainsAssocs {
+			clientError(w, http.StatusConflict, ErrPPAssocGroupContainsAssocs, "product to product assocations group contains associations - delete them first")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.DeletePPAssocGroup(ctx, ppAssocGroupID=%q) failed: %+v", ppAssocGroupID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

@@ -61,17 +61,21 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 		productID := chi.URLParam(r, "id")
 		include := r.URL.Query().Get("include")
 		unaccepted, includeList, err := parseIncludeQueryParam(include, []string{"images", "prices"})
-		if err != nil {
-			if err == ErrIncludeQueryParamParseError {
-				clientError(w, http.StatusBadRequest, ErrCodeIncludeQueryParamParseError, "include query parameter not valid")
-				return
+		if err == ErrIncludeQueryParamParseError {
+			clientError(w, http.StatusBadRequest, ErrCodeIncludeQueryParamParseError,
+				"include query parameter not valid") // 404
+			return
 
-			} else if err == ErrIncludeQueryContainUnacceptedValue {
-				clientError(w, http.StatusBadRequest, ErrCodeIncludeQueryParamParseError, fmt.Sprintf("%s is not an acceptable value for an include in this context", unaccepted))
-				return
-			}
+		}
+		if err == ErrIncludeQueryContainUnacceptedValue {
+			// 404
+			clientError(w, http.StatusBadRequest, ErrCodeIncludeQueryParamParseError,
+				fmt.Sprintf("%s is not an acceptable value for an include in this context", unaccepted))
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: parseIncludeQueryParam(include=%q) error: %+v", include, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
@@ -87,18 +91,20 @@ func (a *App) GetProductHandler() http.HandlerFunc {
 
 		userID := ctx.Value(ecomUIDKey).(string)
 		product, err := a.Service.GetProduct(ctx, userID, productID, includeImages, includePrices)
-		if err != nil {
-			if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			} else if err == service.ErrDefaultPriceListNotFound {
-
-			}
-			contextLogger.Errorf("app: GetProduct(ctx, productID=%q) error: %+v", productID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
 			return
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		if err == service.ErrDefaultPriceListNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "default price list not found")
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app: GetProduct(ctx, productID=%q) error: %+v", productID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(*product)
 	}
 }

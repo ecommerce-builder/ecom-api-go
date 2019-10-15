@@ -19,7 +19,6 @@ func (a *App) StripeWebhookHandler(stripeSigningSecret string) http.HandlerFunc 
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-
 			contextLogger.Errorf("app: failed to read request body: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -75,10 +75,10 @@ func (m *PgModel) GetWebhook(ctx context.Context, webhookUUID string) (*WebhookR
 	`
 	var w WebhookRow
 	err := m.db.QueryRowContext(ctx, q1, webhookUUID).Scan(&w.id, &w.UUID, &w.SigningKey, &w.URL, pq.Array(&w.Events), &w.Enabled, &w.Created, &w.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrWebhookNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrWebhookNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 	return &w, nil
@@ -101,7 +101,7 @@ func (m *PgModel) GetWebhooks(ctx context.Context) ([]*WebhookRow, error) {
 		}
 		webhooks = append(webhooks, &w)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return webhooks, nil
@@ -113,10 +113,10 @@ func (m *PgModel) UpdateWebhook(ctx context.Context, webhookUUID string, url *st
 	q1 := "SELECT id FROM webhook WHERE uuid = $1"
 	var webhookID int
 	err := m.db.QueryRowContext(ctx, q1, webhookUUID).Scan(&webhookID)
+	if err == sql.ErrNoRows {
+		return nil, ErrWebhookNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrWebhookNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -166,10 +166,10 @@ func (m *PgModel) DeleteWebhook(ctx context.Context, webhookUUID string) error {
 	q1 := "SELECT id FROM webhook WHERE uuid = $1"
 	var webhookID int
 	err := m.db.QueryRowContext(ctx, q1, webhookUUID).Scan(&webhookID)
+	if err == sql.ErrNoRows {
+		return ErrWebhookNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrWebhookNotFound
-		}
 		return errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, q1=%q, webhookUUID=%q)", q1, webhookUUID)
 	}
 

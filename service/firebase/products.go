@@ -100,14 +100,16 @@ func (s *Service) CreateProduct(ctx context.Context, userID string, pc *ProductC
 	// 	pricingReq = append(pricingReq, &item)
 	// }
 	p, err := s.model.CreateProduct(ctx, userID, pc.Path, pc.SKU, pc.Name)
+	if err == postgres.ErrPriceListNotFound {
+		return nil, ErrPriceListNotFound
+	}
+	if err == postgres.ErrProductPathExists {
+		return nil, ErrProductPathExists
+	}
+	if err == postgres.ErrProductSKUExists {
+		return nil, ErrProductSKUExists
+	}
 	if err != nil {
-		if err == postgres.ErrPriceListNotFound {
-			return nil, ErrPriceListNotFound
-		} else if err == postgres.ErrProductPathExists {
-			return nil, ErrProductPathExists
-		} else if err == postgres.ErrProductSKUExists {
-			return nil, ErrProductSKUExists
-		}
 		return nil, errors.Wrap(err, "CreateProduct(ctx) failed")
 	}
 	// images := make([]*Image, 0, 4)
@@ -181,14 +183,16 @@ func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *Produ
 		Name: pu.Name,
 	}
 	p, err := s.model.UpdateProduct(ctx, productID, update)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrPriceListNotFound
+	}
+	if err == postgres.ErrProductPathExists {
+		return nil, ErrProductPathExists
+	}
+	if err == postgres.ErrProductSKUExists {
+		return nil, ErrProductSKUExists
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrPriceListNotFound
-		} else if err == postgres.ErrProductPathExists {
-			return nil, ErrProductPathExists
-		} else if err == postgres.ErrProductSKUExists {
-			return nil, ErrProductSKUExists
-		}
 		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%v, ...) failed", productID)
 	}
 	// images := make([]*Image, 0, 4)
@@ -258,10 +262,10 @@ func (s *Service) GetProduct(ctx context.Context, userID, productID string, incl
 	contextLogger := log.WithContext(ctx)
 
 	p, err := s.model.GetProduct(ctx, productID)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		}
 		return nil, errors.Wrapf(err, "model: GetProduct(ctx, productID=%q) failed", productID)
 	}
 
@@ -309,10 +313,10 @@ func (s *Service) GetProduct(ctx context.Context, userID, productID string, incl
 		} else {
 			// Look up the user to determine their price list id
 			usrJoinRow, err := s.model.GetUserByUUID(ctx, userID)
+			if err == postgres.ErrUserNotFound {
+				return nil, ErrUserNotFound
+			}
 			if err != nil {
-				if err == postgres.ErrUserNotFound {
-					return nil, ErrUserNotFound
-				}
 				return nil, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userUUID=%q) failed", userID)
 			}
 			priceListID = usrJoinRow.PriceListUUID
@@ -356,11 +360,11 @@ func (s *Service) ListProducts(ctx context.Context) ([]*Product, error) {
 // DeleteProduct deletes the product with the given UUID.
 func (s *Service) DeleteProduct(ctx context.Context, uuid string) error {
 	err := s.model.DeleteProduct(ctx, uuid)
+	if err == postgres.ErrProductNotFound {
+		return ErrProductNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return ErrProductNotFound
-		}
-		return errors.Wrapf(err, "delete product uuid=%q failed", uuid)
+		return errors.Wrapf(err, "service: delete product uuid=%q failed", uuid)
 	}
 	return nil
 }

@@ -45,10 +45,10 @@ type PriceListCreate struct {
 // CreatePriceList creates a new price list returning the newly created price list.
 func (s *Service) CreatePriceList(ctx context.Context, p *PriceListCreate) (*PriceList, error) {
 	row, err := s.model.CreatePriceList(ctx, p.PriceListCode, p.CurrencyCode, p.Strategy, p.IncTax, p.Name, p.Description)
+	if err == postgres.ErrPriceListCodeExists {
+		return nil, ErrPriceListCodeExists
+	}
 	if err != nil {
-		if err == postgres.ErrPriceListCodeExists {
-			return nil, ErrPriceListCodeExists
-		}
 		return nil, errors.Wrapf(err, "service: s.model.CreatePriceList(ctx, code=%q, name=%q, description=%q) failed", p.PriceListCode, p.Name, p.Description)
 	}
 	priceList := PriceList{
@@ -69,10 +69,10 @@ func (s *Service) CreatePriceList(ctx context.Context, p *PriceListCreate) (*Pri
 // GetPriceList returns a single price list.
 func (s *Service) GetPriceList(ctx context.Context, priceListID string) (*PriceList, error) {
 	row, err := s.model.GetPriceList(ctx, priceListID)
+	if err == postgres.ErrPriceListNotFound {
+		return nil, ErrPriceListNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrPriceListNotFound {
-			return nil, ErrPriceListNotFound
-		}
 		return nil, errors.Wrapf(err, "s.model.GetPriceList(ctx, priceListID=%q)", priceListID)
 	}
 	priceList := PriceList{
@@ -93,11 +93,11 @@ func (s *Service) GetPriceList(ctx context.Context, priceListID string) (*PriceL
 // GetPriceLists returns a list of PriceLists.
 func (s *Service) GetPriceLists(ctx context.Context) ([]*PriceList, error) {
 	rows, err := s.model.GetPriceLists(ctx)
+	if err == postgres.ErrPriceListNotFound {
+		return nil, ErrPriceListNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrPriceListNotFound {
-			return nil, ErrPriceListNotFound
-		}
-		return nil, errors.Wrapf(err, "s.model.GetPriceLists(ctx) failed")
+		return nil, errors.Wrapf(err, "service: s.model.GetPriceLists(ctx) failed")
 	}
 
 	priceLists := make([]*PriceList, 0, len(rows))
@@ -123,12 +123,13 @@ func (s *Service) GetPriceLists(ctx context.Context) ([]*PriceList, error) {
 // and description.
 func (s *Service) UpdatePriceList(ctx context.Context, priceListID string, p *PriceListCreate) (*PriceList, error) {
 	row, err := s.model.UpdatePriceList(ctx, priceListID, p.PriceListCode, p.CurrencyCode, p.Strategy, p.IncTax, p.Name, p.Description)
+	if err == postgres.ErrPriceListNotFound {
+		return nil, ErrPriceListNotFound
+	}
+	if err == postgres.ErrPriceListCodeExists {
+		return nil, ErrPriceListCodeExists
+	}
 	if err != nil {
-		if err == postgres.ErrPriceListNotFound {
-			return nil, ErrPriceListNotFound
-		} else if err == postgres.ErrPriceListCodeExists {
-			return nil, ErrPriceListCodeExists
-		}
 		return nil, errors.Wrapf(err, "service: s.model.UpdatePriceList(ctx, priceListID=%q, code=%q, name=%q, description=%q) failed", priceListID, p.PriceListCode, p.Name, p.Description)
 	}
 	priceList := PriceList{
@@ -149,12 +150,13 @@ func (s *Service) UpdatePriceList(ctx context.Context, priceListID string, p *Pr
 // DeletePriceList deletes a single price list.
 func (s *Service) DeletePriceList(ctx context.Context, priceListID string) error {
 	err := s.model.DeletePriceList(ctx, priceListID)
+	if err == postgres.ErrPriceListNotFound {
+		return ErrPriceListNotFound
+	}
+	if err == postgres.ErrPriceListInUse {
+		return ErrPriceListInUse
+	}
 	if err != nil {
-		if err == postgres.ErrPriceListNotFound {
-			return ErrPriceListNotFound
-		} else if err == postgres.ErrPriceListInUse {
-			return ErrPriceListInUse
-		}
 		return errors.Wrapf(err, "s.model.DeletePriceList(ctx, pricingListID=%q) failed", priceListID)
 	}
 	return nil

@@ -26,22 +26,22 @@ type Offer struct {
 // ActivateOffer creates an offer from a promo rule.
 func (s *Service) ActivateOffer(ctx context.Context, promoRuleID string) (*Offer, error) {
 	prow, err := s.model.AddOffer(ctx, promoRuleID)
+	if err == postgres.ErrPromoRuleNotFound {
+		return nil, ErrPromoRuleNotFound
+	}
+	if err == postgres.ErrOfferExists {
+		return nil, ErrOfferExists
+	}
 	if err != nil {
-		if err == postgres.ErrPromoRuleNotFound {
-			return nil, ErrPromoRuleNotFound
-		} else if err == postgres.ErrOfferExists {
-			return nil, ErrOfferExists
-		}
-		return nil, errors.Wrapf(err, "s.model.AddOffer(ctx, promoRuleUUID=%q) failed", promoRuleID)
+		return nil, errors.Wrapf(err, "service: s.model.AddOffer(ctx, promoRuleUUID=%q) failed", promoRuleID)
 	}
 
 	err = s.model.CalcOfferPrices(ctx)
+	if err == postgres.ErrCategoryNotFound {
+		return nil, ErrCategoryNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrCategoryNotFound {
-			return nil, ErrCategoryNotFound
-		}
-
-		return nil, errors.Wrap(err, "s.model.CalcOfferPrices(ctx) failed")
+		return nil, errors.Wrap(err, "service: s.model.CalcOfferPrices(ctx) failed")
 	}
 
 	offer := Offer{
@@ -57,11 +57,11 @@ func (s *Service) ActivateOffer(ctx context.Context, promoRuleID string) (*Offer
 // GetOffer returns an offer by offer id.
 func (s *Service) GetOffer(ctx context.Context, offerID string) (*Offer, error) {
 	prow, err := s.model.GetOfferByUUID(ctx, offerID)
+	if err == postgres.ErrOfferNotFound {
+		return nil, ErrOfferNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrOfferNotFound {
-			return nil, ErrOfferNotFound
-		}
-		return nil, errors.Wrapf(err, "s.model.GetOfferByUUID(ctx, offerUUID=%q)", offerID)
+		return nil, errors.Wrapf(err, "service: s.model.GetOfferByUUID(ctx, offerUUID=%q)", offerID)
 	}
 
 	offer := Offer{
@@ -78,7 +78,7 @@ func (s *Service) GetOffer(ctx context.Context, offerID string) (*Offer, error) 
 func (s *Service) GetOffers(ctx context.Context) ([]*Offer, error) {
 	rows, err := s.model.GetOffers(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.GetPriceLists(ctx) failed")
+		return nil, errors.Wrapf(err, "service: s.model.GetPriceLists(ctx) failed")
 	}
 
 	offers := make([]*Offer, 0, len(rows))
@@ -98,10 +98,10 @@ func (s *Service) GetOffers(ctx context.Context) ([]*Offer, error) {
 // DeactivateOffer deactivates an existing offer.
 func (s *Service) DeactivateOffer(ctx context.Context, offerID string) error {
 	err := s.model.DeleteOfferByUUID(ctx, offerID)
+	if err == postgres.ErrOfferNotFound {
+		return ErrOfferNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrOfferNotFound {
-			return ErrOfferNotFound
-		}
 		return errors.Wrapf(err, "s.model.DeleteOfferByUUID(ctx, offerUUID=%q)", offerID)
 	}
 	return nil

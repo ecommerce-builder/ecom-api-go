@@ -35,16 +35,17 @@ func (app *App) UpdateProductsCategoriesHandler() http.HandlerFunc {
 		}
 
 		productsCategories, err := app.Service.UpdateProductsCategories(ctx, request.Data)
+		if err == service.ErrProductNotFound {
+			// 404 Not Found
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "one or more product ids cannot be found")
+			return
+		}
+		if err == service.ErrLeafCategoryNotFound {
+			// 404 Not Found
+			clientError(w, http.StatusNotFound, ErrCodeLeafCategoryNotFound, "one or more leaf category ids cannot be found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrProductNotFound {
-				// 404 Not Found
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "one or more product ids cannot be found")
-				return
-			} else if err == service.ErrLeafCategoryNotFound {
-				// 404 Not Found
-				clientError(w, http.StatusNotFound, ErrCodeLeafCategoryNotFound, "one or more leaf category ids cannot be found")
-				return
-			}
 			contextLogger.Errorf("app: UpdateProductsCategories(ctx, %v) error: %+v", request, errors.WithStack(err))
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return

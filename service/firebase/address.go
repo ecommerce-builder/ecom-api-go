@@ -32,10 +32,10 @@ type Address struct {
 // CreateAddress creates a new address for a user
 func (s *Service) CreateAddress(ctx context.Context, userUUID, typ, contactName, addr1 string, addr2 *string, city string, countyCode *string, postcode string, country string) (*Address, error) {
 	a, err := s.model.CreateAddress(ctx, userUUID, typ, contactName, addr1, addr2, city, countyCode, postcode, country)
+	if err == postgres.ErrUserNotFound {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return nil, ErrUserNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.CreateAddress(ctx, userUUID=%q, typ=%q, contactName=%q, addr1=%q, addr2=%v, city=%q, county=%v, postcode=%q, countryCode=%q) failed", userUUID, typ, contactName, addr1, addr2, city, countyCode, postcode, country)
 	}
 
@@ -60,10 +60,10 @@ func (s *Service) CreateAddress(ctx context.Context, userUUID, typ, contactName,
 // GetAddress return a single Address.
 func (s *Service) GetAddress(ctx context.Context, addressID string) (*Address, error) {
 	a, err := s.model.GetAddressByUUID(ctx, addressID)
+	if err == postgres.ErrAddressNotFound {
+		return nil, ErrAddressNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrAddressNotFound {
-			return nil, ErrAddressNotFound
-		}
 		return nil, errors.Wrapf(err, "s.model.GetAddressByUUID(ctx, addressID=%q) failed", addressID)
 	}
 	addr := Address{
@@ -99,10 +99,10 @@ func (s *Service) GetAddresses(ctx context.Context, userID string) ([]*Address, 
 	contextLogger.Infof("service: GetAddresses(ctx, userID=%q) started", userID)
 
 	al, err := s.model.GetAddresses(ctx, userID)
+	if err == postgres.ErrUserNotFound {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return nil, ErrUserNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.GetAddresses(ctx, userID=%q)", userID)
 	}
 
@@ -159,12 +159,11 @@ func (s *Service) PartialUpdateAddress(ctx context.Context, addressID string, ty
 // DeleteAddress deletes an address by ID.
 func (s *Service) DeleteAddress(ctx context.Context, addrUUID string) error {
 	err := s.model.DeleteAddressByUUID(ctx, addrUUID)
-	if err != nil {
-		if err == postgres.ErrAddressNotFound {
-			return ErrAddressNotFound
-		}
-		return err
+	if err == postgres.ErrAddressNotFound {
+		return ErrAddressNotFound
 	}
-
+	if err != nil {
+		return errors.Wrap(err, "service: s.model.DeleteAddressByUUID(ctx, addressUUID=%q) failed")
+	}
 	return nil
 }

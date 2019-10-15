@@ -20,11 +20,12 @@ func (a *App) EmptyCartProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := a.Service.EmptyCartProducts(ctx, cartID); err != nil {
-			if err == service.ErrCartNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
-				return
-			}
+		err := a.Service.EmptyCartProducts(ctx, cartID)
+		if err == service.ErrCartNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: EmptyCartProducts(ctx, cartID=%q) error: %v", cartID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

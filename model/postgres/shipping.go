@@ -38,7 +38,7 @@ func (m *PgModel) CreateShippingTariff(ctx context.Context, countryCode, shippin
 	var exists bool
 	err := m.db.QueryRowContext(ctx, q1, shippingCode).Scan(&exists)
 	if err != nil {
-		return nil, errors.Wrapf(err, "model: tx.QueryRowContext(ctx, q2=%q, shippingCode=%q)", q1, shippingCode)
+		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q2=%q, shippingCode=%q)", q1, shippingCode)
 	}
 	if exists {
 		return nil, ErrShippingTariffCodeExists
@@ -65,16 +65,20 @@ func (m *PgModel) CreateShippingTariff(ctx context.Context, countryCode, shippin
 // GetShippingTariffByUUID return a single ShippingTariffRow by uuid.
 func (m *PgModel) GetShippingTariffByUUID(ctx context.Context, shippingTariffUUID string) (*ShippingTariffRow, error) {
 	q1 := `
-		SELECT id, uuid, country_code, shipping_code, name, price, tax_code, created, modified
+		SELECT
+		  id, uuid, country_code, shipping_code, name, price, tax_code,
+		  created, modified
 		FROM shipping_tariff
 		WHERE uuid = $1
 	`
 	s := ShippingTariffRow{}
 	row := m.db.QueryRowContext(ctx, q1, shippingTariffUUID)
-	if err := row.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price, &s.TaxCode, &s.Created, &s.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrShippingTariffNotFound
-		}
+	err := row.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price,
+		&s.TaxCode, &s.Created, &s.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrShippingTariffNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: query scan shippingTariffUUID=%q q1=%q failed", shippingTariffUUID, q1)
 	}
 	return &s, nil
@@ -96,10 +100,11 @@ func (m *PgModel) GetShippingTariffs(ctx context.Context) ([]*ShippingTariffRow,
 	tariffs := make([]*ShippingTariffRow, 0, 4)
 	for rows.Next() {
 		var s ShippingTariffRow
-		if err = rows.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price, &s.TaxCode, &s.Created, &s.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrShippingTariffNotFound
-			}
+		err = rows.Scan(&s.id, &s.UUID, &s.CountryCode, &s.ShippingCode, &s.Name, &s.Price, &s.TaxCode, &s.Created, &s.Modified)
+		if err == sql.ErrNoRows {
+			return nil, ErrShippingTariffNotFound
+		}
+		if err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		tariffs = append(tariffs, &s)
@@ -120,11 +125,11 @@ func (m *PgModel) UpdateShippingTariff(ctx context.Context, shoppingTariffUUID, 
 	q1 := "SELECT id FROM shipping_tariff WHERE uuid = $1"
 	var shippingTariffID int
 	err = tx.QueryRowContext(ctx, q1, shoppingTariffUUID).Scan(&shippingTariffID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrShippingTariffNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrShippingTariffNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -136,7 +141,9 @@ func (m *PgModel) UpdateShippingTariff(ctx context.Context, shoppingTariffUUID, 
 	var exists bool
 	err = tx.QueryRowContext(ctx, q2, shippingCode, shippingTariffID).Scan(&exists)
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q2=%q, shippingCode=%q)", q2, shippingCode)
+		return nil, errors.Wrapf(err,
+			"postgres: tx.QueryRowContext(ctx, q2=%q, shippingCode=%q)",
+			q2, shippingCode)
 	}
 	if exists {
 		return nil, ErrShippingTariffCodeExists
@@ -156,7 +163,7 @@ func (m *PgModel) UpdateShippingTariff(ctx context.Context, shoppingTariffUUID, 
 		return nil, errors.Wrapf(err, "postgres: query row context q3=%q", q3)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
 	}
 	return &s, nil
@@ -173,13 +180,12 @@ func (m *PgModel) DeleteShippingTariffByUUID(ctx context.Context, shippingTariff
 	q1 := "SELECT id FROM shipping_tariff WHERE uuid = $1"
 	var shippingTariffID int
 	err = tx.QueryRowContext(ctx, q1, shippingTariffUUID).Scan(&shippingTariffID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrShippingTariffNotFound
-		}
+	if err == sql.ErrNoRows {
 		tx.Rollback()
-
+		return ErrShippingTariffNotFound
+	}
+	if err != nil {
+		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -190,7 +196,7 @@ func (m *PgModel) DeleteShippingTariffByUUID(ctx context.Context, shippingTariff
 		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil

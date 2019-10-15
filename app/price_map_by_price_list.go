@@ -19,11 +19,11 @@ func (a *App) PricingMapByTierHandler() http.HandlerFunc {
 
 		priceListID := chi.URLParam(r, "id")
 		pmap, err := a.Service.PriceMapByPriceList(ctx, priceListID)
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if err != nil {
-			if err == sql.ErrNoRows {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
 			contextLogger.Errorf("app: a.Service.PriceMapByPriceList(ctx, priceListID=%q) error: %+v", priceListID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

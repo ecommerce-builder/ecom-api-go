@@ -16,11 +16,12 @@ func (a *App) DeleteProductHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeleteProductHandler started")
 
 		productID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteProduct(ctx, productID); err != nil {
-			if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			}
+		err := a.Service.DeleteProduct(ctx, productID)
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app DeleteProduct(ctx, productID=%q) failed: %+v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

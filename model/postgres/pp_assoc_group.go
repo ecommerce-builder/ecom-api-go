@@ -63,10 +63,11 @@ func (m *PgModel) GetPPAssocGroup(ctx context.Context, ppAssocGroupID string) (*
 	`
 	p := PPAssocGroupRow{}
 	row := m.db.QueryRowContext(ctx, q1, ppAssocGroupID)
-	if err := row.Scan(&p.id, &p.UUID, &p.Code, &p.Name, &p.Created, &p.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrPPAssocGroupNotFound
-		}
+	err := row.Scan(&p.id, &p.UUID, &p.Code, &p.Name, &p.Created, &p.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrPPAssocGroupNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: scan failed q1=%q ppAssocGroupID=%q", q1, ppAssocGroupID)
 	}
 	return &p, nil
@@ -89,7 +90,7 @@ func (m *PgModel) GetPPAssocGroups(ctx context.Context) ([]*PPAssocGroupRow, err
 		}
 		ppAssocGroups = append(ppAssocGroups, &p)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return ppAssocGroups, nil
@@ -106,11 +107,11 @@ func (m *PgModel) DeletePPAssocGroup(ctx context.Context, ppAssocGroupUUID strin
 	q1 := "SELECT id FROM pp_assoc_group WHERE uuid = $1"
 	var ppAssocGroupID int
 	err = tx.QueryRowContext(ctx, q1, ppAssocGroupUUID).Scan(&ppAssocGroupID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrPPAssocGroupNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrPPAssocGroupNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postges: query row context failed for q1=%q", q1)
 	}
@@ -136,7 +137,7 @@ func (m *PgModel) DeletePPAssocGroup(ctx context.Context, ppAssocGroupUUID strin
 		return errors.Wrapf(err, "postgres: exec context query=%q", q3)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil

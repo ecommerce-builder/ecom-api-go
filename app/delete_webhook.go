@@ -17,16 +17,18 @@ func (a *App) DeleteWebhookHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeleteWebhookHandler started")
 
 		webhookID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteWebhook(ctx, webhookID); err != nil {
-			if err == service.ErrWebhookNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound, "webhook not found")
-				return
-			}
+		err := a.Service.DeleteWebhook(ctx, webhookID)
+		if err == service.ErrWebhookNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound,
+				"webhook not found") // 404
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.DeleteWebhook(ctx, webhookID=%q) error: %+v", webhookID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) //
 			return
 		}
 		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
+		w.WriteHeader(http.StatusNoContent) // 204
 	}
 }

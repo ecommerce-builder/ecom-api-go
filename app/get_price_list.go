@@ -19,15 +19,17 @@ func (a *App) GetPriceListHandler() http.HandlerFunc {
 
 		priceListID := chi.URLParam(r, "id")
 		priceList, err := a.Service.GetPriceList(ctx, priceListID)
-		if err != nil {
-			if err == service.ErrPriceListNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePriceListCodeExists, "price_list_id not found")
-				return
-			}
-			contextLogger.Errorf("app: a.Service.GetPriceList(ctx, priceListID=%q)", priceListID)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		if err == service.ErrPriceListNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePriceListCodeExists,
+				"price_list_id not found") // 404
+			return
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.GetPriceList(ctx, priceListID=%q)", priceListID)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(priceList)
 	}
 }

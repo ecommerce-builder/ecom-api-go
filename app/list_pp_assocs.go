@@ -35,14 +35,15 @@ func (a *App) ListPPAssocsHandler() http.HandlerFunc {
 		}
 
 		ppAssocs, err := a.Service.GetPPAssocs(ctx, ppAssocGroupID, productFromID)
+		if err == service.ErrPPAssocGroupNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePPAssocGroupNotFound, "product to product association group not found")
+			return
+		}
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product_from_id product not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrPPAssocGroupNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePPAssocGroupNotFound, "product to product association group not found")
-				return
-			} else if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product_from_id product not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetPPAssocs(ctx) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

@@ -34,10 +34,10 @@ func (s *Service) GenerateUserDevKey(ctx context.Context, userID string) (*Devel
 	}
 
 	ak, err := s.model.CreateUserDevKey(ctx, userID, base58.Encode(data))
+	if err == postgres.ErrUserNotFound {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return nil, ErrUserNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.CreateUserDevKey(ctx, userID=%q, ...)", userID)
 	}
 
@@ -54,10 +54,10 @@ func (s *Service) GenerateUserDevKey(ctx context.Context, userID string) (*Devel
 // GetUserDevKey returns a UserDevKey for the user with the given ID.
 func (s *Service) GetUserDevKey(ctx context.Context, id string) (*DeveloperKey, error) {
 	ak, err := s.model.GetUserDevKey(ctx, id)
+	if err == sql.ErrNoRows {
+		return nil, err
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, err
-		}
 		return nil, err
 	}
 	return &DeveloperKey{
@@ -73,10 +73,10 @@ func (s *Service) GetUserDevKey(ctx context.Context, id string) (*DeveloperKey, 
 // ListUsersDevKeys gets all API Keys for a user.
 func (s *Service) ListUsersDevKeys(ctx context.Context, userUUID string) ([]*DeveloperKey, error) {
 	rows, err := s.model.GetUserDevKeys(ctx, userUUID)
+	if err == postgres.ErrUserNotFound {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return nil, ErrUserNotFound
-		}
 		return nil, err
 	}
 	apiKeys := make([]*DeveloperKey, 0, len(rows))
@@ -97,18 +97,17 @@ func (s *Service) ListUsersDevKeys(ctx context.Context, userUUID string) ([]*Dev
 // SignInWithDevKey checks the apiKey hash using bcrypt.
 func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken string, user *User, err error) {
 	ak, err := s.model.GetUserDevKeyByDevKey(ctx, key)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// if no key matches create a dummy apiKey struct
-			// to ensure the compare hash happens. This mitigates against
-			// timing attacks.
-			ak = &postgres.UsrDevKeyJoinRow{
-				Key:  "none",
-				Hash: "$2a$14$dRgjB9nBHoCs5txdVgN2EeVopE8rfZ7gLJNpLxw9GYq.u53FD00ny", // "nomatch"
-			}
-		} else {
-			return "", nil, errors.Wrap(err, "s.model.GetUserDevKeyByDevKey(ctx, key)")
+	if err == sql.ErrNoRows {
+		// if no key matches create a dummy apiKey struct
+		// to ensure the compare hash happens. This mitigates against
+		// timing attacks.
+		ak = &postgres.UsrDevKeyJoinRow{
+			Key:  "none",
+			Hash: "$2a$14$dRgjB9nBHoCs5txdVgN2EeVopE8rfZ7gLJNpLxw9GYq.u53FD00ny", // "nomatch"
 		}
+	}
+	if err != nil {
+		return "", nil, errors.Wrap(err, "service: s.model.GetUserDevKeyByDevKey(ctx, key)")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(ak.Hash), []byte(ak.Key))
@@ -151,10 +150,10 @@ func (s *Service) SignInWithDevKey(ctx context.Context, key string) (customToken
 // DeleteDeveloperKey deletes the developer key with the given id.
 func (s *Service) DeleteDeveloperKey(ctx context.Context, developerKeyID string) error {
 	err := s.model.DeleteUsrDevKey(ctx, developerKeyID)
+	if err == postgres.ErrDeveloperKeyNotFound {
+		return ErrDeveloperKeyNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrDeveloperKeyNotFound {
-			return ErrDeveloperKeyNotFound
-		}
 		return errors.Wrapf(err, "service: s.model.DeleteUsrDevKey(ctx, usrDevKeyUUID=%q) failed", developerKeyID)
 	}
 	return nil

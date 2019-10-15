@@ -36,7 +36,7 @@ func (app *App) GetProductsCategoriesHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK) // 200 OK
 		if err = json.NewEncoder(w).Encode(&list); err != nil {
 			contextLogger.Errorf("app: json encode failed with error: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 	}

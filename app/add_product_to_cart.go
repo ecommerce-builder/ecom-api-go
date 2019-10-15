@@ -65,33 +65,37 @@ func (a *App) AddProductToCartHandler() http.HandlerFunc {
 
 		userID := ctx.Value(ecomUIDKey).(string)
 		product, err := a.Service.AddProductToCart(ctx, userID, *request.CartID, *request.ProductID, *request.Qty)
+		if err == service.ErrCartNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
+			return
+		}
+		if err == service.ErrUserNotFound {
+			// 409 Conflict
+			clientError(w, http.StatusConflict, ErrCodeUserNotFound, "The userID inside the JWT did not match any user in the system")
+			return
+		}
+		if err == service.ErrProductNotFound {
+			// 409 Conflict
+			clientError(w, http.StatusConflict, ErrCodeProductNotFound, "failed to add product with given id to the cart as the product cannot be found")
+			return
+		}
+		if err == service.ErrDefaultPriceListNotFound {
+			// 500 Internal Server Error
+			contextLogger.Error("ErrDefaultPriceListNotFound")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if err == service.ErrCartProductExists {
+			// 409 Conflict
+			clientError(w, http.StatusConflict, ErrCodeCartProductExists, "cart product already in the cart")
+			return
+		}
+		if err == service.ErrProductHasNoPrices {
+			// 409 Conflict
+			clientError(w, http.StatusConflict, ErrCodeProductHasNoPrices, "can not add to cart as the product prices have not been set")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCartNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
-				return
-			} else if err == service.ErrUserNotFound {
-				// 409 Conflict
-				clientError(w, http.StatusConflict, ErrCodeUserNotFound, "The userID inside the JWT did not match any user in the system")
-				return
-			} else if err == service.ErrProductNotFound {
-				// 409 Conflict
-				clientError(w, http.StatusConflict, ErrCodeProductNotFound, "failed to add product with given id to the cart as the product cannot be found")
-				return
-			} else if err == service.ErrDefaultPriceListNotFound {
-				// 500 Internal Server Error
-				contextLogger.Error("ErrDefaultPriceListNotFound")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			} else if err == service.ErrCartProductExists {
-				// 409 Conflict
-				clientError(w, http.StatusConflict, ErrCodeCartProductExists, "cart product already in the cart")
-				return
-			} else if err == service.ErrProductHasNoPrices {
-				// 409 Conflict
-				clientError(w, http.StatusConflict, ErrCodeProductHasNoPrices, "can not add to cart as the product prices have not been set")
-				return
-			}
-
 			contextLogger.Errorf("service AddProductToCart(cartID=%q, productUD=%q, qty=%d) failed with error: %+v", *request.CartID, *request.ProductID, *request.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

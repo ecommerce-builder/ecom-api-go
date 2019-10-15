@@ -46,15 +46,16 @@ func (a *App) ActivateOfferHandler() http.HandlerFunc {
 		}
 
 		priceList, err := a.Service.ActivateOffer(ctx, request.PromoRuleID)
+		if err == service.ErrPromoRuleNotFound {
+			clientError(w, http.StatusConflict, ErrCodePromoRuleNotFound, "promo rule not found")
+			return
+		}
+		if err == service.ErrOfferExists {
+			contextLogger.Infof("app: offer promo rule %q has already been activated - no action taken", request.PromoRuleID)
+			clientError(w, http.StatusConflict, ErrCodeOfferExists, "offer has already been activated")
+			return
+		}
 		if err != nil {
-			if err == service.ErrPromoRuleNotFound {
-				clientError(w, http.StatusConflict, ErrCodePromoRuleNotFound, "promo rule not found")
-				return
-			} else if err == service.ErrOfferExists {
-				contextLogger.Infof("app: offer promo rule %q has already been activated - no action taken", request.PromoRuleID)
-				clientError(w, http.StatusConflict, ErrCodeOfferExists, "offer has already been activated")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.ActivateOffer(ctx, promoRuleID=%q) failed: %+v", request.PromoRuleID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

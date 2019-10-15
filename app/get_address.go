@@ -28,12 +28,12 @@ func (app *App) GetAddressHandler() http.HandlerFunc {
 		}
 
 		addr, err := app.Service.GetAddress(ctx, addressID)
+		if err == service.ErrAddressNotFound {
+			contextLogger.Warnf("app: address %q not found: %v", addressID, err)
+			clientError(w, http.StatusNotFound, ErrCodeAddressNotFound, "address not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrAddressNotFound {
-				contextLogger.Warnf("app: address %q not found: %v", addressID, err)
-				clientError(w, http.StatusNotFound, ErrCodeAddressNotFound, "address not found")
-				return
-			}
 			contextLogger.Errorf("app: failed to get address: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

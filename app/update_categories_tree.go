@@ -26,11 +26,12 @@ func (a *App) UpdateCategoriesTreeHandler() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		if err := a.Service.UpdateCatalog(ctx, &catRequest); err != nil {
-			if err == firebase.ErrAssocsAlreadyExist {
-				clientError(w, http.StatusConflict, ErrCodeAssocsExist, fmt.Sprintf("product to category relations already exist"))
-				return
-			}
+		err := a.Service.UpdateCatalog(ctx, &catRequest)
+		if err == firebase.ErrAssocsAlreadyExist {
+			clientError(w, http.StatusConflict, ErrCodeAssocsExist, fmt.Sprintf("product to category relations already exist"))
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: UpdateCatalog(ctx, cats) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

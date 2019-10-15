@@ -39,14 +39,16 @@ func (s *Service) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupID, prod
 	for _, p := range productToSet {
 		products = append(products, p.ProductID)
 	}
-	contextLogger.Debugf("postgres: product ids in the to set %v", products)
+	contextLogger.Debugf("service: product ids in the to set %v", products)
 
-	if err := s.model.BatchUpdatePPAssocs(ctx, ppAssocsGroupID, productFrom, products); err != nil {
-		if err == postgres.ErrPPAssocGroupNotFound {
-			return ErrPPAssocGroupNotFound
-		} else if err == postgres.ErrProductNotFound {
-			return ErrProductNotFound
-		}
+	err := s.model.BatchUpdatePPAssocs(ctx, ppAssocsGroupID, productFrom, products)
+	if err == postgres.ErrPPAssocGroupNotFound {
+		return ErrPPAssocGroupNotFound
+	}
+	if err == postgres.ErrProductNotFound {
+		return ErrProductNotFound
+	}
+	if err != nil {
 		return errors.Wrapf(err, "service: s.model.BatchUpdatePPAssocs(ctx, ppAssocsGroupID=%q, productFrom=%q, products=%v)", ppAssocsGroupID, productFrom, products)
 	}
 	return nil
@@ -58,10 +60,10 @@ func (s *Service) GetPPAssoc(ctx context.Context, ppAssocID string) (*PPAssoc, e
 	contextLogger.Debugf("service: GetPPAssoc(ctx, ppAssocID=%q) started", ppAssocID)
 
 	prow, err := s.model.GetPPAssoc(ctx, ppAssocID)
+	if err == postgres.ErrPPAssocNotFound {
+		return nil, ErrPPAssocNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrPPAssocNotFound {
-			return nil, ErrPPAssocNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.GetPPAssoc(ctx, ppAssocUUID=%q) failed", ppAssocID)
 	}
 	ppAssoc := PPAssoc{
@@ -82,12 +84,13 @@ func (s *Service) GetPPAssocs(ctx context.Context, ppAssocGroupID, productFromID
 	contextLogger.Infof("service: GetPPAssocs(ctx, ppAssocGroupID=%q, productFromID=%q) started", ppAssocGroupID, productFromID)
 
 	prows, err := s.model.GetPPAssocs(ctx, ppAssocGroupID, productFromID)
+	if err == postgres.ErrPPAssocGroupNotFound {
+		return nil, ErrPPAssocGroupNotFound
+	}
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrPPAssocGroupNotFound {
-			return nil, ErrPPAssocGroupNotFound
-		} else if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.GetPPAssocs(ctx) failed")
 	}
 
@@ -112,11 +115,12 @@ func (s *Service) DeletePPAssoc(ctx context.Context, ppAssocID string) error {
 	contextLogger := log.WithContext(ctx)
 	contextLogger.Infof("service: DeletePPAssoc(ctx, ppAssocID=%q) started", ppAssocID)
 
-	if err := s.model.DeletePPAssoc(ctx, ppAssocID); err != nil {
-		if err == postgres.ErrPPAssocNotFound {
-			return ErrPPAssocNotFound
-		}
-		return errors.Wrapf(err, "s.model.DeletePPAssoc(ctx, ppAssocUUID=%q) failed", ppAssocID)
+	err := s.model.DeletePPAssoc(ctx, ppAssocID)
+	if err == postgres.ErrPPAssocNotFound {
+		return ErrPPAssocNotFound
+	}
+	if err != nil {
+		return errors.Wrapf(err, "service: s.model.DeletePPAssoc(ctx, ppAssocUUID=%q) failed", ppAssocID)
 	}
 	return nil
 }

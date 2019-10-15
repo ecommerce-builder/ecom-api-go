@@ -48,10 +48,10 @@ func (m *PgModel) CreateAddress(ctx context.Context, usrUUID, typ, contactName, 
 	q1 := "SELECT id FROM usr WHERE uuid = $1"
 	var usrID int
 	err := m.db.QueryRowContext(ctx, q1, usrUUID).Scan(&usrID)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
 	}
 
@@ -82,10 +82,10 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, addressUUID string) (*Ad
 	q1 := "SELECT id FROM address WHERE uuid = $1"
 	var addressID int
 	err := m.db.QueryRowContext(ctx, q1, addressUUID).Scan(&addressID)
+	if err == sql.ErrNoRows {
+		return nil, ErrAddressNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrAddressNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
 	}
 
@@ -100,11 +100,12 @@ func (m *PgModel) GetAddressByUUID(ctx context.Context, addressUUID string) (*Ad
 		WHERE a.id = $1
 	`
 	row := m.db.QueryRowContext(ctx, query, addressID)
-	if err := row.Scan(&a.id, &a.UUID, &a.usrID, &a.UsrUUID, &a.Typ, &a.ContactName, &a.Addr1,
-		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.CountryCode, &a.Created, &a.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrAddressNotFound
-		}
+	err = row.Scan(&a.id, &a.UUID, &a.usrID, &a.UsrUUID, &a.Typ, &a.ContactName, &a.Addr1,
+		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.CountryCode, &a.Created, &a.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrAddressNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q", query)
 	}
 	return &a, nil
@@ -134,10 +135,10 @@ func (m *PgModel) GetAddresses(ctx context.Context, usrUUID string) ([]*AddressJ
 	q1 := "SELECT id FROM usr WHERE uuid = $1"
 	var usrID int
 	err := m.db.QueryRowContext(ctx, q1, usrUUID).Scan(&usrID)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
 	}
 
@@ -159,7 +160,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, usrUUID string) ([]*AddressJ
 
 	for rows.Next() {
 		var a AddressJoinRow
-		if err = rows.Scan(&a.id, &a.UUID, &a.usrID, &a.Typ, &a.ContactName, &a.Addr1,
+		if err := rows.Scan(&a.id, &a.UUID, &a.usrID, &a.Typ, &a.ContactName, &a.Addr1,
 			&a.Addr2, &a.City, &a.County, &a.Postcode, &a.CountryCode, &a.Created, &a.Modified); err != nil {
 			return nil, errors.Wrapf(err, "postgres: rows scan q2=%q", q2)
 		}
@@ -167,7 +168,7 @@ func (m *PgModel) GetAddresses(ctx context.Context, usrUUID string) ([]*AddressJ
 		addresses = append(addresses, &a)
 	}
 
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows err")
 	}
 	return addresses, nil

@@ -61,28 +61,33 @@ func (a *App) ApplyCartCouponHandler() http.HandlerFunc {
 		}
 
 		coupon, err := a.Service.ApplyCouponToCart(ctx, *request.CartID, *request.CouponID)
+		if err == service.ErrCartNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
+		}
+		if err == service.ErrCouponNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
+			return
+		}
+		if err == service.ErrCartCouponExists {
+			clientError(w, http.StatusConflict, ErrCodeCartCouponExists, "coupon already in cart")
+			return
+		}
+		if err == service.ErrCouponNotAtStartDate {
+			clientError(w, http.StatusConflict, ErrCodeCouponNotAtStartDate, "coupon promotion date has not started")
+		}
+		if err == service.ErrCouponExpired {
+			clientError(w, http.StatusConflict, ErrCodeCouponExpired, "coupon expired")
+			return
+		}
+		if err == service.ErrCouponVoid {
+			clientError(w, http.StatusConflict, ErrCodeCouponVoid, "coupon void")
+			return
+		}
+		if err == service.ErrCouponUsed {
+			clientError(w, http.StatusConflict, ErrCodeCouponUsed, "coupon has already been used")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCartNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
-			} else if err == service.ErrCouponNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
-				return
-			} else if err == service.ErrCartCouponExists {
-				clientError(w, http.StatusConflict, ErrCodeCartCouponExists, "coupon already in cart")
-				return
-			} else if err == service.ErrCouponNotAtStartDate {
-				clientError(w, http.StatusConflict, ErrCodeCouponNotAtStartDate, "coupon promotion date has not started")
-			} else if err == service.ErrCouponExpired {
-				clientError(w, http.StatusConflict, ErrCodeCouponExpired, "coupon expired")
-				return
-			} else if err == service.ErrCouponVoid {
-				clientError(w, http.StatusConflict, ErrCodeCouponVoid, "coupon void")
-				return
-			} else if err == service.ErrCouponUsed {
-				clientError(w, http.StatusConflict, ErrCodeCouponUsed, "coupon has already been used")
-				return
-			}
-
 			contextLogger.Errorf("app: a.Service.ApplyCouponToCart(ctx, crtID=%q, couponID=%q) failed: %+v", *request.CartID, *request.CouponID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

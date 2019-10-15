@@ -16,14 +16,19 @@ func (a *App) DeleteUserDevKeyHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeleteUserDevKeyHandler started")
 
 		developerKeyID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteDeveloperKey(ctx, developerKeyID); err != nil {
-			if err == service.ErrDeveloperKeyNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeDeveloperKeyNotFound, "developer key not found")
-				return
-			}
+		err := a.Service.DeleteDeveloperKey(ctx, developerKeyID)
+		if err == service.ErrDeveloperKeyNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeDeveloperKeyNotFound,
+				"developer key not found") // 404
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.DeleteDeveloperKey(ctx, developerKeyID=%q) failed: %+v", developerKeyID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
 		}
 		contextLogger.Infof("app: Developer Key %s deleted", developerKeyID)
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
+		w.WriteHeader(http.StatusNoContent) // 204
 		return
 	}
 }

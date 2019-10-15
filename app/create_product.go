@@ -49,17 +49,19 @@ func (a *App) CreateProductHandler() http.HandlerFunc {
 		userID := ctx.Value(ecomUIDKey).(string)
 		contextLogger.Debugf("app: ecom_uid=%q", userID)
 		product, err := a.Service.CreateProduct(ctx, userID, &request)
+		if err == service.ErrPriceListNotFound {
+			clientError(w, http.StatusConflict, ErrCodePriceListNotFound, "price list could not be found")
+			return
+		}
+		if err == service.ErrProductPathExists {
+			clientError(w, http.StatusConflict, ErrCodeProductPathExists, "product path already exists")
+			return
+		}
+		if err == service.ErrProductSKUExists {
+			clientError(w, http.StatusConflict, ErrCodeProductSKUExists, "product sku already exists")
+			return
+		}
 		if err != nil {
-			if err == service.ErrPriceListNotFound {
-				clientError(w, http.StatusConflict, ErrCodePriceListNotFound, "price list could not be found")
-				return
-			} else if err == service.ErrProductPathExists {
-				clientError(w, http.StatusConflict, ErrCodeProductPathExists, "product path already exists")
-				return
-			} else if err == service.ErrProductSKUExists {
-				clientError(w, http.StatusConflict, ErrCodeProductSKUExists, "product sku already exists")
-				return
-			}
 			contextLogger.Errorf("create product failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

@@ -50,11 +50,12 @@ func (m *PgModel) GetInventoryByUUID(ctx context.Context, inventoryUUID string) 
 	`
 	row := m.db.QueryRowContext(ctx, q1, inventoryUUID)
 	var v InventoryJoinRow
-	if err := row.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID,
-		&v.ProductPath, &v.ProductSKU, &v.Onhand, &v.Overselling, &v.Created, &v.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrInventoryNotFound
-		}
+	err := row.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID,
+		&v.ProductPath, &v.ProductSKU, &v.Onhand, &v.Overselling, &v.Created, &v.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrInventoryNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrap(err, "postgres: scan failed")
 	}
 	return &v, nil
@@ -76,10 +77,10 @@ func (m *PgModel) GetInventoryByProductUUID(ctx context.Context, productUUID str
 	err := m.db.QueryRowContext(ctx, q1, productUUID).Scan(&v.id, &v.UUID, &v.productID,
 		&v.ProductUUID, &v.ProductPath, &v.ProductSKU, &v.Onhand,
 		&v.Overselling, &v.Created, &v.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrProductNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 	return &v, nil
@@ -105,11 +106,12 @@ func (m *PgModel) GetAllInventory(ctx context.Context) ([]*InventoryJoinRow, err
 	list := make([]*InventoryJoinRow, 0, 128)
 	for rows.Next() {
 		var v InventoryJoinRow
-		if err = rows.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID, &v.ProductPath,
-			&v.ProductSKU, &v.Onhand, &v.Overselling, &v.Created, &v.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrInventoryNotFound
-			}
+		err = rows.Scan(&v.id, &v.UUID, &v.productID, &v.ProductUUID, &v.ProductPath,
+			&v.ProductSKU, &v.Onhand, &v.Overselling, &v.Created, &v.Modified)
+		if err == sql.ErrNoRows {
+			return nil, ErrInventoryNotFound
+		}
+		if err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		list = append(list, &v)
@@ -184,7 +186,7 @@ func (m *PgModel) UpdateInventoryByUUID(ctx context.Context, inventoryUUID strin
 		return nil, errors.Wrapf(err, "postgres: scan failed")
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
 	}
 	return &v, nil
@@ -224,7 +226,7 @@ func (m *PgModel) BatchUpdateInventory(ctx context.Context, inventoryList []*Inv
 		}
 		productMap[p.uuid] = &p
 	}
-	if err = rows1.Err(); err != nil {
+	if err := rows1.Err(); err != nil {
 		return nil, errors.Wrapf(err, "postgres: rows.Err()")
 	}
 
@@ -255,12 +257,13 @@ func (m *PgModel) BatchUpdateInventory(ctx context.Context, inventoryList []*Inv
 		product := productMap[i.ProductUUID]
 
 		v := InventoryJoinRow{}
-		if err := stmt2.QueryRowContext(ctx, i.Onhand, product.id).Scan(&v.id, &v.UUID, &v.productID,
-			&v.Onhand, &v.Overselling, &v.Created, &v.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				tx.Rollback()
-				return nil, ErrProductCategoryNotFound
-			}
+		err := stmt2.QueryRowContext(ctx, i.Onhand, product.id).Scan(&v.id, &v.UUID, &v.productID,
+			&v.Onhand, &v.Overselling, &v.Created, &v.Modified)
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductCategoryNotFound
+		}
+		if err != nil {
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: stmt2.QueryRowContext(ctx, ...) failed q2%q", q2)
 		}
@@ -271,7 +274,7 @@ func (m *PgModel) BatchUpdateInventory(ctx context.Context, inventoryList []*Inv
 		inventoryResults = append(inventoryResults, &v)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
 	}
 	return inventoryResults, nil

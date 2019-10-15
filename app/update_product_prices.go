@@ -37,14 +37,15 @@ func (a *App) UpdateProductPricesHandler() http.HandlerFunc {
 		}
 
 		prices, err := a.Service.UpdateProductPrices(ctx, productID, priceListID, request.Data)
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
+			return
+		}
+		if err == service.ErrPriceListNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			} else if err == service.ErrPriceListNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
-				return
-			}
 			contextLogger.Errorf("app: UpdateProductPrices(ctx, productID=%q, priceListID=%q, request=%v) failed: %+v", productID, priceListID, request, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

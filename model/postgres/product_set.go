@@ -39,10 +39,10 @@ func (m *PgModel) GetProductSetItems(ctx context.Context, productSetUUID string)
 	q1 := "SELECT id FROM product_set WHERE uuid = $1"
 	var productSetID int
 	err := m.db.QueryRowContext(ctx, q1, productSetUUID).Scan(&productSetID)
+	if err == sql.ErrNoRows {
+		return nil, ErrProductSetNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrProductSetNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -73,7 +73,7 @@ func (m *PgModel) GetProductSetItems(ctx context.Context, productSetUUID string)
 		p.ProductSetUUID = productSetUUID
 		productSetItems = append(productSetItems, &p)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 

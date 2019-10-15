@@ -23,13 +23,14 @@ func (a *App) GetPromoRuleHandler() http.HandlerFunc {
 			return
 		}
 		promoRule, err := a.Service.GetPromoRule(ctx, promoRuleID)
+		if err == service.ErrPromoRuleNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrPromoRuleNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetPromoRule(ctx, promoRuleID=%q)", promoRuleID)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
 		json.NewEncoder(w).Encode(&promoRule)

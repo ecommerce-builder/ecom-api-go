@@ -19,15 +19,17 @@ func (a *App) GetProductCategoryHandler() http.HandlerFunc {
 
 		productCategoryID := chi.URLParam(r, "id")
 		productCategory, err := a.Service.GetProductCategory(ctx, productCategoryID)
-		if err != nil {
-			if err == service.ErrProductCategoryNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductCategoryNotFound, "product to category association not found")
-				return
-			}
-			contextLogger.Errorf("app: a.Service.GetProductCategory(ctx, productCategoryID=%q)", productCategoryID)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		if err == service.ErrProductCategoryNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductCategoryNotFound,
+				"product to category association not found") // 404
+			return
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.GetProductCategory(ctx, productCategoryID=%q)", productCategoryID)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&productCategory)
 	}
 }

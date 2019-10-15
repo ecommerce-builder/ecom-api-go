@@ -30,12 +30,12 @@ func (a *App) UpdateCartProductHandler() http.HandlerFunc {
 
 		userID := ctx.Value(ecomUIDKey).(string)
 		product, err := a.Service.UpdateCartProduct(ctx, userID, cartProductID, request.Qty)
+		if err == service.ErrCartProductNotFound {
+			contextLogger.Debugf("app: Cart Product (cartProductID=%q) not found", cartProductID)
+			clientError(w, http.StatusNotFound, ErrCodeCartProductNotFound, "cart product not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCartProductNotFound {
-				contextLogger.Debugf("app: Cart Product (cartProductID=%q) not found", cartProductID)
-				clientError(w, http.StatusNotFound, ErrCodeCartProductNotFound, "cart product not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.UpdateCartProduct(ctx, cartProductID=%q, request.Qty=%d) error: %v", cartProductID, request.Qty, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

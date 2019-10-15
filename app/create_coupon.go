@@ -71,15 +71,15 @@ func (a *App) CreateCouponHandler() http.HandlerFunc {
 		}
 
 		coupon, err := a.Service.CreateCoupon(ctx, *request.CouponCode, *request.PromoRuleID, *request.Reusable)
+		if err == service.ErrCouponExists {
+			clientError(w, http.StatusConflict, ErrCodeCouponExists, "coupon with this coupon code already exists")
+			return
+		}
+		if err == service.ErrPromoRuleNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCouponExists {
-				clientError(w, http.StatusConflict, ErrCodeCouponExists, "coupon with this coupon code already exists")
-				return
-			} else if err == service.ErrPromoRuleNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
-				return
-			}
-
 			contextLogger.Errorf("a.Service.CreateCoupon(ctx, couponCode=%q, promoRuleID=%q, reusable=%t) failed: %+v", *request.CouponCode, *request.PromoRuleID, *request.Reusable, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

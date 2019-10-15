@@ -21,11 +21,12 @@ func (a *App) DeletePPAssocHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := a.Service.DeletePPAssoc(ctx, ppAssocID); err != nil {
-			if err == service.ErrPPAssocNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePPAssocNotFound, "product to product association not found")
-				return
-			}
+		err := a.Service.DeletePPAssoc(ctx, ppAssocID)
+		if err == service.ErrPPAssocNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePPAssocNotFound, "product to product association not found")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.DeletePPAssoc(ctx, ppAssocID=%q) failed: %+v", ppAssocID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

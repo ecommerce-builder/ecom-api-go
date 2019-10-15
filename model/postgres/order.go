@@ -138,7 +138,7 @@ func (m *PgModel) AddOrder(ctx context.Context, userName, userEmail, userUUID *s
 		}
 		cartItems = append(cartItems, &c)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, nil, nil, errors.Wrapf(err, "postgres: rows err")
 	}
 
@@ -216,7 +216,7 @@ func (m *PgModel) AddOrder(ctx context.Context, userName, userEmail, userUUID *s
 		orderItems = append(orderItems, &oi)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, nil, nil, errors.Wrap(err, "postgres: tx.Commit() failed")
 	}
 
@@ -258,11 +258,11 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 		WHERE order_id = $1
 	`
 	rows, err := tx.QueryContext(ctx, query, o.id)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, nil, ErrOrderItemsNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, nil, ErrOrderItemsNotFound
-		}
 		tx.Rollback()
 		return nil, nil, errors.Wrapf(err, "postgres: tx.QueryContext(ctx, %q, %q) failed", query, o.id)
 	}
@@ -275,11 +275,11 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 		}
 		orderItems = append(orderItems, &i)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return nil, nil, errors.Wrapf(err, "postgres: rows err")
 	}
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		return nil, nil, errors.Wrap(err, "postgres: tx.Commit() failed")
 	}
@@ -332,11 +332,9 @@ func (m *PgModel) RecordPayment(ctx context.Context, orderID, pi string, body []
 	if err != nil {
 		return errors.Wrapf(err, "postgres: tx.ExecContext(ctx, query=%q, id=%d, body=%q) failed", query, id, body)
 	}
-
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		return errors.Wrap(err, "postgres: tx.Commit() failed")
 	}
-
 	return nil
 }

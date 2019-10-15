@@ -24,21 +24,23 @@ func (a *App) AddProductCategoryHandler() http.HandlerFunc {
 		}
 
 		productCategory, err := a.Service.AddProductCategory(ctx, request.ProductID, request.CategoryID)
+		if err == service.ErrCategoryNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCategoryNotFound, "category not found")
+			return
+		}
+		if err == service.ErrCategoryNotLeaf {
+			clientError(w, http.StatusConflict, ErrCodeCategoryNotLeaf, "category is not a leaf. products can only be associated to leaf categories")
+			return
+		}
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
+			return
+		}
+		if err == service.ErrProductCategoryExists {
+			clientError(w, http.StatusConflict, ErrCodeProductCategoryExists, "product to category association already exists")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCategoryNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCategoryNotFound, "category not found")
-				return
-			} else if err == service.ErrCategoryNotLeaf {
-				clientError(w, http.StatusConflict, ErrCodeCategoryNotLeaf, "category is not a leaf. products can only be associated to leaf categories")
-				return
-			} else if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			} else if err == service.ErrProductCategoryExists {
-				clientError(w, http.StatusConflict, ErrCodeProductCategoryExists, "product to category association already exists")
-				return
-			}
-
 			contextLogger.Errorf("a.Service.AddProductCategory(ctx, productID=%q, categoryID=%q) failed with error: %+v", request.ProductID, request.CategoryID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

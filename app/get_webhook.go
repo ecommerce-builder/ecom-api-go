@@ -25,13 +25,13 @@ func (a *App) GetWebhookHandler() http.HandlerFunc {
 		}
 
 		webhook, err := a.Service.GetWebhook(ctx, webhookID)
+		if err == service.ErrWebhookNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound, "webhook not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrWebhookNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound, "webhook not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetWebhook(ctx, webhookID=%q) failed: %+v", webhookID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

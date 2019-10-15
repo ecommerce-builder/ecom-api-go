@@ -44,10 +44,10 @@ func (s *Service) CreateImage(ctx context.Context, productID string, path string
 		Q:         100,
 	}
 	i, err := s.model.CreateImage(ctx, &pc)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		}
 		return nil, errors.Wrapf(err, "service: create image productID=%q, path=%q, entry failed", productID, path)
 	}
 	image := Image{
@@ -92,14 +92,14 @@ func (s *Service) ImagePathExists(ctx context.Context, path string) (bool, error
 // GetImage returns an image by the given ID.
 func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) {
 	i, err := s.model.GetProductImage(ctx, imageID)
+	if err == postgres.ErrImageNotFound {
+		return nil, ErrImageNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrImageNotFound {
-			return nil, ErrImageNotFound
-		}
 		return nil, errors.Wrapf(err, "service: GetProductImage(ctx, imageID=%q) failed", imageID)
 	}
 	image := Image{
-		Object:     "image",
+		Object:      "image",
 		ID:          i.UUID,
 		ProductID:   i.ProductUUID,
 		ProductPath: i.ProductPath,
@@ -117,10 +117,10 @@ func (s *Service) GetImage(ctx context.Context, imageID string) (*Image, error) 
 // GetImagesByProductID return a slice of Images.
 func (s *Service) GetImagesByProductID(ctx context.Context, productID string) ([]*Image, error) {
 	pilist, err := s.model.GetImagesByProductUUID(ctx, productID)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.GetImagesByProductUUID(ctx, productID=%q) failed", productID)
 	}
 
@@ -147,10 +147,11 @@ func (s *Service) GetImagesByProductID(ctx context.Context, productID string) ([
 
 // DeleteImage delete the image with the given ID.
 func (s *Service) DeleteImage(ctx context.Context, imageID string) error {
-	if err := s.model.DeleteImage(ctx, imageID); err != nil {
-		if err == postgres.ErrImageNotFound {
-			return ErrImageNotFound
-		}
+	err := s.model.DeleteImage(ctx, imageID)
+	if err == postgres.ErrImageNotFound {
+		return ErrImageNotFound
+	}
+	if err != nil {
 		return errors.Wrapf(err, "service: DeleteImage(ctx, imageID=%q)", imageID)
 	}
 	return nil
@@ -159,10 +160,11 @@ func (s *Service) DeleteImage(ctx context.Context, imageID string) error {
 // DeleteAllProductImages deletes all images associated to the product
 // with the given SKU.
 func (s *Service) DeleteAllProductImages(ctx context.Context, productID string) error {
-	if err := s.model.DeleteAllProductImages(ctx, productID); err != nil {
-		if err == postgres.ErrProductNotFound {
-			return ErrProductNotFound
-		}
+	err := s.model.DeleteAllProductImages(ctx, productID)
+	if err == postgres.ErrProductNotFound {
+		return ErrProductNotFound
+	}
+	if err != nil {
 		return errors.Wrapf(err, "service: DeleteAllProductImages(ctx, productID=%q)", productID)
 	}
 	return nil

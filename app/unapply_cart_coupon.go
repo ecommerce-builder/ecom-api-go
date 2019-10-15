@@ -25,11 +25,12 @@ func (a *App) UnapplyCartCouponHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := a.Service.UnapplyCartCoupon(ctx, cartCouponID); err != nil {
-			if err == service.ErrCartCouponNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
-				return
-			}
+		err := a.Service.UnapplyCartCoupon(ctx, cartCouponID)
+		if err == service.ErrCartCouponNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.UnapplyCartCoupon(ctx, cartCouponID=%q) error: %+v", cartCouponID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

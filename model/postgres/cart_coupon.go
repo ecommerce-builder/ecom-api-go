@@ -64,10 +64,10 @@ func (m *PgModel) AddCartCoupon(ctx context.Context, cartUUID, couponUUID string
 	q1 := "SELECT id FROM cart WHERE uuid = $1"
 	var cartID int
 	err := m.db.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
+	if err == sql.ErrNoRows {
+		return nil, ErrCartNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCartNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -92,10 +92,10 @@ func (m *PgModel) AddCartCoupon(ctx context.Context, cartUUID, couponUUID string
 	c.CartUUID = cartUUID
 	c.CouponUUID = couponUUID
 	err = m.db.QueryRowContext(ctx, q2, couponUUID).Scan(&c.couponID, &c.CouponCode, &void, &reusable, &spendCount, &c.PromoRuleUUID, &startAt, &endAt)
+	if err == sql.ErrNoRows {
+		return nil, ErrCouponNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCouponNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 	}
 
@@ -189,10 +189,10 @@ func (m *PgModel) GetCartCoupon(ctx context.Context, cartCouponUUID string) (*Ca
 	var c CartCouponJoinRow
 	err := m.db.QueryRowContext(ctx, q1, cartCouponUUID).Scan(&c.id, &c.UUID, &c.cartID, &c.CartUUID, &c.couponID,
 		&c.CouponUUID, &c.CouponCode, &c.PromoRuleUUID, &c.Created, &c.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrCartCouponNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCartCouponNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 	return &c, nil
@@ -204,10 +204,10 @@ func (m *PgModel) GetCartCouponsByCartUUID(ctx context.Context, cartUUID string)
 	q1 := "SELECT id FROM cart WHERE uuid = $1"
 	var cartID int
 	err := m.db.QueryRowContext(ctx, q1, cartUUID).Scan(&cartID)
+	if err == sql.ErrNoRows {
+		return nil, ErrCartNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCartNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -235,16 +235,17 @@ func (m *PgModel) GetCartCouponsByCartUUID(ctx context.Context, cartUUID string)
 	cartCoupons := make([]*CartCouponJoinRow, 0)
 	for rows.Next() {
 		var c CartCouponJoinRow
-		if err = rows.Scan(&c.id, &c.UUID, &c.cartID, &c.CartUUID, &c.couponID,
-			&c.CouponUUID, &c.CouponCode, &c.PromoRuleUUID, &c.Created, &c.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrPriceListNotFound
-			}
+		err := rows.Scan(&c.id, &c.UUID, &c.cartID, &c.CartUUID, &c.couponID,
+			&c.CouponUUID, &c.CouponCode, &c.PromoRuleUUID, &c.Created, &c.Modified)
+		if err == sql.ErrNoRows {
+			return nil, ErrPriceListNotFound
+		}
+		if err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		cartCoupons = append(cartCoupons, &c)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return cartCoupons, nil
@@ -257,10 +258,10 @@ func (m *PgModel) DeleteCartCoupon(ctx context.Context, cartCouponUUID string) e
 	q1 := "SELECT id FROM cart_coupon WHERE uuid = $1"
 	var cartCouponID int
 	err := m.db.QueryRowContext(ctx, q1, cartCouponUUID).Scan(&cartCouponID)
+	if err == sql.ErrNoRows {
+		return ErrCartCouponNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrCartCouponNotFound
-		}
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 

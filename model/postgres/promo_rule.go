@@ -96,11 +96,11 @@ func (m *PgModel) CreatePromoRuleTargetProduct(ctx context.Context, productUUID,
 	var productPath string
 	var productSKU string
 	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID, &productPath, &productSKU)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrProductNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -135,7 +135,7 @@ func (m *PgModel) CreatePromoRuleTargetProduct(ctx context.Context, productUUID,
 	r.ProductPath = &productPath
 	r.ProductSKU = &productSKU
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 	contextLogger.Debugf("postgres: db commit succeeded")
@@ -173,14 +173,13 @@ func (m *PgModel) CreatePromoRuleTargetProductSet(ctx context.Context, products 
 	productMap := make(map[string]*product)
 	for rows1.Next() {
 		var p product
-		err = rows1.Scan(&p.id, &p.uuid, &p.path, &p.sku, &p.name)
-		if err != nil {
+		if err := rows1.Scan(&p.id, &p.uuid, &p.path, &p.sku, &p.name); err != nil {
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: scan failed")
 		}
 		productMap[p.uuid] = &p
 	}
-	if err = rows1.Err(); err != nil {
+	if err := rows1.Err(); err != nil {
 		return nil, errors.Wrapf(err, "postgres: rows.Err()")
 	}
 
@@ -269,7 +268,7 @@ func (m *PgModel) CreatePromoRuleTargetProductSet(ctx context.Context, products 
 	// r.ProductPath = &productPath
 	// r.ProductSKU = &productSKU
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 
@@ -293,10 +292,10 @@ func (m *PgModel) CreatePromoRuleTargetCategory(ctx context.Context, categoryUUI
 	var categoryID int
 	var categoryPath string
 	err = tx.QueryRowContext(ctx, q1, categoryUUID).Scan(&categoryID, &categoryPath)
+	if err == sql.ErrNoRows {
+		return nil, ErrCategoryNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCategoryNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: tx prepare for q1=%q", q1)
 	}
@@ -331,7 +330,7 @@ func (m *PgModel) CreatePromoRuleTargetCategory(ctx context.Context, categoryUUI
 	r.CategoryUUID = &categoryUUID
 	r.CategoryPath = &categoryPath
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 
@@ -355,10 +354,10 @@ func (m *PgModel) CreatePromoRuleTargetShippingTariff(ctx context.Context, shipp
 	var shippingTariffID int
 	var shippingTariffCode string
 	err = tx.QueryRowContext(ctx, q1, shippingTariffUUID).Scan(&shippingTariffID, &shippingTariffCode)
+	if err == sql.ErrNoRows {
+		return nil, ErrShippingTariffNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrShippingTariffNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: tx prepare for q1=%q", q1)
 	}
@@ -393,7 +392,7 @@ func (m *PgModel) CreatePromoRuleTargetShippingTariff(ctx context.Context, shipp
 	r.ShippingTariffUUID = &shippingTariffUUID
 	r.ShippingTariffCode = &shippingTariffCode
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 
@@ -443,11 +442,14 @@ func (m *PgModel) GetPromoRule(ctx context.Context, promoRuleUUID string) (*Prom
 	`
 	p := PromoRuleJoinProductRow{}
 	row := m.db.QueryRowContext(ctx, q1, promoRuleUUID)
-	if err := row.Scan(&p.id, &p.UUID, &p.PromoRuleCode, &p.Name, &p.StartAt, &p.EndAt, &p.Amount, &p.TotalThreshold, &p.Type, &p.Target, &p.Created, &p.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrPromoRuleNotFound
-		}
-		return nil, errors.Wrapf(err, "postgres: query row context scan query=%q promoRuleUUID=%q failed", q1, promoRuleUUID)
+	err := row.Scan(&p.id, &p.UUID, &p.PromoRuleCode, &p.Name, &p.StartAt, &p.EndAt, &p.Amount,
+		&p.TotalThreshold, &p.Type, &p.Target, &p.Created, &p.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrPromoRuleNotFound
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"postgres: query row context scan query=%q promoRuleUUID=%q failed", q1, promoRuleUUID)
 	}
 	return &p, nil
 }
@@ -456,7 +458,8 @@ func (m *PgModel) GetPromoRule(ctx context.Context, promoRuleUUID string) (*Prom
 func (m *PgModel) GetPromoRules(ctx context.Context) ([]*PromoRuleJoinProductRow, error) {
 	q1 := `
 		SELECT
-		  id, uuid, promo_rule_code, name, start_at, end_at, amount, total_threshold, type, target, created, modified
+		  id, uuid, promo_rule_code, name, start_at, end_at, amount, total_threshold, type,
+		  target, created, modified
 		FROM promo_rule
 	`
 	rows, err := m.db.QueryContext(ctx, q1)
@@ -468,15 +471,18 @@ func (m *PgModel) GetPromoRules(ctx context.Context) ([]*PromoRuleJoinProductRow
 	rules := make([]*PromoRuleJoinProductRow, 0, 4)
 	for rows.Next() {
 		var p PromoRuleJoinProductRow
-		if err = rows.Scan(&p.id, &p.UUID, &p.PromoRuleCode, &p.Name, &p.StartAt, &p.EndAt, &p.Amount, &p.TotalThreshold, &p.Type, &p.Target, &p.Created, &p.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrPromoRuleNotFound
-			}
+		err = rows.Scan(&p.id, &p.UUID, &p.PromoRuleCode, &p.Name, &p.StartAt, &p.EndAt,
+			&p.Amount, &p.TotalThreshold, &p.Type, &p.Target, &p.Created, &p.Modified)
+		if err == sql.ErrNoRows {
+			return nil, ErrPromoRuleNotFound
+		}
+		if err != nil {
+
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		rules = append(rules, &p)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return rules, nil
@@ -492,11 +498,11 @@ func (m *PgModel) DeletePromoRule(ctx context.Context, promoRuleUUID string) err
 	q1 := "SELECT id FROM promo_rule WHERE uuid = $1"
 	var promoRuleID int
 	err = tx.QueryRowContext(ctx, q1, promoRuleUUID).Scan(&promoRuleID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrPromoRuleNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrPromoRuleNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -508,7 +514,7 @@ func (m *PgModel) DeletePromoRule(ctx context.Context, promoRuleUUID string) err
 		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil

@@ -75,13 +75,14 @@ func (a *App) CreateWebhookHandler() http.HandlerFunc {
 
 		// attempt to create the shipping tariff
 		webhook, err := a.Service.CreateWebhook(ctx, *request.URL, request.Events.Data)
+		if err == service.ErrWebhookExists {
+			clientError(w, http.StatusConflict, ErrCodeWebhookExists, "webhook with this URL already exists")
+			return
+		}
+		if err == service.ErrEventTypeNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound, "one or more events were not recognised")
+		}
 		if err != nil {
-			if err == service.ErrWebhookExists {
-				clientError(w, http.StatusConflict, ErrCodeWebhookExists, "webhook with this URL already exists")
-				return
-			} else if err == service.ErrEventTypeNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound, "one or more events were not recognised")
-			}
 			contextLogger.Errorf("app: a.Service.CreateWebhook(ctx, url=%q, events=%v) failed: %+v", *request.URL, request.Events.Data, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return

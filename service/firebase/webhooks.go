@@ -107,10 +107,10 @@ func (s *Service) CreateWebhook(ctx context.Context, url string, events []string
 	}
 
 	row, err := s.model.CreateWebhook(ctx, base58.Encode(data), url, events)
+	if err == postgres.ErrWebhookExists {
+		return nil, ErrWebhookExists
+	}
 	if err != nil {
-		if err == postgres.ErrWebhookExists {
-			return nil, ErrWebhookExists
-		}
 		return nil, errors.Wrapf(err, "s.model.CreateWebhook(ctx, url=%q, events=%v) failed", url, events)
 	}
 	webhook := Webhook{
@@ -130,10 +130,10 @@ func (s *Service) CreateWebhook(ctx context.Context, url string, events []string
 // is not found GetWebhook returns `ErrWebhookNotFound`.
 func (s *Service) GetWebhook(ctx context.Context, webhookID string) (*Webhook, error) {
 	row, err := s.model.GetWebhook(ctx, webhookID)
+	if err == postgres.ErrWebhookNotFound {
+		return nil, ErrWebhookNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrWebhookNotFound {
-			return nil, ErrWebhookNotFound
-		}
 		return nil, errors.Wrapf(err, "s.model.GetWebhook(ctx, webhookUUID=%q) failed", webhookID)
 	}
 	webhook := Webhook{
@@ -187,10 +187,10 @@ func (s *Service) UpdateWebhook(ctx context.Context, webhookUUID string, url *st
 	}
 
 	row, err := s.model.UpdateWebhook(ctx, webhookUUID, url, events, enabled)
+	if err == postgres.ErrWebhookNotFound {
+		return nil, ErrWebhookNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrWebhookNotFound {
-			return nil, ErrWebhookNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.UpdateWebhook(ctx, webhookUUID=%q, url=%v, events=%v, enabled=%v) failed", webhookUUID, url, events, enabled)
 	}
 
@@ -210,10 +210,11 @@ func (s *Service) UpdateWebhook(ctx context.Context, webhookUUID string, url *st
 // DeleteWebhook deletes a webhook by id.
 func (s *Service) DeleteWebhook(ctx context.Context, webhookID string) error {
 	err := s.model.DeleteWebhook(ctx, webhookID)
+	if err == postgres.ErrWebhookNotFound {
+		return ErrWebhookNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrWebhookNotFound {
-			return ErrWebhookNotFound
-		}
+		return errors.Wrapf(err, "service: s.model.DeleteWebhook(ctx, webhookUUID=%q)", webhookID)
 	}
 	return nil
 }

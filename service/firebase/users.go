@@ -67,6 +67,7 @@ func (s *Service) CreateRootIfNotExists(ctx context.Context, email, password str
 	if err != nil {
 		return errors.Wrap(err, "create root if not exists")
 	}
+
 	_, err = authClient.GetUserByEmail(ctx, email)
 	if err != nil {
 		if auth.IsUserNotFound(err) {

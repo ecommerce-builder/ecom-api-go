@@ -31,16 +31,18 @@ func (a *App) UpdatePriceListHandler() http.HandlerFunc {
 
 		priceListID := chi.URLParam(r, "id")
 		priceList, err := a.Service.UpdatePriceList(ctx, priceListID, &requestBody)
+		if err == service.ErrPriceListNotFound {
+			// 404 Not Found
+			clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
+			return
+		}
+		if err == service.ErrPriceListCodeExists {
+			// 409 Conflict
+			clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
+			return
+		}
+
 		if err != nil {
-			if err == service.ErrPriceListNotFound {
-				// 404 Not Found
-				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
-				return
-			} else if err == service.ErrPriceListCodeExists {
-				// 409 Conflict
-				clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.UpdatePriceList(ctx, priceListID=%q, p=%v) %+v", priceListID, requestBody, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

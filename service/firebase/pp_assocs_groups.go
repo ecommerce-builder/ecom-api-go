@@ -31,10 +31,10 @@ type PPAssocGroup struct {
 // CreateProductToProductAssocGroup creates a new product to product associations group.
 func (s *Service) CreateProductToProductAssocGroup(ctx context.Context, code, name string) (*PPAssocGroup, error) {
 	prow, err := s.model.AddPPAssocGroup(ctx, code, name)
+	if err == postgres.ErrPPAssocGroupExists {
+		return nil, ErrPPAssocGroupExists
+	}
 	if err != nil {
-		if err == postgres.ErrPPAssocGroupExists {
-			return nil, ErrPPAssocGroupExists
-		}
 		return nil, errors.Wrapf(err, "service: s.model.AddPPAssocGroup(ctx, code=%q, name=%q) failed", code, name)
 	}
 	ppAssocGroup := PPAssocGroup{
@@ -51,10 +51,10 @@ func (s *Service) CreateProductToProductAssocGroup(ctx context.Context, code, na
 // GetPPAssocGroup returns a single product to product association group.
 func (s *Service) GetPPAssocGroup(ctx context.Context, ppAssocGroupID string) (*PPAssocGroup, error) {
 	prow, err := s.model.GetPPAssocGroup(ctx, ppAssocGroupID)
+	if err == postgres.ErrPPAssocGroupNotFound {
+		return nil, ErrPPAssocGroupNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrPPAssocGroupNotFound {
-			return nil, ErrPPAssocGroupNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.GetPPAssocGroup(ctx, ppAssocGroupUUID=%q) failed", ppAssocGroupID)
 	}
 	ppAssocGroup := PPAssocGroup{
@@ -93,12 +93,13 @@ func (s *Service) GetPPAssocGroups(ctx context.Context) ([]*PPAssocGroup, error)
 // DeletePPAssocGroup deletes a single product to product associations group.
 func (s *Service) DeletePPAssocGroup(ctx context.Context, ppAssocGroupID string) error {
 	err := s.model.DeletePPAssocGroup(ctx, ppAssocGroupID)
+	if err == postgres.ErrPPAssocGroupNotFound {
+		return ErrPPAssocGroupNotFound
+	}
+	if err == postgres.ErrPPAssocGroupContainsAssocs {
+		return ErrPPAssocGroupContainsAssocs
+	}
 	if err != nil {
-		if err == postgres.ErrPPAssocGroupNotFound {
-			return ErrPPAssocGroupNotFound
-		} else if err == postgres.ErrPPAssocGroupContainsAssocs {
-			return ErrPPAssocGroupContainsAssocs
-		}
 		return errors.Wrapf(err, "service: s.model.DeletePPAssocGroup(ctx, ppAssocGroupID=%q) failed", ppAssocGroupID)
 	}
 	return nil

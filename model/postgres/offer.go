@@ -41,10 +41,10 @@ func (m *PgModel) AddOffer(ctx context.Context, promoRuleUUID string) (*OfferJoi
 	q1 := "SELECT id FROM promo_rule WHERE uuid = $1"
 	var productRuleID int
 	err := m.db.QueryRowContext(ctx, q1, promoRuleUUID).Scan(&productRuleID)
+	if err == sql.ErrNoRows {
+		return nil, ErrPromoRuleNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrPromoRuleNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -109,7 +109,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 		}
 		promos = append(promos, &p)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return errors.Wrap(err, "postgres: rows.Err()")
 	}
 
@@ -150,10 +150,10 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 			q2 := "SELECT id, lft, rgt FROM category WHERE id = $1"
 			var categoryID, lft, rgt int
 			err = tx.QueryRowContext(ctx, q2, *promo.categoryID).Scan(&categoryID, &lft, &rgt)
+			if err == sql.ErrNoRows {
+				return ErrCategoryNotFound
+			}
 			if err != nil {
-				if err == sql.ErrNoRows {
-					return ErrCategoryNotFound
-				}
 				return errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 			}
 
@@ -178,7 +178,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 					leafCategories = append(leafCategories, &c)
 					categories = append(categories, c.id)
 				}
-				if err = rows.Err(); err != nil {
+				if err := rows.Err(); err != nil {
 					return errors.Wrap(err, "postgres: rows.Err()")
 				}
 			}
@@ -204,7 +204,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 				}
 				productCategoryList = append(productCategoryList, &c)
 			}
-			if err = rows.Err(); err != nil {
+			if err := rows.Err(); err != nil {
 				return errors.Wrap(err, "postgres: rows.Err()")
 			}
 
@@ -257,7 +257,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 					}
 					prices = append(prices, &p)
 				}
-				if err = rows.Err(); err != nil {
+				if err := rows.Err(); err != nil {
 					return errors.Wrap(err, "postgres: rows.Err()")
 				}
 
@@ -284,7 +284,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	contextLogger.Debugf("postgres: db commit succeeded")
@@ -305,10 +305,11 @@ func (m *PgModel) GetOfferByUUID(ctx context.Context, offerUUID string) (*OfferJ
 	`
 	o := OfferJoinRow{}
 	row := m.db.QueryRowContext(ctx, q1, offerUUID)
-	if err := row.Scan(&o.id, &o.UUID, &o.promoRuleID, &o.PromoRuleUUID, &o.Created, &o.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrOfferNotFound
-		}
+	err := row.Scan(&o.id, &o.UUID, &o.promoRuleID, &o.PromoRuleUUID, &o.Created, &o.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrOfferNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "query row context scan q1=%q", q1)
 	}
 	return &o, nil
@@ -338,7 +339,7 @@ func (m *PgModel) GetOffers(ctx context.Context) ([]*OfferJoinRow, error) {
 		}
 		offers = append(offers, &o)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "rows.Err()")
 	}
 	return offers, nil
@@ -350,10 +351,10 @@ func (m *PgModel) DeleteOfferByUUID(ctx context.Context, offerUUID string) error
 	q1 := "SELECT id FROM offer WHERE uuid = $1"
 	var offerID int
 	err := m.db.QueryRowContext(ctx, q1, offerUUID).Scan(&offerID)
+	if err == sql.ErrNoRows {
+		return ErrOfferNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrOfferNotFound
-		}
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 

@@ -42,11 +42,11 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 	q1 := "SELECT id FROM pp_assoc_group WHERE uuid = $1"
 	var ppAssocsGroupID int
 	err = tx.QueryRowContext(ctx, q1, ppAssocsGroupUUID).Scan(&ppAssocsGroupID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrPPAssocGroupNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrPPAssocGroupNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -55,11 +55,11 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 	q2 := "SELECT id FROM product WHERE uuid = $1"
 	var productFromID int
 	err = tx.QueryRowContext(ctx, q2, productFromUUID).Scan(&productFromID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrProductNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 	}
@@ -85,7 +85,7 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 		}
 		pmap[p.UUID] = &p
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return errors.Wrap(err, "postgres: rows.Err()")
 	}
 
@@ -127,7 +127,7 @@ func (m *PgModel) BatchUpdatePPAssocs(ctx context.Context, ppAssocsGroupUUID, pr
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 
@@ -158,13 +158,13 @@ func (m *PgModel) GetPPAssoc(ctx context.Context, ppAssocUUID string) (*PPAssocJ
 	`
 	var a PPAssocJoinRow
 	row := m.db.QueryRowContext(ctx, q1, ppAssocUUID)
-	if err := row.Scan(&a.id, &a.UUID, &a.ppAssocGroupID, &a.PPAssocGroupUUID, &a.productFrom, &a.ProductFromUUID, &a.productTo, &a.ProductToUUID, &a.Created, &a.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrPPAssocNotFound
-		}
+	err := row.Scan(&a.id, &a.UUID, &a.ppAssocGroupID, &a.PPAssocGroupUUID, &a.productFrom, &a.ProductFromUUID, &a.productTo, &a.ProductToUUID, &a.Created, &a.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrPPAssocNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx) failed")
 	}
-
 	return &a, nil
 }
 
@@ -178,10 +178,10 @@ func (m *PgModel) GetPPAssocs(ctx context.Context, ppAssocGroupUUID, productFrom
 	q1 := "SELECT id FROM pp_assoc_group WHERE uuid = $1"
 	var ppAssocGroupID int
 	err := m.db.QueryRowContext(ctx, q1, ppAssocGroupUUID).Scan(&ppAssocGroupID)
+	if err == sql.ErrNoRows {
+		return nil, ErrPPAssocGroupNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrPPAssocGroupNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -190,10 +190,10 @@ func (m *PgModel) GetPPAssocs(ctx context.Context, ppAssocGroupUUID, productFrom
 	if productFromUUID != "" {
 		q2 := "SELECT id FROM product WHERE uuid = $1"
 		err = m.db.QueryRowContext(ctx, q2, productFromUUID).Scan(&productFromID)
+		if err == sql.ErrNoRows {
+			return nil, ErrProductNotFound
+		}
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrProductNotFound
-			}
 			return nil, errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, q2=%q, productFromUUID=%q) failed", q2, productFromUUID)
 		}
 	}
@@ -239,10 +239,9 @@ func (m *PgModel) GetPPAssocs(ctx context.Context, ppAssocGroupUUID, productFrom
 		a.PPAssocGroupUUID = ppAssocGroupUUID
 		list = append(list, &a)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
-
 	return list, nil
 }
 
@@ -254,10 +253,10 @@ func (m *PgModel) DeletePPAssoc(ctx context.Context, ppAssocUUID string) error {
 	q1 := "SELECT id FROM pp_assoc WHERE uuid = $1"
 	var ppAssocID int
 	err := m.db.QueryRowContext(ctx, q1, ppAssocUUID).Scan(&ppAssocID)
+	if err == sql.ErrNoRows {
+		return ErrPPAssocNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrPPAssocNotFound
-		}
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 

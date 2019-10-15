@@ -16,12 +16,13 @@ func (a *App) DeleteShippingTariffHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeleteShippingTariffHandler started")
 
 		shippingTariffID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteShippingTariff(ctx, shippingTariffID); err != nil {
-			if err == service.ErrShippingTariffNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff not found")
-				return
-			}
-			contextLogger.Errorf("app DeleteShippingTariff(ctx, shippingTariffID=%q) failed: %+v", shippingTariffID, err)
+		err := a.Service.DeleteShippingTariff(ctx, shippingTariffID)
+		if err == service.ErrShippingTariffNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff not found")
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app: DeleteShippingTariff(ctx, shippingTariffID=%q) failed: %+v", shippingTariffID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}

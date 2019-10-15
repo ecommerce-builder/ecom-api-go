@@ -17,11 +17,12 @@ func (a *App) DeleteImageHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeleteImageHandler started")
 
 		imageID := chi.URLParam(r, "id")
-		if err := a.Service.DeleteImage(ctx, imageID); err != nil {
-			if err == service.ErrImageNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeImageNotFound, "image not found")
-				return
-			}
+		err := a.Service.DeleteImage(ctx, imageID)
+		if err == service.ErrImageNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeImageNotFound, "image not found")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: DeleteImage(ctx, imageID=%q) failed: %+v", imageID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

@@ -74,10 +74,10 @@ type ProductTierPricing struct {
 // UserCanAccessPriceList return true if the given user has access to the price list.
 func (s *Service) UserCanAccessPriceList(ctx context.Context, userID, priceListID string) (bool, error) {
 	user, err := s.model.GetUserByUUID(ctx, userID)
+	if err == postgres.ErrUserNotFound {
+		return false, ErrUserNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrUserNotFound {
-			return false, ErrUserNotFound
-		}
 		return false, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userID=%q) failed", userID)
 	}
 	if subtle.ConstantTimeCompare([]byte(user.PriceListUUID), []byte(priceListID)) == 1 {
@@ -92,12 +92,13 @@ func (s *Service) GetPrices(ctx context.Context, productID, priceListID string) 
 	contextLogger.Infof("service: GetPrices(ctx context.Context, productID=%q, priceListID=%q) started", productID, priceListID)
 
 	plist, err := s.model.GetPrices(ctx, productID, priceListID)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
+	if err == postgres.ErrPriceListNotFound {
+		return nil, ErrPriceListNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		} else if err == postgres.ErrPriceListNotFound {
-			return nil, ErrPriceListNotFound
-		}
 		return nil, errors.Wrapf(err, "service: GetPrices(ctx, productID=%q, priceListID=%q) failed", productID, priceListID)
 	}
 
@@ -157,30 +158,31 @@ func (s *Service) UpdateProductPrices(ctx context.Context, productID, priceListI
 		cps = append(cps, &cp)
 	}
 
-	plist, err := s.model.UpdatePrices(ctx, productID, priceListID, cps)
+	rows, err := s.model.UpdatePrices(ctx, productID, priceListID, cps)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
+	if err == postgres.ErrPriceListNotFound {
+		return nil, ErrPriceListNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		} else if err == postgres.ErrPriceListNotFound {
-			return nil, ErrPriceListNotFound
-		}
 		return nil, errors.Wrapf(err, "service: UpdatePrice(ctx, productID=%q, priceListID=%q, createPrices=%v) failed", productID, priceListID, createPrices)
 	}
 
-	prices := make([]*Price, 0, len(plist))
-	for _, p := range plist {
+	prices := make([]*Price, 0, len(rows))
+	for _, row := range rows {
 		price := Price{
 			Object:        "price",
-			ID:            p.UUID,
-			ProductID:     p.ProductUUID,
-			ProductPath:   p.ProductPath,
-			ProductSKU:    p.ProductSKU,
-			PriceListID:   p.PriceListUUID,
-			PriceListCode: p.PriceListCode,
-			Break:         p.Break,
-			UnitPrice:     p.UnitPrice,
-			Created:       p.Created,
-			Modified:      p.Modified,
+			ID:            row.UUID,
+			ProductID:     row.ProductUUID,
+			ProductPath:   row.ProductPath,
+			ProductSKU:    row.ProductSKU,
+			PriceListID:   row.PriceListUUID,
+			PriceListCode: row.PriceListCode,
+			Break:         row.Break,
+			UnitPrice:     row.UnitPrice,
+			Created:       row.Created,
+			Modified:      row.Modified,
 		}
 		prices = append(prices, &price)
 	}

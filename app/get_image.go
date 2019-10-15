@@ -18,11 +18,11 @@ func (a *App) GetImageHandler() http.HandlerFunc {
 
 		imageID := chi.URLParam(r, "id")
 		image, err := a.Service.GetImage(ctx, imageID)
+		if err == service.ErrImageNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeImageNotFound, "image not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrImageNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeImageNotFound, "image not found")
-				return
-			}
 			contextLogger.Errorf("app: GetImage(ctx, imageID=%q) error: %+v", imageID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

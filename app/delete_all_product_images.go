@@ -21,11 +21,13 @@ func (a *App) DeleteAllProductImagesHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := a.Service.DeleteAllProductImages(ctx, productID); err != nil {
-			if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			}
+		err := a.Service.DeleteAllProductImages(ctx, productID)
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
+			return
+		}
+		if err != nil {
+
 			contextLogger.Errorf("app: DeleteAllProductImages(ctx, productID=%q) failed: %v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

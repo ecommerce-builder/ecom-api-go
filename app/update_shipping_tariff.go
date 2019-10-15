@@ -43,19 +43,20 @@ func (a *App) UpdateShippingTariffHandler() http.HandlerFunc {
 
 		shippingTariffID := chi.URLParam(r, "id")
 		shippingTariff, err := a.Service.UpdateShippingTariff(ctx, shippingTariffID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode)
-		if err != nil {
-			if err == service.ErrShippingTariffNotFound {
-				// 404 Not Found
-				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff code not found")
-				return
-			} else if err == service.ErrShippingTariffCodeExists {
-				// 409 Conflict
-				clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists, "shipping tariff code already exists")
-				return
-			}
+		if err == service.ErrShippingTariffNotFound {
+			// 404 Not Found
+			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff code not found")
+			return
+		}
+		if err == service.ErrShippingTariffCodeExists {
+			// 409 Conflict
+			clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists, "shipping tariff code already exists")
+			return
+		}
 
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.UpdateShippingTariff(ctx, shippingTariffID=%q, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", shippingTariffID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK

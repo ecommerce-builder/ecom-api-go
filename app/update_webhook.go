@@ -53,21 +53,27 @@ func (a *App) UpdateWebhookHandler() http.HandlerFunc {
 		}
 
 		webhookID := chi.URLParam(r, "id")
+		if !IsValidUUID(webhookID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "path parameter id must be a valid v4 uuid")
+			return
+		}
+
 		var events []string
 		if request.Events != nil {
 			events = request.Events.Data
 		}
 		webhook, err := a.Service.UpdateWebhook(ctx, webhookID, request.URL, events, request.Enabled)
+		if err == service.ErrWebhookNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound, "webhook not found")
+			return
+		}
+		if err == service.ErrEventTypeNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound, "one or more event types not recognised")
+			return
+		}
 		if err != nil {
-			if err == service.ErrWebhookNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound, "webhook not found")
-				return
-			} else if err == service.ErrEventTypeNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound, "one or more event types not recognised")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.UpdateWebhook(ctx, webhookID=%q, url=%v, events=%v, enabled=%v) failed: %+v", webhookID, request.URL, events, request.Enabled, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 

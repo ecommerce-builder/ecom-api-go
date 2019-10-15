@@ -17,14 +17,16 @@ func (a *App) DeletePriceListHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeletePriceListHandler started")
 
 		priceListID := chi.URLParam(r, "id")
-		if err := a.Service.DeletePriceList(ctx, priceListID); err != nil {
-			if err == service.ErrPriceListNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
-				return
-			} else if err == service.ErrPriceListInUse {
-				clientError(w, http.StatusConflict, ErrCodePriceListInUse, "price list is already in use")
-				return
-			}
+		err := a.Service.DeletePriceList(ctx, priceListID)
+		if err == service.ErrPriceListNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
+			return
+		}
+		if err == service.ErrPriceListInUse {
+			clientError(w, http.StatusConflict, ErrCodePriceListInUse, "price list is already in use")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.DeletePriceList(ctx, priceListID=%q) error: %+v", priceListID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

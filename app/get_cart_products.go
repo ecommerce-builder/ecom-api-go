@@ -28,18 +28,20 @@ func (a *App) GetCartProductsHandler() http.HandlerFunc {
 
 		userID := ctx.Value(ecomUIDKey).(string)
 		cartProducts, err := a.Service.GetCartProducts(ctx, userID, cartID)
+		if err == service.ErrCartNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart could not be found")
+			return
+		}
+		if err == service.ErrUserNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user for this call could not be found")
+			return
+		}
+		if err == service.ErrDefaultPriceListNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "user price list could not be found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCartNotFound {
-				w.WriteHeader(http.StatusNotFound)
-				clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart could not be found")
-				return
-			} else if err == service.ErrUserNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user for this call could not be found")
-				return
-			} else if err == service.ErrDefaultPriceListNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "user price list could not be found")
-				return
-			}
 			contextLogger.Errorf("app: service GetCartProducts(userID=%q, cartID=%q) error: %v", userID, cartID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

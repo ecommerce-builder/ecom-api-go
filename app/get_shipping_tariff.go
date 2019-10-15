@@ -19,17 +19,16 @@ func (a *App) GetShippingTariffHandler() http.HandlerFunc {
 
 		shippingTariffID := chi.URLParam(r, "id")
 		promoRule, err := a.Service.GetShippingTariff(ctx, shippingTariffID)
-		if err != nil {
-			if err == service.ErrPromoRuleNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shopping tariff not found")
-				return
-			}
-			contextLogger.Errorf("app: a.Service.GetShippingTariff(ctx, shippingTariffID=%q) failed: %+v", shippingTariffID, err)
-
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		if err == service.ErrPromoRuleNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shopping tariff not found")
 			return
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.GetShippingTariff(ctx, shippingTariffID=%q) failed: %+v", shippingTariffID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&promoRule)
 	}
 }

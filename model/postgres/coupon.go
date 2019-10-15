@@ -85,10 +85,10 @@ func (m *PgModel) GetCouponByUUID(ctx context.Context, couponUUID string) (*Coup
 	`
 	var c CouponJoinRow
 	err := m.db.QueryRowContext(ctx, q1, couponUUID).Scan(&c.id, &c.UUID, &c.CouponCode, &c.promoRuleID, &c.PromoRuleUUID, &c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrCouponNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCouponNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 	return &c, nil
@@ -118,7 +118,7 @@ func (m *PgModel) GetCoupons(ctx context.Context) ([]*CouponJoinRow, error) {
 		}
 		coupons = append(coupons, &c)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return coupons, nil
@@ -137,10 +137,10 @@ func (m *PgModel) UpdateCouponByUUID(ctx context.Context, couponUUID string, voi
 	var couponID int
 	var promoRuleUUID string
 	err := m.db.QueryRowContext(ctx, q1, couponUUID).Scan(&couponID, &promoRuleUUID)
+	if err == sql.ErrNoRows {
+		return nil, ErrCouponNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrCouponNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q1=%q, couponUUID=%q)", q1, couponUUID)
 	}
 
@@ -169,10 +169,10 @@ func (m *PgModel) DeleteCouponByUUID(ctx context.Context, couponUUID string) err
 	q1 := "SELECT id FROM coupon WHERE uuid = $1"
 	var couponID int
 	err := m.db.QueryRowContext(ctx, q1, couponUUID).Scan(&couponID)
+	if err == sql.ErrNoRows {
+		return ErrCouponNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrCouponNotFound
-		}
 		return errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q1=%q, couponUUID=%q)", q1, couponUUID)
 	}
 
@@ -193,6 +193,5 @@ func (m *PgModel) DeleteCouponByUUID(ctx context.Context, couponUUID string) err
 	if err != nil {
 		return errors.Wrapf(err, "model: exec context q3=%q", q3)
 	}
-
 	return nil
 }

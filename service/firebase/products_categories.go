@@ -64,16 +64,19 @@ type CreateProductsCategories struct {
 // AddProductCategory associates a product to a leaf category
 func (s *Service) AddProductCategory(ctx context.Context, productID, categoryID string) (*ProductCategory, error) {
 	row, err := s.model.AddProductCategory(ctx, productID, categoryID)
+	if err == postgres.ErrCategoryNotFound {
+		return nil, ErrCategoryNotFound
+	}
+	if err == postgres.ErrCategoryNotLeaf {
+		return nil, ErrCategoryNotLeaf
+	}
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
+	if err == postgres.ErrProductCategoryExists {
+		return nil, ErrProductCategoryExists
+	}
 	if err != nil {
-		if err == postgres.ErrCategoryNotFound {
-			return nil, ErrCategoryNotFound
-		} else if err == postgres.ErrCategoryNotLeaf {
-			return nil, ErrCategoryNotLeaf
-		} else if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		} else if err == postgres.ErrProductCategoryExists {
-			return nil, ErrProductCategoryExists
-		}
 		return nil, errors.Wrapf(err, "service: s.model.AddProductCategory(ctx, productUUID=%q, categoryUUID=%q)", categoryID, productID)
 	}
 	productCategory := ProductCategory{
@@ -91,10 +94,10 @@ func (s *Service) AddProductCategory(ctx context.Context, productID, categoryID 
 // GetProductCategory get a product to category association by id
 func (s *Service) GetProductCategory(ctx context.Context, productCategoryID string) (*ProductCategory, error) {
 	row, err := s.model.GetProductCategory(ctx, productCategoryID)
+	if err == postgres.ErrProductCategoryNotFound {
+		return nil, ErrProductCategoryNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductCategoryNotFound {
-			return nil, ErrProductCategoryNotFound
-		}
 		return nil, errors.Wrapf(err, "service: s.model.GetProductCategory(ctx, productCategoryUUID=%q", productCategoryID)
 	}
 	productCategory := ProductCategory{
@@ -112,10 +115,10 @@ func (s *Service) GetProductCategory(ctx context.Context, productCategoryID stri
 // DeleteProductCategory unlinks a product from a leaf category.
 func (s *Service) DeleteProductCategory(ctx context.Context, productCategoryID string) error {
 	err := s.model.DeleteProductCategory(ctx, productCategoryID)
+	if err == postgres.ErrProductCategoryNotFound {
+		return ErrProductCategoryNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductCategoryNotFound {
-			return ErrProductCategoryNotFound
-		}
 		return err
 	}
 	return nil
@@ -131,22 +134,6 @@ func (s *Service) CreateProductCategoryRelations(ctx context.Context, cpas map[s
 	}
 	return nil
 }
-
-// CreateProductCategoryAssoc associates an existing product to a catalog entry.
-// func (s *Service) CreateProductCategoryAssoc(ctx context.Context, path, sku string) (*ProductCategoryAssoc, error) {
-// 	cpa, err := s.model.CreateProductCategoryAssoc(ctx, path, sku)
-// 	if err != nil {
-// 		return nil, errors.Wrapf(err, "service: create product to category assoc sku=%q", sku)
-// 	}
-// 	scpa := ProductCategoryAssoc{
-// 		Path:     cpa.Path,
-// 		SKU:      cpa.SKU,
-// 		Pri:      cpa.Pri,
-// 		Created:  cpa.Created,
-// 		Modified: cpa.Modified,
-// 	}
-// 	return &scpa, nil
-// }
 
 // HasProductCategoryRelations returns true if any product to category relations
 // exist.
@@ -172,25 +159,25 @@ type Assoc struct {
 
 // GetProductsCategoriesList returns a list of product to category associations.
 func (s *Service) GetProductsCategoriesList(ctx context.Context) ([]*ProductsCategories, error) {
-	cps, err := s.model.GetProductsCategories(ctx)
+	rows, err := s.model.GetProductsCategories(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: s.model.GetProductCategoryRelations(ctx) failed")
 	}
 
-	productsCategories := make([]*ProductsCategories, 0, len(cps))
-	for _, pc := range cps {
+	productsCategories := make([]*ProductsCategories, 0, len(rows))
+	for _, row := range rows {
 		pc := ProductsCategories{
 			Object:       "products_category",
-			ID:           pc.UUID,
-			ProductID:    pc.ProductUUID,
-			ProductPath:  pc.ProductPath,
-			ProductSKU:   pc.ProductSKU,
-			ProductName:  pc.ProductName,
-			CategoryID:   pc.CategoryUUID,
-			CategoryPath: pc.CategoryPath,
-			Pri:          pc.Pri,
-			Created:      pc.Created,
-			Modified:     pc.Modified,
+			ID:           row.UUID,
+			ProductID:    row.ProductUUID,
+			ProductPath:  row.ProductPath,
+			ProductSKU:   row.ProductSKU,
+			ProductName:  row.ProductName,
+			CategoryID:   row.CategoryUUID,
+			CategoryPath: row.CategoryPath,
+			Pri:          row.Pri,
+			Created:      row.Created,
+			Modified:     row.Modified,
 		}
 		productsCategories = append(productsCategories, &pc)
 	}
@@ -210,12 +197,13 @@ func (s *Service) UpdateProductsCategories(ctx context.Context, cpcs []*CreatePr
 	}
 
 	list, err := s.model.UpdateProductsCategories(ctx, createProductsCategories)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
+	}
+	if err == postgres.ErrLeafCategoryNotFound {
+		return nil, ErrLeafCategoryNotFound
+	}
 	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, ErrProductNotFound
-		} else if err == postgres.ErrLeafCategoryNotFound {
-			return nil, ErrLeafCategoryNotFound
-		}
 		return nil, errors.Wrap(err, "s.model.UpdateProductsCategories(ctx, createProductsCategories) failed")
 	}
 
@@ -275,15 +263,6 @@ func (s *Service) GetProductCategoryRelations(ctx context.Context, key string) (
 	}
 	return assocs, nil
 }
-
-// UpdateProductCategoryRelations updates the category to product relations
-// func (s *Service) UpdateProductCategoryRelations(ctx context.Context, cpo []*postgres.catalogProductAssoc) error {
-// 	err := s.model.UpdateProductCategoryRelations(ctx, cpo)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 
 // DeleteAllProductCategoryRelations delete all catalog product associations.
 func (s *Service) DeleteAllProductCategoryRelations(ctx context.Context) error {

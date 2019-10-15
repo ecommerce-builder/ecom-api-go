@@ -27,14 +27,15 @@ func (a *App) GetProductSetItemsHandler() http.HandlerFunc {
 		}
 
 		productSetItems, err := a.Service.GetProductSetItems(ctx, productSetID)
+		if err == service.ErrProductSetNotFound {
+			w.WriteHeader(http.StatusNotFound)
+			clientError(w, http.StatusNotFound, ErrCodeProductSetNotFound,
+				"product set not found") // 404
+			return
+		}
 		if err != nil {
-			if err == service.ErrProductSetNotFound {
-				w.WriteHeader(http.StatusNotFound)
-				clientError(w, http.StatusNotFound, ErrCodeProductSetNotFound, "product set not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetProductSetItems(ctx, productSetUUID=%q) failed: %+v", productSetID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		response := responseBody{

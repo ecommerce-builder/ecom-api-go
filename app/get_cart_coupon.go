@@ -19,11 +19,11 @@ func (a *App) GetCartCouponHandler() http.HandlerFunc {
 
 		cartCouponID := chi.URLParam(r, "id")
 		cartCoupon, err := a.Service.GetCartCoupon(ctx, cartCouponID)
+		if err == service.ErrCartCouponNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCartCouponNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetCartCoupon(ctx, cartCouponID=%q) failed: %+v", cartCouponID, err)
 			return
 		}

@@ -47,22 +47,27 @@ func (a *App) UpdateProductHandler() http.HandlerFunc {
 		}
 
 		product, err := a.Service.UpdateProduct(ctx, productID, &pu)
-		if err != nil {
-			if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			} else if err == service.ErrProductPathExists {
-				clientError(w, http.StatusConflict, ErrCodeProductPathExists, "product path already exists")
-				return
-			} else if err == service.ErrProductSKUExists {
-				clientError(w, http.StatusConflict, ErrCodeProductSKUExists, "product sku already exists")
-				return
-			}
-			contextLogger.Errorf("update product failed: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound,
+				"product not found") // 404
 			return
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		if err == service.ErrProductPathExists {
+			clientError(w, http.StatusConflict, ErrCodeProductPathExists,
+				"product path already exists") // 409
+			return
+		}
+		if err == service.ErrProductSKUExists {
+			clientError(w, http.StatusConflict, ErrCodeProductSKUExists,
+				"product sku already exists") // 409
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("update product failed: %+v", err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(product)
 	}
 }

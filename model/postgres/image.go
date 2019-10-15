@@ -82,11 +82,11 @@ func (m *PgModel) CreateImage(ctx context.Context, c *CreateImage) (*ImageJoinRo
 	var productPath string
 	var productSKU string
 	err = tx.QueryRowContext(ctx, q1, c.ProductID).Scan(&productID, &productPath, &productSKU)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrProductNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -122,7 +122,7 @@ func (m *PgModel) CreateImage(ctx context.Context, c *CreateImage) (*ImageJoinRo
 		return nil, errors.Wrapf(err, "postgres: query row context scan failed q2=%q", q2)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return &p, nil
@@ -138,11 +138,11 @@ func (m *PgModel) GetImagesByProductUUID(ctx context.Context, productUUID string
 	q1 := "SELECT id  FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrProductNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -175,11 +175,11 @@ func (m *PgModel) GetImagesByProductUUID(ctx context.Context, productUUID string
 		}
 		images = append(images, &i)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit failed")
 	}
 	return images, nil
@@ -200,6 +200,7 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ImageRow, 
 		return nil, err
 	}
 	defer rows.Close()
+
 	images := make([]*ImageRow, 0, 16)
 	for rows.Next() {
 		p := ImageRow{}
@@ -209,7 +210,8 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ImageRow, 
 		}
 		images = append(images, &p)
 	}
-	if err = rows.Err(); err != nil {
+
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return images, nil
@@ -220,10 +222,11 @@ func (m *PgModel) GetImagesBySKU(ctx context.Context, sku string) ([]*ImageRow, 
 func (m *PgModel) ImagePathExists(ctx context.Context, path string) (bool, error) {
 	query := `SELECT id FROM image WHERE path = $1`
 	var id int
-	if err := m.db.QueryRowContext(ctx, query, path).Scan(&id); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
+	err := m.db.QueryRowContext(ctx, query, path).Scan(&id)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
 		return false, errors.Wrapf(err, "query row context path=%q query=%q", path, query)
 	}
 	return true, nil
@@ -242,12 +245,13 @@ func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*Image
 		WHERE i.uuid = $1
 	`
 	p := ImageJoinRow{}
-	if err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductPath, &p.ProductSKU,
+	err := m.db.QueryRowContext(ctx, query, imageUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductPath, &p.ProductSKU,
 		&p.ProductUUID, &p.W, &p.H, &p.Path, &p.Typ, &p.Ori, &p.Up,
-		&p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrImageNotFound
-		}
+		&p.Pri, &p.Size, &p.Q, &p.GSURL, &p.Data, &p.Created, &p.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrImageNotFound
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -258,10 +262,11 @@ func (m *PgModel) GetProductImage(ctx context.Context, imageUUID string) (*Image
 func (m *PgModel) ImageUUIDExists(ctx context.Context, uuid string) (bool, error) {
 	query := `SELECT id FROM image WHERE uuid = $1`
 	var id int
-	if err := m.db.QueryRowContext(ctx, query, uuid).Scan(&id); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
+	err := m.db.QueryRowContext(ctx, query, uuid).Scan(&id)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
 		return false, errors.Wrapf(err, "query row context uuid=%q query=%q", uuid, query)
 	}
 	return true, nil
@@ -295,11 +300,11 @@ func (m *PgModel) DeleteImage(ctx context.Context, imageUUID string) error {
 	q1 := "SELECT id FROM image WHERE uuid = $1"
 	var imageID int
 	err = tx.QueryRowContext(ctx, q1, imageUUID).Scan(&imageID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrImageNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrImageNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -311,7 +316,7 @@ func (m *PgModel) DeleteImage(ctx context.Context, imageUUID string) error {
 		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit failed")
 	}
 	return nil
@@ -328,11 +333,11 @@ func (m *PgModel) DeleteAllProductImages(ctx context.Context, productUUID string
 	q1 := `SELECT id FROM product WHERE uuid = $1`
 	var productID int
 	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrProductNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "postgres: query row context failed for query=%q", q1)
 	}
@@ -347,7 +352,7 @@ func (m *PgModel) DeleteAllProductImages(ctx context.Context, productUUID string
 		return err
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil

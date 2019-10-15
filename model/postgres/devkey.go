@@ -30,10 +30,10 @@ func (m *PgModel) CreateUserDevKey(ctx context.Context, userUUID string, key str
 	q1 := "SELECT id FROM usr WHERE uuid = $1"
 	var userID int
 	err := m.db.QueryRowContext(ctx, q1, userUUID).Scan(&userID)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
 	}
 
@@ -61,10 +61,10 @@ func (m *PgModel) GetUserDevKeys(ctx context.Context, userUUID string) ([]*UsrDe
 	q1 := "SELECT id FROM usr WHERE uuid = $1"
 	var userID int
 	err := m.db.QueryRowContext(ctx, q1, userUUID).Scan(&userID)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed q1=%q", q1)
 	}
 
@@ -90,7 +90,7 @@ func (m *PgModel) GetUserDevKeys(ctx context.Context, userUUID string) ([]*UsrDe
 		row.UsrUUID = userUUID
 		devKeys = append(devKeys, &row)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return devKeys, nil
@@ -124,10 +124,10 @@ func (m *PgModel) GetUserDevKeyByDevKey(ctx context.Context, key string) (*UsrDe
 	`
 	row := UsrDevKeyJoinRow{}
 	err := m.db.QueryRowContext(ctx, query, key).Scan(&row.id, &row.UUID, &row.Key, &row.Hash, &row.UsrUUID, &row.Created, &row.Modified)
+	if err == sql.ErrNoRows {
+		return nil, err
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, err
-		}
 		return nil, errors.Wrapf(err, "postgres: m.db.QueryRowContext(ctx, %q, %q).Scan(...)", query, key)
 	}
 	return &row, nil
@@ -138,10 +138,10 @@ func (m *PgModel) DeleteUsrDevKey(ctx context.Context, usrDevKeyUUID string) err
 	q1 := "SELECT id FROM usr_devkey WHERE uuid = $1"
 	var usrDevKeyID int
 	err := m.db.QueryRowContext(ctx, q1, usrDevKeyUUID).Scan(&usrDevKeyID)
+	if err == sql.ErrNoRows {
+		return ErrDeveloperKeyNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrDeveloperKeyNotFound
-		}
 		return errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -150,6 +150,5 @@ func (m *PgModel) DeleteUsrDevKey(ctx context.Context, usrDevKeyUUID string) err
 	if err != nil {
 		return errors.Wrapf(err, "postgres: exec context failed q2=%q", q2)
 	}
-
 	return nil
 }

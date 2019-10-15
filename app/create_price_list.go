@@ -54,11 +54,11 @@ func (a *App) CreatePriceListHandler() http.HandlerFunc {
 		}
 
 		priceList, err := a.Service.CreatePriceList(ctx, &requestBody)
+		if err == service.ErrPriceListCodeExists {
+			clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
+			return
+		}
 		if err != nil {
-			if err == service.ErrPriceListCodeExists {
-				clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.CreatePriceList(ctx, &requestBody) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

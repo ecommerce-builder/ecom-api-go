@@ -30,7 +30,7 @@ func (a *App) ListAddressesHandler() http.HandlerFunc {
 
 		addresses, err := a.Service.GetAddresses(ctx, userID)
 		if err == service.ErrUserNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
+			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found") // 404
 			return
 		}
 		if err != nil {

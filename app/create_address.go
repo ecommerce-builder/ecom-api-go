@@ -106,12 +106,11 @@ func (a *App) CreateAddressHandler() http.HandlerFunc {
 		}
 
 		address, err := a.Service.CreateAddress(ctx, *request.UserID, *request.Typ, *request.ContactName, *request.Addr1, request.Addr2, *request.City, request.County, *request.Postcode, *request.CountryCode)
+		if err == service.ErrUserNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrUserNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
-				return
-			}
-
 			contextLogger.Errorf("app: a.Service.CreateAddress(ctx, userID=%q, typ=%q, contactName=%q, addr1=%q, addr2=%v, city=%q, county=%v, postcode=%q, countryCode=%q) failed with error: %v", *request.UserID, *request.Typ, *request.ContactName, *request.Addr1, request.Addr2, *request.City, request.County, *request.Postcode, *request.CountryCode, err)
 			serverError(w, http.StatusInternalServerError, ErrCodeInternalServerError, "internal server error")
 			return

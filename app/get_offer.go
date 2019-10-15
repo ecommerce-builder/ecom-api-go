@@ -18,12 +18,17 @@ func (a *App) GetOfferHandler() http.HandlerFunc {
 		contextLogger.Info("app: GetOfferHandler called")
 
 		inventoryID := chi.URLParam(r, "id")
+		if !IsValidUUID(inventoryID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameter id must be a valid v4 uuid") // 400
+			return
+		}
 		inventory, err := a.Service.GetOffer(ctx, inventoryID)
+		if err == service.ErrInventoryNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeOfferNotFound, "offer not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrInventoryNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeOfferNotFound, "offer not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetInventory(ctx, inventoryUUID=%q) failed: %+v", inventoryID, err)
 			return
 		}

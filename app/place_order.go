@@ -64,14 +64,15 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 
 		contextLogger.Debugf("app: a.Service.PlaceOrder(ctx, req.ContextName=%v, req.Email=%v, res.CustomerID=%v, %q, ...)", req.ContactName, req.Email, req.CustomerID, *req.CartID)
 		order, err := a.Service.PlaceOrder(ctx, req.ContactName, req.Email, req.CustomerID, *req.CartID, req.Billing, req.Shipping)
+		if err == service.ErrCartEmpty {
+			clientError(w, http.StatusNotFound, ErrCodeOrderCartEmpty, "The cart id you passed contains no items")
+			return
+		}
+		if err == service.ErrUserNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeOrderUserNotFound, "The user with the given user_id could not be found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCartEmpty {
-				clientError(w, http.StatusNotFound, ErrCodeOrderCartEmpty, "The cart id you passed contains no items")
-				return
-			} else if err == service.ErrUserNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeOrderUserNotFound, "The user with the given user_id could not be found")
-				return
-			}
 			contextLogger.Panicf("app: PlaceOrder(ctx, %q, %q, ...) failed with error: %v", *req.ContactName, *req.Email, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

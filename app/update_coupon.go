@@ -53,11 +53,11 @@ func (a *App) UpdateCouponHandler() http.HandlerFunc {
 		}
 
 		coupon, err := a.Service.UpdateCoupon(ctx, couponID, request.Void)
+		if err == service.ErrCouponNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrCouponNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.UpdateCoupon(ctx, couponID=%q, void=%v) failed: %+v", couponID, request.Void, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

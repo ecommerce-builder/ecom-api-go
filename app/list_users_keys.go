@@ -44,11 +44,11 @@ func (a *App) ListUsersDevKeysHandler() http.HandlerFunc {
 		}
 
 		developerKeys, err := a.Service.ListUsersDevKeys(ctx, userID)
+		if err == service.ErrUserNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
+			return
+		}
 		if err != nil {
-			if err == service.ErrUserNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
-				return
-			}
 			contextLogger.Errorf("app: ListUsersDevKeys(ctx, userID=%q) error: %+v", userID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

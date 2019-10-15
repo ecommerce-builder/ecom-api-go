@@ -36,11 +36,11 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 			return
 		}
 		customToken, customer, err := a.Service.SignInWithDevKey(ctx, o.Key)
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		if err != nil {
-			if err == bcrypt.ErrMismatchedHashAndPassword {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
 			contextLogger.Errorf("app: SignInWithDevKeyHandler(ctx, ...) error: %v\n", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return

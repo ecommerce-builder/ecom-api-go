@@ -83,16 +83,14 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, us
 	var userUUID *string
 	if userID != nil {
 		user, err := s.GetUser(ctx, *userID)
+		if err == ErrUserNotFound {
+			return nil, err
+		}
 		if err != nil {
-			if err == ErrUserNotFound {
-				return nil, err
-			}
 			return nil, errors.Wrapf(err, "s.GetUser(ctx, %q) failed", *userID)
 		}
 		userUUID = userID
 		contextLogger.Debugf("%#v\n", user)
-	} else {
-		userUUID = nil
 	}
 
 	if userUUID == nil {
@@ -199,34 +197,12 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, us
 // GetOrder returns an order by order ID or nil if an error occurred.
 func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) {
 	orow, oirows, err := s.model.GetOrderDetailsByUUID(ctx, orderID)
+	if err == postgres.ErrOrderNotFound || err == postgres.ErrOrderItemsNotFound {
+		return nil, errors.Wrapf(err, "s.model.GetOrderDetailsByUUID(ctx, orderID=%s)", orderID)
+	}
 	if err != nil {
-		if err == postgres.ErrOrderNotFound || err == postgres.ErrOrderItemsNotFound {
-			return nil, errors.Wrapf(err, "s.model.GetOrderDetailsByUUID(ctx, orderID=%s)", orderID)
-		}
 		return nil, errors.Wrap(err, "GetOrderDetailsByUUID failed")
 	}
-
-	//var user *User
-	//crow, err := s.model.GetUserByID(ctx, *orow.UserID)
-	//if err != nil {
-	//      if err == postgres.ErrUserNotFound {
-	//              user = nil
-	//      } else {
-	//              return nil, errors.Wrapf(err, "s.model.GetUserByID(ctx, UserID=%s", *orow.UserID)
-	//      }
-	//}
-	//if crow != nil {
-	//      user = &User{
-	//              ID:        crow.UUID,
-	//              UID:       crow.UID,
-	//              Role:      crow.Role,
-	//              Email:     crow.Email,
-	//              Firstname: crow.Firstname,
-	//              Lastname:  crow.Lastname,
-	//              Created:   crow.Created,
-	//              Modified:  crow.Modified,
-	//      }
-	//}
 
 	orderItems := make([]*OrderItem, 0, 8)
 	for _, oir := range oirows {

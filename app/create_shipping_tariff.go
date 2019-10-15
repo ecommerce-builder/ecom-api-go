@@ -70,11 +70,11 @@ func (a *App) CreateShippingTariffHandler() http.HandlerFunc {
 
 		// attempt to create the shipping tariff
 		tariff, err := a.Service.CreateShippingTariff(ctx, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode)
+		if err == service.ErrShippingTariffCodeExists {
+			clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists, "shipping tariff code already exists")
+			return
+		}
 		if err != nil {
-			if err == service.ErrShippingTariffCodeExists {
-				clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists, "shipping tariff code already exists")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.CreateShippingTariff(ctx, countryCode=%q, shippingcode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return

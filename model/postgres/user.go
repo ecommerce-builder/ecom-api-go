@@ -75,10 +75,10 @@ func (m *PgModel) CreateUser(ctx context.Context, uid, role, email, firstname, l
 	var priceListUUID string
 	q1 := "SELECT id, uuid FROM price_list WHERE code = 'default'"
 	err := m.db.QueryRowContext(ctx, q1).Scan(&priceListID, &priceListUUID)
+	if err == sql.ErrNoRows {
+		return nil, ErrDefaultPriceListNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrDefaultPriceListNotFound
-		}
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
 
@@ -180,13 +180,14 @@ func (m *PgModel) GetUsers(ctx context.Context, pq *PaginationQuery) (*Paginatio
 	usrs := make([]*UsrJoinRow, 0)
 	for rows.Next() {
 		var u UsrJoinRow
-		if err = rows.Scan(&u.id, &u.UUID, &u.UID, &u.priceListID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
+		if err = rows.Scan(&u.id, &u.UUID, &u.UID, &u.priceListID, &u.Role, &u.Email,
+			&u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
 			return nil, errors.Wrapf(err, "postgres: rows scan User=%v", u)
 		}
 		usrs = append(usrs, &u)
 	}
 
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows err")
 	}
 	pr.RSet = usrs
@@ -206,11 +207,12 @@ func (m *PgModel) GetUserByUUID(ctx context.Context, userUUID string) (*UsrJoinR
 	`
 	c := UsrJoinRow{}
 	row := m.db.QueryRowContext(ctx, query, userUUID)
-	if err := row.Scan(&c.id, &c.UUID, &c.UID, &c.priceListID, &c.PriceListUUID, &c.Role, &c.Email,
-		&c.Firstname, &c.Lastname, &c.Created, &c.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
-		}
+	err := row.Scan(&c.id, &c.UUID, &c.UID, &c.priceListID, &c.PriceListUUID, &c.Role,
+		&c.Email, &c.Firstname, &c.Lastname, &c.Created, &c.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q User=%v", query, c)
 	}
 	return &c, nil
@@ -226,10 +228,12 @@ func (m *PgModel) GetUserByID(ctx context.Context, userID int) (*UsrRow, error) 
 	`
 	u := UsrRow{}
 	row := m.db.QueryRowContext(ctx, query, userID)
-	if err := row.Scan(&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname, &u.Created, &u.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
-		}
+	err := row.Scan(&u.id, &u.UUID, &u.UID, &u.Role, &u.Email, &u.Firstname, &u.Lastname,
+		&u.Created, &u.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, "query row context scan query=%q User=%v", query, u)
 	}
 	return &u, nil
@@ -248,12 +252,11 @@ func (m *PgModel) DeleteUserByUUID(ctx context.Context, usrUUID string) (string,
 	var usrID int
 	var uid string
 	err = tx.QueryRowContext(ctx, q1, usrUUID).Scan(&usrID, &uid)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return "", ErrUserNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return "", ErrUserNotFound
-		}
-
 		tx.Rollback()
 		return "", errors.Wrapf(err, "postgres: scan failed for q1=%q", q1)
 	}
@@ -296,7 +299,7 @@ func (m *PgModel) DeleteUserByUUID(ctx context.Context, usrUUID string) (string,
 		return "", errors.Wrapf(err, "postgres: exec context q5=%q", q5)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		return "", errors.Wrap(err, "postgres: tx.Commit")
 	}

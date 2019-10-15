@@ -17,11 +17,12 @@ func (a *App) DeletePromoRuleHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeletePromoRuleHandler started")
 
 		promoRuleID := chi.URLParam(r, "id")
-		if err := a.Service.DeletePromoRule(ctx, promoRuleID); err != nil {
-			if err == service.ErrPromoRuleNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
-				return
-			}
+		err := a.Service.DeletePromoRule(ctx, promoRuleID)
+		if err == service.ErrPromoRuleNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
+			return
+		}
+		if err != nil {
 			contextLogger.Errorf("app: a.Service.DeletePromoRule(ctx, promoRuleID=%q) error: %+v", promoRuleID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return

@@ -24,17 +24,22 @@ func (a *App) GetProductPrices() http.HandlerFunc {
 		productID := r.URL.Query().Get("product_id")
 		priceListID := r.URL.Query().Get("price_list_id")
 
+		// TODO: validate query params
+
 		prices, err := a.Service.GetPrices(ctx, productID, priceListID)
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound,
+				"product not found") // 404
+			return
+		}
+		if err == service.ErrPriceListNotFound {
+			clientError(w, http.StatusNotFound, ErrCodePriceListNotFound,
+				"price list not found") // 404
+			return
+		}
 		if err != nil {
-			if err == service.ErrProductNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
-				return
-			} else if err == service.ErrPriceListNotFound {
-				clientError(w, http.StatusNotFound, ErrCodePriceListNotFound, "price list not found")
-				return
-			}
 			contextLogger.Errorf("app: GetPrices(ctx, productID=%q, priceListID=%q) failed: %+v", productID, priceListID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
@@ -42,7 +47,7 @@ func (a *App) GetProductPrices() http.HandlerFunc {
 			Object: "list",
 			Data:   prices,
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&list)
 	}
 }

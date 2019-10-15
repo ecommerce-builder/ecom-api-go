@@ -64,10 +64,11 @@ func (m *PgModel) GetPricesByPriceList(ctx context.Context, productUUID, priceLi
                   p.uuid = $1 AND t.uuid = $2;
 	`
 	p := PriceJoinRow{}
-	if err := m.db.QueryRowContext(ctx, query, productUUID, priceListUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.ProductPath, &p.ProductSKU, &p.priceListID, &p.PriceListUUID, &p.PriceListCode, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrPriceNotFound
-		}
+	err := m.db.QueryRowContext(ctx, query, productUUID, priceListUUID).Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.ProductPath, &p.ProductSKU, &p.priceListID, &p.PriceListUUID, &p.PriceListCode, &p.UnitPrice, &p.Created, &p.Modified)
+	if err == sql.ErrNoRows {
+		return nil, ErrPriceNotFound
+	}
+	if err != nil {
 		return nil, errors.Wrapf(err, " m.db.QueryRowContext(ctx, %q, productUUID=%q, tierUUID=%q).Scan(...)", query, productUUID, priceListUUID)
 	}
 	return &p, nil
@@ -85,11 +86,11 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 	if productUUID != "" {
 		q1 := "SELECT id FROM product WHERE uuid = $1"
 		err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID)
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrProductNotFound
+		}
 		if err != nil {
-			if err == sql.ErrNoRows {
-				tx.Rollback()
-				return nil, ErrProductNotFound
-			}
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 		}
@@ -100,11 +101,11 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 	if priceListUUID != "" {
 		q2 := "SELECT id FROM price_list WHERE uuid = $1"
 		err = tx.QueryRowContext(ctx, q2, priceListUUID).Scan(&priceListID)
+		if err == sql.ErrNoRows {
+			tx.Rollback()
+			return nil, ErrPriceListNotFound
+		}
 		if err != nil {
-			if err == sql.ErrNoRows {
-				tx.Rollback()
-				return nil, ErrPriceListNotFound
-			}
 			tx.Rollback()
 			return nil, errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 		}
@@ -149,27 +150,27 @@ func (m *PgModel) GetPrices(ctx context.Context, productUUID, priceListUUID stri
 			return nil, errors.Wrapf(err, "postgres: m.db.QueryContext(ctx, q3=%q)", q3)
 		}
 	}
-
 	defer rows.Close()
 
 	prices := make([]*PriceJoinRow, 0, 8)
 	for rows.Next() {
 		var p PriceJoinRow
-		if err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.ProductPath, &p.ProductSKU,
+		err = rows.Scan(&p.id, &p.UUID, &p.productID, &p.ProductUUID, &p.ProductPath, &p.ProductSKU,
 			&p.priceListID, &p.PriceListUUID, &p.PriceListCode,
-			&p.UnitPrice, &p.Break, &p.Created, &p.Modified); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrPriceNotFound
-			}
+			&p.UnitPrice, &p.Break, &p.Created, &p.Modified)
+		if err == sql.ErrNoRows {
+			return nil, ErrPriceNotFound
+		}
+		if err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		prices = append(prices, &p)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return prices, nil
@@ -194,7 +195,7 @@ func (m *PgModel) GetProductPrices(ctx context.Context, productUUID string) ([]*
 	pricing := make([]*PriceRow, 0, 8)
 	for rows.Next() {
 		var p PriceRow
-		if err = rows.Scan(&p.id, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+		if err := rows.Scan(&p.id, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
 		pricing = append(pricing, &p)
@@ -218,15 +219,16 @@ func (m *PgModel) GetProductPriceByPriceList(ctx context.Context, priceListUUID 
 		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx, query=%q, priceListID=%q)", query, priceListUUID)
 	}
 	defer rows.Close()
+
 	prices := make([]*PriceRow, 0, 8)
 	for rows.Next() {
 		var p PriceRow
-		if err = rows.Scan(&p.id, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
+		if err := rows.Scan(&p.id, &p.priceListID, &p.productID, &p.UnitPrice, &p.Created, &p.Modified); err != nil {
 			return nil, errors.Wrap(err, "scan failed")
 		}
 		prices = append(prices, &p)
 	}
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "rows.Err()")
 	}
 	return prices, nil
@@ -245,11 +247,11 @@ func (m *PgModel) UpdatePrices(ctx context.Context, productUUID, priceListUUID s
 	var productPath string
 	var productSKU string
 	err = tx.QueryRowContext(ctx, q1, productUUID).Scan(&productID, &productPath, &productSKU)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrProductNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q1=%q", q1)
 	}
@@ -259,11 +261,11 @@ func (m *PgModel) UpdatePrices(ctx context.Context, productUUID, priceListUUID s
 	var priceListID int
 	var priceListCode string
 	err = tx.QueryRowContext(ctx, q2, priceListUUID).Scan(&priceListID, &priceListCode)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrPriceListNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrPriceListNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
 	}
@@ -307,7 +309,7 @@ func (m *PgModel) UpdatePrices(ctx context.Context, productUUID, priceListUUID s
 		prices = append(prices, &p)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return prices, nil
@@ -324,11 +326,11 @@ func (m *PgModel) UpdatePrice(ctx context.Context, productUUID, priceListUUID st
 	query := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrProductNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
@@ -336,11 +338,11 @@ func (m *PgModel) UpdatePrice(ctx context.Context, productUUID, priceListUUID st
 	query = "SELECT id FROM price_list WHERE uuid = $1"
 	var priceListID int
 	err = tx.QueryRowContext(ctx, query, priceListUUID).Scan(&priceListID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return nil, ErrPriceListNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return nil, ErrPriceListNotFound
-		}
 		tx.Rollback()
 		return nil, errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
@@ -359,7 +361,7 @@ func (m *PgModel) UpdatePrice(ctx context.Context, productUUID, priceListUUID st
 		return nil, errors.Wrap(err, "UpdateTierPricing QueryRowContext failed")
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "tx.Commit")
 	}
 	return &p, nil
@@ -375,11 +377,11 @@ func (m *PgModel) DeleteProductPrices(ctx context.Context, productUUID, priceLis
 	query := "SELECT id FROM product WHERE uuid = $1"
 	var productID int
 	err = tx.QueryRowContext(ctx, query, productUUID).Scan(&productID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrProductNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrProductNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
@@ -387,11 +389,11 @@ func (m *PgModel) DeleteProductPrices(ctx context.Context, productUUID, priceLis
 	query = "SELECT id FROM price_list WHERE uuid = $1"
 	var priceListID int
 	err = tx.QueryRowContext(ctx, query, priceListUUID).Scan(&priceListID)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		return ErrPriceListNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			tx.Rollback()
-			return ErrPriceListNotFound
-		}
 		tx.Rollback()
 		return errors.Wrapf(err, "query row context failed for query=%q", query)
 	}
@@ -402,7 +404,7 @@ func (m *PgModel) DeleteProductPrices(ctx context.Context, productUUID, priceLis
 		return errors.Wrapf(err, "exec context query=%q", query)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "tx.Commit")
 	}
 	return nil
