@@ -94,8 +94,10 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		}
 
 		rule = PromoRule{
+
 			Object:         "promo_rule",
 			ID:             row.UUID,
+			PromoRuleCode:  row.PromoRuleCode,
 			ProductID:      *row.ProductUUID,
 			ProductPath:    *row.ProductPath,
 			ProductSKU:     *row.ProductSKU,
