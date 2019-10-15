@@ -20,18 +20,20 @@ func (a *App) GetCouponHandler() http.HandlerFunc {
 
 		couponCodeID := chi.URLParam(r, "id")
 		if !IsValidUUID(couponCodeID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "url parameter must be a valid v4 UUID")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"url parameter must be a valid v4 uuid") // 400
 			return
 		}
 
 		coupon, err := a.Service.GetCoupon(ctx, couponCodeID)
+		if err == service.ErrCouponNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound,
+				"coupon not found") // 404
+			return
+		}
 		if err != nil {
-			if err == service.ErrCouponNotFound {
-				clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
-				return
-			}
 			contextLogger.Errorf("app: a.Service.GetCoupon(ctx, couponCodeID=%q) failed: %+v", couponCodeID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
