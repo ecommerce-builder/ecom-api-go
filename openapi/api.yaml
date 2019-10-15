@@ -2387,6 +2387,215 @@ paths:
                     status: 409
                     code: 'price-list/price-list-in-use'
                     message: price list is already in use
+  /shipping-tariffs:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new shipping tariff
+      description: |
+        Attempt to create a new shipping tarrif. The request body must contain `country_code`, `shipping_code`, `name`, `price` and `tax_code` attributes.
+
+        OpCreateShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpCreateShippingTariff
+      tags:
+      - Shipping Tariffs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - country_code
+              - shipping_code
+              - name
+              - price
+              - tax_code
+              properties:
+                country_code:
+                  type: string
+                  example: GB
+                shipping_code:
+                  type: string
+                  example: 'NEXTDAY-SPECIAL'
+                name:
+                  type: string
+                  example: Next day special delivery
+                price:
+                  type: integer
+                  example: 99500
+                tax_code:
+                  type: string
+                  example: T20
+      responses:
+        '201':
+          description: shipping_tariff object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingTariff'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: shipping-tariffs/shipping-tariff-code-exists
+                message: shipping tariff code already exists
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of all shipping tariffs
+      description: |
+        Retrieves a complete list of shipping_tariff objects.
+
+        OpListShippingTariffs requires `RoleShopper` privileges or higher.
+      operationId: OpListShippingTariffs
+      tags:
+      - Shipping Tariffs
+      responses:
+        '200':
+          description: list of shipping_tariff objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ShippingTariff'
+  /shipping-tariffs/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the price list.
+      schema:
+        type: string
+        format: uuid
+        example: '32e6a6ce-ed1b-4304-a749-6aa474150950'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a single shipping tariff by id
+      description: |
+        OpGetShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpGetShippingTariff
+      tags:
+      - Shipping Tariffs
+      responses:
+        '200':
+          description: shipping_tariff object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingTariff'
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                example:
+                    status: 404
+                    code: shipping-tariffs/shipping-tariff-not-found
+                    message: shipping tariff not found
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update a shipping tariff
+      description: |
+        Attempt to update all the details of a shipping tariff. `country_code`, `shipping_code`, `name`, `price` and `tax_price` attributes must all be passed..
+
+        OpUpdateShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpUpdateShippingTariff
+      tags:
+      - Shipping Tariffs
+      requestBody:
+        description: Shipping Tariff details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - country_code
+              - shipping_code
+              - name
+              - price
+              - tax_code
+              properties:
+                country_code:
+                  type: string
+                  example: GB
+                shipping_code:
+                  type: string
+                  example: 'NEXTDAY-SPECIAL'
+                name:
+                  type: string
+                  example: 'New name'
+                price:
+                  type: integer
+                  example: 129500
+                tax_code:
+                  type: string
+                  example: T0
+      responses:
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                example:
+                    status: 404
+                    code: shipping-tariffs/shipping-tariff-not-found
+                    message: shipping tariff not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: shipping-tariffs/shipping-tariff-code-exists
+                message: shipping tariff code already exists
+        '200':
+          description: shipping_tariff object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingTariff'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a shipping tariff by id
+      description: |
+        Attempts to delete a shipping tariff identified by the given id.
+
+        OpDeleteShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteShippingTariff
+      tags:
+      - Shipping Tariffs
+      responses:
+        '204':
+          description: No Content
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                example:
+                    status: 404
+                    code: shipping-tariffs/shipping-tariff-not-found
+                    message: shipping tariff not found
   /inventory:
     get:
       security:
@@ -3648,6 +3857,38 @@ components:
           type: string
           format: date-time
           example: '2019-08-22T09:31:35.430Z'
+    ShippingTariff:
+      properties:
+        object:
+          type: string
+          example: shipping_tariff
+        id:
+          type: string
+          format: uuid
+          example: 'cf9ad33b-d0eb-4585-b4b7-0ef1355126fb'
+        country_code:
+          type: string
+          example: GB
+        shipping_code:
+          type: string
+          example: 'NEXTDAY-ROYALMAIL'
+        name:
+          type: string
+          example: Royal Mail Special Delivery
+        price:
+          type: integer
+          example: 199500
+        tax_code:
+          type: string
+          example: T20
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
     PPAssocGroupRequest:
       required:
       - pp_assoc_group_code
