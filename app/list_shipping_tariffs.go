@@ -24,7 +24,7 @@ func (a *App) ListShippingTariffsHandler() http.HandlerFunc {
 		shippingTariffs, err := a.Service.GetShippingTariffs(ctx)
 		if err != nil {
 			contextLogger.Errorf("app: a.Service.GetShippingTariffs(ctx) error: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 

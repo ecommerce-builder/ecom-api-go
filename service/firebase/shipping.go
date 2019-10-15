@@ -52,11 +52,11 @@ func (s *Service) CreateShippingTariff(ctx context.Context, countryCode, shippin
 // GetShippingTariff returns a ShippingTariff by ID
 func (s *Service) GetShippingTariff(ctx context.Context, shippingTariffID string) (*ShippingTariff, error) {
 	ptariff, err := s.model.GetShippingTariffByUUID(ctx, shippingTariffID)
-	if err == postgres.ErrShippingTariffCodeExists {
-		return nil, ErrShippingTariffCodeExists
+	if err == postgres.ErrShippingTariffNotFound {
+		return nil, ErrShippingTariffNotFound
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.GetShippingTariff(ctx, shippingTariffID=%q)", shippingTariffID)
+		return nil, errors.Wrapf(err, "service: s.model.GetShippingTariff(ctx, shippingTariffUUID=%q)", shippingTariffID)
 	}
 
 	shippingTariff := ShippingTariff{
@@ -75,25 +75,24 @@ func (s *Service) GetShippingTariff(ctx context.Context, shippingTariffID string
 
 // GetShippingTariffs returns a list of ShippingTariffs.
 func (s *Service) GetShippingTariffs(ctx context.Context) ([]*ShippingTariff, error) {
-	ptariffs, err := s.model.GetShippingTariffs(ctx)
+	rows, err := s.model.GetShippingTariffs(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "s.model.GetShippingTariffs(ctx) failed")
 	}
 
-	shippingTariffList := make([]*ShippingTariff, 0, len(ptariffs))
-	for _, s := range ptariffs {
-		shippingTariff := ShippingTariff{
+	shippingTariffList := make([]*ShippingTariff, 0, len(rows))
+	for _, row := range rows {
+		shippingTariffList = append(shippingTariffList, &ShippingTariff{
 			Object:       "shipping_tariff",
-			ID:           s.UUID,
-			CountryCode:  s.CountryCode,
-			ShippingCode: s.ShippingCode,
-			Name:         s.Name,
-			Price:        s.Price,
-			TaxCode:      s.TaxCode,
-			Created:      s.Created,
-			Modified:     s.Modified,
-		}
-		shippingTariffList = append(shippingTariffList, &shippingTariff)
+			ID:           row.UUID,
+			CountryCode:  row.CountryCode,
+			ShippingCode: row.ShippingCode,
+			Name:         row.Name,
+			Price:        row.Price,
+			TaxCode:      row.TaxCode,
+			Created:      row.Created,
+			Modified:     row.Modified,
+		})
 	}
 	return shippingTariffList, nil
 }

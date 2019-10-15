@@ -18,9 +18,15 @@ func (a *App) GetShippingTariffHandler() http.HandlerFunc {
 		contextLogger.Info("app: GetShippingTariffHandler called")
 
 		shippingTariffID := chi.URLParam(r, "id")
+		if !IsValidUUID(shippingTariffID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameters id must be a valid v4 uuid") // 400
+			return
+		}
 		promoRule, err := a.Service.GetShippingTariff(ctx, shippingTariffID)
-		if err == service.ErrPromoRuleNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shopping tariff not found")
+		if err == service.ErrShippingTariffNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound,
+				"shopping tariff not found") // 404
 			return
 		}
 		if err != nil {

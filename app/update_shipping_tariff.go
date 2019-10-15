@@ -9,15 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type updateShippingTariffRequest struct {
-	ID           string `json:"id"`
-	CountryCode  string `json:"country_code"`
-	ShippingCode string `json:"shipping_code"`
-	Name         string `json:"name"`
-	Price        int    `json:"price"`
-	TaxCode      string `json:"tax_code"`
-}
-
 // UpdateShippingTariffHandler creates a handler function that updates
 // a shipping tariff with the given id.
 func (a *App) UpdateShippingTariffHandler() http.HandlerFunc {
@@ -31,26 +22,36 @@ func (a *App) UpdateShippingTariffHandler() http.HandlerFunc {
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&request); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
 			return
 		}
 
 		ok, message := validateCreateShippingTariffRequest(&request)
 		if !ok {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message) // 400
 			return
 		}
 
 		shippingTariffID := chi.URLParam(r, "id")
-		shippingTariff, err := a.Service.UpdateShippingTariff(ctx, shippingTariffID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode)
+		if !IsValidUUID(shippingTariffID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameters id must be a valid v4 uuid") // 400
+			return
+		}
+		shippingTariff, err := a.Service.UpdateShippingTariff(ctx, shippingTariffID,
+			*request.CountryCode, *request.ShippingCode, *request.Name,
+			*request.Price, *request.TaxCode)
 		if err == service.ErrShippingTariffNotFound {
 			// 404 Not Found
-			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound, "shipping tariff code not found")
+			clientError(w, http.StatusNotFound, ErrCodeShippingTariffNotFound,
+				"shipping tariff code not found") // 404
 			return
 		}
 		if err == service.ErrShippingTariffCodeExists {
 			// 409 Conflict
-			clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists, "shipping tariff code already exists")
+			clientError(w, http.StatusConflict, ErrCodeShippingTariffCodeExists,
+				"shipping tariff code already exists") // 409
 			return
 		}
 
