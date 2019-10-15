@@ -35,35 +35,37 @@ func (a *App) UpdateCouponHandler() http.HandlerFunc {
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&request); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
 			return
 		}
 
 		ok, message := validateUpdateCouponRequest(&request)
 		if !ok {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message) // 400
 			return
 		}
 
 		// validate URL parameter
 		couponID := chi.URLParam(r, "id")
 		if !IsValidUUID(couponID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL parameter must be a valid v4 UUID")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"URL parameter must be a valid v4 uuid") // 400
 			return
 		}
 
 		coupon, err := a.Service.UpdateCoupon(ctx, couponID, request.Void)
 		if err == service.ErrCouponNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
+			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound,
+				"coupon not found") // 404
 			return
 		}
 		if err != nil {
 			contextLogger.Errorf("app: a.Service.UpdateCoupon(ctx, couponID=%q, void=%v) failed: %+v", couponID, request.Void, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
-
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&coupon)
 	}
 }

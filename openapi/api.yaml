@@ -502,31 +502,202 @@ paths:
     post:
       security:
       - bearerAuth: []
-      summary: Create a new coupon offer
+      summary: Mint a new coupon
       description: |
-        OpCreateCoupon requires `RoleAdmin` privileges.
+        OpCreateCoupon mints a new coupon to be used as currency in the cart.
+
+        Coupons are either reusable or non-reusable. Reusable coupons can be spent multiple times by the same or different users. Non-reusable coupons can only be spent once.
+
+        To mint a new coupon pass a `promo_rule_id`, `coupon_code` and `reusable` attributes in the request body. The `promo_rule_id` should be an existing promo rule that is not already in use. The `coupon_code` can be used as a short identifier, typically input by the shopper during the cart or checkout process. `reusuable` is a boolean flag indicating whether this coupon can be spent multiple times.
+
+        If the `coupon_code` attribute value already exists, the API responds with a `409 Conflict` status code.
+
+        If the `promo_rule_id` attribute value does not reference an existing promo rule the API responds with a `404 Not Found` status code.
+
+        On success, the API responds with a `201 Created` status code.
+
+        OpCreateCoupon requires `RoleAdmin` privileges or higher.
       operationId: OpCreateCoupon
       tags:
       - Coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - promo_rule_id
+              - coupon_code
+              - reusable
+              properties:
+                promo_rule_id:
+                  type: string
+                  format: uuid
+                  example: 'd54aa60b-a2b7-4f18-b4e2-5c410bd1e263'
+                coupon_code:
+                  type: string
+                  example: 'SALE20'
+                reusable:
+                  type: boolean
+                  example: true
       responses:
-        '501':
-          description: Not Implemented
-  /coupons/{id}:
-    delete:
-      parameters:
-      - name: id
-        required: true
-        in: path
-        description: A unique identifier for the offer.
-        schema:
-          type: string
-          example: '20574b05-29a4-49f6-bf89-fe231c09d8a5'
+        '201':
+          description: coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                promo-rules/promo-rule-not-found:
+                  summary: promo-rules/promo-rule-not-found
+                  value:
+                    status: 404
+                    code: promo-rules/promo-rule-not-found
+                    message: promo rule not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                coupons/coupon-exists:
+                  summary: coupons/coupon-exists
+                  value:
+                    status: 409
+                    code: coupons/coupon-exists
+                    message: coupon with this coupon code already exists
+    get:
       security:
       - bearerAuth: []
-      summary: Void a coupon
+      summary: Get a list of coupons
       description: |
-        OpVoidCoupon requires `RoleAdmin` privileges.
-      operationId: OpVoidCoupon
+        Retrieves a complete list of all coupons in the system.
+
+        OpListCoupons requires `RoleAdmin` privileges or higher.
+      operationId: OpListCoupons
+      tags:
+      - Coupons
+      responses:
+        '200':
+          description: list of coupon objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Coupon'
+  /coupons/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the coupon.
+      schema:
+        type: string
+        format: uuid
+        example: '3b7ef506-bd5a-4c37-8e76-6733a2531d36'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a single coupon by id
+      description: |
+        OpGetCoupon retrieves a single coupon by id.
+
+        OpGetCoupon requires `RoleAdmin` privileges or higher.
+      operationId: OpGetCoupon
+      tags:
+      - Coupons
+      responses:
+        '200':
+          description: coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                coupons/coupon-not-found:
+                  summary: coupons/coupon-not-found
+                  value:
+                    status: 404
+                    code: coupons/coupon-not-found
+                    message: coupon not found
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update a coupon
+      description: |
+        Partially updates a coupon. Use this to void a coupon by passing the `void` attribute in the request body.
+
+        The `void` attribute value can be either true or false.
+
+        OpUpdateCoupon requires `RoleAdmin` privileges or higher.
+      operationId: OpUpdateCoupon
+      tags:
+      - Coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - void
+              properties:
+                void:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                  status: 404
+                  code: coupons/coupon-not-found
+                  message: coupon not found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete the coupon with the given id
+      description: |
+        Attempts to delete a coupon by id. If the coupon id could not be found the API response with a 404 Not Found status code. If found, the coupon may already have been added to a cart.
+
+        Use OpUpdateCoupon if you wish to void a coupon.
+
+        OpDeleteCoupon requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteCoupon
       tags:
       - Coupons
       responses:
@@ -534,6 +705,24 @@ paths:
           description: No Content
         '404':
           description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: coupons/coupon-not-found
+                message: coupon not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 409
+                code: coupons/coupon-in-use
+                message: coupon is already in use, consider making it void instead
   /promo-rules:
     post:
       security:
@@ -1182,9 +1371,16 @@ paths:
     post:
       security:
       - bearerAuth: []
-      summary: Add a new address for a given customer
+      summary: Create a new address for a given customer
       description: |
-        OpCreateAddress requires `RoleCustomer` privileges.
+        Creates a new billing or shipping address for a given customer.
+        The request body must contain a `type` attribute that should be set to either `billing` or `shipping`. The request body must also contain a `user_id`, `contact_name`, `addr1`, `addr2`, `city`, `county`, `postcode` and `country_code` attributes.
+
+        If called with `RoleCustomer` privileges the `user_id` in the request body must match that of the JWT. That is, `RoleCustomer` authenticated callers can only create addreses for themselves and not other customers. `RoleAdmin` has no such restriction.
+
+        The `country_code` attribute value must be set to an ISO 3166 two character country code.
+
+        OpCreateAddress requires `RoleCustomer` privileges. The
       operationId: OpCreateAddress
       tags:
       - Addresses
@@ -1453,21 +1649,14 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Price'
-  /products/{id}/images:
-    parameters:
-    - name: id
-      required: true
-      in: path
-      description: A unique identifier for the product.
-      schema:
-        type: string
-        format: uuid
-        example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
+  /images:
     post:
       security:
       - bearerAuth: []
       summary: Add an image to a product
       description: |
+        Create a new image reference by passing the `product_id` and `path` attributes in the request body.
+
         OpAddImage requires `RoleAdmin` privileges.
       operationId: OpAddImage
       tags:
@@ -1476,7 +1665,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ImageRequest'
+              required:
+              - path
+              properties:
+                product_id:
+                  type: string
+                  format: uuid
+                  example: '8c65b9ad-5141-4065-83ba-0eb97c15dc07'
+                path:
+                  type: string
+                  example: 'images/products/front-view.jpg'
       responses:
         '201':
           description: Image object
@@ -1485,10 +1683,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/Image'
     get:
+      parameters:
+      - name: product_id
+        required: true
+        in: query
+        description: A unique identifier for the product.
+        schema:
+          type: string
+          format: uuid
+          example: '8c65b9ad-5141-4065-83ba-0eb97c15dc07'
       security:
       - bearerAuth: []
-      summary: List product images
+      summary: List images for a given product
       description: |
+        Retrieves a list of image objects for a given product. You must pass the `product_id` as a query parameter.
+
         OpListProductImages requires `RoleShopper` privileges.
       operationId: OpListProductImages
       tags:
@@ -2720,6 +2929,41 @@ components:
           type: string
           enum: ['product', 'productset', 'category', 'total', 'shipping']
           example: category
+    Coupon:
+      type: object
+      properties:
+        object:
+          type: string
+          example: coupon
+        id:
+          type: string
+          format: uuid
+          example: 'test'
+        coupon_code:
+          type: string
+          example: SALE20
+        promo_rule_id:
+          type: string
+          format: uuid
+          example: 'd54aa60b-a2b7-4f18-b4e2-5c410bd1e263'
+        void:
+          type: boolean
+          example: false
+        reusable:
+          type: boolean
+          example: true
+        spend_count:
+          type: integer
+          minimum: 0
+          example: 5
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
     Offer:
       type: object
       properties:
@@ -3288,6 +3532,12 @@ components:
           type: string
           format: uuid
           example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
+        product_path:
+          type: string
+          example: '10-metre-power-cable-for-5v-cctv-camera-spycam'
+        product_sku:
+          type: string
+          example: 10M17POWER
         path:
           type: string
           example: '4439.jpg'
@@ -3314,13 +3564,6 @@ components:
           type: string
           format: date-time
           example: '2019-07-30T14:31:47.672541Z'
-    ImageRequest:
-      required:
-      - path
-      properties:
-        path:
-          type: string
-          example: 'images/products/namwa1.jpg'
     ProductRequest:
       required:
       - path

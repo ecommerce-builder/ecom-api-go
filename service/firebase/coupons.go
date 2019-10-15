@@ -82,23 +82,23 @@ func (s *Service) GetCoupon(ctx context.Context, couponID string) (*Coupon, erro
 
 // GetCoupons returns a list coupons.
 func (s *Service) GetCoupons(ctx context.Context) ([]*Coupon, error) {
-	prows, err := s.model.GetCoupons(ctx)
+	rows, err := s.model.GetCoupons(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: s.model.GetCoupons(ctx) failed")
 	}
 
-	coupons := make([]*Coupon, 0, len(prows))
-	for _, c := range prows {
+	coupons := make([]*Coupon, 0, len(rows))
+	for _, row := range rows {
 		coupon := Coupon{
 			Object:      "coupon",
-			ID:          c.UUID,
-			CouponCode:  c.CouponCode,
-			PromoRuleID: c.PromoRuleUUID,
-			Void:        c.Void,
-			Resuable:    c.Resuable,
-			SpendCount:  c.SpendCount,
-			Created:     c.Created,
-			Modified:    c.Modified,
+			ID:          row.UUID,
+			CouponCode:  row.CouponCode,
+			PromoRuleID: row.PromoRuleUUID,
+			Void:        row.Void,
+			Resuable:    row.Resuable,
+			SpendCount:  row.SpendCount,
+			Created:     row.Created,
+			Modified:    row.Modified,
 		}
 		coupons = append(coupons, &coupon)
 	}
