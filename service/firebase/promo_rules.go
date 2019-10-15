@@ -94,7 +94,6 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		}
 
 		rule = PromoRule{
-
 			Object:         "promo_rule",
 			ID:             row.UUID,
 			PromoRuleCode:  row.PromoRuleCode,
@@ -137,6 +136,7 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		rule = PromoRule{
 			Object:         "promo_rule",
 			ID:             row.UUID,
+			PromoRuleCode:  row.PromoRuleCode,
 			ProductSetID:   *row.ProductSetUUID,
 			Name:           row.Name,
 			StartAt:        row.StartAt,
@@ -166,6 +166,7 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		rule = PromoRule{
 			Object:         "promo_rule",
 			ID:             row.UUID,
+			PromoRuleCode:  row.PromoRuleCode,
 			CategoryID:     *row.CategoryUUID,
 			CategoryPath:   *row.CategoryPath,
 			Name:           row.Name,
@@ -196,6 +197,7 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		rule = PromoRule{
 			Object:             "promo_rule",
 			ID:                 row.UUID,
+			PromoRuleCode:      row.PromoRuleCode,
 			ShippingTariffID:   *row.ShippingTariffUUID,
 			ShippingTariffCode: *row.ShippingTariffCode,
 			Name:               row.Name,
@@ -226,6 +228,7 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 		rule = PromoRule{
 			Object:         "promo_rule",
 			ID:             row.UUID,
+			PromoRuleCode:  row.PromoRuleCode,
 			TotalThreshold: row.TotalThreshold,
 			Name:           row.Name,
 			StartAt:        row.StartAt,
@@ -254,6 +257,7 @@ func (s *Service) GetPromoRule(ctx context.Context, promoRuleID string) (*PromoR
 	promoRule := PromoRule{
 		Object:         "promo_rule",
 		ID:             row.UUID,
+		PromoRuleCode:  row.PromoRuleCode,
 		Name:           row.Name,
 		StartAt:        row.StartAt,
 		EndAt:          row.EndAt,
@@ -278,19 +282,20 @@ func (s *Service) GetPromoRules(ctx context.Context) ([]*PromoRule, error) {
 	}
 
 	rules := make([]*PromoRule, 0, len(rows))
-	for _, t := range rows {
+	for _, row := range rows {
 		rule := PromoRule{
 			Object:         "promo_rule",
-			ID:             t.UUID,
-			Name:           t.Name,
-			StartAt:        t.StartAt,
-			EndAt:          t.EndAt,
-			Amount:         t.Amount,
-			TotalThreshold: t.TotalThreshold,
-			Type:           t.Type,
-			Target:         t.Target,
-			Created:        t.Created,
-			Modified:       t.Modified,
+			ID:             row.UUID,
+			PromoRuleCode:  row.PromoRuleCode,
+			Name:           row.Name,
+			StartAt:        row.StartAt,
+			EndAt:          row.EndAt,
+			Amount:         row.Amount,
+			TotalThreshold: row.TotalThreshold,
+			Type:           row.Type,
+			Target:         row.Target,
+			Created:        row.Created,
+			Modified:       row.Modified,
 		}
 		rules = append(rules, &rule)
 	}
