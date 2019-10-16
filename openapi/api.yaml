@@ -457,9 +457,22 @@ paths:
       summary: Create a new offer
       description: |
         OpCreateOffer requires `RoleAdmin` privileges.
-      operationId: OpCreateOffer
+      operationId: OpActivateOffer
       tags:
       - Offers
+      requestBody:
+        description: To active offer pass a `promo_rule_id` attribute identifying the promo rule to use for the offer.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - promo_rule_id
+              properties:
+                promo_rule_id:
+                  type: string
+                  format: uuid
+                  example: '33005ffa-05b3-4e91-98be-3332764bc40c'
       responses:
         '201':
           description: offer object
