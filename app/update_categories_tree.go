@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,21 +21,30 @@ func (a *App) UpdateCategoriesTreeHandler() http.HandlerFunc {
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&catRequest); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
 			return
 		}
 		defer r.Body.Close()
+
 		err := a.Service.UpdateCatalog(ctx, &catRequest)
-		if err == firebase.ErrAssocsAlreadyExist {
-			clientError(w, http.StatusConflict, ErrCodeAssocsExist, fmt.Sprintf("product to category relations already exist"))
+		if err == service.ErrCategoriesInUse {
+			clientError(w, http.StatusConflict, ErrCodeCategoriesInUse,
+				"one or more categories in use - check promo rules") // 409
+			return
+		}
+		if err == service.ErrAssocsAlreadyExist {
+			clientError(w, http.StatusConflict, ErrCodeAssocsExist,
+				fmt.Sprintf("product to category relations already exist")) // 409
 			return
 		}
 		if err != nil {
 			contextLogger.Errorf("app: UpdateCatalog(ctx, cats) failed: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
+		w.Header().Set("Content-Length", "0")
+		w.WriteHeader(http.StatusNoContent) // 204
 	}
 }

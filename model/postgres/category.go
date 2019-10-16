@@ -16,6 +16,9 @@ var ErrCategoryNotLeaf = errors.New("postgres: category not a leaf")
 // ErrLeafCategoryNotFound error
 var ErrLeafCategoryNotFound = errors.New("postgres: category not found")
 
+// ErrCategoriesInUse error
+var ErrCategoriesInUse = errors.New("postgres: categories in use")
+
 // A CategoryRow represents a single row from the category table.
 type CategoryRow struct {
 	id       int
@@ -35,34 +38,56 @@ type CategoryRow struct {
 func (m *PgModel) BatchCreateNestedSet(ctx context.Context, ns []*CategoryRow) error {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, "db.BeginTx")
+		return errors.Wrap(err, "postgres: db.BeginTx")
 	}
-	query := "DELETE FROM category"
-	if _, err = tx.ExecContext(ctx, query); err != nil {
+
+	// 1. Check if any categories are in use with the promo rules
+	q1 := `
+		SELECT COUNT(*) AS count
+		FROM promo_rule
+		WHERE category_id IS NOT NULL
+	`
+	var count int
+	err = tx.QueryRowContext(ctx, q1).Scan(&count)
+	if err != nil {
+		return errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q1=%q) failed", q1)
+	}
+	if count > 0 {
+		return ErrCategoriesInUse
+	}
+
+	// 2. Delete the all existing categories
+	q2 := "DELETE FROM category"
+	if _, err = tx.ExecContext(ctx, q2); err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "model: delete category query=%q", query)
+		return errors.Wrapf(err, "postgres: delete category q2=%q", q2)
 	}
-	query = `
+
+	// 3. Prepare a statment to insert a new category row
+	q3 := `
 		INSERT INTO category (
 		  segment, path, name, lft, rgt, depth, created, modified
 		) VALUES (
 		  $1, $2, $3, $4, $5, $6, NOW(), NOW()
 		)
 	`
-	stmt, err := tx.PrepareContext(ctx, query)
+	stmt3, err := tx.PrepareContext(ctx, q3)
 	if err != nil {
 		tx.Rollback()
-		return errors.Wrapf(err, "tx prepare for query=%q", query)
+		return errors.Wrapf(err, "postgres: tx prepare for q3=%q", q3)
 	}
-	defer stmt.Close()
+	defer stmt3.Close()
+
 	for _, n := range ns {
-		if _, err := stmt.ExecContext(ctx, n.Segment, n.Path, n.Name, n.Lft, n.Rgt, n.Depth); err != nil {
+		if _, err := stmt3.ExecContext(ctx, n.Segment, n.Path, n.Name, n.Lft, n.Rgt, n.Depth); err != nil {
 			tx.Rollback() // return an error too, we may want to wrap them
-			return errors.Wrapf(err, "stmt exec segment=%q path=%q name=%q lft=%d rgt=%d depth=%d", n.Segment, n.Path, n.Name, n.Lft, n.Rgt, n.Depth)
+			return errors.Wrapf(err,
+				"postgres: stmt3 exec segment=%q path=%q name=%q lft=%d rgt=%d depth=%d",
+				n.Segment, n.Path, n.Name, n.Lft, n.Rgt, n.Depth)
 		}
 	}
-	if err = tx.Commit(); err != nil {
-		return errors.Wrap(err, "tx.Commit")
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	return nil
 }

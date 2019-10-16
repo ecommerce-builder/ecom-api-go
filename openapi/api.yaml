@@ -267,46 +267,6 @@ paths:
       responses:
         '204':
           description: No Content
-  /carts/{id}/coupons:
-    parameters:
-    - name: id
-      required: true
-      in: path
-      description: A unique identifier for the cart.
-      schema:
-        type: string
-        format: uuid
-        example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
-    get:
-      security:
-      - bearerAuth: []
-      summary: Get cart coupons
-      description: |
-        OpGetCartCoupons requires `RoleShopper` privileges.
-      operationId: OpGetCartCoupons
-      tags:
-      - Cart Coupons
-      responses:
-        '200':
-          description: List of cart coupon objects
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  object:
-                    type: string
-                    example: 'list'
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/CartCoupon'
-        '404':
-          description: |
-            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
-          content:
-            application/json:
-              example: ''
   /carts-coupons:
     post:
       security:
@@ -1167,15 +1127,62 @@ paths:
                 code: 'developer-keys/developer-key-not-found'
                 message: developer key not found
   /categories:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get all categories
+      description: |
+        OpGetCatalog requires `RoleShopper` privileges.
+      operationId: OpGetCatalog
+      tags:
+      - Categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Purge all categories
+      description: |
+        OpPurgeCatalog requires `RoleAdmin` privileges.
+      operationId: OpPurgeCatalog
+      tags:
+      - Categories
+      responses:
+        '204':
+          description: No Content
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 409
+                code: assocs/assocs-exists
+                message: OpDeleteCategories cannot be called whilst category to product associations exist
+  /categories-tree:
     put:
       security:
       - bearerAuth: []
-      summary: Replace all categories
+      summary: Replace the entire categories tree
       description: |
-        OpUpdateCatalog requires `RoleAdmin` privileges.
-      operationId: OpUpdateCatalog
+        Purge and replace the entire categories tree in a single operation.
+      operationId: OpUpdateCategoriesTree
       tags:
-      - Categories
+      - Categories Tree
       requestBody:
         content:
           application/json:
@@ -1239,41 +1246,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-              examples:
-                cart/cart-product-exists:
-                  summary: cart/cart-product-exists
-                  value:
-                    status: 409
-                    code: 'cart/cart-product-exists'
-                    message: cart product exists in the cart
+              example:
+                status: 409
+                code: assocs/assocs-exists
+                message: product to category relations already exist
     get:
       security:
       - bearerAuth: []
-      summary: Get all categories
+      summary: Get the entire categories as a tree
       description: |
-        OpGetCatalog requires `RoleShopper` privileges.
-      operationId: OpGetCatalog
+        OpGetCategoriesTree requires `RoleShopper` privileges or higher.
+      operationId: OpGetCategoriesTree
       tags:
-      - Categories
+      - Categories Tree
       responses:
         '200':
-          description: List of categories
+          description: categories tree structure
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Categories'
-    delete:
-      security:
-      - bearerAuth: []
-      summary: Purge all categories
-      description: |
-        OpPurgeCatalog requires `RoleAdmin` privileges.
-      operationId: OpPurgeCatalog
-      tags:
-      - Categories
-      responses:
-        '204':
-          description: No Content
   /products-categories:
     put:
       security:
@@ -3612,6 +3604,44 @@ components:
           type: string
           format: date-time
           example: '2019-08-22T22:42:41.446412Z'
+    Category:
+      properties:
+        object:
+          type: string
+          example: category
+        id:
+          type: string
+          format: uuid
+          example: '0c119e3e-2b0e-4ab9-888d-98d8f0f5dd0e'
+        segment:
+          type: string
+          example: security-systems
+        path:
+          type: string
+          example: spy/shop-by-solution/security-systems
+        name:
+          type: string
+          example: Security Systems
+        lft:
+          type: integer
+          minimum: 0
+          example: 1
+        rgt:
+          type: integer
+          minimum: 0
+          example: 120
+        depth:
+          type: integer
+          minimum: 0
+          example: 0
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-16T13:57:52.699517Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-16T13:57:52.699517Z'
     Categories:
       properties:
         object:

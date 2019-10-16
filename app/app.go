@@ -162,6 +162,10 @@ const (
 	// ErrCodeLeafCategoryNotFound returned when attempting to associate a product to a
 	// leaf category and that categoryd.
 	ErrCodeLeafCategoryNotFound string = "categories/leaf-category-not-found"
+
+	// ErrCodeCategoriesInUse occurs when attempting to update the categories tree and
+	// one or more categories are referenced in a promo rule.
+	ErrCodeCategoriesInUse string = "categories/categories-in-use"
 )
 
 // Orders
