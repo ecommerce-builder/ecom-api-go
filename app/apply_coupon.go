@@ -50,49 +50,57 @@ func (a *App) ApplyCartCouponHandler() http.HandlerFunc {
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&request); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
 			return
 		}
 
 		valid, message := validate(&request)
 		if !valid {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message) // 400
 			return
 		}
 
 		coupon, err := a.Service.ApplyCouponToCart(ctx, *request.CartID, *request.CouponID)
 		if err == service.ErrCartNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeCartNotFound, "cart not found")
+			clientError(w, http.StatusNotFound, ErrCodeCartNotFound,
+				"cart not found") // 404
 		}
 		if err == service.ErrCouponNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound, "coupon not found")
+			clientError(w, http.StatusNotFound, ErrCodeCouponNotFound,
+				"coupon not found") // 404
 			return
 		}
 		if err == service.ErrCartCouponExists {
-			clientError(w, http.StatusConflict, ErrCodeCartCouponExists, "coupon already in cart")
+			clientError(w, http.StatusConflict, ErrCodeCartCouponExists,
+				"coupon already in cart") // 409
 			return
 		}
 		if err == service.ErrCouponNotAtStartDate {
-			clientError(w, http.StatusConflict, ErrCodeCouponNotAtStartDate, "coupon promotion date has not started")
+			clientError(w, http.StatusConflict, ErrCodeCouponNotAtStartDate,
+				"coupon promotion date has not started") // 409
 		}
 		if err == service.ErrCouponExpired {
-			clientError(w, http.StatusConflict, ErrCodeCouponExpired, "coupon expired")
+			clientError(w, http.StatusConflict, ErrCodeCouponExpired,
+				"coupon expired") // 409
 			return
 		}
 		if err == service.ErrCouponVoid {
-			clientError(w, http.StatusConflict, ErrCodeCouponVoid, "coupon void")
+			clientError(w, http.StatusConflict, ErrCodeCouponVoid,
+				"coupon void") // 409
 			return
 		}
 		if err == service.ErrCouponUsed {
-			clientError(w, http.StatusConflict, ErrCodeCouponUsed, "coupon has already been used")
+			clientError(w, http.StatusConflict, ErrCodeCouponUsed,
+				"coupon has already been used") // 409
 			return
 		}
 		if err != nil {
 			contextLogger.Errorf("app: a.Service.ApplyCouponToCart(ctx, crtID=%q, couponID=%q) failed: %+v", *request.CartID, *request.CouponID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
-		w.WriteHeader(http.StatusCreated) // 201 Created
+		w.WriteHeader(http.StatusCreated) // 201
 		json.NewEncoder(w).Encode(&coupon)
 	}
 }

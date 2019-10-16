@@ -229,7 +229,7 @@ const (
 	ErrCodeCartCouponNotFound string = "carts-coupons/cart-coupon-not-found"
 
 	// ErrCodeCouponNotAtStartDate error
-	ErrCodeCouponNotAtStartDate string = "carts/coupon"
+	ErrCodeCouponNotAtStartDate string = "carts/coupon-not-at-start-date"
 )
 
 // Promo Rules

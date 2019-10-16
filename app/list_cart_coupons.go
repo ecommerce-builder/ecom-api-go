@@ -18,22 +18,24 @@ func (a *App) ListCartCouponsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: ListCartCouponsHandler called")
+		contextLogger.Info("app: ListCartCouponsHandler started")
 
 		cartID := r.URL.Query().Get("cart_id")
 		if cartID == "" {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "cart_id query param must be set")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"cart_id query param must be set") // 400
 			return
 		}
 		if !IsValidUUID(cartID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "cart_id query param must be a valid v4 UUID")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"cart_id query param must be a valid v4 UUID") // 400
 			return
 		}
 
 		cartCoupons, err := a.Service.GetCartCoupons(ctx, cartID)
 		if err != nil {
 			contextLogger.Errorf("app: a.Service.GetCartCoupons(ctx, cartID) failed: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
@@ -41,7 +43,7 @@ func (a *App) ListCartCouponsHandler() http.HandlerFunc {
 			Object: "list",
 			Data:   cartCoupons,
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&list)
 	}
 }
