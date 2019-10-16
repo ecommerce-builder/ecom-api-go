@@ -26,6 +26,9 @@ var ErrAssocsAlreadyExist = errors.New("service: associations already exist")
 // ErrLeafCategoryNotFound error
 var ErrLeafCategoryNotFound = errors.New("service: category not found")
 
+// ErrCategoriesInUse error
+var ErrCategoriesInUse = errors.New("service: categories in use")
+
 // ErrCategoriesEmpty error
 var ErrCategoriesEmpty = errors.New("service: categories empty")
 
@@ -195,7 +198,11 @@ func (s *Service) UpdateCatalog(ctx context.Context, root *CategoryRequest) erro
 	root.GenerateNestedSet(1, 0, "")
 	ns := make([]*postgres.CategoryRow, 0, 128)
 	root.NestedSet(&ns)
-	if err := s.model.BatchCreateNestedSet(ctx, ns); err != nil {
+	err = s.model.BatchCreateNestedSet(ctx, ns)
+	if err == postgres.ErrCategoriesInUse {
+		return ErrCategoriesInUse
+	}
+	if err != nil {
 		return errors.Wrap(err, "service: replace catalog")
 	}
 	return nil
