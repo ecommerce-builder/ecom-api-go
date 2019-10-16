@@ -18,9 +18,16 @@ func (a *App) GetCartCouponHandler() http.HandlerFunc {
 		contextLogger.Info("app: GetCartCouponHandler called")
 
 		cartCouponID := chi.URLParam(r, "id")
+		if !IsValidUUID(cartCouponID) {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameter id must be a valid v4 uuid") // 400
+			return
+		}
+
 		cartCoupon, err := a.Service.GetCartCoupon(ctx, cartCouponID)
 		if err == service.ErrCartCouponNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
+			clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound,
+				"cart coupon not found") // 404
 			return
 		}
 		if err != nil {

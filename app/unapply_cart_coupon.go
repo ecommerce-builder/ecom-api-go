@@ -17,26 +17,30 @@ func (a *App) UnapplyCartCouponHandler() http.HandlerFunc {
 
 		cartCouponID := chi.URLParam(r, "id")
 		if cartCouponID == "" {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL param id must be set")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameter id must be set") // 400
 			return
 		}
 		if !IsValidUUID(cartCouponID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL param id must be a valid v4 UUID")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameter id must be a valid v4 uuid") // 400
 			return
 		}
 
 		err := a.Service.UnapplyCartCoupon(ctx, cartCouponID)
 		if err == service.ErrCartCouponNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound, "cart coupon not found")
+			clientError(w, http.StatusNotFound, ErrCodeCartCouponNotFound,
+				"cart coupon not found") // 404
 			return
 		}
 		if err != nil {
 			contextLogger.Errorf("app: a.Service.UnapplyCartCoupon(ctx, cartCouponID=%q) error: %+v", cartCouponID, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
 		w.Header().Del("Content-Type")
-		w.WriteHeader(http.StatusNoContent) // 204 No Content
+		w.Header().Set("Content-Length", "0")
+		w.WriteHeader(http.StatusNoContent) // 204
 	}
 }

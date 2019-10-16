@@ -313,6 +313,8 @@ paths:
       - bearerAuth: []
       summary: Apply a coupon to the cart
       description: |
+        Attempts to apply a coupon with `cart_id` to the cart with `cart_id`.
+
         OpApplyCouponToCart requires `RoleShopper` privileges.
       operationId: OpApplyCouponToCart
       tags:
@@ -331,11 +333,11 @@ paths:
                 cart_id:
                   type: string
                   format: uuid
-                  example: 'd9b210a3-0a0a-485f-8851-0ca77cee02f8'
-                product_id:
+                  example: 'ee524e6e-a985-48c0-8de0-dc364556e554'
+                coupon_id:
                   type: string
                   format: uuid
-                  example: '3342dc39-58ec-4cd5-a99e-0d602c600741'
+                  example: 'a4c0e633-92fe-4595-ae8d-dd325dc2bf73'
       responses:
         '200':
           description: cart coupon object
@@ -343,6 +345,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CartCoupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                carts/cart-not-found:
+                  summary: carts/cart-not-found
+                  value:
+                    status: 404
+                    code: carts/cart-not-found
+                    message: cart not found
+                coupons/coupon-not-found:
+                  summary: coupons/coupon-not-found
+                  value:
+                    status: 404
+                    code: coupons/coupon-not-found
+                    message: coupon not found
         '409':
           description: Conflict
           content:
@@ -350,24 +371,69 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                cart/coupon-already-in-cart:
-                  summary: cart/coupon-already-applied-to-cart
+                carts-coupons/cart-coupon-exists:
+                   summary: 'carts-coupons/cart-coupon-exists'
+                   value:
+                    status: 409
+                    code: 'carts-coupons/cart-coupon-exists'
+                    message: 'coupon already in cart'
+                carts/coupon-not-at-start-date:
+                  summary: 'carts/coupon-not-at-start-date'
                   value:
                     status: 409
-                    code: 'cart/coupon-already-applied-to-cart'
-                    message: the coupon has already been applied to the cart
-                cart/coupon-not-found:
-                  summary: cart/coupon-not-found
+                    code: 'carts/coupon-not-at-start-date'
+                    message: coupon promotion date has not started
+                coupons/coupon-expired:
+                  summary: 'coupons/coupon-expired'
                   value:
                     status: 409
-                    code: 'cart/coupon-not-found'
-                    message: the coupon could not be found
-                cart/coupon-not-valid:
-                  summary: cart/coupon-not-valid
+                    code: 'coupons/coupon-expired'
+                    message: 'coupon expired'
+                coupons/coupon-void:
+                  summary: 'coupons/coupon-void'
                   value:
                     status: 409
-                    code: 'cart/coupon-not-valid'
-                    message: coupon is not a valid coupon
+                    code: 'coupons/coupon-void'
+                    message: 'coupon void'
+                coupons/coupon-used:
+                  summary: 'coupons/coupon-used'
+                  value:
+                    status: 409
+                    code: 'coupons/coupon-used'
+                    message: 'coupon has already been used'
+    get:
+      parameters:
+      - name: cart_id
+        required: true
+        in: query
+        description: A unique identifier for the cart
+        schema:
+          type: string
+          example: 'ee524e6e-a985-48c0-8de0-dc364556e554'
+      security:
+      - bearerAuth: []
+      summary: Retrieve a list of all coupons applied to a given cart
+      description: |
+        Retrieves a list of all coupons applied to a the cart with `cart_id`.
+        OpListCartCoupons requires `RoleShopper` privileges or higher.
+      operationId: OpListCartCoupons
+      tags:
+      - Cart Coupons
+      responses:
+        '200':
+          description: list of cart_coupon objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CartCoupon'
   /carts-coupons/{id}:
     parameters:
     - name: id
@@ -377,12 +443,38 @@ paths:
       schema:
         type: string
         example: '5db8fd80-a7ac-470b-ba10-1d3d051bea72'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Retrieve a single cart_coupon object
+      description: |
+        OpGetCartCoupon requires `RoleShopper` privileges or higher.
+      operationId: OpGetCartCoupon
+      tags:
+      - Cart Coupons
+      responses:
+        '200':
+          description: cart_coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartCoupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'carts-coupons/cart-coupon-not-found'
+                message: cart coupon not found
     delete:
       security:
       - bearerAuth: []
       summary: Unapply a coupon from the cart
       description: |
-        OpUnapplyCartCoupon requires `RoleAdmin` privileges.
+        OpUnapplyCartCoupon requires `RoleShopper` privileges.
       tags:
       - Cart Coupons
       responses:
@@ -390,6 +482,14 @@ paths:
           description: No Content
         '404':
           description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: carts-coupons/cart-coupon-not-found
+                message: cart coupon not found
   /offers:
     post:
       security:
@@ -468,34 +568,6 @@ paths:
       responses:
         '204':
           description: No Content
-        '404':
-          description: Not Found
-  /products/{id}/offers:
-    post:
-      security:
-      - bearerAuth: []
-      summary: Apply an offer to an individual product
-      description: |
-        OpApplyProductOffer requires `RoleAdmin` privileges. The request body contains a `offer_id` that references the id returned when creating a new offer object.
-      operationId: OpApplyProductOffer
-      tags:
-      - Offers
-      parameters:
-      - name: id
-        required: true
-        in: path
-        description: Product SKU
-        schema:
-          type: string
-          example: 'TV-SKU'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OfferApplyRequest'
-      responses:
-        '204':
-          description: Not Content
         '404':
           description: Not Found
   /coupons:
@@ -873,48 +945,6 @@ paths:
           description: No Content
         '404':
           description: Not Found
-  /catagories/{id}/offer:
-    post:
-      security:
-      - bearerAuth: []
-      summary: Apply an offer code to a category
-      description: |
-        OpApplyCategoryOffer requires `RoleAdmin` privileges. The request body contains a `offer_id` that references the id returned when creating an offer object.
-      operationId: OpApplyCategoryOffer
-      tags:
-      - Offers
-      parameters:
-      - name: id
-        required: true
-        in: path
-        description: A unique identifier for the category.
-        schema:
-          type: string
-          format: uuid
-          example: '0baf0ae0-ef99-4200-822d-341f44b79b3f'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OfferApplyRequest'
-      responses:
-        '204':
-          description: No Content
-        '400':
-          description: Bad Request
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                discount/discount-leaf-category-zero-products:
-                  summary: discount/discount-leaf-category-zero-products
-                  value:
-                    status: 409
-                    code: 'discount/discount-leaf-category-zero-products'
-                    message: discounts can only be applied to leaf categories containing products
   /users:
     post:
       security:
