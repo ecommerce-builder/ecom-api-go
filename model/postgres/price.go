@@ -18,6 +18,7 @@ type PriceRow struct {
 	UUID        string
 	productID   int
 	priceListID int
+	offerID     int
 	Break       int
 	UnitPrice   int
 	Created     time.Time

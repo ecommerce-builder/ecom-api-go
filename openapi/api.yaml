@@ -5,7 +5,7 @@ servers:
 - description: Ecom Test API Service
   url: http://localhost:8080
 - description: Ecom Test API Service Ngrok
-  url: https://c90e3367.ngrok.io
+  url: https://4b9e935c.ngrok.io
 info:
   description: |
     # Ecom API
@@ -901,9 +901,15 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PromoRule'
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PromoRule'
     delete:
       security:
       - bearerAuth: []
@@ -2796,7 +2802,28 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrderRequest'
+              type: object
+              required:
+              - cart_id
+              - customer
+              - billing_address
+              - shipping_address
+              properties:
+                cart_id:
+                  type: string
+                  format: uuid
+                  example: '33ed8b80-3ba7-4f31-9364-2559a83258a7'
+                contact_name:
+                  type: string
+                  example: 'John Doe'
+                email:
+                  type: string
+                  format: email
+                  example: 'john@example.com'
+                billing_address:
+                    $ref: '#/components/schemas/OrderAddressRequest'
+                shipping_address:
+                    $ref: '#/components/schemas/OrderAddressRequest'
       responses:
         '201':
           description: Order object
@@ -3173,6 +3200,14 @@ components:
           type: string
           enum: ['product', 'productset', 'category', 'total', 'shipping']
           example: category
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
     Coupon:
       type: object
       properties:
@@ -3372,31 +3407,6 @@ components:
               type: string
               format: date-time
               example: '2019-07-30 14:23:31.756204Z'
-    OrderRequest:
-      type: object
-      required:
-      - customer
-      - billing_address
-      - shipping_address
-      properties:
-        cart_id:
-          type: string
-          format: uuid
-          example: '33ed8b80-3ba7-4f31-9364-2559a83258a7'
-        customer:
-          type: object
-          properties:
-            contact_name:
-              type: string
-              example: 'John Doe'
-            email:
-              type: string
-              format: email
-              example: 'john@example.com'
-        billing_address:
-            $ref: '#/components/schemas/AddressRequest'
-        shipping_address:
-            $ref: '#/components/schemas/AddressRequest'
     BatchUpdateRequest:
       required:
       - object
@@ -3463,6 +3473,37 @@ components:
           $ref: '#/components/schemas/Address'
     AddressUpdateRequest:
       properties:
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        county:
+          type: string
+          example: 'Cambridgeshire'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country_code:
+          type: string
+          example: 'GB'
+    OrderAddressRequest:
+      required:
+      - type
+      - contact_name
+      - addr1
+      - city
+      - county
+      - postcode
+      - country_code
+      properties:
         type:
           type: string
           enum: [shipping, billing]
@@ -3497,7 +3538,7 @@ components:
       - city
       - county
       - postcode
-      - country
+      - country_code
       properties:
         user_id:
           type: string
@@ -3556,7 +3597,7 @@ components:
         postcode:
           type: string
           example: 'CB1 9ZZ'
-        country:
+        country_code:
           type: string
           example: 'GB'
         created:
@@ -4093,7 +4134,7 @@ components:
       properties:
         api_version:
           type: string
-          example: 'v0.60.1'
+          example: 'v0.61.0'
         env:
           type: object
           properties:
@@ -4117,7 +4158,7 @@ components:
                   example: 'disable'
                 schema_version:
                   type: string
-                  example: 'v0.60.1'
+                  example: 'v0.61.0'
             google:
               type: object
               properties:

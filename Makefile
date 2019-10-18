@@ -18,5 +18,11 @@ compile:
 deploy-gae:
 	@gcloud app deploy --version=$(GCLOUD_VERSION) ./cmd/ecom-api/app.yaml
 
+deploy-test:
+	@gcloud app deploy --project=test-data-spycameracctv --version=$(GCLOUD_VERSION) ./cmd/ecom-api/test-data-spycameracctv.yaml
+
+deploy-live:
+	@gcloud app deploy --project=live-data-spycameracctv --version=$(GCLOUD_VERSION) ./cmd/ecom-api/live-data-spycameracctv.yaml
+
 clean:
 	-@rm -r $(ODIR)/* 2> /dev/null || true

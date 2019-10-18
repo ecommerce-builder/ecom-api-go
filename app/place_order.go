@@ -17,11 +17,6 @@ type orderRequestBody struct {
 	Shipping    *service.NewAddress `json:"shipping_address"`
 }
 
-type orderResponseBody struct {
-	Object string `json:"object"`
-	*service.Order
-}
-
 func validateOrderRequestBody(req *orderRequestBody) (string, bool) {
 	if req.CartID == nil {
 		return "cart_id missing", false
@@ -51,37 +46,37 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&req)
 		if err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
 			return
 		}
 		defer r.Body.Close()
 
 		message, ok := validateOrderRequestBody(&req)
 		if !ok {
-			clientError(w, http.StatusConflict, ErrCodeBadRequest, message)
+			clientError(w, http.StatusConflict, ErrCodeBadRequest, message) // 400
 			return
 		}
 
 		contextLogger.Debugf("app: a.Service.PlaceOrder(ctx, req.ContextName=%v, req.Email=%v, res.CustomerID=%v, %q, ...)", req.ContactName, req.Email, req.CustomerID, *req.CartID)
-		order, err := a.Service.PlaceOrder(ctx, req.ContactName, req.Email, req.CustomerID, *req.CartID, req.Billing, req.Shipping)
+		order, err := a.Service.PlaceOrder(ctx, req.ContactName, req.Email,
+			req.CustomerID, *req.CartID, req.Billing, req.Shipping)
 		if err == service.ErrCartEmpty {
-			clientError(w, http.StatusNotFound, ErrCodeOrderCartEmpty, "The cart id you passed contains no items")
+			clientError(w, http.StatusNotFound, ErrCodeOrderCartEmpty,
+				"The cart id you passed contains no items") // 404
 			return
 		}
 		if err == service.ErrUserNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeOrderUserNotFound, "The user with the given user_id could not be found")
+			clientError(w, http.StatusNotFound, ErrCodeOrderUserNotFound,
+				"The user with the given user_id could not be found") // 404
 			return
 		}
 		if err != nil {
 			contextLogger.Panicf("app: PlaceOrder(ctx, %q, %q, ...) failed with error: %v", *req.ContactName, *req.Email, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
-		res := orderResponseBody{
-			Object: "order",
-			Order:  order,
-		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(res)
+		json.NewEncoder(w).Encode(&order)
 	}
 }

@@ -53,7 +53,7 @@ type CartProductJoinRow struct {
 	id          int
 	UUID        string
 	CartUUID    string
-	productID   string
+	productID   int
 	ProductUUID string
 	SKU         string
 	Name        string

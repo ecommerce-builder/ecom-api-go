@@ -21,7 +21,7 @@ type NewAddress struct {
 	City        string `json:"city"`
 	County      string `json:"county"`
 	Postcode    string `json:"postcode"`
-	Country     string `json:"country"`
+	CountryCode string `json:"country_code"`
 }
 
 // OrderAddress contains details of an address within an Order.
@@ -32,11 +32,12 @@ type OrderAddress struct {
 	City        string  `json:"city"`
 	County      *string `json:"county,omitempty"`
 	Postcode    string  `json:"postcode"`
-	Country     string  `json:"country"`
+	Country     string  `json:"country_code"`
 }
 
 // OrderItem contains details of a line item within an Order.
 type OrderItem struct {
+	Object    string     `json:"order_item"`
 	ID        string     `json:"id"`
 	SKU       string     `json:"sku"`
 	Name      string     `json:"name"`
@@ -58,6 +59,7 @@ type OrderUser struct {
 
 // Order contains details of an previous order.
 type Order struct {
+	Object      string        `json:"object"`
 	ID          string        `json:"id"`
 	Status      string        `json:"status"`
 	Payment     string        `json:"payment"`
@@ -76,7 +78,7 @@ type Order struct {
 // PlaceOrder places a new order in the system.
 func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, userID *string, cartID string, billing *NewAddress, shipping *NewAddress) (*Order, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("PlaceOrder(ctx, contactName=%v, email=%v, userID=%v, cartID=%v, ...)", contactName, email, userID, cartID)
+	contextLogger.Debugf("service: PlaceOrder(ctx, contactName=%v, email=%v, userID=%v, cartID=%v, ...)", contactName, email, userID, cartID)
 
 	// Guest orders have a userUUID of nil whereas user orders
 	// are set to the UUID of that user.
@@ -87,22 +89,22 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, us
 			return nil, err
 		}
 		if err != nil {
-			return nil, errors.Wrapf(err, "s.GetUser(ctx, %q) failed", *userID)
+			return nil, errors.Wrapf(err, "service: s.GetUser(ctx, %q) failed", *userID)
 		}
 		userUUID = userID
 		contextLogger.Debugf("%#v\n", user)
 	}
 
 	if userUUID == nil {
-		contextLogger.Debugf("userUUID is nil")
+		contextLogger.Debugf("service: userUUID is nil. this is a guest order")
 	} else {
-		contextLogger.Debugf("userUUID is %s", *userUUID)
+		contextLogger.Debugf("service: userUUID is %s", *userUUID)
 	}
 
 	// Prevent orders with empty carts.
 	has, err := s.HasCartProducts(ctx, cartID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.HasCartProducts(ctx, %q) failed", cartID)
+		return nil, errors.Wrapf(err, "service: s.HasCartProducts(ctx, %q) failed", cartID)
 	}
 
 	if !has {
@@ -116,7 +118,7 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, us
 		City:        billing.City,
 		County:      billing.County,
 		Postcode:    billing.Postcode,
-		Country:     billing.Country,
+		Country:     billing.CountryCode,
 	}
 	pgShipping := postgres.NewAddress{
 		ContactName: shipping.ContactName,
@@ -125,18 +127,22 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, us
 		City:        shipping.City,
 		County:      shipping.County,
 		Postcode:    shipping.Postcode,
-		Country:     shipping.Country,
+		Country:     shipping.CountryCode,
 	}
-	log.WithContext(ctx).Debugf("userUUID=%v, cartID=%v", userUUID, cartID)
+	log.WithContext(ctx).Debugf("service: userUUID=%v, cartID=%v", userUUID, cartID)
 
 	orow, oirows, crow, err := s.model.AddOrder(ctx, contactName, email, userUUID, nil, cartID, &pgBilling, &pgShipping)
+	if err == postgres.ErrCartNotFound {
+		return nil, ErrCartNotFound
+	}
 	if err != nil {
-		return nil, errors.Wrap(err, "s.model.AddOrder(ctx, ...) failed")
+		return nil, errors.Wrap(err, "service: s.model.AddOrder(ctx, ...) failed")
 	}
 
 	orderItems := make([]*OrderItem, 0, len(oirows))
 	for _, oir := range oirows {
 		oi := OrderItem{
+			Object:    "order_item",
 			ID:        oir.UUID,
 			SKU:       oir.SKU,
 			Name:      oir.Name,
@@ -160,6 +166,7 @@ func (s *Service) PlaceOrder(ctx context.Context, contactName, email *string, us
 	}
 
 	order := Order{
+		Object:  "order",
 		ID:      orow.UUID,
 		Status:  orow.Status,
 		Payment: orow.Payment,

@@ -4,6 +4,7 @@
 bin/
 certs/
 data/init.sql
+deploy/*.yaml
 ecom-api
 main
 ecom-api-*
