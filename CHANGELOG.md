@@ -1,12 +1,27 @@
 # CHANGELOG
 
-## v0.60.2 (Tue 1 Oct 2019)
-+ `OpGetPromoRule` GetPromoRuleHandler validation fix for URL param.
-+ `OpGetPromoRule` fix 404 response for promo rule not found.
+## v0.61.0 (Mon, 21 Oct 2019)
++ Google Pub/Sub broadcasting of messages to handle HTTP POSTs to webhook endpoints.
++ `overselling` for inventory.
++ `ErrCodeWebhookPostFailed` error handling for HTTP POST failures.
++ Most handlers use pointers for the request body to detect missing attributes.
++ Remove nesting from Go error handling.
++ `ECOM_APP_ENDPOINT env var introduced.
++ `ECOM_GOOGLE_PUBSUB_PUSH_TOKEN` secret token for basic auth to the push endpoint.
++ Initial creating of topics and subscriptions to handle webhooks.
++ `/privte-pubsub-events` and `/privte-pubsub-broadcast` resources.
++ Webhooks calls implemented.
++ Makefile has two new deployments for test and live.
++ GAE now supports go113 so go.mod file is updated to use Go 1.13.3.
++ Open API Def file improved to near match API Service.
++ `offer_id` added to `price` table.
+
 
 ## v0.60.1 (Tue 1 Oct 2019)
 + Minor fixes to schema (`shipping_code` on `shipping_tariff` table made non unique)
 + Remove verbosity of schema create, drop and load shell scripts.
++ `OpGetPromoRule` GetPromoRuleHandler validation fix for URL param.
++ `OpGetPromoRule` fix 404 response for promo rule not found.
 
 ## v0.60.0 (Tue 1 Oct 2019)
 + Webhooks CRUDL for configuration only.
