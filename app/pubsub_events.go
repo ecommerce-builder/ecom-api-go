@@ -22,7 +22,8 @@ func (a *App) PubSubEventHandler(secret string) http.HandlerFunc {
 		token := r.URL.Query().Get("token")
 		if subtle.ConstantTimeCompare([]byte(token), []byte(secret)) == 0 {
 			log.Warn("app: event push endpoint called with invalid token query parameter")
-			unauthorized(w)
+			clientError(w, http.StatusUnauthorized, "auth/unauthorized",
+				"request unauthorized") // 401
 			return
 		}
 		log.Infof("app: pubsub event push endpoint auth succeeded")

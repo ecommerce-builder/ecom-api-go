@@ -11,11 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func unauthorized(w http.ResponseWriter) {
-	// w.Header().Set("Content-Length", "0")
-	w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
-}
-
 // Authorization provides authorization middleware
 func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +34,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if role != RoleCustomer && role != RoleAdmin && role != RoleSuperUser {
-				unauthorized(w)
+				clientError(w, http.StatusForbidden, "auth/forbidden",
+					"request forbidden") // 403
 				return
 			}
 		}
@@ -101,7 +97,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
-			unauthorized(w)
+			clientError(w, http.StatusForbidden, "auth/forbidden",
+				"request forbidden") // 403
 			return
 		// both admins and shoppers can get prices, but shoppers are only allowed a price_list_id
 		// matching their user account
@@ -135,7 +132,8 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			contextLogger.Errorf("a.Service.UserCanAccessPriceList(ctx, cid=%q, priceListID=%q) error: %v", cid, priceListID, err)
 
 			// 403 Forbidden
-			clientError(w, http.StatusForbidden, ErrCodePriceListForbiddenPriceList, "forbidden access to prices with the given price list")
+			clientError(w, http.StatusForbidden, "auth/forbidden",
+				"forbidden access to prices with the given price list") // 403
 			return
 		case OpCreateAddress, OpGetUser, OpGetUsersAddresses, OpUpdateAddress, OpGenerateUserDevKey, OpListUsersDevKeys:
 			// Check the JWT Claim's user UUID and safely compare it to the user UUID in the route
@@ -154,20 +152,23 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			// RoleShopper
-			unauthorized(w)
+			clientError(w, http.StatusForbidden, "auth/forbidden",
+				"request forbidden") // 403
 			return
 		case OpDeleteUserDevKey:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
-			unauthorized(w)
+			clientError(w, http.StatusForbidden, "auth/forbidden",
+				"request forbidden") // 403
 			return
 		case OpGetAddress, OpDeleteAddress:
 			// The user ID is not in the route so we ask the service layer for the
 			// resource owner's user ID
 			if role == RoleShopper {
-				unauthorized(w)
+				clientError(w, http.StatusForbidden, "auth/forbidden",
+					"request forbidden") // 403
 				return
 			}
 
@@ -180,12 +181,14 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			ocid, err := a.Service.GetAddressOwner(ctx, id)
 			if err != nil {
 				contextLogger.Errorf("a.Service.GetAddressOwner(%s) error: %v", id, err)
-				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+				clientError(w, http.StatusForbidden, "auth/forbidden",
+					"request forbidden") // 403
 				return
 			}
 			if ocid == nil {
 				contextLogger.Errorf("a.Service.GetAddressOwner(%s) returned nil", id)
-				w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+				clientError(w, http.StatusForbidden, "auth/forbidden",
+					"request forbidden") // 403
 				return
 			}
 
@@ -193,11 +196,13 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
 			}
-			unauthorized(w)
+			clientError(w, http.StatusForbidden, "auth/forbidden",
+				"request forbidden") // 403
 			return
 		default:
 			contextLogger.Infof("(default) authorization declined for %s", op)
-			unauthorized(w)
+			clientError(w, http.StatusForbidden, "auth/forbidden",
+				"request forbidden") // 403
 			return
 		}
 	}

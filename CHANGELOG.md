@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v0.62.2 (Tue, 22 Oct 2019)
++ Return structured JSON for 401 Unauthorized and 403 Forbidden responses.
+
 ## v0.61.1 (Tue, 22 Oct 2019)
 + Fix authorization issues.
 + Remove Google vertification handler and replace with dedicated HTTP service `google-verifcation`.
