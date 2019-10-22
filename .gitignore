@@ -6,6 +6,7 @@ certs/
 data/init.sql
 deploy/*.yaml
 ecom-api
+google*.html
 main
 ecom-api-*
 ecom-test-*.json

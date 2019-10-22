@@ -1,6 +1,11 @@
 # CHANGELOG
 
-## v0.62.2 (Tue, 22 Oct 2019)
+## v0.61.3 (Tue, 22 Oct 2019)
++ Add site to the Open API Def YAML.
++ Ignore google*.html in git.
++ Tidy code
+
+## v0.61.2 (Tue, 22 Oct 2019)
 + Return structured JSON for 401 Unauthorized and 403 Forbidden responses.
 
 ## v0.61.1 (Tue, 22 Oct 2019)

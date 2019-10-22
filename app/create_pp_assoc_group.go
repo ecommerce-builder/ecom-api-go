@@ -8,13 +8,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ProductToProductAssocGroupRequestBody request body
-type ProductToProductAssocGroupRequestBody struct {
+// ppAssocGroupRequestBody request body
+type ppAssocGroupRequestBody struct {
 	Code *string `json:"pp_assoc_group_code"`
 	Name *string `json:"name"`
 }
 
-func validateAddProductToProductAssocGroupRequest(request *ProductToProductAssocGroupRequestBody) (bool, string) {
+func validateAddProductToProductAssocGroupRequest(request *ppAssocGroupRequestBody) (bool, string) {
 	if request.Code == nil {
 		return false, "product_assoc_group_code attribute is required"
 	}
@@ -38,28 +38,32 @@ func (a *App) CreatePPAssocGroupHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: CreatePPAssocGroupHandler called")
 
-		request := ProductToProductAssocGroupRequestBody{}
+		request := ppAssocGroupRequestBody{}
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&request); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
 			return
 		}
 
 		valid, message := validateAddProductToProductAssocGroupRequest(&request)
 		if !valid {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				message)
+			log.Warnf("returning 400 bad request with %q", message)
 			return
 		}
 
 		pToPAssocGroup, err := a.Service.CreateProductToProductAssocGroup(ctx, *request.Code, *request.Name)
 		if err == service.ErrPPAssocGroupExists {
-			clientError(w, http.StatusConflict, ErrCodePPAssocGroupExists, "product to product assoc group code is already exists")
+			clientError(w, http.StatusConflict, ErrCodePPAssocGroupExists,
+				"product to product assoc group code is already exists") // 409
 			return
 		}
 		if err != nil {
 			contextLogger.Errorf("app: a.Service.CreateProductToProductAssocGroup(ctx, code=%q, name=%q) failed: %+v", *request.Code, *request.Name, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created

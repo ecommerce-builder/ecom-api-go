@@ -1,5 +1,7 @@
 openapi: 3.0.2
 servers:
+- description: SpyCameraCCTV Test API Service (GAE)
+  url: https://test-data-spycameracctv.appspot.com
 - description: Ecom Test API Service (GAE)
   url: https://open247-gae.appspot.com
 - description: Ecom Test API Service
@@ -22,7 +24,7 @@ info:
 
     Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
 
-  version: "v0.60.1"
+  version: "v0.61.3"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -4134,7 +4136,7 @@ components:
       properties:
         api_version:
           type: string
-          example: 'v0.61.2'
+          example: 'v0.61.3'
         env:
           type: object
           properties:
@@ -4158,7 +4160,7 @@ components:
                   example: 'disable'
                 schema_version:
                   type: string
-                  example: 'v0.61.2'
+                  example: 'v0.61.3'
             google:
               type: object
               properties:
