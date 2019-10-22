@@ -88,7 +88,8 @@ func (a *App) CreateShippingTariffHandler() http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.CreateShippingTariff(ctx, countryCode=%q, shippingcode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
+			contextLogger.Errorf("app: a.Service.CreateShippingTariff(ctx, countryCode=%q, shippingcode=%q, name=%q, price=%d, taxCode=%q) failed: %+v",
+				*request.CountryCode, *request.ShippingCode, *request.Name, *request.Price, *request.TaxCode, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}

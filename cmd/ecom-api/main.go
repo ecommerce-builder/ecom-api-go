@@ -38,7 +38,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.61.0"
+var version = "v0.61.1"
 
 const maxDbConnectAttempts = 3
 
@@ -187,11 +187,6 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 func testDelayHandler(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Second * 30)
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func googlePropertyVerificationHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("google-site-verification: googleae3066b83fcfab45.html\n"))
 }
 
 func exists(path string) (bool, error) {
@@ -620,7 +615,7 @@ func main() {
 	// ensure the root user has been created
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
 	if err != nil {
-		log.Fatalf("failed to create root credentials if not exists: %v", err)
+		log.Fatalf("failed to create root credentials if not exists: %+v", err)
 	}
 
 	// SystemInfo
@@ -825,12 +820,12 @@ func main() {
 
 		// Product - Category relationships
 		r.Route("/products-categories", func(r chi.Router) {
-			r.Post("/", a.Authorization(app.OpAddProductCategoryRel, a.AddProductCategoryHandler()))
-			r.Get("/{id}", a.Authorization(app.OpGetProductCategoryRel, a.GetProductCategoryHandler()))
-			r.Delete("/{id}", a.Authorization(app.OpDeleteProductCategoryRel, a.DeleteProductCategoryHandler()))
-			r.Put("/", a.Authorization(app.OpUpdateProductCategoryRels, a.UpdateProductsCategoriesHandler()))
-			r.Get("/", a.Authorization(app.OpGetProductCategoryRels, a.GetProductsCategoriesHandler()))
-			r.Delete("/", a.Authorization(app.OpDeleteProductCategoryRels, a.DeleteProductsCategoriesHandler()))
+			r.Post("/", a.Authorization(app.OpAddProductCategoryRelations, a.AddProductCategoryHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetProductCategoryRelations, a.GetProductCategoryHandler()))
+			r.Delete("/{id}", a.Authorization(app.OpDeleteProductCategoryRelations, a.DeleteProductCategoryHandler()))
+			r.Put("/", a.Authorization(app.OpUpdateProductCategoryRelations, a.UpdateProductsCategoriesHandler()))
+			r.Get("/", a.Authorization(app.OpGetProductCategoryRelations, a.GetProductsCategoriesHandler()))
+			r.Delete("/", a.Authorization(app.OpDeleteProductCategoryRelations, a.DeleteProductsCategoriesHandler()))
 		})
 
 		// Orders
@@ -863,10 +858,6 @@ func main() {
 		r.Get("/config", a.ConfigHandler(si.Env.Firebase))
 		r.Route("/stripe-webhook", func(r chi.Router) {
 			r.Post("/", a.StripeWebhookHandler(stripeSigningSecret))
-		})
-
-		r.Route("/googleae3066b83fcfab45.html", func(r chi.Router) {
-			r.Get("/", googlePropertyVerificationHandler)
 		})
 
 		r.Route("/private-pubsub-events", func(r chi.Router) {

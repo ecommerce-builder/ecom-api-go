@@ -53,16 +53,18 @@ func (a *App) CreateWebhookHandler() http.HandlerFunc {
 
 		// parse the request body
 		if r.Body == nil {
-			// 400 Bad Request
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "missing request body")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"missing request body") // 400
 			return
 		}
+
 		request := createWebhookRequestBody{}
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&request)
 		if err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
 			return
 		}
 		defer r.Body.Close()
@@ -76,14 +78,17 @@ func (a *App) CreateWebhookHandler() http.HandlerFunc {
 		// attempt to create the shipping tariff
 		webhook, err := a.Service.CreateWebhook(ctx, *request.URL, request.Events.Data)
 		if err == service.ErrWebhookExists {
-			clientError(w, http.StatusConflict, ErrCodeWebhookExists, "webhook with this URL already exists")
+			clientError(w, http.StatusConflict, ErrCodeWebhookExists,
+				"webhook with this URL already exists") // 409
 			return
 		}
 		if err == service.ErrEventTypeNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound, "one or more events were not recognised")
+			clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound,
+				"one or more events were not recognised") // 404
 		}
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.CreateWebhook(ctx, url=%q, events=%v) failed: %+v", *request.URL, request.Events.Data, err)
+			contextLogger.Errorf("app: a.Service.CreateWebhook(ctx, url=%q, events=%v) failed: %+v",
+				*request.URL, request.Events.Data, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}

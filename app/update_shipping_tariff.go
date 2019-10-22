@@ -56,7 +56,9 @@ func (a *App) UpdateShippingTariffHandler() http.HandlerFunc {
 		}
 
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.UpdateShippingTariff(ctx, shippingTariffID=%q, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed: %+v", shippingTariffID, request.CountryCode, request.ShippingCode, request.Name, request.Price, request.TaxCode, err)
+			contextLogger.Errorf("app: a.Service.UpdateShippingTariff(ctx, shippingTariffID=%q, countryCode=%q, shippingCode=%q, name=%q, price=%d, taxCode=%q) failed: %+v",
+				shippingTariffID, *request.CountryCode, *request.ShippingCode, *request.Name,
+				*request.Price, *request.TaxCode, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}

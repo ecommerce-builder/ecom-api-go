@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.61.1 (Tue, 22 Oct 2019)
++ Fix authorization issues.
++ Remove Google vertification handler and replace with dedicated HTTP service `google-verifcation`.
++ Code tidy `app/create_webhook.go` and fix logging of pointer values.
+
 ## v0.61.0 (Mon, 21 Oct 2019)
 + Google Pub/Sub broadcasting of messages to handle HTTP POSTs to webhook endpoints.
 + `overselling` for inventory.
