@@ -1,5 +1,10 @@
 # CHANGELOG
 
+# v0.61.4 (Thu, 31 Oct 2019)
++ Fixes issues with JSON responses for promo_rule objects.
++ [product_id attribute missing from HTTP GET /promo-rules/{id} response](https://bitbucket.org/andyfusniakteam/ecom-api-go/issues/20/product_id-attribute-missing-from-http-get)
++ [HTTP POST /promo-rules returns a blank promo_rule_code attribute](https://bitbucket.org/andyfusniakteam/ecom-api-go/issues/23/http-post-promo-rules-returns-a-blank)
+
 ## v0.61.3 (Tue, 22 Oct 2019)
 + Add site to the Open API Def YAML.
 + Ignore google*.html in git.
