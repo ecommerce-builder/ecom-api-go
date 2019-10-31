@@ -25,19 +25,19 @@ type PromoRule struct {
 	Object             string     `json:"object"`
 	ID                 string     `json:"id"`
 	PromoRuleCode      string     `json:"promo_rule_code"`
-	ProductID          string     `json:"product_id,omitempty"`
-	ProductPath        string     `json:"product_path,omitempty"`
-	ProductSKU         string     `json:"product_sku,omitempty"`
-	CategoryID         string     `json:"category_id,omitempty"`
-	CategoryPath       string     `json:"category_path,omitempty"`
-	ShippingTariffID   string     `json:"shipping_tariff_id,omitempty"`
-	ShippingTariffCode string     `json:"shipping_tariff_code,omitempty"`
-	ProductSetID       string     `json:"product_set_id,omitempty"`
+	ProductID          *string    `json:"product_id,omitempty"`
+	ProductPath        *string    `json:"product_path,omitempty"`
+	ProductSKU         *string    `json:"product_sku,omitempty"`
+	CategoryID         *string    `json:"category_id,omitempty"`
+	CategoryPath       *string    `json:"category_path,omitempty"`
+	ShippingTariffID   *string    `json:"shipping_tariff_id,omitempty"`
+	ShippingTariffCode *string    `json:"shipping_tariff_code,omitempty"`
+	ProductSetID       *string    `json:"product_set_id,omitempty"`
 	Name               string     `json:"name"`
 	StartAt            *time.Time `json:"start_at"`
 	EndAt              *time.Time `json:"end_at"`
 	Amount             int        `json:"amount"`
-	TotalThreshold     *int       `json:"total_threshold"`
+	TotalThreshold     *int       `json:"total_threshold,omitempty"`
 	Type               string     `json:"type"`
 	Target             string     `json:"target"`
 	Created            time.Time  `json:"created"`
@@ -97,9 +97,9 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Object:         "promo_rule",
 			ID:             row.UUID,
 			PromoRuleCode:  row.PromoRuleCode,
-			ProductID:      *row.ProductUUID,
-			ProductPath:    *row.ProductPath,
-			ProductSKU:     *row.ProductSKU,
+			ProductID:      row.ProductUUID,
+			ProductPath:    row.ProductPath,
+			ProductSKU:     row.ProductSKU,
 			Name:           row.Name,
 			StartAt:        row.StartAt,
 			EndAt:          row.EndAt,
@@ -137,7 +137,7 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Object:         "promo_rule",
 			ID:             row.UUID,
 			PromoRuleCode:  row.PromoRuleCode,
-			ProductSetID:   *row.ProductSetUUID,
+			ProductSetID:   row.ProductSetUUID,
 			Name:           row.Name,
 			StartAt:        row.StartAt,
 			EndAt:          row.EndAt,
@@ -167,8 +167,8 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Object:         "promo_rule",
 			ID:             row.UUID,
 			PromoRuleCode:  row.PromoRuleCode,
-			CategoryID:     *row.CategoryUUID,
-			CategoryPath:   *row.CategoryPath,
+			CategoryID:     row.CategoryUUID,
+			CategoryPath:   row.CategoryPath,
 			Name:           row.Name,
 			StartAt:        row.StartAt,
 			EndAt:          row.EndAt,
@@ -198,8 +198,8 @@ func (s *Service) CreatePromoRule(ctx context.Context, pr *PromoRuleCreateReques
 			Object:             "promo_rule",
 			ID:                 row.UUID,
 			PromoRuleCode:      row.PromoRuleCode,
-			ShippingTariffID:   *row.ShippingTariffUUID,
-			ShippingTariffCode: *row.ShippingTariffCode,
+			ShippingTariffID:   row.ShippingTariffUUID,
+			ShippingTariffCode: row.ShippingTariffCode,
 			Name:               row.Name,
 			StartAt:            row.StartAt,
 			EndAt:              row.EndAt,
@@ -252,21 +252,30 @@ func (s *Service) GetPromoRule(ctx context.Context, promoRuleID string) (*PromoR
 		return nil, ErrPromoRuleNotFound
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: s.model.GetPromoRule(ctx, promoRuleID=%q)", promoRuleID)
+		return nil, errors.Wrapf(err, "service: s.model.GetPromoRule(ctx, promoRuleID=%q)",
+			promoRuleID)
 	}
 	promoRule := PromoRule{
-		Object:         "promo_rule",
-		ID:             row.UUID,
-		PromoRuleCode:  row.PromoRuleCode,
-		Name:           row.Name,
-		StartAt:        row.StartAt,
-		EndAt:          row.EndAt,
-		Amount:         row.Amount,
-		TotalThreshold: row.TotalThreshold,
-		Type:           row.Type,
-		Target:         row.Target,
-		Created:        row.Created,
-		Modified:       row.Modified,
+		Object:             "promo_rule",
+		ID:                 row.UUID,
+		PromoRuleCode:      row.PromoRuleCode,
+		ProductID:          row.ProductUUID,
+		ProductPath:        row.ProductPath,
+		ProductSKU:         row.ProductSKU,
+		CategoryID:         row.CategoryUUID,
+		CategoryPath:       row.CategoryPath,
+		ShippingTariffID:   row.ShippingTariffUUID,
+		ShippingTariffCode: row.ShippingTariffCode,
+		ProductSetID:       row.ProductSetUUID,
+		Name:               row.Name,
+		StartAt:            row.StartAt,
+		EndAt:              row.EndAt,
+		Amount:             row.Amount,
+		TotalThreshold:     row.TotalThreshold,
+		Type:               row.Type,
+		Target:             row.Target,
+		Created:            row.Created,
+		Modified:           row.Modified,
 	}
 	return &promoRule, nil
 }
@@ -274,9 +283,6 @@ func (s *Service) GetPromoRule(ctx context.Context, promoRuleID string) (*PromoR
 // GetPromoRules returns a list of promo rules.
 func (s *Service) GetPromoRules(ctx context.Context) ([]*PromoRule, error) {
 	rows, err := s.model.GetPromoRules(ctx)
-	if err == postgres.ErrPromoRuleNotFound {
-		return nil, ErrPromoRuleNotFound
-	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: s.model.GetPromoRules(ctx) failed")
 	}
@@ -284,18 +290,26 @@ func (s *Service) GetPromoRules(ctx context.Context) ([]*PromoRule, error) {
 	rules := make([]*PromoRule, 0, len(rows))
 	for _, row := range rows {
 		rule := PromoRule{
-			Object:         "promo_rule",
-			ID:             row.UUID,
-			PromoRuleCode:  row.PromoRuleCode,
-			Name:           row.Name,
-			StartAt:        row.StartAt,
-			EndAt:          row.EndAt,
-			Amount:         row.Amount,
-			TotalThreshold: row.TotalThreshold,
-			Type:           row.Type,
-			Target:         row.Target,
-			Created:        row.Created,
-			Modified:       row.Modified,
+			Object:             "promo_rule",
+			ID:                 row.UUID,
+			PromoRuleCode:      row.PromoRuleCode,
+			ProductID:          row.ProductUUID,
+			ProductPath:        row.ProductPath,
+			ProductSKU:         row.ProductSKU,
+			CategoryID:         row.CategoryUUID,
+			CategoryPath:       row.CategoryPath,
+			ShippingTariffID:   row.ShippingTariffUUID,
+			ShippingTariffCode: row.ShippingTariffCode,
+			ProductSetID:       row.ProductSetUUID,
+			Name:               row.Name,
+			StartAt:            row.StartAt,
+			EndAt:              row.EndAt,
+			Amount:             row.Amount,
+			TotalThreshold:     row.TotalThreshold,
+			Type:               row.Type,
+			Target:             row.Target,
+			Created:            row.Created,
+			Modified:           row.Modified,
 		}
 		rules = append(rules, &rule)
 	}

@@ -24,7 +24,7 @@ func (a *App) ListPromoRulesHandler() http.HandlerFunc {
 		promoRules, err := a.Service.GetPromoRules(ctx)
 		if err != nil {
 			contextLogger.Errorf("app: GetPromoRules(ctx) error: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
@@ -32,7 +32,7 @@ func (a *App) ListPromoRulesHandler() http.HandlerFunc {
 			Object: "list",
 			Data:   promoRules,
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&list)
 	}
 }
