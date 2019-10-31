@@ -19,20 +19,30 @@ func (a *App) GetPromoRuleHandler() http.HandlerFunc {
 
 		promoRuleID := chi.URLParam(r, "id")
 		if !IsValidUUID(promoRuleID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "URL parameter id must be a valid v4 UUID")
+			contextLogger.Infof("app: url path param is invalid (%q) - 400 Bad Request",
+				promoRuleID)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"url path parameter id must be a valid v4 uuid") // 400
 			return
 		}
 		promoRule, err := a.Service.GetPromoRule(ctx, promoRuleID)
 		if err == service.ErrPromoRuleNotFound {
-			clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound, "promo rule not found")
+			contextLogger.Infof("app: promo rule %q not found - 404 Not found", promoRuleID)
+			clientError(w, http.StatusNotFound, ErrCodePromoRuleNotFound,
+				"promo rule not found") // 404
 			return
 		}
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.GetPromoRule(ctx, promoRuleID=%q)", promoRuleID)
+			contextLogger.Errorf("app: a.Service.GetPromoRule(ctx, promoRuleID=%q): %+v",
+				promoRuleID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
-		w.WriteHeader(http.StatusOK) // 200 OK
+
+		contextLogger.WithFields(log.Fields{
+			"promoRule": promoRule,
+		}).Infof("app: 200 OK")
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&promoRule)
 	}
 }
