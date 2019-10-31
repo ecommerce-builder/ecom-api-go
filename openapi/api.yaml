@@ -7,7 +7,7 @@ servers:
 - description: Ecom Test API Service
   url: http://localhost:8080
 - description: Ecom Test API Service Ngrok
-  url: https://4b9e935c.ngrok.io
+  url: https://a94fa1be.ngrok.io
 info:
   description: |
     # Ecom API
@@ -24,7 +24,7 @@ info:
 
     Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
 
-  version: "v0.61.3"
+  version: "v0.61.4"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -784,9 +784,9 @@ paths:
 
         The `promo_rule_code` provides a short code of upper case characters including the digits 0 through 9. It provides a more usable means to reference that the promo_rule object id passed back in the response body. However, all interaction with the API currently uses object ids only. Typically, a `promo_rule_code` would likely match the companies internal references. Example, 'SUMMERSALE20', 'SPECIALWINTER50' etc. The value used is up to the caller.
 
-        `type` should be a value of `percentage` or `fixed`. If the `type` attribute has a value of `fixed` the `amount` attribute value should contain the amount to discount to 4 decimal places. e.g. £19.95 would be expressed as 199500. If the `type` attribute has a value of `percentage` the `amount` attribute value should contain the amount to discount as a percentage to 2 decimal places. i.e. between 0 and 9999. For 50% use 5000. For 25.50% use 2550 and so on.
+        The `type` attribute should contain a value of `percentage` or `fixed`. If the `type` attribute has a value of `fixed` the `amount` attribute value should contain the amount to discount to 4 decimal places. e.g. £19.95 would be expressed as 199500. If the `type` attribute has a value of `percentage` the `amount` attribute value should contain the amount to discount as a percentage to 2 decimal places. i.e. between 0 and 9999. For 50% use 5000. For 25.50% use 2550 and so on.
 
-        The `target` attribute determes _what_ the rule should be applied to. Acceptable values for this attribute are `product`, `productset`, `category`, `shipping_tariff` and `total` for a single product, set of products, all products under a particular category ancestry, shipping tariff discount and order total respectively.
+        The `target` attribute determes _what_ the rule should be applied to. Acceptable values for this attribute are `product`, `productset`, `category`, `shipping_tariff` and `total` for a single product, set of products, all products under a particular category ancestry, shipping tariff discount and order total respectively. The productset target is not yet fully implemented.
 
         If the `target` attribute is set to a value of `product` an additional attribute `product_id` must be passed in the request body identifying the product of which to apply the rule.
 
@@ -828,7 +828,9 @@ paths:
 
         If the `target` attribute is set to a value of `total`, an additional attribute `total_threshold` must be passed in the request body. The `total_threshold` attribute should contain the price amount, to 4 decimal places, to discount from the order total at checkout. e.g. £19.95 would be expressed as 199500.
 
-        `start_at` and `end_at` attributes indicate the timeframe when the promotion rule will be active and are optional attributes.
+        `start_at` and `end_at` optional attributes indicate the timeframe when the promotion rule will be active.
+
+        The response body will vary depending on the `target`.
 
         Once you have created a promo rule, see the Offers and Coupons endpoints to apply the rule and make it active.
 
@@ -841,6 +843,51 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PromoRuleCreateRequest'
+            examples:
+              product:
+                summary: target a single product
+                description: |
+                  An example of creating a promo rule targeting a single product
+                value:
+                  promo_rule_code: SUMMER25
+                  name: 'Summer Sale 25% off everything'
+                  amount: 2500
+                  type: percentage
+                  target: product
+                  product_id: '64c187b8-cd81-422d-8734-ecd865f84779'
+              category:
+                summary: target a category
+                description: |
+                  An example of creating a promo rule targeting a category.
+                value:
+                  promo_rule_code: WINTER50
+                  name: 'Winter Sale'
+                  amount: 5000
+                  type: percentage
+                  target: category
+                  category_id: 'd433c01f-9bbd-412a-8f89-5ee1272df6ac'
+              shipping_tariff:
+                summary: target a shipping tariff
+                description: |
+                  An example of creating a promo rule targeting a shipping tariff.
+                value:
+                  promo_rule_code: FREE-DELIVERY
+                  name: 'Free next day delivery'
+                  amount: 10000
+                  type: percentage
+                  target: shipping_tariff
+                  shipping_tariff_id: 'e224f590-9470-4f10-92e1-5bb42987ff17'
+              total:
+                summary: target am order total
+                description: |
+                  An example of creating a promo rule targeting an order total.
+                value:
+                  promo_rule_code: EVERYTHING5
+                  name: '5% off everything when you spent 50 or more'
+                  amount: 500
+                  type: percentage
+                  target: total
+                  total_threshold: 416666
       responses:
         '201':
           description: promo_rule object
@@ -848,6 +895,79 @@ paths:
             applicatio/json:
               schema:
                 $ref: '#/components/schemas/PromoRule'
+              examples:
+                product:
+                  summary: Single product promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a  single product.
+                  value:
+                    object: promo_rule
+                    id: 'af02cea4-e603-4cf9-8561-40dd90b389b4'
+                    promo_rule_code: SUMMER25
+                    product_id: '64c187b8-cd81-422d-8734-ecd865f84779'
+                    product_path: '8gb-silicon-power-i-series-usb-2-memory-stick-storage'
+                    product_sku: 'USB8GBSP'
+                    name: 'Summer Sale 25% off everything'
+                    start_at: null
+                    end_at: null
+                    amount: 2500
+                    type: percentage
+                    target: product
+                    created: '2019-10-31 13:31:40.99069Z'
+                    modified: '2019-10-31 13:31:40.99069Z'
+                category:
+                  summary: Category promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a category.
+                  value:
+                    object: promo_rule
+                    id: '57656a99-37b9-4372-bc23-1fc7d0a76dfd'
+                    promo_rule_code: WINTER50
+                    category_id: d433c01f-9bbd-412a-8f89-5ee1272df6ac
+                    category_path: spy/our-full-range/accessories/lenses
+                    name: Winter Sale
+                    start_at: null
+                    end_at: null
+                    amount: 5000
+                    type: percentage
+                    target: category
+                    created: '2019-10-31T14:58:33.969977Z'
+                    modified: '2019-10-31T14:58:33.969977Z'
+                shipping_tariff:
+                  summary: Shipping tariff promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a shipping tariff.
+                  value:
+                    object: promo_rule
+                    id: 8feef84d-8b59-4196-aad1-e48c38da7cee
+                    promo_rule_code: 'FREE-DELIVERY'
+                    shipping_tariff_id: 'e224f590-9470-4f10-92e1-5bb42987ff17'
+                    shipping_tariff_code: NEXTDAY-SPECIAL
+                    name: Free next day delivery
+                    start_at: null
+                    end_at: null
+                    amount: 10000
+                    type: percentage
+                    target: shipping_tariff
+                    created: '2019-10-31T15:03:43.43688Z'
+                    modified: '2019-10-31T15:03:43.43688Z'
+                total:
+                  summary: Total order spend promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a total order spend.
+                  value:
+                    object: promo_rule
+                    id: 'c0545a9a-813f-493b-aa8b-c2b433f109a3'
+                    promo_rule_code: EVERYTHING5
+                    name: '5% off everything when you spent 50 or more'
+                    start_at: null
+                    end_at: null
+                    amount: 500
+                    total_threshold: 416666
+                    type: percentage
+                    target: total
+                    created: '2019-10-31T15:16:24.152654Z'
+                    modified: '2019-10-31T15:16:24.152654Z'
         '400':
           description: Bad Request
           content:
@@ -3202,6 +3322,22 @@ components:
           type: string
           enum: ['product', 'productset', 'category', 'total', 'shipping']
           example: category
+        product_id:
+          type: string
+          format: uuid
+          example: '782b3f6d-08c1-4b81-a838-5a91317cde37'
+        product_set_id:
+          type: string
+          format: uuid
+          example: '72708610-8cbb-44c7-8301-942bce3c7121'
+        category_id:
+          type: string
+          format: uuid
+          example: 'a05f6d8e-1610-4b72-89a4-d4e668e6fac3'
+        shipping_tariff_id:
+          type: string
+          format: uuid
+          example: '40a15909-93cf-4aee-a718-867011b6a525'
         created:
           type: string
           format: date-time
@@ -4136,7 +4272,7 @@ components:
       properties:
         api_version:
           type: string
-          example: 'v0.61.3'
+          example: 'v0.61.4'
         env:
           type: object
           properties:
@@ -4160,7 +4296,7 @@ components:
                   example: 'disable'
                 schema_version:
                   type: string
-                  example: 'v0.61.3'
+                  example: 'v0.61.4'
             google:
               type: object
               properties:
