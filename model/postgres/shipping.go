@@ -79,7 +79,7 @@ func (m *PgModel) GetShippingTariffByUUID(ctx context.Context, shippingTariffUUI
 		return nil, ErrShippingTariffNotFound
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: query scan shippingTariffUUID=%q q1=%q failed", shippingTariffUUID, q1)
+		return nil, errors.Wrapf(err, "postgres: query scan shippingTariffUUID=%q q1=%q", shippingTariffUUID, q1)
 	}
 	return &s, nil
 }

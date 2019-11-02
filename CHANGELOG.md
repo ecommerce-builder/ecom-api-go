@@ -1,6 +1,12 @@
 # CHANGELOG
 
-# v0.61.4 (Thu, 31 Oct 2019)
+## v0.62.0 (Sat, 2 Nov 2019)
++ Add Stackdriver Profiler when
++ Fix issue with missing `created` and `modified` values when creating a new promo rule.
++ Alter compiler options to use -gcflags=all='-N -l' for compute engine.
++ Update all dependencies using `go get -v all`.
+
+## v0.61.4 (Thu, 31 Oct 2019)
 + Fixes issues with JSON responses for promo_rule objects.
 + [product_id attribute missing from HTTP GET /promo-rules/{id} response](https://bitbucket.org/andyfusniakteam/ecom-api-go/issues/20/product_id-attribute-missing-from-http-get)
 + [HTTP POST /promo-rules returns a blank promo_rule_code attribute](https://bitbucket.org/andyfusniakteam/ecom-api-go/issues/23/http-post-promo-rules-returns-a-blank)

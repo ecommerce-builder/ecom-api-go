@@ -29,7 +29,7 @@ type ShippingTariff struct {
 
 // CreateShippingTariff creates a new shipping tariff entry.
 func (s *Service) CreateShippingTariff(ctx context.Context, countryCode, shippingCode, name string, price int, taxCode string) (*ShippingTariff, error) {
-	ptariff, err := s.model.CreateShippingTariff(ctx, countryCode, shippingCode, name, price, taxCode)
+	row, err := s.model.CreateShippingTariff(ctx, countryCode, shippingCode, name, price, taxCode)
 	if err == postgres.ErrShippingTariffCodeExists {
 		return nil, ErrShippingTariffCodeExists
 	}
@@ -39,12 +39,14 @@ func (s *Service) CreateShippingTariff(ctx context.Context, countryCode, shippin
 
 	shippingTariff := ShippingTariff{
 		Object:       "shipping_tariff",
-		ID:           ptariff.UUID,
-		CountryCode:  ptariff.CountryCode,
-		ShippingCode: ptariff.ShippingCode,
-		Name:         ptariff.Name,
-		Price:        ptariff.Price,
-		TaxCode:      ptariff.TaxCode,
+		ID:           row.UUID,
+		CountryCode:  row.CountryCode,
+		ShippingCode: row.ShippingCode,
+		Name:         row.Name,
+		Price:        row.Price,
+		TaxCode:      row.TaxCode,
+		Created:      row.Created,
+		Modified:     row.Modified,
 	}
 	return &shippingTariff, nil
 }

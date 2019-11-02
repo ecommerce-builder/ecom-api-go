@@ -20,6 +20,7 @@ import (
 	"bitbucket.org/andyfusniakteam/ecom-api-go/app"
 	model "bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	"cloud.google.com/go/profiler"
 	"cloud.google.com/go/pubsub"
 	firebase "firebase.google.com/go"
 	_ "firebase.google.com/go/auth"
@@ -38,7 +39,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.61.4"
+var version = "v0.62.0"
 
 const maxDbConnectAttempts = 3
 
@@ -165,6 +166,16 @@ func initLogging() {
 			stackdriver.WithProjectID(gaeProjectIDEnv),
 		)
 		log.SetFormatter(formatter)
+
+		// Profiler initialization, best done as early as possible.
+		if err := profiler.Start(profiler.Config{
+			// Service and ServiceVersion can be automatically inferred when running
+			// on App Engine.
+			// ProjectID must be set if not running on GCP.
+		}); err != nil {
+			log.Fatalf("main: failed to init profiler: %v", err)
+		}
+		log.Info("main: profiler initialised")
 	} else {
 		// Output logs with colour
 		log.SetFormatter(&log.TextFormatter{
