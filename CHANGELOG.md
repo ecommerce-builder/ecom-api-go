@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v0.62.1 (Sun, 3 Nov 2019)
++ Fix sysinfo JSON response to include Stripe and endpoint.
+
 ## v0.62.0 (Sat, 2 Nov 2019)
 + Add Stackdriver Profiler when
 + Fix issue with missing `created` and `modified` values when creating a new promo rule.

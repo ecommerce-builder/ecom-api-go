@@ -18,6 +18,7 @@ type SystemEnv struct {
 	PG       PgSystemEnv       `json:"pg"`
 	Goog     GoogSystemEnv     `json:"google"`
 	Firebase FirebaseSystemEnv `json:"firebase"`
+	Stripe   StripeSystemEnv   `json:"stripe"`
 	App      ApplSystemEnv     `json:"app"`
 }
 
@@ -50,10 +51,18 @@ type FirebaseSystemEnv struct {
 	AppID             string `json:"appId"`
 }
 
+// StripeSystemEnv contains the Stripe environment variables.
+type StripeSystemEnv struct {
+	StripeSuccessURL string `json:"ECOM_STRIPE_SUCCESS_URL"`
+	StripeCancelURL  string `json:"ECOM_STRIPE_CANCEL_URL"`
+}
+
 // ApplSystemEnv contains the application port and root email address.
 type ApplSystemEnv struct {
-	AppPort      string `json:"PORT"`
-	AppRootEmail string `json:"ECOM_APP_ROOT_EMAIL"`
+	AppPort                     string `json:"PORT"`
+	AppRootEmail                string `json:"ECOM_APP_ROOT_EMAIL"`
+	AppEnableStackDriverLogging bool   `json:"ECOM_APP_ENABLE_STACKDRIVER_LOGGING"`
+	AppEndpoint                 string `json:"ECOM_APP_ENDPOINT"`
 }
 
 // SystemInfoHandler returns data about the API runtime

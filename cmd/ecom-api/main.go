@@ -39,7 +39,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.62.0"
+var version = "v0.62.1"
 
 const maxDbConnectAttempts = 3
 
@@ -140,6 +140,8 @@ var (
 	appEndpoint                 = os.Getenv("ECOM_APP_ENDPOINT")
 )
 
+var enableStackDriverLogging bool
+
 const (
 	// secretVolume points to the base path for the mounted drive or secret files using k8s or docker mount
 	secretVolume = "/etc/secret-volume"
@@ -156,10 +158,11 @@ const (
 )
 
 func initLogging() {
-	if enableStackDriverLoggingEnv == "no" || enableStackDriverLoggingEnv == "off" || enableStackDriverLoggingEnv == "false" {
-		enableStackDriverLoggingEnv = ""
+	if enableStackDriverLoggingEnv == "yes" || enableStackDriverLoggingEnv == "on" || enableStackDriverLoggingEnv == "true" {
+		enableStackDriverLogging = true
 	}
-	if enableStackDriverLoggingEnv != "" {
+
+	if enableStackDriverLogging {
 		// Log as JSON Stackdriver with entry threading
 		// instead of the default ASCII formatter.
 		formatter := stackdriver.GAEStandardFormatter(
@@ -644,9 +647,15 @@ func main() {
 				GAEProjectID: gaeProjectIDEnv,
 			},
 			Firebase: fbConfig.Firebase,
+			Stripe: app.StripeSystemEnv{
+				StripeSuccessURL: stripeSuccessURL,
+				StripeCancelURL:  stripeCancelURL,
+			},
 			App: app.ApplSystemEnv{
-				AppPort:      port,
-				AppRootEmail: rootEmail,
+				AppPort:                     port,
+				AppRootEmail:                rootEmail,
+				AppEnableStackDriverLogging: enableStackDriverLogging,
+				AppEndpoint:                 appEndpoint,
 			},
 		},
 	}

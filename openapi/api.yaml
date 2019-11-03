@@ -7,7 +7,7 @@ servers:
 - description: Ecom Test API Service
   url: http://localhost:8080
 - description: Ecom Test API Service Ngrok
-  url: https://a94fa1be.ngrok.io
+  url: https://d07a63ae.ngrok.io
 info:
   description: |
     # Ecom API
@@ -24,7 +24,7 @@ info:
 
     Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
 
-  version: "v0.62.0"
+  version: "v0.62.1"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -4272,7 +4272,7 @@ components:
       properties:
         api_version:
           type: string
-          example: 'v0.62.0'
+          example: 'v0.62.1'
         env:
           type: object
           properties:
@@ -4296,7 +4296,7 @@ components:
                   example: 'disable'
                 schema_version:
                   type: string
-                  example: 'v0.62.0'
+                  example: 'v0.62.1'
             google:
               type: object
               properties:
@@ -4306,12 +4306,39 @@ components:
             firebase:
               type: object
               properties:
-                ECOM_FIREBASE_PROJECT_ID:
+                apiKey:
                   type: string
-                  example: 'test-data-oak'
-                ECOM_FIREBASE_WEB_API_KEY:
+                  example: AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc
+                authDomain:
                   type: string
-                  example: 'AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc'
+                  example: test-data-oak.firebaseapp.com
+                databaseURL:
+                  type: string
+                  format: uri
+                  example: https://test-data-oak.firebaseio.com
+                projectId:
+                  type: string
+                  example: test-data-oak
+                storageBucket:
+                  type: string
+                  example: test-data-oak.appspot.com
+                messagingSenderId:
+                  type: string
+                  example: '353707113320'
+                appId:
+                  type: string
+                  example: '1:353707113320:web:911378b89130dd98'
+            stripe:
+              type: object
+              properties:
+                ECOM_STRIPE_SUCCESS_URL:
+                  type: string
+                  format: uri
+                  example: http://localhost:8080/stripe-success
+                ECOM_STRIPE_CANCEL_URL:
+                  type: string
+                  format: uri
+                  example: http://localhost:8080/stripe-cancel
             app:
               type: object
               properties:
@@ -4321,6 +4348,13 @@ components:
                 ECOM_APP_ROOT_EMAIL:
                   type: string
                   example: 'andy+root@andyfusniak.com'
+                ECOM_APP_ENABLE_STACKDRIVER_LOGGING:
+                  type: boolean
+                  example: true
+                ECOM_APP_ENDPOINT:
+                  type: string
+                  format: uri
+                  example: https://d07a63ae.ngrok.io
     Error:
       properties:
         status:
