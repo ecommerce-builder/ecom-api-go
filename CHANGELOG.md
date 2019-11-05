@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v0.62.2 (Tue, 5 Nov 2019)
++ Fix request validation for `PATCH /address` operation `OpUpdateAddress`.
++ Improved logging in main and app level handlers for coupons and addresses.
++ `PromoRuleCode` attribute added to coupons.
++ Minor changes to Open API Def.
++ Update deps using `go get -v all`.
+
 ## v0.62.1 (Sun, 3 Nov 2019)
 + Fix sysinfo JSON response to include Stripe and endpoint.
 

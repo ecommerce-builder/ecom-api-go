@@ -24,6 +24,7 @@ type CouponJoinRow struct {
 	CouponCode    string
 	promoRuleID   int
 	PromoRuleUUID string
+	PromoRuleCode string
 	Void          bool
 	Resuable      bool
 	SpendCount    int
@@ -38,37 +39,45 @@ func (m *PgModel) CreateCoupon(ctx context.Context, couponCode, promoRuleUUID st
 	var exists bool
 	err := m.db.QueryRowContext(ctx, q1, couponCode).Scan(&exists)
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q1=%q, couponCode=%q)", q1, couponCode)
+		return nil, errors.Wrapf(err,
+			"postgres: tx.QueryRowContext(ctx, q1=%q, couponCode=%q)",
+			q1, couponCode)
 	}
 	if exists {
 		return nil, ErrCouponExists
 	}
 
 	// 2. Check if the promo rule exists
-	q2 := "SELECT id FROM promo_rule WHERE uuid = $1"
+	q2 := "SELECT id, promo_rule_code FROM promo_rule WHERE uuid = $1"
 	var promoRuleID int
-	err = m.db.QueryRowContext(ctx, q2, promoRuleUUID).Scan(&promoRuleID)
+	var promoRuleCode string
+	err = m.db.QueryRowContext(ctx, q2, promoRuleUUID).
+		Scan(&promoRuleID, &promoRuleCode)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrPromoRuleNotFound
 		}
-		return nil, errors.Wrapf(err, "postgres: query row context failed for q2=%q", q2)
+		return nil, errors.Wrapf(err,
+			"postgres: query row context failed for q2=%q", q2)
 	}
 
 	// 3. Insert the new coupon
 	q3 := `
 		INSERT INTO coupon
-		(coupon_code, promo_rule_id, reusable, spend_count, created, modified)
+		  (coupon_code, promo_rule_id, reusable, spend_count, created, modified)
 		VALUES ($1, $2, $3, 0, NOW(), NOW())
 		RETURNING
 		  id, uuid, coupon_code, promo_rule_id, void, reusable, spend_count, created, modified
 	`
 	c := CouponJoinRow{}
 	row := m.db.QueryRowContext(ctx, q3, couponCode, promoRuleID, reusable)
-	if err := row.Scan(&c.id, &c.UUID, &c.CouponCode, &c.promoRuleID, &c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified); err != nil {
+	if err := row.Scan(&c.id, &c.UUID,
+		&c.CouponCode, &c.promoRuleID,
+		&c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified); err != nil {
 		return nil, errors.Wrapf(err, "query row context q3=%q", q3)
 	}
 	c.PromoRuleUUID = promoRuleUUID
+	c.PromoRuleCode = promoRuleCode
 	return &c, nil
 }
 
@@ -76,7 +85,8 @@ func (m *PgModel) CreateCoupon(ctx context.Context, couponCode, promoRuleUUID st
 func (m *PgModel) GetCouponByUUID(ctx context.Context, couponUUID string) (*CouponJoinRow, error) {
 	q1 := `
 		SELECT
-		  c.id, c.uuid, coupon_code, promo_rule_id, r.uuid as promo_rule_uuid,
+		  c.id, c.uuid,
+		  coupon_code, promo_rule_id, r.uuid as promo_rule_uuid, r.promo_rule_code,
 		  void, reusable, spend_count, c.created, c.modified
 		FROM coupon AS c
 		INNER JOIN promo_rule AS r
@@ -84,7 +94,9 @@ func (m *PgModel) GetCouponByUUID(ctx context.Context, couponUUID string) (*Coup
 		WHERE c.uuid = $1
 	`
 	var c CouponJoinRow
-	err := m.db.QueryRowContext(ctx, q1, couponUUID).Scan(&c.id, &c.UUID, &c.CouponCode, &c.promoRuleID, &c.PromoRuleUUID, &c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified)
+	err := m.db.QueryRowContext(ctx, q1, couponUUID).Scan(&c.id, &c.UUID,
+		&c.CouponCode, &c.promoRuleID, &c.PromoRuleUUID, &c.PromoRuleCode,
+		&c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified)
 	if err == sql.ErrNoRows {
 		return nil, ErrCouponNotFound
 	}
@@ -98,7 +110,8 @@ func (m *PgModel) GetCouponByUUID(ctx context.Context, couponUUID string) (*Coup
 func (m *PgModel) GetCoupons(ctx context.Context) ([]*CouponJoinRow, error) {
 	q1 := `
 		SELECT
-		  c.id, c.uuid, coupon_code, promo_rule_id, r.uuid as promo_rule_uuid,
+		  c.id, c.uuid,
+		  coupon_code, promo_rule_id, r.uuid as promo_rule_uuid, r.promo_rule_code,
 		  void, reusable, spend_count, c.created, c.modified
 		FROM coupon AS c
 		INNER JOIN promo_rule AS r
@@ -113,7 +126,10 @@ func (m *PgModel) GetCoupons(ctx context.Context) ([]*CouponJoinRow, error) {
 	coupons := make([]*CouponJoinRow, 0, 4)
 	for rows.Next() {
 		var c CouponJoinRow
-		if err = rows.Scan(&c.id, &c.UUID, &c.CouponCode, &c.promoRuleID, &c.PromoRuleUUID, &c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified); err != nil {
+		err = rows.Scan(&c.id, &c.UUID,
+			&c.CouponCode, &c.promoRuleID, &c.PromoRuleUUID, &c.PromoRuleCode,
+			&c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified)
+		if err != nil {
 			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		coupons = append(coupons, &c)
@@ -128,7 +144,7 @@ func (m *PgModel) GetCoupons(ctx context.Context) ([]*CouponJoinRow, error) {
 func (m *PgModel) UpdateCouponByUUID(ctx context.Context, couponUUID string, void *bool) (*CouponJoinRow, error) {
 	// 1. Check if the coupon exists
 	q1 := `
-		SELECT c.id, r.uuid as promo_rule_uuid
+		SELECT c.id, r.uuid as promo_rule_uuid, r.promo_rule_code
 		FROM coupon AS c
 		INNER JOIN promo_rule AS r
 		 ON r.id = c.promo_rule_id
@@ -136,12 +152,16 @@ func (m *PgModel) UpdateCouponByUUID(ctx context.Context, couponUUID string, voi
 	`
 	var couponID int
 	var promoRuleUUID string
-	err := m.db.QueryRowContext(ctx, q1, couponUUID).Scan(&couponID, &promoRuleUUID)
+	var promoRuleCode string
+	err := m.db.QueryRowContext(ctx, q1, couponUUID).Scan(
+		&couponID, &promoRuleUUID, &promoRuleCode)
 	if err == sql.ErrNoRows {
 		return nil, ErrCouponNotFound
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "postgres: tx.QueryRowContext(ctx, q1=%q, couponUUID=%q)", q1, couponUUID)
+		return nil, errors.Wrapf(err,
+			"postgres: tx.QueryRowContext(ctx, q1=%q, couponUUID=%q)",
+			q1, couponUUID)
 	}
 
 	// 2. Update the coupon
@@ -155,11 +175,13 @@ func (m *PgModel) UpdateCouponByUUID(ctx context.Context, couponUUID string, voi
 	`
 	c := CouponJoinRow{}
 	row := m.db.QueryRowContext(ctx, q2, *void, couponID)
-	if err := row.Scan(&c.id, &c.UUID, &c.CouponCode, &c.promoRuleID, &c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified); err != nil {
-		return nil, errors.Wrapf(err, "model: query row context q2=%q", q2)
+	err = row.Scan(&c.id, &c.UUID, &c.CouponCode, &c.promoRuleID,
+		&c.Void, &c.Resuable, &c.SpendCount, &c.Created, &c.Modified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "postgres: scan q2=%q", q2)
 	}
 	c.PromoRuleUUID = promoRuleUUID
-
+	c.PromoRuleCode = promoRuleCode
 	return &c, nil
 }
 

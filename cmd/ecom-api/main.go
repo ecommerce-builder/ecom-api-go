@@ -39,7 +39,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var version = "v0.62.1"
+var version = "v0.62.2"
 
 const maxDbConnectAttempts = 3
 
@@ -217,107 +217,107 @@ func exists(path string) (bool, error) {
 func mustHaveFile(path, title string) {
 	ex, err := exists(path)
 	if err != nil {
-		log.Fatalf("failed to determine if %s %s exists: %v", title, path, err)
+		log.Fatalf("main: failed to determine if %s %s exists: %v", title, path, err)
 	}
 	if !ex {
-		log.Fatalf("cannot find %s %s. Check permissions.", title, path)
+		log.Fatalf("main: cannot find %s %s. Check permissions.", title, path)
 	}
-	log.Infof("%s: %s", title, path)
+	log.Infof("main: %s: %s", title, path)
 }
 
 func main() {
 	// wave goodbye on the way out the door
 	defer func() {
-		log.Infof("goodbye from ecom-api version %s", version)
+		log.Infof("main: goodbye from ecom-api version %s", version)
 	}()
 
 	initLogging()
 
-	log.Infof("hello from ecom-api version %s", version)
-	log.Infof("built with %s for %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	log.Infof("running process id %d", os.Getpid())
+	log.Infof("main: hello from ecom-api version %s", version)
+	log.Infof("main: built with %s for %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	log.Infof("main: running process id %d", os.Getpid())
 	// 1. Data Source Name
 	// dsn is the Data Source name. For PostgreSQL the format is "host=localhost port=5432 user=postgres password=secret dbname=mydatabase sslmode=disable". The sslmode is optional.
 	if pghost == "" {
-		log.Fatal("postgres host not set. Use ECOM_PG_HOST")
+		log.Fatal("main: postgres host not set. Use ECOM_PG_HOST")
 	}
 
 	if pgport == "" {
-		log.Info("using default port=5432 for postgres because ECOM_PG_PORT is not set")
+		log.Info("main: using default port=5432 for postgres because ECOM_PG_PORT is not set")
 		pgport = "5432"
 	}
 
 	if pguser == "" {
-		log.Info("using default user=postgres because ECOM_PG_USER is not set")
+		log.Info("main: using default user=postgres because ECOM_PG_USER is not set")
 		pguser = "postgres"
 	}
 
 	if pgdatabase == "" {
-		log.Fatal("ECOM_PG_DATABASE not set.")
+		log.Fatal("main: ECOM_PG_DATABASE not set.")
 	}
 
 	if pgpassword == "" {
-		log.Fatal("ECOM_PG_PASSWORD not set. You must set a password")
+		log.Fatal("main: ECOM_PG_PASSWORD not set. You must set a password")
 	}
 
 	if pgsslmode == "" {
 		if pgsslkey != "" || pgsslrootcert != "" || pgsslcert != "" {
-			log.Fatal("ECOM_PG_SSLMODE is not set, but one or more of ECOM_PG_SSLCERT, ECOM_PG_SSLKEY, ECOM_PG_SSLROOTCERT environment variables were set implying you intended to connect to postgres securely?")
+			log.Fatal("main: ECOM_PG_SSLMODE is not set, but one or more of ECOM_PG_SSLCERT, ECOM_PG_SSLKEY, ECOM_PG_SSLROOTCERT environment variables were set implying you intended to connect to postgres securely?")
 		}
-		log.Infof("using postgres sslmode=disable because ECOM_PG_SSLMODE is not set")
+		log.Infof("main: using postgres sslmode=disable because ECOM_PG_SSLMODE is not set")
 		pgsslmode = "disable"
 	}
 
 	if pgconnectTimeout == "" {
-		log.Infof("using postgres connect_timeout=10 because ECOM_PG_CONNECT_TIMEOUT is not set")
+		log.Infof("main: using postgres connect_timeout=10 because ECOM_PG_CONNECT_TIMEOUT is not set")
 		pgconnectTimeout = "10"
 	}
 
 	var dsn string
 	if pgsslmode == "disable" {
-		log.Infof("postgres running with sslmode=disable")
+		log.Infof("main: postgres running with sslmode=disable")
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode, pgconnectTimeout)
-		log.Infof("postgres dsn: host=%s port=%s user=%s password=**** dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgconnectTimeout)
+		log.Infof("main: postgres dsn: host=%s port=%s user=%s password=**** dbname=%s sslmode=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgconnectTimeout)
 	} else {
 		// Ensure that the ECOM_PG_SSLCERT, ECOM_PG_SSLROOTCERT and ECOM_PG_SSLKEY are all
 		// referenced using absolute paths.
 		if pgsslcert == "" {
-			log.Fatal("missing PostgreSQL SSL certificate file. Use export ECOM_PG_SSLCERT")
+			log.Fatal("main: missing PostgreSQL SSL certificate file. Use export ECOM_PG_SSLCERT")
 		}
 		if !filepath.IsAbs(pgsslcert) {
-			log.Fatalf("ECOM_PG_SSLCERT should use an absolute path to certificate file to avoid ambiguity")
+			log.Fatalf("main: ECOM_PG_SSLCERT should use an absolute path to certificate file to avoid ambiguity")
 		}
 		mustHaveFile(pgsslcert, "client certificate file")
 
 		if pgsslrootcert == "" {
-			log.Fatal("missing PostgreSQL SSL root certificate file. Use export ECOM_PG_SSLROOTCERT")
+			log.Fatal("main: missing PostgreSQL SSL root certificate file. Use export ECOM_PG_SSLROOTCERT")
 		}
 		if !filepath.IsAbs(pgsslrootcert) {
-			log.Fatalf("ECOM_PG_SSLROOTCERT should use an absolute path to root certificate file to avoid ambiguity")
+			log.Fatalf("main: ECOM_PG_SSLROOTCERT should use an absolute path to root certificate file to avoid ambiguity")
 		}
 		mustHaveFile(pgsslrootcert, "ssl root certificate")
 
 		if pgsslkey == "" {
-			log.Fatal("missing PostgreSQL SSL key certificate file. Use export ECOM_PG_SSLKEY")
+			log.Fatal("main: missing PostgreSQL SSL key certificate file. Use export ECOM_PG_SSLKEY")
 		}
 		if !filepath.IsAbs(pgsslkey) {
-			log.Fatalf("ECOM_PG_SSLKEY should use an absolute path to key certificate file to avoid ambiguity")
+			log.Fatalf("main: ECOM_PG_SSLKEY should use an absolute path to key certificate file to avoid ambiguity")
 		}
 		mustHaveFile(pgsslkey, "ssl key file")
 
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgpassword, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
-		log.Infof("postgres dsn: host=%s port=%s user=%s password=***** dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
+		log.Infof("main: postgres dsn: host=%s port=%s user=%s password=***** dbname=%s sslmode=%s sslcert=%s sslrootcert=%s sslkey=%s connect_timeout=%s", pghost, pgport, pguser, pgdatabase, pgsslmode, pgsslcert, pgsslrootcert, pgsslkey, pgconnectTimeout)
 	}
 
 	// 2. Service Account Credentials
 	if fbCredentialsEnv == "" {
-		log.Fatal("missing service account credentials. Use export ECOM_FIREBASE_PRIVATE_CREDENTIALS=/path/to/your/service-account-file or ECOM_FIREBASE_PRIVATE_CREDENTIALS=<base64-json-file>")
+		log.Fatal("main: missing service account credentials. Use export ECOM_FIREBASE_PRIVATE_CREDENTIALS=/path/to/your/service-account-file or ECOM_FIREBASE_PRIVATE_CREDENTIALS=<base64-json-file>")
 	}
 	// if the credentials is a relative pathname, make it relative to the secretVolume/sacDir root
 	// i.e. /etc/secret-volume/service_account_credentials/<file>
 	if fbCredentialsEnv[0] == '/' {
 		if !filepath.IsAbs(fbCredentialsEnv) {
-			log.Debugf("credentials is a relative pathname so building absolute pathname")
+			log.Debugf("main: credentials is a relative pathname so building absolute pathname")
 			fbCredentialsEnv = filepath.Join(secretVolume, sacDir, fbCredentialsEnv)
 		}
 		mustHaveFile(fbCredentialsEnv, "service account credentials")
@@ -325,16 +325,16 @@ func main() {
 
 	// 3. GAE ProjectID, Google Project ID (Firebase) and Web API Key (Firebase)
 	if gaeProjectIDEnv == "" {
-		log.Fatal("missing GAE project ID. Use export ECOM_GAE_PROJECT_ID")
+		log.Fatal("main: missing GAE project ID. Use export ECOM_GAE_PROJECT_ID")
 	}
 
 	if fbPublicConfigEnv == "" {
-		log.Fatal("missing public Firebase Config.  Use ECOM_FIREBASE_PUBLIC_CONFIG=<base64-json-string>")
+		log.Fatal("main: missing public Firebase Config.  Use ECOM_FIREBASE_PUBLIC_CONFIG=<base64-json-string>")
 	}
 	// log.Infof("Web API Key set to %s", fbWebAPIKey)
 	decoded, err := base64.StdEncoding.DecodeString(fbPublicConfigEnv)
 	if err != nil {
-		log.Fatalf("decode error: %v", err)
+		log.Fatalf("main: decode error: %v", err)
 	}
 	type firebaseConfig struct {
 		Firebase app.FirebaseSystemEnv `json:"firebaseConfig"`
@@ -342,37 +342,37 @@ func main() {
 
 	var fbConfig firebaseConfig
 	if err := json.NewDecoder(bytes.NewReader(decoded)).Decode(&fbConfig); err != nil {
-		log.Fatal(err)
+		log.Fatalf("main: %v", err)
 	}
 
 	if fbConfig.Firebase.APIKEY == "" {
-		log.Fatal("Firebase Config not loaded. Check base64 encoded ECOM_FIREBASE_PUBLIC_CONFIG.")
+		log.Fatal("main: Firebase Config not loaded. Check base64 encoded ECOM_FIREBASE_PUBLIC_CONFIG.")
 	}
 
-	log.Infof("firebase apiKey set to %s", fbConfig.Firebase.APIKEY)
-	log.Infof("firebase projectID set to %s", fbConfig.Firebase.ProjectID)
+	log.Infof("main: firebase apiKey set to %s", fbConfig.Firebase.APIKEY)
+	log.Infof("main: firebase projectID set to %s", fbConfig.Firebase.ProjectID)
 
 	// ECOM_GOOGLE_PUBSUB_PUSH_TOKEN must be set.
 	if pubSubPushToken == "" {
-		log.Fatalf("missing google pubsub events push token. Use ECOM_GOOGLE_PUBSUB_PUSH_TOKEN to set this to a secret string token")
+		log.Fatalf("main: missing google pubsub events push token. Use ECOM_GOOGLE_PUBSUB_PUSH_TOKEN to set this to a secret string token")
 	}
 
 	// ECOM_APP_ENDPOINT must be set to an absolute, secure URL endpoint.
 	// It is used to derive the events and webhook cloud pubsub URL endpoints.
 	if appEndpoint == "" {
-		log.Fatalf("missing app endpoint. Use ECOM_APP_ENDPOINT to set this to an absolute secure URL")
+		log.Fatalf("main: missing app endpoint. Use ECOM_APP_ENDPOINT to set this to an absolute secure URL")
 	}
 	u, err := url.Parse(appEndpoint)
 	if err != nil {
-		log.Fatalf("failed to url.Parse(%q)", appEndpoint)
+		log.Fatalf("main: failed to url.Parse(%q)", appEndpoint)
 	}
 	if u.Scheme != "https" {
-		log.Fatalf("ECOM_APP_ENDPOINT must be set to a secure URL - got %s", appEndpoint)
+		log.Fatalf("main: ECOM_APP_ENDPOINT must be set to a secure URL - got %s", appEndpoint)
 	}
 	if !u.IsAbs() {
-		log.Fatalf("ECOM_APP_ENDPOINT must be set to an absolute URL - got %s", appEndpoint)
+		log.Fatalf("main: ECOM_APP_ENDPOINT must be set to an absolute URL - got %s", appEndpoint)
 	}
-	log.Infof("ECOM_APP_ENDPOINT set to %s", appEndpoint)
+	log.Infof("main: ECOM_APP_ENDPOINT set to %s", appEndpoint)
 
 	pubSubEventsPushEndpoint, err := url.Parse(appEndpoint + "/private-pubsub-events")
 	if err != nil {
@@ -381,7 +381,7 @@ func main() {
 	q := pubSubEventsPushEndpoint.Query()
 	q.Set("token", pubSubPushToken)
 	pubSubEventsPushEndpoint.RawQuery = q.Encode()
-	log.Infof("using %s/private-pubsub-events?token=***** as the events push endpoint", appEndpoint)
+	log.Infof("main: using %s/private-pubsub-events?token=***** as the events push endpoint", appEndpoint)
 
 	pubSubBroadcastPushEndpoint, err := url.Parse(appEndpoint + "/private-pubsub-broadcast")
 	if err != nil {
@@ -390,44 +390,44 @@ func main() {
 	q = pubSubBroadcastPushEndpoint.Query()
 	q.Set("token", pubSubPushToken)
 	pubSubBroadcastPushEndpoint.RawQuery = q.Encode()
-	log.Infof("using %s/private-pubsub-broadcast?token=***** as the pubsub broadcast push endpoint", appEndpoint)
+	log.Infof("main: using %s/private-pubsub-broadcast?token=***** as the pubsub broadcast push endpoint", appEndpoint)
 
 	// 4. Stripe Secret Key and Signing Key.
 	if stripeSecretKey == "" && stripeSigningSecret == "" {
-		log.Warn("ECOM_STRIPE_SECRET_KEY and ECOM_STRIPE_SIGNING_SECRET are not set. This service will not process Stripe payments")
+		log.Warn("main: ECOM_STRIPE_SECRET_KEY and ECOM_STRIPE_SIGNING_SECRET are not set. This service will not process Stripe payments")
 	} else {
 		if stripeSecretKey == "" {
-			log.Fatal("ECOM_STRIPE_SIGNING_SECRET must be set since ECOM_STRIPE_SECRET_KEY has been set")
+			log.Fatal("main: ECOM_STRIPE_SIGNING_SECRET must be set since ECOM_STRIPE_SECRET_KEY has been set")
 		}
 
 		if stripeSigningSecret == "" {
-			log.Fatal("ECOM_STRIPE_SECRET_KEY must be set since ECOM_STRIPE_SIGNING_SECRET has been set")
+			log.Fatal("main: ECOM_STRIPE_SECRET_KEY must be set since ECOM_STRIPE_SIGNING_SECRET has been set")
 		}
 
 		if stripeSecretKey != "" {
 			stripe.Key = stripeSecretKey
-			log.Info("Stripe Secret Key set in Stripe library")
+			log.Info("main: Stripe Secret Key set in Stripe library")
 		}
 	}
 
 	if stripeSuccessURL == "" {
 		stripeSuccessURL = "https://example.com/success"
-		log.Info("ECOM_STRIPE_SUCCESS_URL is not set, so using default value")
+		log.Info("main: ECOM_STRIPE_SUCCESS_URL is not set, so using default value")
 	}
-	log.Infof("ECOM_STRIPE_SUCCESS_URL set to %s", stripeSuccessURL)
+	log.Infof("main: ECOM_STRIPE_SUCCESS_URL set to %s", stripeSuccessURL)
 
 	if stripeCancelURL == "" {
 		stripeCancelURL = "https://example.com/cancel"
-		log.Info("ECOM_STRIPE_CANCEL_URL is not set, so using default value")
+		log.Info("main: ECOM_STRIPE_CANCEL_URL is not set, so using default value")
 	}
-	log.Infof("ECOM_STRIPE_CANCEL_URL set to %s", stripeCancelURL)
+	log.Infof("main: ECOM_STRIPE_CANCEL_URL set to %s", stripeCancelURL)
 
 	// 5. Server Port
 	if port == "" {
 		port = "8080"
-		log.Infof("HTTP Port not specified. Using default port %s", port)
+		log.Infof("main: HTTP Port not specified. Using default port %s", port)
 	} else {
-		log.Infof("environment variable PORT specifies port %s to be used", port)
+		log.Infof("main: environment variable PORT specifies port %s to be used", port)
 	}
 
 	// ensure that we have access to the secret volume
@@ -438,12 +438,12 @@ func main() {
 	if fbCredentialsEnv[0] == '/' {
 		ex, err := exists(secretVolume)
 		if err != nil {
-			log.Fatalf("failed to determine if secret volume %s exists: %v", secretVolume, err)
+			log.Fatalf("main: failed to determine if secret volume %s exists: %v", secretVolume, err)
 		}
 		if !ex {
-			log.Fatalf("cannot find secret volume %s. Have you mounted it?", secretVolume)
+			log.Fatalf("main: cannot find secret volume %s. Have you mounted it?", secretVolume)
 		}
-		log.Infof("found secret volume %s", secretVolume)
+		log.Infof("main: found secret volume %s", secretVolume)
 	}
 
 	// TLS Mode defaults to false unless ECOM_APP_TLS_MODE is set to enable
@@ -452,25 +452,25 @@ func main() {
 	tlsMode := false
 	if tlsModeFlag == "enable" || tlsModeFlag == "enabled" {
 		tlsMode = true
-		log.Info("ECOM_APP_TLS_MODE enabled")
+		log.Info("main: ECOM_APP_TLS_MODE enabled")
 
 		// Ensure the TLS Certificate and Key files exist
 		if tlsCertFile == "" {
-			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the cert file. Use export ECOM_APP_TLS_CERT=/path/to/your/cert.pem")
+			log.Fatal("main: ECOM_APP_TLS_MODE is enabled so you must set the cert file. Use export ECOM_APP_TLS_CERT=/path/to/your/cert.pem")
 		}
 
 		// if the tlsCertFile is a relative pathname, make it relative to the secretVolume root
 		if !filepath.IsAbs(tlsCertFile) {
-			log.Debugf("tlsCertFile is a relative pathname so building absolute pathname")
+			log.Debugf("main: tlsCertFile is a relative pathname so building absolute pathname")
 			tlsCertFile = filepath.Join(secretVolume, tlsCertFile)
 		}
 		mustHaveFile(tlsCertFile, "TLS Cert File")
 
 		if tlsKeyFile == "" {
-			log.Fatal("ECOM_APP_TLS_MODE is enabled so you must set the key file. Use export ECOM_APP_TLS_KEY=/path/to/your/key.pem")
+			log.Fatal("main: ECOM_APP_TLS_MODE is enabled so you must set the key file. Use export ECOM_APP_TLS_KEY=/path/to/your/key.pem")
 		}
 		if !filepath.IsAbs(tlsKeyFile) {
-			log.Debugf("tlsKeyFile is a relative pathname so building absolute pathname")
+			log.Debugf("main: tlsKeyFile is a relative pathname so building absolute pathname")
 			tlsKeyFile = filepath.Join(secretVolume, tlsKeyFile)
 		}
 		mustHaveFile(tlsKeyFile, "TLS Key File")
@@ -478,10 +478,10 @@ func main() {
 
 	// 5. Root Credentials
 	if rootEmail == "" {
-		log.Fatal("app root email not set. Use ECOM_APP_ROOT_EMAIL")
+		log.Fatal("main: app root email not set. Use ECOM_APP_ROOT_EMAIL")
 	}
 	if rootPassword == "" {
-		log.Fatal("app root password not set. Use ECOM_APP_ROOT_PASSWORD")
+		log.Fatal("main: app root password not set. Use ECOM_APP_ROOT_PASSWORD")
 	}
 
 	// 6. Connection pooling
@@ -490,10 +490,10 @@ func main() {
 		var err error
 		maxOpenConns, err = strconv.Atoi(maxOpenConnsEnv)
 		if err != nil {
-			log.Fatal("app failed to read value in ECOM_APP_MAX_OPEN_CONNS")
+			log.Fatal("main: app failed to read value in ECOM_APP_MAX_OPEN_CONNS")
 		}
 	} else {
-		log.Info("ECOM_APP_MAX_OPEN_CONNS is not set. Using the default of unlimited")
+		log.Info("main: ECOM_APP_MAX_OPEN_CONNS is not set. Using the default of unlimited")
 	}
 
 	var maxIdleConns int
@@ -501,7 +501,7 @@ func main() {
 		var err error
 		maxIdleConns, err = strconv.Atoi(maxIdleConnsEnv)
 		if err != nil {
-			log.Fatal("app failed to read value in ECOM_APP_MAX_IDLE_CONNS")
+			log.Fatal("main: app failed to read value in ECOM_APP_MAX_IDLE_CONNS")
 		}
 		// There is no point in ever having any more idle connections than the
 		// maximum allowed open connections, because if you could instantaneously
@@ -510,7 +510,7 @@ func main() {
 		// but only ever allowing three vehicles to drive across it at once.
 		// https://stackoverflow.com/questions/31952791/setmaxopenconns-and-setmaxidleconns/31952911#31952911
 		if maxIdleConns > maxOpenConns {
-			log.Fatal("app maxIdleConns exceeds maxOpenConns. Check both ECOM_APP_MAX_OPEN_CONNS and ECOM_APP_MAX_IDLE_CONNS")
+			log.Fatal("main: app maxIdleConns exceeds maxOpenConns. Check both ECOM_APP_MAX_OPEN_CONNS and ECOM_APP_MAX_IDLE_CONNS")
 		}
 	}
 
@@ -519,34 +519,34 @@ func main() {
 		var err error
 		connMaxLifetime, err = strconv.Atoi(connMaxLifetimeEnv)
 		if err != nil {
-			log.Fatal("app failed to read value in ECOM_APP_CONN_MAX_LIFETIME")
+			log.Fatal("main: app failed to read value in ECOM_APP_CONN_MAX_LIFETIME")
 		}
 	}
 
 	// connect to postgres
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("failed to open db: %v", err)
+		log.Fatalf("main: failed to open db: %v", err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Warn("failed to close the database")
+			log.Warn("main: failed to close the database")
 		} else {
-			log.Info("database closed")
+			log.Info("main: database closed")
 		}
 	}()
 
 	if maxOpenConns > 0 {
 		db.SetMaxOpenConns(maxOpenConns)
-		log.Infof("max open connections set to %d", maxOpenConns)
+		log.Infof("main: max open connections set to %d", maxOpenConns)
 	}
 	if maxIdleConns > 0 {
 		db.SetMaxIdleConns(maxIdleConns)
-		log.Infof("max idle connections set to %d", maxIdleConns)
+		log.Infof("main: max idle connections set to %d", maxIdleConns)
 	}
 	if connMaxLifetime > 0 {
 		db.SetConnMaxLifetime(time.Minute * time.Duration(connMaxLifetime))
-		log.Infof("max conn max lifetime set to %d minutes", connMaxLifetime)
+		log.Infof("main: max conn max lifetime set to %d minutes", connMaxLifetime)
 	}
 
 	attempt := 0
@@ -555,15 +555,15 @@ func main() {
 		if err != nil {
 			attempt++
 			if attempt >= maxDbConnectAttempts {
-				log.Fatalf("attempt %d/%d failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
+				log.Fatalf("main: attempt %d/%d failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
 			}
-			log.Warnf("attempt %d/%d, failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
+			log.Warnf("main: attempt %d/%d, failed to verify db connection: %v", attempt, maxDbConnectAttempts, err)
 			time.Sleep(5 * time.Second)
 		} else {
 			break
 		}
 	}
-	log.Infoln("established a database connection")
+	log.Infoln("main: established a database connection")
 
 	// build a Postgres model
 	pgModel := model.NewPgModel(db)
@@ -577,22 +577,23 @@ func main() {
 	} else {
 		decoded, err := base64.StdEncoding.DecodeString(fbCredentialsEnv)
 		if err != nil {
-			log.Fatalf("decode error: %v", err)
+			log.Fatalf("main:decode error: %v", err)
 		}
 		opt = option.WithCredentialsJSON(decoded)
 	}
 	ctx := context.Background()
 	fbApp, err = firebase.NewApp(ctx, nil, opt)
 	if err != nil {
-		log.Fatalf("%v", fmt.Errorf("failed to initialise Firebase app: %v", err))
+		log.Fatalf("main: failed to initialise Firebase app: %v", err)
 	}
 
 	// Google Pub Sub
 	pubSubClient, err := pubsub.NewClient(ctx, gaeProjectIDEnv, opt)
 	if err != nil {
-		log.Fatalf("pubsub.NewClient(ctx, gaeProjectIDEnv) failed: %+v", err)
+		log.Fatalf("main: pubsub.NewClient(ctx, gaeProjectIDEnv) failed: %+v", err)
 	}
-	log.Infof("initializing Google PubSub client for project %s", gaeProjectIDEnv)
+	log.Infof("main: initializing Google PubSub client for project %s",
+		gaeProjectIDEnv)
 
 	// var eventsTopic *pubsub.Topic
 	// var webhooksTopic *pubsub.Topic
@@ -601,27 +602,14 @@ func main() {
 	eventsTopic, err := service.CreateTopicAndSubscription(ctx, pubSubClient,
 		pubSubEventsTopic, pubSubEventsSubscription, pubSubEventsPushEndpoint.String())
 	if err != nil {
-		log.Fatalf("app: failed to create cloud pubsub topic and subscription for events topic: %+v", err)
+		log.Fatalf("main: failed to create cloud pubsub topic and subscription for events topic: %+v", err)
 	}
 
 	whBroadcastTopic, err := service.CreateTopicAndSubscription(ctx, pubSubClient,
 		pubSubWebhooksTopic, pubSubWebhooksSubscription, pubSubBroadcastPushEndpoint.String())
 	if err != nil {
-		log.Fatalf("app: failed to create cloud pubsub topic and subscription for broadcast topic: %+v", err)
+		log.Fatalf("main: failed to create cloud pubsub topic and subscription for broadcast topic: %+v", err)
 	}
-	// topic := pubSubClient.Topic(pubsubTopic)
-	// defer topic.Stop()
-	// log.Infof("created reference to pubsub topic %v", topic.String())
-
-	// Create a new topic with the given name.
-	// topic, err := pubSubClient.CreateTopic(ctx, pubsubTopic)
-	// if err != nil {
-	// 	// TODO: Handle error.
-	// 	log.Errorf("client.CreateTopic(ctx, pubsubTopic) failed: %+v", err)
-	// }
-
-	// serverID, err := publishResult.Get(ctx)
-	// fmt.Println(serverID, err)
 
 	// build a Firebase service injecting in the model and firebase app as dependencies
 	fbSrv := service.NewService(pgModel, fbApp, eventsTopic, whBroadcastTopic)
@@ -629,7 +617,7 @@ func main() {
 	// ensure the root user has been created
 	err = fbSrv.CreateRootIfNotExists(ctx, rootEmail, rootPassword)
 	if err != nil {
-		log.Fatalf("failed to create root credentials if not exists: %+v", err)
+		log.Fatalf("main: failed to create root credentials if not exists: %+v", err)
 	}
 
 	// SystemInfo
@@ -909,20 +897,20 @@ func main() {
 
 		switch sig := <-sigint; sig {
 		case unix.SIGINT:
-			log.Infof("received signal SIGINT")
+			log.Infof("main: received signal SIGINT")
 		case unix.SIGTERM:
-			log.Infof("received signal SIGTERM")
+			log.Infof("main: received signal SIGTERM")
 		default:
-			log.Errorf("received unexpected signal %d", sig)
+			log.Errorf("main: received unexpected signal %d", sig)
 		}
 
-		log.Infof("gracefully shutting down the server...")
+		log.Infof("main: gracefully shutting down the server...")
 		// We received an interrupt signal, shut down.
 		if err := srv.Shutdown(context.Background()); err != nil {
 			// Error from closing listeners, or context timeout:
-			log.Infof("HTTP server Shutdown: %v", err)
+			log.Infof("main: HTTP server Shutdown: %v", err)
 		}
-		log.Infof("HTTP server shutdown complete")
+		log.Infof("main: HTTP server shutdown complete")
 		close(idleConnsClosed)
 	}()
 
@@ -935,12 +923,12 @@ func main() {
 	// If tlsMode is false, you can enable HTTPS with a GKE Layer 7 load balancer
 	// using an Ingress.
 	if tlsMode {
-		log.Infof("server listening on HTTPS port %s", port)
+		log.Infof("main: server listening on HTTPS port %s", port)
 		log.Fatal(srv.ListenAndServeTLS(tlsCertFile, tlsKeyFile))
 	} else {
-		log.Infof("server listening on HTTP port %s", port)
+		log.Infof("main: server listening on HTTP port %s", port)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatal(err)
+			log.Fatalf("main: %v", err)
 		}
 	}
 

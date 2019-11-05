@@ -22,7 +22,7 @@ func (a *App) ListCouponsHandler() http.HandlerFunc {
 
 		coupons, err := a.Service.GetCoupons(ctx)
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.GetAllInventory(ctx) failed: %+v", err)
+			contextLogger.Errorf("app: 500 Internal Server Error - a.Service.GetAllInventory(ctx): %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
@@ -33,5 +33,6 @@ func (a *App) ListCouponsHandler() http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&list)
+		contextLogger.Infof("app: 200 OK - returning coupons")
 	}
 }

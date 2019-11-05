@@ -19,20 +19,21 @@ var ErrCouponInUse = errors.New("service: coupon in use")
 
 // Coupon a single coupon for use with the cart.
 type Coupon struct {
-	Object      string    `json:"object"`
-	ID          string    `json:"id"`
-	CouponCode  string    `json:"coupon_code"`
-	PromoRuleID string    `json:"promo_rule_id"`
-	Void        bool      `json:"void"`
-	Resuable    bool      `json:"resuable"`
-	SpendCount  int       `json:"spend_count"`
-	Created     time.Time `json:"created"`
-	Modified    time.Time `json:"modfied"`
+	Object        string    `json:"object"`
+	ID            string    `json:"id"`
+	CouponCode    string    `json:"coupon_code"`
+	PromoRuleID   string    `json:"promo_rule_id"`
+	PromoRuleCode string    `json:"promo_rule_code"`
+	Void          bool      `json:"void"`
+	Resuable      bool      `json:"resuable"`
+	SpendCount    int       `json:"spend_count"`
+	Created       time.Time `json:"created"`
+	Modified      time.Time `json:"modfied"`
 }
 
 // CreateCoupon mints a new coupon to be later applied to a cart.
 func (s *Service) CreateCoupon(ctx context.Context, couponCode, promoRuleID string, reusable bool) (*Coupon, error) {
-	c, err := s.model.CreateCoupon(ctx, couponCode, promoRuleID, reusable)
+	row, err := s.model.CreateCoupon(ctx, couponCode, promoRuleID, reusable)
 	if err == postgres.ErrCouponExists {
 		return nil, ErrCouponExists
 	}
@@ -43,15 +44,16 @@ func (s *Service) CreateCoupon(ctx context.Context, couponCode, promoRuleID stri
 		return nil, errors.Wrapf(err, "service: s.model.CreateCoupon(ctx, couponCode=%q, promoRuleID=%q, reusable=%t)", couponCode, promoRuleID, reusable)
 	}
 	coupon := Coupon{
-		Object:      "coupon",
-		ID:          c.UUID,
-		CouponCode:  c.CouponCode,
-		PromoRuleID: c.PromoRuleUUID,
-		Void:        c.Void,
-		Resuable:    c.Resuable,
-		SpendCount:  c.SpendCount,
-		Created:     c.Created,
-		Modified:    c.Modified,
+		Object:        "coupon",
+		ID:            row.UUID,
+		CouponCode:    row.CouponCode,
+		PromoRuleID:   row.PromoRuleUUID,
+		PromoRuleCode: row.PromoRuleCode,
+		Void:          row.Void,
+		Resuable:      row.Resuable,
+		SpendCount:    row.SpendCount,
+		Created:       row.Created,
+		Modified:      row.Modified,
 	}
 	return &coupon, nil
 }
@@ -59,23 +61,25 @@ func (s *Service) CreateCoupon(ctx context.Context, couponCode, promoRuleID stri
 // GetCoupon returns a single coupon. If the coupon is not found
 // returns nil with an error of `ErrCouponNotFound`.
 func (s *Service) GetCoupon(ctx context.Context, couponID string) (*Coupon, error) {
-	c, err := s.model.GetCouponByUUID(ctx, couponID)
+	row, err := s.model.GetCouponByUUID(ctx, couponID)
 	if err == postgres.ErrCouponNotFound {
 		return nil, ErrCouponNotFound
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "service: s.model.GetCouponByUUID(ctx, couponID=%q)", couponID)
 	}
+
 	coupon := Coupon{
-		Object:      "coupon",
-		ID:          c.UUID,
-		CouponCode:  c.CouponCode,
-		PromoRuleID: c.PromoRuleUUID,
-		Void:        c.Void,
-		Resuable:    c.Resuable,
-		SpendCount:  c.SpendCount,
-		Created:     c.Created,
-		Modified:    c.Modified,
+		Object:        "coupon",
+		ID:            row.UUID,
+		CouponCode:    row.CouponCode,
+		PromoRuleID:   row.PromoRuleUUID,
+		PromoRuleCode: row.PromoRuleCode,
+		Void:          row.Void,
+		Resuable:      row.Resuable,
+		SpendCount:    row.SpendCount,
+		Created:       row.Created,
+		Modified:      row.Modified,
 	}
 	return &coupon, nil
 }
@@ -90,15 +94,16 @@ func (s *Service) GetCoupons(ctx context.Context) ([]*Coupon, error) {
 	coupons := make([]*Coupon, 0, len(rows))
 	for _, row := range rows {
 		coupon := Coupon{
-			Object:      "coupon",
-			ID:          row.UUID,
-			CouponCode:  row.CouponCode,
-			PromoRuleID: row.PromoRuleUUID,
-			Void:        row.Void,
-			Resuable:    row.Resuable,
-			SpendCount:  row.SpendCount,
-			Created:     row.Created,
-			Modified:    row.Modified,
+			Object:        "coupon",
+			ID:            row.UUID,
+			CouponCode:    row.CouponCode,
+			PromoRuleID:   row.PromoRuleUUID,
+			PromoRuleCode: row.PromoRuleCode,
+			Void:          row.Void,
+			Resuable:      row.Resuable,
+			SpendCount:    row.SpendCount,
+			Created:       row.Created,
+			Modified:      row.Modified,
 		}
 		coupons = append(coupons, &coupon)
 	}
@@ -108,7 +113,7 @@ func (s *Service) GetCoupons(ctx context.Context) ([]*Coupon, error) {
 // UpdateCoupon partially updates am existing coupon. Returns
 // either the updated coupon or nil with an error of `ErrCouponNotFound`.
 func (s *Service) UpdateCoupon(ctx context.Context, couponID string, void *bool) (*Coupon, error) {
-	c, err := s.model.UpdateCouponByUUID(ctx, couponID, void)
+	row, err := s.model.UpdateCouponByUUID(ctx, couponID, void)
 	if err == postgres.ErrCouponNotFound {
 		return nil, ErrCouponNotFound
 	}
@@ -117,15 +122,16 @@ func (s *Service) UpdateCoupon(ctx context.Context, couponID string, void *bool)
 	}
 
 	coupon := Coupon{
-		Object:      "coupon",
-		ID:          c.UUID,
-		CouponCode:  c.CouponCode,
-		PromoRuleID: c.PromoRuleUUID,
-		Void:        c.Void,
-		Resuable:    c.Resuable,
-		SpendCount:  c.SpendCount,
-		Created:     c.Created,
-		Modified:    c.Modified,
+		Object:        "coupon",
+		ID:            row.UUID,
+		CouponCode:    row.CouponCode,
+		PromoRuleID:   row.PromoRuleUUID,
+		PromoRuleCode: row.PromoRuleCode,
+		Void:          row.Void,
+		Resuable:      row.Resuable,
+		SpendCount:    row.SpendCount,
+		Created:       row.Created,
+		Modified:      row.Modified,
 	}
 	return &coupon, nil
 }

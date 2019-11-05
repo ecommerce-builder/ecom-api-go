@@ -42,10 +42,29 @@ func validateAddressRequestMemoize() func(ctx context.Context, request *updateAd
 		}
 
 		// addr1
+		if request.Addr1 != nil {
+			atLeastOne = true
+		}
+
 		// addr2
+		if request.Addr2 != nil {
+			atLeastOne = true
+		}
+
 		// city
+		if request.City != nil {
+			atLeastOne = true
+		}
+
 		// county
+		if request.County != nil {
+			atLeastOne = true
+		}
+
 		// country_code
+		if request.CountryCode != nil {
+			atLeastOne = true
+		}
 
 		if !atLeastOne {
 			return false, "you must set at least on attribute type, contact_name, addr1, addr2, city, county or country_code"
