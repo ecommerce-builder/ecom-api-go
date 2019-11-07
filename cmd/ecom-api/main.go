@@ -158,7 +158,9 @@ const (
 )
 
 func initLogging() {
-	if enableStackDriverLoggingEnv == "yes" || enableStackDriverLoggingEnv == "on" || enableStackDriverLoggingEnv == "true" {
+	if enableStackDriverLoggingEnv == "yes" ||
+		enableStackDriverLoggingEnv == "on" ||
+		enableStackDriverLoggingEnv == "True" {
 		enableStackDriverLogging = true
 	}
 

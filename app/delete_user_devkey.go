@@ -16,8 +16,18 @@ func (a *App) DeleteUserDevKeyHandler() http.HandlerFunc {
 		contextLogger.Info("app: DeleteUserDevKeyHandler started")
 
 		developerKeyID := chi.URLParam(r, "id")
+		if !IsValidUUID(developerKeyID) {
+			contextLogger.Warnf("app: 400 Bad Request - path parameter must be a valid v4 uuid (got %q)",
+				developerKeyID)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameters id must be a valid v4 uuid") // 400
+			return
+		}
+
 		err := a.Service.DeleteDeveloperKey(ctx, developerKeyID)
 		if err == service.ErrDeveloperKeyNotFound {
+			contextLogger.Warnf("app: 404 Not Found - developer key id %q not found",
+				developerKeyID)
 			clientError(w, http.StatusNotFound, ErrCodeDeveloperKeyNotFound,
 				"developer key not found") // 404
 			return
