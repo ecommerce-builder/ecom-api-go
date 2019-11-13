@@ -1,5 +1,8 @@
 # CHANGELOG
 ## v0.62.3 (Wed, 13 Nov 2019)
++ Validate uuid on path parameters for HTTP DELETE /developer-keys/:id
++ Fix issue with stackdriver logging not enabling.
++ Promo rules return `promo_rule_code` attribute in JSON responses.
 
 
 ## v0.62.2 (Tue, 5 Nov 2019)
