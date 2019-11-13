@@ -16,16 +16,17 @@ var ErrOfferExists = errors.New("service: offer exists")
 
 // Offer struct
 type Offer struct {
-	Object      string    `json:"object"`
-	ID          string    `json:"id"`
-	PromoRuleID string    `json:"promo_rule_id"`
-	Created     time.Time `json:"created"`
-	Modified    time.Time `json:"modfied"`
+	Object        string    `json:"object"`
+	ID            string    `json:"id"`
+	PromoRuleID   string    `json:"promo_rule_id"`
+	PromoRuleCode string    `json:"promo_rule_code"`
+	Created       time.Time `json:"created"`
+	Modified      time.Time `json:"modfied"`
 }
 
 // ActivateOffer creates an offer from a promo rule.
 func (s *Service) ActivateOffer(ctx context.Context, promoRuleID string) (*Offer, error) {
-	prow, err := s.model.AddOffer(ctx, promoRuleID)
+	row, err := s.model.AddOffer(ctx, promoRuleID)
 	if err == postgres.ErrPromoRuleNotFound {
 		return nil, ErrPromoRuleNotFound
 	}
@@ -45,11 +46,12 @@ func (s *Service) ActivateOffer(ctx context.Context, promoRuleID string) (*Offer
 	}
 
 	offer := Offer{
-		Object:      "offer",
-		ID:          prow.UUID,
-		PromoRuleID: prow.PromoRuleUUID,
-		Created:     prow.Created,
-		Modified:    prow.Modified,
+		Object:        "offer",
+		ID:            row.UUID,
+		PromoRuleID:   row.PromoRuleUUID,
+		PromoRuleCode: row.PromoRuleCode,
+		Created:       row.Created,
+		Modified:      row.Modified,
 	}
 	return &offer, nil
 }
@@ -78,17 +80,18 @@ func (s *Service) GetOffer(ctx context.Context, offerID string) (*Offer, error) 
 func (s *Service) GetOffers(ctx context.Context) ([]*Offer, error) {
 	rows, err := s.model.GetOffers(ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: s.model.GetPriceLists(ctx) failed")
+		return nil, errors.Wrapf(err,
+			"service: s.model.GetPriceLists(ctx) failed")
 	}
-
 	offers := make([]*Offer, 0, len(rows))
 	for _, row := range rows {
 		offer := Offer{
-			Object:      "offer",
-			ID:          row.UUID,
-			PromoRuleID: row.PromoRuleUUID,
-			Created:     row.Created,
-			Modified:    row.Modified,
+			Object:        "offer",
+			ID:            row.UUID,
+			PromoRuleID:   row.PromoRuleUUID,
+			PromoRuleCode: row.PromoRuleCode,
+			Created:       row.Created,
+			Modified:      row.Modified,
 		}
 		offers = append(offers, &offer)
 	}

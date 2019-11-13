@@ -8,6 +8,46 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// CreatePriceListHandler creates a new product
+func (a *App) CreatePriceListHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: CreatePriceListHandler called")
+
+		requestBody := service.PriceListCreate{}
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&requestBody); err != nil {
+			clientError(w, http.StatusBadRequest,
+				ErrCodeBadRequest, err.Error()) // 400
+			return
+		}
+
+		valid, message := validateCreatePriceListRequest(&requestBody)
+		if !valid {
+			clientError(w, http.StatusBadRequest,
+				ErrCodeBadRequest, message) // 400
+			return
+		}
+
+		priceList, err := a.Service.CreatePriceList(ctx, &requestBody)
+		if err == service.ErrPriceListCodeExists {
+			clientError(w, http.StatusConflict,
+				ErrCodePriceListCodeExists,
+				"price list is already in use") // 409
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.CreatePriceList(ctx, &requestBody) failed: %+v", err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			return
+		}
+		w.WriteHeader(http.StatusCreated) // 201
+		json.NewEncoder(w).Encode(priceList)
+	}
+}
+
 func validateCreatePriceListRequest(requestBody *service.PriceListCreate) (bool, string) {
 	if requestBody.PriceListCode == "" {
 		return false, "price_list_code attribute is required"
@@ -30,40 +70,4 @@ func validateCreatePriceListRequest(requestBody *service.PriceListCreate) (bool,
 	}
 
 	return true, ""
-}
-
-// CreatePriceListHandler creates a new product
-func (a *App) CreatePriceListHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: CreatePriceListHandler called")
-
-		requestBody := service.PriceListCreate{}
-		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&requestBody); err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
-			return
-		}
-
-		valid, message := validateCreatePriceListRequest(&requestBody)
-		if !valid {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
-			return
-		}
-
-		priceList, err := a.Service.CreatePriceList(ctx, &requestBody)
-		if err == service.ErrPriceListCodeExists {
-			clientError(w, http.StatusConflict, ErrCodePriceListCodeExists, "price list is already in use")
-			return
-		}
-		if err != nil {
-			contextLogger.Errorf("app: a.Service.CreatePriceList(ctx, &requestBody) failed: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
-		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(priceList)
-	}
 }

@@ -1,4 +1,6 @@
 # CHANGELOG
+## v0.62.3 (Wed, 13 Nov 2019)
+
 
 ## v0.62.2 (Tue, 5 Nov 2019)
 + Fix request validation for `PATCH /address` operation `OpUpdateAddress`.

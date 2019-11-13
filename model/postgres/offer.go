@@ -31,6 +31,7 @@ type OfferJoinRow struct {
 	UUID          string
 	promoRuleID   int
 	PromoRuleUUID string
+	PromoRuleCode string
 	Created       time.Time
 	Modified      time.Time
 }
@@ -38,9 +39,10 @@ type OfferJoinRow struct {
 // AddOffer adds an offer row to the offer table.
 func (m *PgModel) AddOffer(ctx context.Context, promoRuleUUID string) (*OfferJoinRow, error) {
 	// 1. Check the promo rule exists
-	q1 := "SELECT id FROM promo_rule WHERE uuid = $1"
+	q1 := "SELECT id, promo_rule_code FROM promo_rule WHERE uuid = $1"
 	var productRuleID int
-	err := m.db.QueryRowContext(ctx, q1, promoRuleUUID).Scan(&productRuleID)
+	var promoRuleCode string
+	err := m.db.QueryRowContext(ctx, q1, promoRuleUUID).Scan(&productRuleID, &promoRuleCode)
 	if err == sql.ErrNoRows {
 		return nil, ErrPromoRuleNotFound
 	}
@@ -70,7 +72,7 @@ func (m *PgModel) AddOffer(ctx context.Context, promoRuleUUID string) (*OfferJoi
 		return nil, errors.Wrapf(err, "scan failed q3=%q", q3)
 	}
 	o.PromoRuleUUID = promoRuleUUID
-
+	o.PromoRuleCode = promoRuleCode
 	return &o, nil
 }
 
@@ -88,7 +90,7 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 	// 1. Get a list of all promo rules applied to offers.
 	q1 := `
 		SELECT
-		  r.id, r.uuid, promo_rule_code, product_id, product_set_id,
+		  r.id, r.uuid, r.promo_rule_code, product_id, product_set_id,
 		  category_id, shipping_tariff_id, name, start_at, end_at,
 		  amount, total_threshold, type, target, r.created, r.modified
 		FROM promo_rule AS r
@@ -104,7 +106,11 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 	promos := make([]*PromoRuleRow, 0, 2)
 	for rows.Next() {
 		var p PromoRuleRow
-		if err = rows.Scan(&p.id, &p.UUID, &p.PromoRuleCode, &p.productID, &p.productSetID, &p.categoryID, &p.shippingTariffID, &p.Name, &p.StartAt, &p.EndAt, &p.Amount, &p.TotalThreshold, &p.Type, &p.Target, &p.Created, &p.Modified); err != nil {
+		if err = rows.Scan(&p.id, &p.UUID, &p.PromoRuleCode,
+			&p.productID, &p.productSetID, &p.categoryID,
+			&p.shippingTariffID, &p.Name, &p.StartAt, &p.EndAt,
+			&p.Amount, &p.TotalThreshold, &p.Type, &p.Target,
+			&p.Created, &p.Modified); err != nil {
 			return errors.Wrap(err, "postgres: scan failed")
 		}
 		promos = append(promos, &p)
@@ -288,7 +294,6 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 		return errors.Wrap(err, "postgres: tx.Commit")
 	}
 	contextLogger.Debugf("postgres: db commit succeeded")
-
 	return nil
 }
 
@@ -296,7 +301,8 @@ func (m *PgModel) CalcOfferPrices(ctx context.Context) error {
 func (m *PgModel) GetOfferByUUID(ctx context.Context, offerUUID string) (*OfferJoinRow, error) {
 	q1 := `
 		SELECT
-		  o.id, o.uuid, promo_rule_id, r.uuid as promo_rule_uuid,
+		  o.id, o.uuid, promo_rule_id,
+		  r.uuid as promo_rule_uuid, r.promo_rule_code,
 		  o.created, o.modified
 		FROM offer AS o
 		INNER JOIN promo_rule AS r
@@ -305,12 +311,14 @@ func (m *PgModel) GetOfferByUUID(ctx context.Context, offerUUID string) (*OfferJ
 	`
 	o := OfferJoinRow{}
 	row := m.db.QueryRowContext(ctx, q1, offerUUID)
-	err := row.Scan(&o.id, &o.UUID, &o.promoRuleID, &o.PromoRuleUUID, &o.Created, &o.Modified)
+	err := row.Scan(&o.id, &o.UUID, &o.promoRuleID,
+		&o.PromoRuleUUID, &o.PromoRuleCode, &o.Created, &o.Modified)
 	if err == sql.ErrNoRows {
 		return nil, ErrOfferNotFound
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "query row context scan q1=%q", q1)
+		return nil, errors.Wrapf(err,
+			"query row context scan q1=%q", q1)
 	}
 	return &o, nil
 }
@@ -319,7 +327,8 @@ func (m *PgModel) GetOfferByUUID(ctx context.Context, offerUUID string) (*OfferJ
 func (m *PgModel) GetOffers(ctx context.Context) ([]*OfferJoinRow, error) {
 	q1 := `
 		SELECT
-		  o.id, o.uuid, promo_rule_id, r.uuid as promo_rule_uuid,
+		  o.id, o.uuid, promo_rule_id,
+		  r.uuid as promo_rule_uuid, r.promo_rule_code,
 		  o.created, o.modified
 		FROM offer AS o
 		INNER JOIN promo_rule AS r
@@ -327,20 +336,23 @@ func (m *PgModel) GetOffers(ctx context.Context) ([]*OfferJoinRow, error) {
 	`
 	rows, err := m.db.QueryContext(ctx, q1)
 	if err != nil {
-		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx) failed")
+		return nil, errors.Wrapf(err,
+			"postgres: m.db.QueryContext(ctx) failed")
 	}
 	defer rows.Close()
 
 	offers := make([]*OfferJoinRow, 0, 2)
 	for rows.Next() {
 		var o OfferJoinRow
-		if err = rows.Scan(&o.id, &o.UUID, &o.promoRuleID, &o.PromoRuleUUID, &o.Created, &o.Modified); err != nil {
-			return nil, errors.Wrap(err, "scan failed")
+		if err = rows.Scan(&o.id, &o.UUID, &o.promoRuleID,
+			&o.PromoRuleUUID, &o.PromoRuleCode,
+			&o.Created, &o.Modified); err != nil {
+			return nil, errors.Wrap(err, "postgres: scan failed")
 		}
 		offers = append(offers, &o)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows.Err()")
+		return nil, errors.Wrap(err, "postgres: rows.Err()")
 	}
 	return offers, nil
 }
@@ -364,6 +376,5 @@ func (m *PgModel) DeleteOfferByUUID(ctx context.Context, offerUUID string) error
 	if err != nil {
 		return errors.Wrapf(err, "postgres: exec context q2=%q", q2)
 	}
-
 	return nil
 }

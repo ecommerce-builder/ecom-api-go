@@ -24,7 +24,7 @@ info:
 
     Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
 
-  version: "v0.62.2"
+  version: "v0.62.3"
   title: Headless Ecommerce API
   contact:
     name: Andy Fusniak
@@ -3297,6 +3297,9 @@ components:
           type: string
           format: uuid
           example: 'd8f3d5d4-9143-4ec0-87fe-0753afecaa87'
+        promo_rule_code:
+          type: string
+          example: SUMMER25
         name:
           type: string
           example: 'Summer specials'
@@ -4275,7 +4278,7 @@ components:
       properties:
         api_version:
           type: string
-          example: 'v0.62.2'
+          example: 'v0.62.3'
         env:
           type: object
           properties:
@@ -4299,7 +4302,7 @@ components:
                   example: 'disable'
                 schema_version:
                   type: string
-                  example: 'v0.62.2'
+                  example: 'v0.62.3'
             google:
               type: object
               properties:

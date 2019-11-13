@@ -17,23 +17,27 @@ func (a *App) GetOfferHandler() http.HandlerFunc {
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: GetOfferHandler called")
 
-		inventoryID := chi.URLParam(r, "id")
-		if !IsValidUUID(inventoryID) {
+		offerID := chi.URLParam(r, "id")
+		if !IsValidUUID(offerID) {
+			contextLogger.Warn("400 Bad Request - path parameter id must be a valid v4 uuid")
 			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
 				"path parameter id must be a valid v4 uuid") // 400
 			return
 		}
-		inventory, err := a.Service.GetOffer(ctx, inventoryID)
-		if err == service.ErrInventoryNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeOfferNotFound, "offer not found")
+		offer, err := a.Service.GetOffer(ctx, offerID)
+		if err == service.ErrOfferNotFound {
+			contextLogger.Warnf("404 Not Found - offer %s not found", offerID)
+			clientError(w, http.StatusNotFound, ErrCodeOfferNotFound,
+				"offer not found") // 404
 			return
 		}
 		if err != nil {
-			contextLogger.Errorf("app: a.Service.GetInventory(ctx, inventoryUUID=%q) failed: %+v", inventoryID, err)
+			contextLogger.Errorf("app: a.Service.GetInventory(ctx, inventoryUUID=%q) failed: %+v",
+				offerID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
-
-		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(&inventory)
+		w.WriteHeader(http.StatusOK) // 200
+		json.NewEncoder(w).Encode(&offer)
 	}
 }
