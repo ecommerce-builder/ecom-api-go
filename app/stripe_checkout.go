@@ -20,19 +20,27 @@ func (a *App) StripeCheckoutHandler(stripeSuccessURL, stripeCancelURL string) ht
 		contextLogger := log.WithContext(ctx)
 		contextLogger.Info("app: StripeCheckoutHandler started")
 
-		id := chi.URLParam(r, "id")
-		contextLogger.Debugf("app: order id %s", id)
-		sid, err := a.Service.StripeCheckout(ctx, id, stripeSuccessURL, stripeCancelURL)
+		orderID := chi.URLParam(r, "id")
+		if !IsValidUUID(orderID) {
+			contextLogger.Warn("app: path param is not a valid v4 uuid")
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameter id must be set to a valid v4 uuid")
+			return
+		}
+
+		contextLogger.Debugf("app: order id %s", orderID)
+		sid, err := a.Service.StripeCheckout(ctx, orderID, stripeSuccessURL, stripeCancelURL)
 		if err != nil {
-			contextLogger.Errorf("app: StripeCheckout(ctx, %q) error: %v", id, err)
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			contextLogger.Errorf("app: StripeCheckout(ctx, %q) error: %v",
+				orderID, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		res := stripeCheckoutResponseBody{
 			Object:            "stripe_checkout_session",
 			CheckoutSessionID: sid,
 		}
-		w.WriteHeader(http.StatusCreated) // 201 Created
+		w.WriteHeader(http.StatusCreated) // 201
 		json.NewEncoder(w).Encode(res)
 	}
 }

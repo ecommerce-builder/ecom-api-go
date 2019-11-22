@@ -55,6 +55,7 @@ type CartProductJoinRow struct {
 	CartUUID    string
 	productID   int
 	ProductUUID string
+	Path        string
 	SKU         string
 	Name        string
 	Qty         int

@@ -17,11 +17,11 @@ var ErrAddressNotFound = errors.New("postgres: address not found")
 type NewAddress struct {
 	ContactName string
 	Addr1       string
-	Addr2       string
+	Addr2       *string
 	City        string
-	County      string
+	County      *string
 	Postcode    string
-	Country     string
+	CountryCode string
 }
 
 // AddressJoinRow contains address information for a user

@@ -20,7 +20,7 @@ func (a *App) StripeWebhookHandler(stripeSigningSecret string) http.HandlerFunc 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			contextLogger.Errorf("app: failed to read request body: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 
@@ -29,7 +29,8 @@ func (a *App) StripeWebhookHandler(stripeSigningSecret string) http.HandlerFunc 
 		event, err := webhook.ConstructEvent(body, r.Header.Get("Stripe-Signature"), stripeSigningSecret)
 		if err != nil {
 			contextLogger.Errorf("app: failed to verify webhook signature: %v", err)
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error())
 			return
 		}
 

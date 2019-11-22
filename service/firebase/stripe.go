@@ -2,7 +2,7 @@ package firebase
 
 import (
 	"context"
-	"math"
+	"fmt"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -12,23 +12,42 @@ import (
 
 // StripeCheckout generates a stripe checkout session
 func (s *Service) StripeCheckout(ctx context.Context, orderID, stripeSuccessURL, stripeCancelURL string) (string, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debugf("service: StripeCheckout(ctx, orderID=%q, stripeSuccessURL=%q, stripeCancelURL=%q)",
+		orderID, stripeSuccessURL, stripeCancelURL)
+
 	order, err := s.GetOrder(ctx, orderID)
 	if err != nil {
 		// TODO: deal with ErrOrderNotFound and ErrOrderItemsNotFound
 		return "", errors.Wrapf(err, "s.GetOrder(ctx, orderID=%s", orderID)
 	}
+	fmt.Println(order)
 
 	items := make([]*stripe.CheckoutSessionLineItemParams, 0, len(order.Items))
 
 	for _, i := range order.Items {
+
+		var vatMultiplier float64
+		if i.TaxCode == "T20" {
+			vatMultiplier = 1.2
+		} else {
+			vatMultiplier = 1.0
+		}
+		desc := fmt.Sprintf("%d x %s", i.Qty, i.Name)
+
+		stripeUnitPrice := int64((float64(i.UnitPrice) * vatMultiplier) / 100.0)
+
+		fmt.Println("stripeUnitPrice", stripeUnitPrice)
 		t := stripe.CheckoutSessionLineItemParams{
 			Name:        stripe.String(i.SKU),
-			Description: stripe.String(i.Name),
-			Amount:      stripe.Int64(int64(i.UnitPrice) + int64(math.Round(float64(i.UnitPrice)*0.2))),
+			Description: stripe.String(desc),
+			Amount:      stripe.Int64(stripeUnitPrice),
 			Currency:    stripe.String(string(stripe.CurrencyGBP)),
 			Quantity:    stripe.Int64(int64(i.Qty)),
 		}
 		items = append(items, &t)
+
+		contextLogger.Infof("service: stripe line item added - product id=%s, path=%s, sku=%s, name=%q, qty=%d, unitPrice=%v, currency=%s, discount=%d, taxCode=%s, VAT=%d", i.ID, i.Path, i.SKU, i.Name, i.Qty, i.UnitPrice, i.Currency, i.Discount, i.TaxCode, i.VAT)
 	}
 
 	paymentIntentDataParams := &stripe.CheckoutSessionPaymentIntentDataParams{}
@@ -71,7 +90,8 @@ func (s *Service) StripeProcessWebhook(ctx context.Context, session stripe.Check
 
 	err := s.model.RecordPayment(ctx, session.ClientReferenceID, session.PaymentIntent.ID, body)
 	if err != nil {
-		return errors.Wrapf(err, "s.model.RecordPayment(ctx, orderID=%s, pi=%s", session.ClientReferenceID, session.PaymentIntent.ID)
+		return errors.Wrapf(err, "s.model.RecordPayment(ctx, orderID=%s, pi=%s",
+			session.ClientReferenceID, session.PaymentIntent.ID)
 	}
 	return nil
 }
