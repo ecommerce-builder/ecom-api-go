@@ -175,6 +175,12 @@ const (
 
 	// ErrCodeOrderUserNotFound error
 	ErrCodeOrderUserNotFound string = "orders/order-user-not-found"
+
+	// ErrCodeOrderNotFound error
+	ErrCodeOrderNotFound string = "orders/order-not-found"
+
+	// ErrCodeOrderItemsNotFound error
+	ErrCodeOrderItemsNotFound string = "orders/order-items-not-found"
 )
 
 // Products
@@ -322,6 +328,7 @@ const (
 const (
 	// Orders
 	OpPlaceOrder string = "OpPlaceOrder"
+	OpGetOrder   string = "OpGetOrder"
 
 	// Prices
 	OpUpdateProductPrices string = "OpUpdateProductPrices"

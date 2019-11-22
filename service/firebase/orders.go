@@ -13,6 +13,12 @@ import (
 // empty cart.
 var ErrCartEmpty = errors.New("service: failed to place an order with empty cart")
 
+// ErrOrderNotFound error.
+var ErrOrderNotFound = errors.New("service: order not found")
+
+// ErrOrderItemsNotFound error.
+var ErrOrderItemsNotFound = errors.New("service: order items not found")
+
 // NewOrderAddressRequest contains the new address request body
 type NewOrderAddressRequest struct {
 	ContactName *string `json:"contact_name"`
@@ -53,9 +59,9 @@ type OrderItem struct {
 
 // OrderUser contains details of the guest or user that placed the order.
 type OrderUser struct {
-	ID          string `json:"id,omitempty"`
-	ContactName string `json:"contact_name,omitempty"`
-	Email       string `json:"email,omitempty"`
+	ID          *string `json:"id,omitempty"`
+	ContactName *string `json:"contact_name,omitempty"`
+	Email       *string `json:"email,omitempty"`
 }
 
 // Order contains details of an previous order.
@@ -141,7 +147,10 @@ func (s *Service) PlaceGuestOrder(ctx context.Context, cartID, contactName,
 		OrderID: orow.ID,
 		Status:  orow.Status,
 		Payment: orow.Payment,
-		User:    nil,
+		User: &OrderUser{
+			ContactName: orow.ContactName,
+			Email:       orow.Email,
+		},
 		Billing: &OrderAddress{
 			ContactName: bill.ContactName,
 			Addr1:       bill.Addr1,
@@ -218,7 +227,7 @@ func (s *Service) PlaceOrder(ctx context.Context, cartID, userID, billingID, shi
 		Status:  orow.Status,
 		Payment: orow.Payment,
 		User: &OrderUser{
-			ID: urow.UUID,
+			ID: &urow.UUID,
 		},
 		Billing: &OrderAddress{
 			ContactName: bill.ContactName,
@@ -255,37 +264,47 @@ func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) 
 	contextLogger.Debugf("service: GetOrder(ctx, orderID=%q", orderID)
 
 	orow, oirows, bill, ship, err := s.model.GetOrderDetailsByUUID(ctx, orderID)
-	if err == postgres.ErrOrderNotFound || err == postgres.ErrOrderItemsNotFound {
-		return nil, errors.Wrapf(err, "s.model.GetOrderDetailsByUUID(ctx, orderID=%s)", orderID)
+	if err == postgres.ErrOrderNotFound {
+		return nil, ErrOrderNotFound
+	}
+	if err == postgres.ErrOrderItemsNotFound {
+		return nil, ErrOrderItemsNotFound
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "GetOrderDetailsByUUID failed")
+		return nil, errors.Wrapf(err,
+			"service: s.model.GetOrderDetailsByUUID(ctx, orderUUDID=%q)",
+			orderID)
 	}
 
 	orderItems := make([]*OrderItem, 0, 8)
-	for _, v := range oirows {
+	for _, row := range oirows {
 		oi := OrderItem{
-			ID:        v.UUID,
-			Path:      v.Path,
-			SKU:       v.SKU,
-			Name:      v.Name,
-			Qty:       v.Qty,
-			UnitPrice: v.UnitPrice,
-			Currency:  v.Currency,
-			Discount:  v.Discount,
-			TaxCode:   v.TaxCode,
-			VAT:       v.VAT,
-			Created:   nil,
+			Object:    "order_item",
+			ID:        row.UUID,
+			Path:      row.Path,
+			SKU:       row.SKU,
+			Name:      row.Name,
+			Qty:       row.Qty,
+			UnitPrice: row.UnitPrice,
+			Currency:  row.Currency,
+			Discount:  row.Discount,
+			TaxCode:   row.TaxCode,
+			VAT:       row.VAT,
+			Created:   &row.Created,
 		}
 		orderItems = append(orderItems, &oi)
 	}
 	order := Order{
-		ID:       orow.UUID,
-		OrderID:  orow.ID,
-		Status:   orow.Status,
-		Payment:  orow.Payment,
-		Currency: orow.Currency,
-		//User: user,
+		Object:  "order",
+		ID:      orow.UUID,
+		OrderID: orow.ID,
+		Status:  orow.Status,
+		Payment: orow.Payment,
+		User: &OrderUser{
+			ID:          orow.UsrUUID,
+			ContactName: orow.ContactName,
+			Email:       orow.Email,
+		},
 		Billing: &OrderAddress{
 			ContactName: bill.ContactName,
 			Addr1:       bill.Addr1,
@@ -304,8 +323,13 @@ func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) 
 			Postcode:    ship.Postcode,
 			Country:     ship.CountryCode,
 		},
-		Items:   orderItems,
-		Created: orow.Created,
+		Currency:    orow.Currency,
+		TotalExVAT:  orow.TotalExVAT,
+		VATTotal:    orow.VATTotal,
+		TotalIncVAT: orow.TotalIncVAT,
+		Items:       orderItems,
+		Created:     orow.Created,
+		Modified:    orow.Modified,
 	}
 
 	return &order, nil

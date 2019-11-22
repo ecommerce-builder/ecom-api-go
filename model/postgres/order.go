@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"math"
 	"time"
 
@@ -16,7 +17,7 @@ var ErrOrderNotFound = errors.New("postgres: order not found")
 
 // ErrOrderItemsNotFound is returned by when the order item
 // associated to an order could not be found in the database.
-var ErrOrderItemsNotFound = errors.New("postgres: order item not found")
+var ErrOrderItemsNotFound = errors.New("postgres: order items not found")
 
 // ErrCartEmpty error
 var ErrCartEmpty = errors.New("postgres: cart not found")
@@ -76,6 +77,7 @@ type OrderRow struct {
 	ID          int
 	UUID        string
 	usrID       *int
+	UsrUUID     *string
 	Status      string
 	Payment     string
 	ContactName *string
@@ -199,6 +201,8 @@ func (m *PgModel) AddGuestOrder(ctx context.Context, cartUUID, contactName, emai
 	}
 	contextLogger.Infof("postgres: q2 returned %d products in this cart", len(cartProducts))
 
+	fmt.Printf("%#v\n", cartProducts[0])
+
 	// 3. Insert the billing and shipping addresses.
 	q3 := `
 		INSERT INTO order_address (
@@ -292,9 +296,12 @@ func (m *PgModel) AddGuestOrder(ctx context.Context, cartUUID, contactName, emai
 		  order_id, path, sku, name,
 		  qty, unit_price, discount, tax_code, vat, created
 		) VALUES (
-		  $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
+		  $1, $2, $3, $4,
+		  $5, $6, $7, $8, $9, NOW()
 		) RETURNING
-		  id, uuid, order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat, created
+		  id, uuid, order_id, path, sku, name,
+		  qty, unit_price, currency, discount,
+		  tax_code, vat, created
 	`
 	stmt, err := tx.PrepareContext(ctx, q5)
 	if err != nil {
@@ -305,12 +312,12 @@ func (m *PgModel) AddGuestOrder(ctx context.Context, cartUUID, contactName, emai
 	defer stmt.Close()
 
 	orderItems := make([]*OrderItemRow, 0, len(cartProducts))
-	for _, t := range cartProducts {
+	for _, row := range cartProducts {
 		oi := OrderItemRow{}
-		row := stmt.QueryRowContext(ctx, o.ID, t.Path, t.SKU, t.Name,
-			t.Qty, t.UnitPrice, nil, "T20",
-			vat20Normalised(t.Qty*t.UnitPrice))
-		err := row.Scan(&oi.id, &oi.UUID, &oi.orderID, &oi.SKU,
+		row := stmt.QueryRowContext(ctx, o.ID, row.Path, row.SKU, row.Name,
+			row.Qty, row.UnitPrice, nil, "T20",
+			vat20Normalised(row.Qty*row.UnitPrice))
+		err := row.Scan(&oi.id, &oi.UUID, &oi.orderID, &oi.Path, &oi.SKU,
 			&oi.Name, &oi.Qty, &oi.UnitPrice, &oi.Currency,
 			&oi.Discount, &oi.TaxCode, &oi.VAT, &oi.Created)
 		if err != nil {
@@ -617,16 +624,19 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 	// 1. Get the main order details.
 	q1 := `
 		SELECT
-		  id, uuid,
-		  usr_id, status, payment, contact_name, email, stripe_pi,
+		  o.id, o.uuid,
+		  usr_id, u.uuid as usr_uuid, status, payment,
+		  contact_name, o.email, stripe_pi,
 		  billing_id, shipping_id, currency, total_ex_vat, vat_total,
-		  total_inc_vat, created, modified
-		FROM "order"
-		WHERE uuid = $1
+		  total_inc_vat, o.created, o.modified
+		FROM "order" AS o
+		LEFT JOIN usr AS u
+		  ON o.usr_id = u.id
+		WHERE o.uuid = $1
 	`
 	o := OrderRow{}
 	err = tx.QueryRowContext(ctx, q1, orderUUID).Scan(&o.ID, &o.UUID,
-		&o.usrID, &o.Status, &o.Payment, &o.ContactName, &o.Email, &o.StripePI,
+		&o.usrID, &o.UsrUUID, &o.Status, &o.Payment, &o.ContactName, &o.Email, &o.StripePI,
 		&o.billingID, &o.shippingID, &o.Currency, &o.TotalExVAT, &o.VATTotal,
 		&o.TotalIncVAT, &o.Created, &o.Modified)
 	if err == sql.ErrNoRows {
@@ -644,7 +654,9 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 	// 2. Get the order product items.
 	q2 := `
 		SELECT
-		  id, uuid, order_id, sku, name, qty, unit_price, currency, discount, tax_code, vat, created
+		  id, uuid, order_id, path, sku, name,
+		  qty, unit_price, currency, discount,
+		  tax_code, vat, created
 		FROM order_item
 		WHERE order_id = $1
 	`
@@ -663,8 +675,12 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 	orderProducts := make([]*OrderItemRow, 0, 16)
 	for rows.Next() {
 		i := OrderItemRow{}
-		if err = rows.Scan(&i.id, &i.UUID, &i.orderID, &i.SKU, &i.Name, &i.Qty, &i.UnitPrice, &i.Currency, &i.Discount, &i.TaxCode, &i.VAT, &i.Created); err != nil {
-			return nil, nil, nil, nil, errors.Wrapf(err, "postgres: scan order item %v", i)
+		err = rows.Scan(&i.id, &i.UUID, &i.orderID, &i.Path, &i.SKU,
+			&i.Name, &i.Qty, &i.UnitPrice, &i.Currency,
+			&i.Discount, &i.TaxCode, &i.VAT, &i.Created)
+		if err != nil {
+			return nil, nil, nil, nil,
+				errors.Wrapf(err, "postgres: scan order item %v", i)
 		}
 		orderProducts = append(orderProducts, &i)
 	}
@@ -691,7 +707,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 	defer stmt3.Close()
 
 	var bv OrderAddressRow
-	err = stmt3.QueryRowContext(ctx, o.shippingID).Scan(&bv.id, &bv.UUID,
+	err = stmt3.QueryRowContext(ctx, o.billingID).Scan(&bv.id, &bv.UUID,
 		&bv.Typ, &bv.ContactName, &bv.Addr1, &bv.Addr2, &bv.City,
 		&bv.County, &bv.Postcode, &bv.CountryCode,
 		&bv.Created, &bv.Modified)

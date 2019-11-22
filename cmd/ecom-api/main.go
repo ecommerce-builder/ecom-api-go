@@ -841,6 +841,7 @@ func main() {
 		// Orders
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpPlaceOrder, a.PlaceOrderHandler()))
+			r.Get("/{id}", a.Authorization(app.OpGetOrder, a.GetOrderHandler()))
 			r.Post("/{id}/stripecheckout", a.Authorization(app.OpStripeCheckout, a.StripeCheckoutHandler(stripeSuccessURL, stripeCancelURL)))
 		})
 
