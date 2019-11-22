@@ -73,7 +73,7 @@ type NewOrderAddress struct {
 
 // OrderRow holds a single row of data from the orders table.
 type OrderRow struct {
-	id          int
+	ID          int
 	UUID        string
 	usrID       *int
 	Status      string
@@ -276,7 +276,7 @@ func (m *PgModel) AddGuestOrder(ctx context.Context, cartUUID, contactName, emai
 	row = tx.QueryRowContext(ctx, q4, contactName, email,
 		bv.id, sv.id, currency, totalExVAT,
 		totalVAT, totalIncVAT)
-	err = row.Scan(&o.id, &o.UUID, &o.usrID, &o.Status, &o.Payment,
+	err = row.Scan(&o.ID, &o.UUID, &o.usrID, &o.Status, &o.Payment,
 		&o.ContactName, &o.Email, &o.StripePI, &o.billingID,
 		&o.shippingID, &o.Currency, &o.TotalExVAT, &o.VATTotal,
 		&o.TotalIncVAT, &o.Created, &o.Modified)
@@ -307,7 +307,7 @@ func (m *PgModel) AddGuestOrder(ctx context.Context, cartUUID, contactName, emai
 	orderItems := make([]*OrderItemRow, 0, len(cartProducts))
 	for _, t := range cartProducts {
 		oi := OrderItemRow{}
-		row := stmt.QueryRowContext(ctx, o.id, t.Path, t.SKU, t.Name,
+		row := stmt.QueryRowContext(ctx, o.ID, t.Path, t.SKU, t.Name,
 			t.Qty, t.UnitPrice, nil, "T20",
 			vat20Normalised(t.Qty*t.UnitPrice))
 		err := row.Scan(&oi.id, &oi.UUID, &oi.orderID, &oi.SKU,
@@ -357,12 +357,13 @@ func (m *PgModel) AddOrder(ctx context.Context, cartUUID, userUUID, billingUUID,
 		return nil, nil, nil, nil, nil, errors.Wrapf(err,
 			"postgres: query row context failed for q1=%q", q1)
 	}
+	contextLogger.Debugf("postgres: q1 returned cart id of %d", cartID)
 
 	// 2. Get a list all all products in the cart with their price.
 	q2 := `
 		SELECT
-		  c.id, c.uuid, p.name, qty,
-		  r.unit_price,
+		  c.id, c.uuid, p.path, p.name, p.sku,
+		  qty, r.unit_price,
 		  c.created, c.modified
 		FROM cart_product AS c
 		JOIN product AS p
@@ -382,10 +383,11 @@ func (m *PgModel) AddOrder(ctx context.Context, cartUUID, userUUID, billingUUID,
 	cartProducts := make([]*CartProductJoinRow, 0, 20)
 	for rows.Next() {
 		c := CartProductJoinRow{}
-		if err = rows.Scan(&c.id, &c.UUID, &c.Name, &c.Qty,
-			&c.UnitPrice, &c.Created, &c.Modified); err != nil {
+		err = rows.Scan(&c.id, &c.UUID, &c.Path, &c.Name, &c.SKU,
+			&c.Qty, &c.UnitPrice, &c.Created, &c.Modified)
+		if err != nil {
 			return nil, nil, nil, nil, nil,
-				errors.Wrapf(err, "postgres: scan cart item %v", c)
+				errors.Wrapf(err, "postgres: scan %v", c)
 		}
 		cartProducts = append(cartProducts, &c)
 	}
@@ -543,7 +545,7 @@ func (m *PgModel) AddOrder(ctx context.Context, cartUUID, userUUID, billingUUID,
 
 	row = tx.QueryRowContext(ctx, q6, c.id,
 		bv.id, sv.id, currency, totalExVAT, totalVAT, totalIncVAT)
-	err = row.Scan(&o.id, &o.UUID, &o.usrID, &o.Status, &o.Payment,
+	err = row.Scan(&o.ID, &o.UUID, &o.usrID, &o.Status, &o.Payment,
 		&o.ContactName, &o.Email, &o.StripePI,
 		&o.billingID, &o.shippingID, &o.Currency,
 		&o.TotalExVAT, &o.VATTotal,
@@ -577,7 +579,7 @@ func (m *PgModel) AddOrder(ctx context.Context, cartUUID, userUUID, billingUUID,
 	orderItems := make([]*OrderItemRow, 0, len(cartProducts))
 	for _, t := range cartProducts {
 		oi := OrderItemRow{}
-		row := stmt7.QueryRowContext(ctx, o.id,
+		row := stmt7.QueryRowContext(ctx, o.ID,
 			t.Path, t.SKU, t.Name,
 			t.Qty, t.UnitPrice, nil,
 			"T20", vat20Normalised(t.Qty*t.UnitPrice))
@@ -623,7 +625,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 		WHERE uuid = $1
 	`
 	o := OrderRow{}
-	err = tx.QueryRowContext(ctx, q1, orderUUID).Scan(&o.id, &o.UUID,
+	err = tx.QueryRowContext(ctx, q1, orderUUID).Scan(&o.ID, &o.UUID,
 		&o.usrID, &o.Status, &o.Payment, &o.ContactName, &o.Email, &o.StripePI,
 		&o.billingID, &o.shippingID, &o.Currency, &o.TotalExVAT, &o.VATTotal,
 		&o.TotalIncVAT, &o.Created, &o.Modified)
@@ -637,7 +639,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 			"postgres: query row context q1=%q", q1)
 	}
 	contextLogger.Debugf("postgres: q1 retrieved orderID=%d orderUUID=%q",
-		o.id, orderUUID)
+		o.ID, orderUUID)
 
 	// 2. Get the order product items.
 	q2 := `
@@ -646,7 +648,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 		FROM order_item
 		WHERE order_id = $1
 	`
-	rows, err := tx.QueryContext(ctx, q2, o.id)
+	rows, err := tx.QueryContext(ctx, q2, o.ID)
 	if err == sql.ErrNoRows {
 		tx.Rollback()
 		return nil, nil, nil, nil, ErrOrderItemsNotFound
@@ -654,7 +656,7 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, nil, nil, errors.Wrapf(err,
-			"postgres: tx.QueryContext(ctx, q2=%q, order_id=%d) failed", q2, o.id)
+			"postgres: tx.QueryContext(ctx, q2=%q, order_id=%d) failed", q2, o.ID)
 	}
 	defer rows.Close()
 

@@ -62,11 +62,12 @@ type OrderUser struct {
 type Order struct {
 	Object      string        `json:"object"`
 	ID          string        `json:"id"`
+	OrderID     int           `json:"order_id"`
 	Status      string        `json:"status"`
 	Payment     string        `json:"payment"`
 	User        *OrderUser    `json:"user"`
-	Billing     *OrderAddress `json:"billing_addr"`
-	Shipping    *OrderAddress `json:"shipping_addr"`
+	Billing     *OrderAddress `json:"billing_address"`
+	Shipping    *OrderAddress `json:"shipping_address"`
 	Currency    string        `json:"currency"`
 	TotalExVAT  int           `json:"total_ex_vat"`
 	VATTotal    int           `json:"vat_total"`
@@ -137,6 +138,7 @@ func (s *Service) PlaceGuestOrder(ctx context.Context, cartID, contactName,
 	order := Order{
 		Object:  "order",
 		ID:      orow.UUID,
+		OrderID: orow.ID,
 		Status:  orow.Status,
 		Payment: orow.Payment,
 		User:    nil,
@@ -191,19 +193,20 @@ func (s *Service) PlaceOrder(ctx context.Context, cartID, userID, billingID, shi
 	}
 
 	orderItems := make([]*OrderItem, 0, len(oirows))
-	for _, oir := range oirows {
+	for _, row := range oirows {
 		oi := OrderItem{
 			Object:    "order_item",
-			ID:        oir.UUID,
-			SKU:       oir.SKU,
-			Name:      oir.Name,
-			Qty:       oir.Qty,
-			UnitPrice: oir.UnitPrice,
-			Currency:  oir.Currency,
-			Discount:  oir.Discount,
-			TaxCode:   oir.TaxCode,
-			VAT:       oir.VAT,
-			Created:   &oir.Created,
+			ID:        row.UUID,
+			Path:      row.Path,
+			SKU:       row.SKU,
+			Name:      row.Name,
+			Qty:       row.Qty,
+			UnitPrice: row.UnitPrice,
+			Currency:  row.Currency,
+			Discount:  row.Discount,
+			TaxCode:   row.TaxCode,
+			VAT:       row.VAT,
+			Created:   &row.Created,
 		}
 		orderItems = append(orderItems, &oi)
 	}
@@ -211,6 +214,7 @@ func (s *Service) PlaceOrder(ctx context.Context, cartID, userID, billingID, shi
 	order := Order{
 		Object:  "order",
 		ID:      orow.UUID,
+		OrderID: orow.ID,
 		Status:  orow.Status,
 		Payment: orow.Payment,
 		User: &OrderUser{
@@ -277,6 +281,7 @@ func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) 
 	}
 	order := Order{
 		ID:       orow.UUID,
+		OrderID:  orow.ID,
 		Status:   orow.Status,
 		Payment:  orow.Payment,
 		Currency: orow.Currency,
