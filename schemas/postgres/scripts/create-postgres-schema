@@ -26,6 +26,7 @@ cat $schemadir/offer.sql | psql --no-psqlrc > /dev/null
 cat $schemadir/usr.sql | psql --no-psqlrc > /dev/null
 cat $schemadir/usr_devkey.sql | psql --no-psqlrc > /dev/null
 cat $schemadir/address.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/order_address.sql | psql --no-psqlrc > /dev/null 
 cat $schemadir/order.sql | psql --no-psqlrc > /dev/null
 cat $schemadir/order_item.sql | psql --no-psqlrc > /dev/null
 cat $schemadir/payment.sql | psql --no-psqlrc > /dev/null
