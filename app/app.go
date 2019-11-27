@@ -170,6 +170,10 @@ const (
 
 // Orders
 const (
+	OpPlaceOrder string = "OpPlaceOrder"
+	OpGetOrder   string = "OpGetOrder"
+	OpListOrders string = "OpListOrders"
+
 	// ErrCodeOrderCartEmpty error
 	ErrCodeOrderCartEmpty string = "orders/order-cart-empty"
 
@@ -326,10 +330,6 @@ const (
 
 // Cart operation sentinel values.
 const (
-	// Orders
-	OpPlaceOrder string = "OpPlaceOrder"
-	OpGetOrder   string = "OpGetOrder"
-
 	// Prices
 	OpUpdateProductPrices string = "OpUpdateProductPrices"
 	OpGetProductPrices    string = "OpGetProductPrices"

@@ -736,6 +736,43 @@ func (m *PgModel) GetOrderDetailsByUUID(ctx context.Context, orderUUID string) (
 	return &o, orderProducts, &bv, &sv, nil
 }
 
+func (m *PgModel) GetOrders(ctx context.Context) ([]*OrderRow, error) {
+	q1 := `
+		SELECT
+		  id, uuid, usr_id, status, payment,
+		  contact_name, email, stripe_pi,
+		  billing_id, shipping_id, currency,
+		  total_ex_vat, vat_total, total_inc_vat,
+		  created, modified
+		FROM "order"
+		ORDER BY id DESC
+	`
+	rows, err := m.db.QueryContext(ctx, q1)
+	if err != nil {
+		return nil, errors.Wrapf(err, "m.db.QueryContext(ctx)")
+	}
+	defer rows.Close()
+
+	orders := make([]*OrderRow, 0, 32)
+	for rows.Next() {
+		var o OrderRow
+		err = rows.Scan(&o.ID, &o.UUID, &o.usrID, &o.Status,
+			&o.Payment, &o.ContactName, &o.Email,
+			&o.StripePI, &o.billingID, &o.shippingID,
+			&o.Currency, &o.TotalExVAT, &o.VATTotal,
+			&o.TotalIncVAT, &o.Created, &o.Modified)
+		if err != nil {
+			return nil, errors.Wrap(err, "scan failed")
+		}
+		orders = append(orders, &o)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows.Err()")
+	}
+
+	return orders, nil
+}
+
 // SetStripePaymentIntent sets payment intent id reference on an
 // existing order and updates the modified timestamp.
 func (m *PgModel) SetStripePaymentIntent(ctx context.Context, orderID, pi string) error {

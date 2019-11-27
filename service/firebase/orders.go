@@ -258,6 +258,37 @@ func (s *Service) PlaceOrder(ctx context.Context, cartID, userID, billingID, shi
 	return &order, nil
 }
 
+// GetOrders returns a list of order summaries.
+func (s *Service) GetOrders(ctx context.Context) ([]*Order, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Debug("service: GetOrders(ctx)")
+
+	rows, err := s.model.GetOrders(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "service: s.model.GetOrders(ctx)")
+	}
+	contextLogger.Debugf("service: s.model.GetOrders(ctx) returned %d rows", len(rows))
+
+	orders := make([]*Order, 0, len(rows))
+	for _, row := range rows {
+		o := Order{
+			Object:      "order",
+			ID:          row.UUID,
+			OrderID:     row.ID,
+			Status:      row.Status,
+			Payment:     row.Payment,
+			Currency:    row.Currency,
+			TotalExVAT:  row.TotalExVAT,
+			VATTotal:    row.VATTotal,
+			TotalIncVAT: row.TotalIncVAT,
+			Created:     row.Created,
+			Modified:    row.Modified,
+		}
+		orders = append(orders, &o)
+	}
+	return orders, nil
+}
+
 // GetOrder returns an order by order ID or nil if an error occurred.
 func (s *Service) GetOrder(ctx context.Context, orderID string) (*Order, error) {
 	contextLogger := log.WithContext(ctx)

@@ -31,7 +31,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
-	"github.com/stripe/stripe-go"
+	stripe "github.com/stripe/stripe-go"
 
 	log "github.com/sirupsen/logrus"
 
@@ -842,6 +842,7 @@ func main() {
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/", a.Authorization(app.OpPlaceOrder, a.PlaceOrderHandler()))
 			r.Get("/{id}", a.Authorization(app.OpGetOrder, a.GetOrderHandler()))
+			r.Get("/", a.Authorization(app.OpListOrders, a.ListOrdersHandler()))
 			r.Post("/{id}/stripecheckout", a.Authorization(app.OpStripeCheckout, a.StripeCheckoutHandler(stripeSuccessURL, stripeCancelURL)))
 		})
 

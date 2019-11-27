@@ -84,7 +84,7 @@ func (a *App) Authorization(op string, next http.HandlerFunc) http.HandlerFunc {
 			OpCreateProductToProductAssocGroup,
 			OpDeleteProductToProductAssocGroup, OpDeleteProductToProductAssoc,
 			OpBatchUpdateProductToProductAssocs, OpCreateWebhook, OpGetWebhook, OpListWebhooks,
-			OpUpdateWebhook, OpDeleteWebhook, OpGetOrder:
+			OpUpdateWebhook, OpDeleteWebhook, OpGetOrder, OpListOrders:
 			if role == RoleAdmin {
 				next.ServeHTTP(w, r.WithContext(ctx2))
 				return
