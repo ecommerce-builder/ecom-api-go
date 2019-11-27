@@ -6,138 +6,225 @@ import (
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
-// ImageEntry contains the product image data.
-type ImageEntry struct {
+// ErrProductNotFound is returned by GetProduct when the query
+// for the product could not be found in the database.
+var ErrProductNotFound = errors.New("service: product not found")
+
+// ErrProductPathExists error
+var ErrProductPathExists = errors.New("service: product path exists")
+
+// ErrProductSKUExists error
+var ErrProductSKUExists = errors.New("service: product sku exists")
+
+// ProductImageRequestBody contains the product image data.
+type ProductImageRequestBody struct {
 	Path  string `json:"path"`
 	Title string `json:"title"`
 }
 
-// ProductContent contains the variable JSON data of the product
-type ProductContent struct {
-	Meta struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-	} `json:"meta"`
-	Videos        []string `json:"videos"`
-	Manuals       []string `json:"manuals"`
-	Software      []string `json:"software"`
-	Description   string   `json:"description"`
-	Specification string   `json:"specification"`
-	InTheBox      string   `json:"in_the_box"`
+// ProductPricingRequestBody represents a product pricing entry to be added to updated.
+type ProductPricingRequestBody struct {
+	PriceListID string `json:"price_list_id"`
+	UnitPrice   int    `json:"unit_price"`
 }
 
-// ProductCreate contains fields required for creating a product.
-type ProductCreate struct {
-	EAN     string            `json:"ean"`
-	Path    string            `json:"path"`
-	Name    string            `json:"name"`
-	Images  []*ImageEntry     `json:"images"`
-	Pricing []*ProductPricing `json:"pricing"`
-	Content ProductContent    `json:"content"`
+// ProductCreateRequestBody contains fields required for creating a product.
+type ProductCreateRequestBody struct {
+	Path string `json:"path"`
+	SKU  string `json:"sku"`
+	Name string `json:"name"`
+}
+
+// ProductUpdateRequestBody contains fields required for updating a product.
+type ProductUpdateRequestBody struct {
+	Path string `json:"path"`
+	SKU  string `json:"sku"`
+	Name string `json:"name"`
+}
+
+type imageListContainer struct {
+	Object string   `json:"object"`
+	Data   []*Image `json:"data"`
+}
+
+type priceListContainer struct {
+	Object string   `json:"object"`
+	Data   []*Price `json:"data"`
 }
 
 // Product contains all the fields that comprise a product in the catalog.
 type Product struct {
-	SKU      string                    `json:"sku"`
-	EAN      string                    `json:"ean"`
-	Path     string                    `json:"path"`
-	Name     string                    `json:"name"`
-	Images   []*Image                  `json:"images"`
-	Pricing  map[TierRef]*PricingEntry `json:"pricing"`
-	Content  ProductContent            `json:"content"`
-	Created  time.Time                 `json:"created,omitempty"`
-	Modified time.Time                 `json:"modified,omitempty"`
+	Object   string              `json:"object"`
+	ID       string              `json:"id"`
+	Path     string              `json:"path"`
+	SKU      string              `json:"sku"`
+	Name     string              `json:"name"`
+	Images   *imageListContainer `json:"images,omitempty"`
+	Prices   *priceListContainer `json:"prices,omitempty"`
+	Created  time.Time           `json:"created"`
+	Modified time.Time           `json:"modified"`
 }
 
-// ReplaceProduct create a new product if the product SKU does not
-// already exist, or updates it if it does.
-func (s *Service) ReplaceProduct(ctx context.Context, sku string, pc *ProductCreate) (*Product, error) {
-	imagesReq := make([]*postgres.CreateImage, 0, 4)
-	for _, i := range pc.Images {
-		img := postgres.CreateImage{
-			SKU:   sku,
-			W:     999999,
-			H:     999999,
-			Path:  i.Path,
-			Typ:   "image/jpeg",
-			Ori:   true,
-			Pri:   10,
-			Size:  0,
-			Q:     100,
-			GSURL: "gs://" + i.Path,
-		}
-		imagesReq = append(imagesReq, &img)
+// ProductList is a container for a list of product_slim objects.
+type ProductList struct {
+	Object string     `json:"object"`
+	Data   []*Product `json:"data"`
+}
+
+// CreateProduct update and existing product by ID.
+func (s *Service) CreateProduct(ctx context.Context, userID string, pc *ProductCreateRequestBody) (*Product, error) {
+	// imagesReq := make([]*postgres.CreateImage, 0, 4)
+	// for _, i := range pc.Images {
+	// 	img := postgres.CreateImage{
+	// 		W:     999999,
+	// 		H:     999999,
+	// 		Path:  i.Path,
+	// 		Typ:   "image/jpeg",
+	// 		Ori:   true,
+	// 		Pri:   10,
+	// 		Size:  0,
+	// 		Q:     100,
+	// 		GSURL: "gs://" + i.Path,
+	// 	}
+	// 	imagesReq = append(imagesReq, &img)
+	// }
+	// pricingReq := make([]*postgres.PriceEntry, 0, 4)
+	// for _, r := range pc.Pricing {
+	// 	item := postgres.PriceEntry{
+	// 		PriceListUUID: string(r.PriceListID),
+	// 		UnitPrice:     r.UnitPrice,
+	// 	}
+	// 	pricingReq = append(pricingReq, &item)
+	// }
+	p, err := s.model.CreateProduct(ctx, userID, pc.Path, pc.SKU, pc.Name)
+	if err == postgres.ErrPriceListNotFound {
+		return nil, ErrPriceListNotFound
 	}
-	pricingReq := make([]*postgres.ProductPricingEntry, 0, 4)
-	for _, r := range pc.Pricing {
-		item := postgres.ProductPricingEntry{
-			TierRef:   string(r.TierRef),
-			UnitPrice: r.UnitPrice,
-		}
-		pricingReq = append(pricingReq, &item)
+	if err == postgres.ErrProductPathExists {
+		return nil, ErrProductPathExists
 	}
-	update := &postgres.ProductCreateUpdate{
-		EAN:     pc.EAN,
-		Path:    pc.Path,
-		Name:    pc.Name,
-		Images:  imagesReq,
-		Pricing: pricingReq,
-		Content: postgres.ProductContent{
-			Meta:          pc.Content.Meta,
-			Videos:        pc.Content.Videos,
-			Manuals:       pc.Content.Manuals,
-			Software:      pc.Content.Software,
-			Description:   pc.Content.Description,
-			Specification: pc.Content.Specification,
-			InTheBox:      pc.Content.InTheBox,
-		},
+	if err == postgres.ErrProductSKUExists {
+		return nil, ErrProductSKUExists
 	}
-	p, err := s.model.UpdateProduct(ctx, sku, update)
 	if err != nil {
-		return nil, errors.Wrapf(err, "UpdateProduct(ctx, sku=%q, ...) failed", sku)
+		return nil, errors.Wrap(err, "CreateProduct(ctx) failed")
 	}
-	images := make([]*Image, 0, 4)
-	for _, i := range p.Images {
-		img := Image{
-			UUID:     i.UUID,
-			SKU:      i.SKU,
-			Path:     i.Path,
-			GSURL:    i.GSURL,
-			Width:    i.W,
-			Height:   i.H,
-			Size:     i.Size,
-			Created:  i.Created,
-			Modified: i.Modified,
-		}
-		images = append(images, &img)
-	}
-	pricing := make(map[TierRef]*PricingEntry)
-	for _, pr := range p.Pricing {
-		price := PricingEntry{
-			UnitPrice: pr.UnitPrice,
-			Created:   pr.Created,
-			Modified:  pr.Modified,
-		}
-		pricing[TierRef(pr.TierRef)] = &price
-	}
+	// images := make([]*Image, 0, 4)
+	// for _, i := range p.Images {
+	// 	img := Image{
+	// 		Object:    "image",
+	// 		ID:        i.UUID,
+	// 		ProductID: i.ProductUUID,
+	// 		Path:      i.Path,
+	// 		GSURL:     i.GSURL,
+	// 		Width:     i.W,
+	// 		Height:    i.H,
+	// 		Size:      i.Size,
+	// 		Created:   i.Created,
+	// 		Modified:  i.Modified,
+	// 	}
+	// 	images = append(images, &img)
+	// }
+	// prices := make(map[PriceListID]*Price)
+	// for _, pr := range p.Prices {
+	// 	price := Price{
+	// 		UnitPrice: pr.UnitPrice,
+	// 		Created:   pr.Created,
+	// 		Modified:  pr.Modified,
+	// 	}
+	// 	prices[PriceListID(pr.UUID)] = &price
+	// }
 	return &Product{
-		SKU:     p.SKU,
-		EAN:     p.EAN,
-		Path:    p.Path,
-		Name:    p.Name,
-		Images:  images,
-		Pricing: pricing,
-		Content: ProductContent{
-			Meta:          pc.Content.Meta,
-			Videos:        pc.Content.Videos,
-			Manuals:       pc.Content.Manuals,
-			Software:      pc.Content.Software,
-			Description:   pc.Content.Description,
-			Specification: pc.Content.Specification,
-			InTheBox:      pc.Content.InTheBox,
+		Object: "product",
+		ID:     p.UUID,
+		Path:   p.Path,
+		SKU:    p.SKU,
+		Name:   p.Name,
+		Images: &imageListContainer{
+			Object: "list",
+			Data:   make([]*Image, 0),
 		},
+		Created:  p.Created,
+		Modified: p.Modified,
+	}, nil
+}
+
+// UpdateProduct updates an existing product by ID.
+func (s *Service) UpdateProduct(ctx context.Context, productID string, pu *ProductUpdateRequestBody) (*Product, error) {
+	// imagesReq := make([]*postgres.CreateImage, 0, 4)
+	// for _, i := range pu.Images {
+	// 	img := postgres.CreateImage{
+	// 		W:     999999,
+	// 		H:     999999,
+	// 		Path:  i.Path,
+	// 		Typ:   "image/jpeg",
+	// 		Ori:   true,
+	// 		Pri:   10,
+	// 		Size:  0,
+	// 		Q:     100,
+	// 		GSURL: "gs://" + i.Path,
+	// 	}
+	// 	imagesReq = append(imagesReq, &img)
+	// }
+	// pricingReq := make([]*postgres.PriceEntry, 0, 4)
+	// for _, r := range pu.Pricing {
+	// 	item := postgres.PriceEntry{
+	// 		PriceListUUID: string(r.PriceListID),
+	// 		UnitPrice:     r.UnitPrice,
+	// 	}
+	// 	pricingReq = append(pricingReq, &item)
+	// }
+	update := &postgres.ProductUpdate{
+		Path: pu.Path,
+		SKU:  pu.SKU,
+		Name: pu.Name,
+	}
+	p, err := s.model.UpdateProduct(ctx, productID, update)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrPriceListNotFound
+	}
+	if err == postgres.ErrProductPathExists {
+		return nil, ErrProductPathExists
+	}
+	if err == postgres.ErrProductSKUExists {
+		return nil, ErrProductSKUExists
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "UpdateProduct(ctx, productID=%v, ...) failed", productID)
+	}
+	// images := make([]*Image, 0, 4)
+	// for _, i := range p.Images {
+	// 	img := Image{
+	// 		ID:        i.UUID,
+	// 		ProductID: i.ProductUUID,
+	// 		Path:      i.Path,
+	// 		GSURL:     i.GSURL,
+	// 		Width:     i.W,
+	// 		Height:    i.H,
+	// 		Size:      i.Size,
+	// 		Created:   i.Created,
+	// 		Modified:  i.Modified,
+	// 	}
+	// 	images = append(images, &img)
+	// }
+	// prices := make(map[PriceListID]*Price)
+	// for _, pr := range p.Prices {
+	// 	price := Price{
+	// 		UnitPrice: pr.UnitPrice,
+	// 		Created:   pr.Created,
+	// 		Modified:  pr.Modified,
+	// 	}
+	// 	prices[PriceListID(pr.UUID)] = &price
+	// }
+	return &Product{
+		Object:   "product",
+		ID:       p.UUID,
+		Path:     p.Path,
+		SKU:      p.SKU,
+		Name:     p.Name,
 		Created:  p.Created,
 		Modified: p.Modified,
 	}, nil
@@ -158,78 +245,126 @@ func difference(a, b []string) []string {
 	return ab
 }
 
-// ProductsExist accepts a slice of product SKUs and divides them into
+// ProductsExist accepts a slice of product uuids and divides them into
 // two lists of those that can exist in the system and those that are
 // missing.
-func (s *Service) ProductsExist(ctx context.Context, skus []string) (exists, missing []string, err error) {
-	exists, err = s.model.ProductsExist(ctx, skus)
+func (s *Service) ProductsExist(ctx context.Context, productIDs []string) (exists, missing []string, err error) {
+	exists, err = s.model.ProductsExist(ctx, productIDs)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "service: ProductsExist")
 	}
-	missing = difference(skus, exists)
+	missing = difference(productIDs, exists)
 	return exists, missing, nil
 }
 
 // GetProduct gets a product given the SKU.
-func (s *Service) GetProduct(ctx context.Context, sku string) (*Product, error) {
-	p, err := s.model.GetProduct(ctx, sku)
-	if err != nil {
-		if err == postgres.ErrProductNotFound {
-			return nil, err
-		}
-		return nil, errors.Wrapf(err, "model: GetProduct(ctx, %q) failed", sku)
+func (s *Service) GetProduct(ctx context.Context, userID, productID string, includeImages, includePrices bool) (*Product, error) {
+	contextLogger := log.WithContext(ctx)
+
+	p, err := s.model.GetProduct(ctx, productID)
+	if err == postgres.ErrProductNotFound {
+		return nil, ErrProductNotFound
 	}
-	images, err := s.ListProductImages(ctx, sku)
 	if err != nil {
-		return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", sku)
+		return nil, errors.Wrapf(err, "model: GetProduct(ctx, productID=%q) failed", productID)
 	}
-	pricing, err := s.PricingMapBySKU(ctx, sku)
-	if err != nil {
-		return nil, errors.Wrapf(err, "service: PricingMapBySKU(ctx, %q)", sku)
-	}
-	return &Product{
-		SKU:  p.SKU,
-		EAN:  p.EAN,
-		Path: p.Path,
-		Name: p.Name,
-		Content: ProductContent{
-			Description:   p.Content.Description,
-			Specification: p.Content.Specification,
-		},
-		Images:   images,
-		Pricing:  pricing,
+
+	// prices, err := s.PriceMap(ctx, p.UUID)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "service: PricingMapByProductID(ctx, productID=%q)", p.UUID)
+	// }
+	product := Product{
+		Object:   "product",
+		ID:       p.UUID,
+		Path:     p.Path,
+		SKU:      p.SKU,
+		Name:     p.Name,
 		Created:  p.Created,
 		Modified: p.Modified,
-	}, nil
+	}
+
+	// optional: include the images for this product
+	if includeImages {
+		contextLogger.Info("service: including the images for this product")
+		images, err := s.GetImagesByProductID(ctx, p.UUID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "service: ListProductImages(ctx, %q)", p.SKU)
+		}
+
+		product.Images = &imageListContainer{
+			Object: "list",
+			Data:   images,
+		}
+	}
+
+	// optional: include the prices for this product
+	if includePrices {
+		contextLogger.Info("service: including the prices for this product")
+
+		var priceListID string
+		if userID == "" {
+			// The user is signed in anonymously to use the default price
+			priceListID, err = s.model.GetDefaultPriceListUUID(ctx)
+			if err != nil {
+				if err == postgres.ErrDefaultPriceListNotFound {
+					return nil, ErrDefaultPriceListNotFound
+				}
+			}
+		} else {
+			// Look up the user to determine their price list id
+			usrJoinRow, err := s.model.GetUserByUUID(ctx, userID)
+			if err == postgres.ErrUserNotFound {
+				return nil, ErrUserNotFound
+			}
+			if err != nil {
+				return nil, errors.Wrapf(err, "service: s.model.GetUserByUUID(ctx, userUUID=%q) failed", userID)
+			}
+			priceListID = usrJoinRow.PriceListUUID
+		}
+
+		prices, err := s.GetPrices(ctx, product.ID, priceListID)
+		if err != nil {
+			return nil, err
+		}
+
+		product.Prices = &priceListContainer{
+			Object: "list",
+			Data:   prices,
+		}
+	}
+	return &product, nil
 }
 
 // ListProducts returns a slice of all product SKUS.
-func (s *Service) ListProducts(ctx context.Context) ([]string, error) {
+func (s *Service) ListProducts(ctx context.Context) ([]*Product, error) {
 	products, err := s.model.GetProducts(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "service: GetProduct")
 	}
-	skus := make([]string, 0, 256)
+	shortProducts := make([]*Product, 0, len(products))
 	for _, p := range products {
-		skus = append(skus, p.SKU)
+		ps := Product{
+			Object:   "product",
+			ID:       p.UUID,
+			Path:     p.Path,
+			SKU:      p.SKU,
+			Name:     p.Name,
+			Created:  p.Created,
+			Modified: p.Modified,
+		}
+		shortProducts = append(shortProducts, &ps)
 	}
-	return skus, nil
+	return shortProducts, nil
 }
 
-// ProductExists return true if the given product exists.
-func (s *Service) ProductExists(ctx context.Context, sku string) (bool, error) {
-	exists, err := s.model.ProductExists(ctx, sku)
-	if err != nil {
-		return false, errors.Wrapf(err, "ProductExists(ctx, %q) failed", sku)
+// DeleteProduct deletes the product with the given UUID.
+func (s *Service) DeleteProduct(ctx context.Context, uuid string) error {
+	err := s.model.DeleteProduct(ctx, uuid)
+	if err == postgres.ErrProductNotFound {
+		return ErrProductNotFound
 	}
-	return exists, nil
-}
-
-// DeleteProduct deletes the product with the given SKU.
-func (s *Service) DeleteProduct(ctx context.Context, sku string) error {
-	err := s.model.DeleteProduct(ctx, sku)
 	if err != nil {
-		return errors.Wrapf(err, "delete product sku=%q failed", sku)
+		return errors.Wrapf(err, "service: delete product uuid=%q failed", uuid)
 	}
 	return nil
 }

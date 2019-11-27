@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/model/postgres"
+	"cloud.google.com/go/pubsub"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	"github.com/pkg/errors"
@@ -11,13 +12,20 @@ import (
 
 // Service firebase implementation
 type Service struct {
-	model *postgres.PgModel
-	fbApp *firebase.App
+	model            *postgres.PgModel
+	fbApp            *firebase.App
+	eventsTopic      *pubsub.Topic
+	whBroadcastTopic *pubsub.Topic
 }
 
 // NewService creates a new Service
-func NewService(model *postgres.PgModel, fbApp *firebase.App) *Service {
-	return &Service{model, fbApp}
+func NewService(model *postgres.PgModel, fbApp *firebase.App, eventsTopic, whBroadcastTopic *pubsub.Topic) *Service {
+	return &Service{
+		model:            model,
+		fbApp:            fbApp,
+		eventsTopic:      eventsTopic,
+		whBroadcastTopic: whBroadcastTopic,
+	}
 }
 
 // Authenticate accepts a JSON Web Token, usually passed from the HTTP client and returns a auth.Token if valid or nil if

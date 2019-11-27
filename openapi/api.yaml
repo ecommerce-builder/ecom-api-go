@@ -1,0 +1,4374 @@
+openapi: 3.0.2
+servers:
+- description: SpyCameraCCTV Test API Service (GAE)
+  url: https://test-data-spycameracctv.appspot.com
+- description: Ecom Test API Service (GAE)
+  url: https://open247-gae.appspot.com
+- description: Ecom Test API Service
+  url: http://localhost:8080
+- description: Ecom Test API Service Ngrok
+  url: https://d07a63ae.ngrok.io
+info:
+  description: |
+    # Ecom API
+    Most requests require a JSON Web Token (JWT) aquired by signing into the Firebase Auth that corresponds to the API endpoint.
+
+    ## Authentication
+    API resources are protected by levels of access:
+
+      * None (No JWT required)
+      * `RoleShopper` (JWT contains no custom `role` claim)
+      * `RoleCustomer` (JWT contains a custom claim `"role": "customer"`)
+      * `RoleAdmin` (JWT contains a custom claim `"role": "admin"`)
+      * `RoleSuperUser` (JWT contains a custom claim `"role": "root"`)
+
+    Set the `Authorization: Bearer $JWT` header before calling the API endpoints that require authentication.
+
+  version: "v0.62.3"
+  title: Headless Ecommerce API
+  contact:
+    name: Andy Fusniak
+    email: andy@andyfusniak.com
+paths:
+  /:
+    get:
+      summary: Health Check
+      operationId: OpHealthCheck1
+      tags:
+      - Misc
+      responses:
+        '200':
+          description: Heartbeat
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'ok'
+  /healthz:
+    get:
+      summary: Health Check
+      operationId: OpHealthCheck2
+      tags:
+      - Misc
+      responses:
+        '200':
+          description: Heartbeat
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'ok'
+  /config:
+    get:
+      summary: Get config object
+      description: |
+        GetSystemConfig requires no JSON Web Token.
+      operationId: GetSystemConfig
+      tags:
+      - Misc
+      responses:
+        '200':
+          description: System Config object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemConfig'
+  /carts:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new shopping cart
+      description: |
+        Creates an empty shopping cart. A shopping cart contains products and coupons. The response body `id` attribute contains a unique identifier for the newly created cart.
+
+        OpCreateCart requires `RoleShopper` privileges.
+      operationId: OpCreateCart
+      tags:
+      - Carts
+      responses:
+        '201':
+          description: cart object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+              example:
+                object: cart
+                id: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+                locked: false
+                created: '2019-08-02T12:02:42.217936Z'
+                modified: '2019-08-02T12:02:42.217936Z'
+  /carts-products:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Place a product into a cart
+      description: |
+        Places an new product to the cart returning the cart_product object. Each product has a unique identifier.
+
+        `OpAddProductToCart` requires `RoleShopper` privileges or higher.
+      operationId: OpAddProductToCart
+      tags:
+      - Cart Products
+      requestBody:
+        description: New CartProduct
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - cart_id
+              - product_id
+              - qty
+              properties:
+                cart_id:
+                  type: string
+                  format: uuid
+                  example: 'd9b210a3-0a0a-485f-8851-0ca77cee02f8'
+                product_id:
+                  type: string
+                  format: uuid
+                  example: '54bfd164-b31a-4e61-b715-9c1cbe3c18e3'
+                qty:
+                  type: integer
+                  example: 2
+      responses:
+        '201':
+          description: cart_product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: |
+            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
+          content:
+            application/json:
+              example: ''
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                cart/cart-product-exists:
+                  summary: cart/cart-product-exists
+                  value:
+                    status: 409
+                    code: 'cart/cart-product-exists'
+                    message: cart product already exists in the cart
+    get:
+      parameters:
+      - name: cart_id
+        required: true
+        in: query
+        description: A unique identifier for the cart.
+        schema:
+          type: string
+          format: uuid
+          example: '16fa928f-781d-4033-8a69-b49d4a0f65e3'
+      security:
+      - bearerAuth: []
+      summary: Get cart products
+      description: |
+        `OpGetCartProducts` requires `RoleShopper` privileges or higher.
+      operationId: OpGetCartProducts
+      tags:
+      - Cart Products
+      responses:
+        '200':
+          description: List of cart_product objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: |
+            The cart with cart_id in the path could not be found. You should first create a cart calling the `OpCreateCart` operation and use its cart_id.
+          content:
+            application/json:
+              example: '16fa928f-781d-4033-8a69-b49d4a0f65e3'
+    delete:
+      parameters:
+      - name: cart_id
+        required: true
+        in: query
+        description: A unique identifier for the cart.
+        schema:
+          type: string
+          format: uuid
+          example: '16fa928f-781d-4033-8a69-b49d4a0f65e3'
+      security:
+      - bearerAuth: []
+      summary: Empty all products from the cart
+      description: |
+        `OpEmptyCartProducts` requires `RoleShopper` privileges or higher.
+      operationId: OpEmptyCartProducts
+      tags:
+      - Cart Products
+      responses:
+        '204':
+          description: No Content
+  /carts-products/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the cart product.
+      schema:
+        type: string
+        example: 'aba8b505-d016-4afc-95bd-1f292ed5a915'
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update a cart product with a new quantity
+      description: |
+        OpUpdateCartProduct requires `RoleShopper` privileges.
+      operationId: OpUpdateCartProduct
+      tags:
+      - Cart Products
+      requestBody:
+        description: New quantity for cart product
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - qty
+              properties:
+                qty:
+                  type: integer
+                  example: 3
+      responses:
+        '200':
+          description: cart_product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartProduct'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a cart product
+      description: |
+        OpDeleteCartProduct requires `RoleShopper` privileges.
+      operationId: OpDeleteCartProduct
+      tags:
+      - Cart Products
+      responses:
+        '204':
+          description: No Content
+  /carts-coupons:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Apply a coupon to the cart
+      description: |
+        Attempts to apply a coupon with `cart_id` to the cart with `cart_id`.
+
+        OpApplyCouponToCart requires `RoleShopper` privileges.
+      operationId: OpApplyCouponToCart
+      tags:
+      - Cart Coupons
+      requestBody:
+        description: Coupon association
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - cart_id
+              - coupon_id
+              properties:
+                cart_id:
+                  type: string
+                  format: uuid
+                  example: 'ee524e6e-a985-48c0-8de0-dc364556e554'
+                coupon_id:
+                  type: string
+                  format: uuid
+                  example: 'a4c0e633-92fe-4595-ae8d-dd325dc2bf73'
+      responses:
+        '200':
+          description: cart coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartCoupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                carts/cart-not-found:
+                  summary: carts/cart-not-found
+                  value:
+                    status: 404
+                    code: carts/cart-not-found
+                    message: cart not found
+                coupons/coupon-not-found:
+                  summary: coupons/coupon-not-found
+                  value:
+                    status: 404
+                    code: coupons/coupon-not-found
+                    message: coupon not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                carts-coupons/cart-coupon-exists:
+                   summary: 'carts-coupons/cart-coupon-exists'
+                   value:
+                    status: 409
+                    code: 'carts-coupons/cart-coupon-exists'
+                    message: 'coupon already in cart'
+                carts/coupon-not-at-start-date:
+                  summary: 'carts/coupon-not-at-start-date'
+                  value:
+                    status: 409
+                    code: 'carts/coupon-not-at-start-date'
+                    message: coupon promotion date has not started
+                coupons/coupon-expired:
+                  summary: 'coupons/coupon-expired'
+                  value:
+                    status: 409
+                    code: 'coupons/coupon-expired'
+                    message: 'coupon expired'
+                coupons/coupon-void:
+                  summary: 'coupons/coupon-void'
+                  value:
+                    status: 409
+                    code: 'coupons/coupon-void'
+                    message: 'coupon void'
+                coupons/coupon-used:
+                  summary: 'coupons/coupon-used'
+                  value:
+                    status: 409
+                    code: 'coupons/coupon-used'
+                    message: 'coupon has already been used'
+    get:
+      parameters:
+      - name: cart_id
+        required: true
+        in: query
+        description: A unique identifier for the cart
+        schema:
+          type: string
+          example: 'ee524e6e-a985-48c0-8de0-dc364556e554'
+      security:
+      - bearerAuth: []
+      summary: Retrieve a list of all coupons applied to a given cart
+      description: |
+        Retrieves a list of all coupons applied to a the cart with `cart_id`.
+        OpListCartCoupons requires `RoleShopper` privileges or higher.
+      operationId: OpListCartCoupons
+      tags:
+      - Cart Coupons
+      responses:
+        '200':
+          description: list of cart_coupon objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CartCoupon'
+  /carts-coupons/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the cart coupon.
+      schema:
+        type: string
+        example: '5db8fd80-a7ac-470b-ba10-1d3d051bea72'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Retrieve a single cart_coupon object
+      description: |
+        OpGetCartCoupon requires `RoleShopper` privileges or higher.
+      operationId: OpGetCartCoupon
+      tags:
+      - Cart Coupons
+      responses:
+        '200':
+          description: cart_coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartCoupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'carts-coupons/cart-coupon-not-found'
+                message: cart coupon not found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Unapply a coupon from the cart
+      description: |
+        OpUnapplyCartCoupon requires `RoleShopper` privileges.
+      tags:
+      - Cart Coupons
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: carts-coupons/cart-coupon-not-found
+                message: cart coupon not found
+  /offers:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new offer
+      description: |
+        OpCreateOffer requires `RoleAdmin` privileges.
+      operationId: OpActivateOffer
+      tags:
+      - Offers
+      requestBody:
+        description: To active offer pass a `promo_rule_id` attribute identifying the promo rule to use for the offer.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - promo_rule_id
+              properties:
+                promo_rule_id:
+                  type: string
+                  format: uuid
+                  example: '33005ffa-05b3-4e91-98be-3332764bc40c'
+      responses:
+        '201':
+          description: offer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+
+    get:
+      security:
+      - bearerAuth: []
+      summary: List all offers
+      description: |
+        OpListDiscounts requires `RoleAdmin` privileges.
+      tags:
+      - Offers
+      responses:
+        '200':
+          description: List of offer objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Offer'
+  /offers/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the offer.
+      schema:
+        type: string
+        example: '20574b05-29a4-49f6-bf89-fe231c09d8a5'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get an offer
+      description: |
+        OpGetOffer requires `RoleAdmin` privileges.
+      tags:
+      - Offers
+      responses:
+        '200':
+          description: Offer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+        '404':
+          description: Not Found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete an offer
+      description: |
+        OpDeleteOffer requires `RoleAdmin` privileges.
+      tags:
+      - Offers
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /coupons:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Mint a new coupon
+      description: |
+        OpCreateCoupon mints a new coupon to be used as currency in the cart.
+
+        Coupons are either reusable or non-reusable. Reusable coupons can be spent multiple times by the same or different users. Non-reusable coupons can only be spent once.
+
+        To mint a new coupon pass a `promo_rule_id`, `coupon_code` and `reusable` attributes in the request body. The `promo_rule_id` should be an existing promo rule that is not already in use. The `coupon_code` can be used as a short identifier, typically input by the shopper during the cart or checkout process. `reusuable` is a boolean flag indicating whether this coupon can be spent multiple times.
+
+        If the `coupon_code` attribute value already exists, the API responds with a `409 Conflict` status code.
+
+        If the `promo_rule_id` attribute value does not reference an existing promo rule the API responds with a `404 Not Found` status code.
+
+        On success, the API responds with a `201 Created` status code.
+
+        OpCreateCoupon requires `RoleAdmin` privileges or higher.
+      operationId: OpCreateCoupon
+      tags:
+      - Coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - promo_rule_id
+              - coupon_code
+              - reusable
+              properties:
+                promo_rule_id:
+                  type: string
+                  format: uuid
+                  example: 'd54aa60b-a2b7-4f18-b4e2-5c410bd1e263'
+                coupon_code:
+                  type: string
+                  example: 'SALE20'
+                reusable:
+                  type: boolean
+                  example: true
+      responses:
+        '201':
+          description: coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                promo-rules/promo-rule-not-found:
+                  summary: promo-rules/promo-rule-not-found
+                  value:
+                    status: 404
+                    code: promo-rules/promo-rule-not-found
+                    message: promo rule not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                coupons/coupon-exists:
+                  summary: coupons/coupon-exists
+                  value:
+                    status: 409
+                    code: coupons/coupon-exists
+                    message: coupon with this coupon code already exists
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of coupons
+      description: |
+        Retrieves a complete list of all coupons in the system.
+
+        OpListCoupons requires `RoleAdmin` privileges or higher.
+      operationId: OpListCoupons
+      tags:
+      - Coupons
+      responses:
+        '200':
+          description: list of coupon objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Coupon'
+  /coupons/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the coupon.
+      schema:
+        type: string
+        format: uuid
+        example: '3b7ef506-bd5a-4c37-8e76-6733a2531d36'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a single coupon by id
+      description: |
+        OpGetCoupon retrieves a single coupon by id.
+
+        OpGetCoupon requires `RoleAdmin` privileges or higher.
+      operationId: OpGetCoupon
+      tags:
+      - Coupons
+      responses:
+        '200':
+          description: coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                coupons/coupon-not-found:
+                  summary: coupons/coupon-not-found
+                  value:
+                    status: 404
+                    code: coupons/coupon-not-found
+                    message: coupon not found
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update a coupon
+      description: |
+        Partially updates a coupon. Use this to void a coupon by passing the `void` attribute in the request body.
+
+        The `void` attribute value can be either true or false.
+
+        OpUpdateCoupon requires `RoleAdmin` privileges or higher.
+      operationId: OpUpdateCoupon
+      tags:
+      - Coupons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - void
+              properties:
+                void:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: coupon object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                  status: 404
+                  code: coupons/coupon-not-found
+                  message: coupon not found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete the coupon with the given id
+      description: |
+        Attempts to delete a coupon by id. If the coupon id could not be found the API response with a 404 Not Found status code. If found, the coupon may already have been added to a cart.
+
+        Use OpUpdateCoupon if you wish to void a coupon.
+
+        OpDeleteCoupon requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteCoupon
+      tags:
+      - Coupons
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: coupons/coupon-not-found
+                message: coupon not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 409
+                code: coupons/coupon-in-use
+                message: coupon is already in use, consider making it void instead
+  /promo-rules:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new promotion rule
+      description: |
+        Attempt to create a new promotion rule that can later be used in offers or coupons. **A promo rule by itself is free standing and has no influence until it has been applied to an offer or coupon.**.
+
+        A promo rule request must contain `name`, `amount`, `type`, `promo_rule_code` and `target` attributes including an identifier for its corresponding type.
+
+        The `name` attribute is a human readable string for convenience.
+
+        The `promo_rule_code` provides a short code of upper case characters including the digits 0 through 9. It provides a more usable means to reference that the promo_rule object id passed back in the response body. However, all interaction with the API currently uses object ids only. Typically, a `promo_rule_code` would likely match the companies internal references. Example, 'SUMMERSALE20', 'SPECIALWINTER50' etc. The value used is up to the caller.
+
+        The `type` attribute should contain a value of `percentage` or `fixed`. If the `type` attribute has a value of `fixed` the `amount` attribute value should contain the amount to discount to 4 decimal places. e.g. £19.95 would be expressed as 199500. If the `type` attribute has a value of `percentage` the `amount` attribute value should contain the amount to discount as a percentage to 2 decimal places. i.e. between 0 and 9999. For 50% use 5000. For 25.50% use 2550 and so on.
+
+        The `target` attribute determes _what_ the rule should be applied to. Acceptable values for this attribute are `product`, `productset`, `category`, `shipping_tariff` and `total` for a single product, set of products, all products under a particular category ancestry, shipping tariff discount and order total respectively. The productset target is not yet fully implemented.
+
+        If the `target` attribute is set to a value of `product` an additional attribute `product_id` must be passed in the request body identifying the product of which to apply the rule.
+
+        If the `target` attribute is set to a value of `productset` an additional attribute `product_set` must be passed containing an object with a list of products. See the example request payloads below.
+
+        ```
+        {
+          "target": "productset",
+          "product_set": {
+            "object": "list",
+            "data": [
+              {
+                "product_id": "<first product id>"
+              },
+              {
+                "product_id": "<second product id>"
+              },
+              ...
+            ]
+          }
+        }
+        ```
+
+        If the `target` attribute is set to a value of `category` an additional attribute `category_id` must be passed containing the category id. If the category id is a leaf category in the tree, the rule will apply to all products within that category.
+        If the category is a non-leaf category in the tree, the rule will apply to all products of all leaf categories that are descendants of the non-leaf category.
+
+        In the tree below, category A is a non-leaf category containing sub categories B and C. Category B contains two products, 1 and 2. Category B contains two products, 3 and 4. If the attribute `category_id` references the id of category A, the rule will be applied to products 1, 2, 3 and 4 since categories B and C are descendants of A.
+        ```
+              A
+            /   \
+           B      C
+          / \    / \
+         1   2  3   4
+         ```
+
+         Note, products are only be ever applied to leaf nodes in the hierarchy. It is not possible to link a product directly to category A.
+
+        If the `target` attribute is set to a value of `shipping_tariff` the promo rule will apply to orders that are intended to be shipped to that shipping tariff's corresponding country and courier.
+
+        If the `target` attribute is set to a value of `total`, an additional attribute `total_threshold` must be passed in the request body. The `total_threshold` attribute should contain the price amount, to 4 decimal places, to discount from the order total at checkout. e.g. £19.95 would be expressed as 199500.
+
+        `start_at` and `end_at` optional attributes indicate the timeframe when the promotion rule will be active.
+
+        The response body will vary depending on the `target`.
+
+        Once you have created a promo rule, see the Offers and Coupons endpoints to apply the rule and make it active.
+
+        OpCreatePromoRule requires `RoleAdmin` privileges.
+      operationId: OpCreatePromoRule
+      tags:
+      - Promotion Rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoRuleCreateRequest'
+            examples:
+              product:
+                summary: target a single product
+                description: |
+                  An example of creating a promo rule targeting a single product
+                value:
+                  promo_rule_code: SUMMER25
+                  name: 'Summer Sale 25% off everything'
+                  amount: 2500
+                  type: percentage
+                  target: product
+                  product_id: '64c187b8-cd81-422d-8734-ecd865f84779'
+              category:
+                summary: target a category
+                description: |
+                  An example of creating a promo rule targeting a category.
+                value:
+                  promo_rule_code: WINTER50
+                  name: 'Winter Sale'
+                  amount: 5000
+                  type: percentage
+                  target: category
+                  category_id: 'd433c01f-9bbd-412a-8f89-5ee1272df6ac'
+              shipping_tariff:
+                summary: target a shipping tariff
+                description: |
+                  An example of creating a promo rule targeting a shipping tariff.
+                value:
+                  promo_rule_code: FREE-DELIVERY
+                  name: 'Free next day delivery'
+                  amount: 10000
+                  type: percentage
+                  target: shipping_tariff
+                  shipping_tariff_id: 'e224f590-9470-4f10-92e1-5bb42987ff17'
+              total:
+                summary: target am order total
+                description: |
+                  An example of creating a promo rule targeting an order total.
+                value:
+                  promo_rule_code: EVERYTHING5
+                  name: '5% off everything when you spent 50 or more'
+                  amount: 500
+                  type: percentage
+                  target: total
+                  total_threshold: 416666
+      responses:
+        '201':
+          description: promo_rule object
+          content:
+            applicatio/json:
+              schema:
+                $ref: '#/components/schemas/PromoRule'
+              examples:
+                product:
+                  summary: Single product promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a  single product.
+                  value:
+                    object: promo_rule
+                    id: 'af02cea4-e603-4cf9-8561-40dd90b389b4'
+                    promo_rule_code: SUMMER25
+                    product_id: '64c187b8-cd81-422d-8734-ecd865f84779'
+                    product_path: '8gb-silicon-power-i-series-usb-2-memory-stick-storage'
+                    product_sku: 'USB8GBSP'
+                    name: 'Summer Sale 25% off everything'
+                    start_at: null
+                    end_at: null
+                    amount: 2500
+                    type: percentage
+                    target: product
+                    created: '2019-10-31 13:31:40.99069Z'
+                    modified: '2019-10-31 13:31:40.99069Z'
+                category:
+                  summary: Category promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a category.
+                  value:
+                    object: promo_rule
+                    id: '57656a99-37b9-4372-bc23-1fc7d0a76dfd'
+                    promo_rule_code: WINTER50
+                    category_id: d433c01f-9bbd-412a-8f89-5ee1272df6ac
+                    category_path: spy/our-full-range/accessories/lenses
+                    name: Winter Sale
+                    start_at: null
+                    end_at: null
+                    amount: 5000
+                    type: percentage
+                    target: category
+                    created: '2019-10-31T14:58:33.969977Z'
+                    modified: '2019-10-31T14:58:33.969977Z'
+                shipping_tariff:
+                  summary: Shipping tariff promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a shipping tariff.
+                  value:
+                    object: promo_rule
+                    id: 8feef84d-8b59-4196-aad1-e48c38da7cee
+                    promo_rule_code: 'FREE-DELIVERY'
+                    shipping_tariff_id: 'e224f590-9470-4f10-92e1-5bb42987ff17'
+                    shipping_tariff_code: NEXTDAY-SPECIAL
+                    name: Free next day delivery
+                    start_at: null
+                    end_at: null
+                    amount: 10000
+                    type: percentage
+                    target: shipping_tariff
+                    created: '2019-10-31T15:03:43.43688Z'
+                    modified: '2019-10-31T15:03:43.43688Z'
+                total:
+                  summary: Total order spend promo rule response
+                  description: |
+                    Example JSON response when creating a promo rule for a total order spend.
+                  value:
+                    object: promo_rule
+                    id: 'c0545a9a-813f-493b-aa8b-c2b433f109a3'
+                    promo_rule_code: EVERYTHING5
+                    name: '5% off everything when you spent 50 or more'
+                    start_at: null
+                    end_at: null
+                    amount: 500
+                    total_threshold: 416666
+                    type: percentage
+                    target: total
+                    created: '2019-10-31T15:16:24.152654Z'
+                    modified: '2019-10-31T15:16:24.152654Z'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of all promotion rules
+      description: |
+        OpListPromoRules requires `RoleAdmin` privileges.
+      operationId: OpListPromoRules
+      tags:
+      - Promotion Rules
+      responses:
+        '200':
+          description: list of promo_list objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PromoRule'
+  /promo-rules/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the promo rule.
+      schema:
+        type: string
+        format: uuid
+        example: 'd8f3d5d4-9143-4ec0-87fe-0753afecaa87'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a promotion rules
+      description: |
+        OpGetPromoRule requires `RoleAdmin` privileges.
+      operationId: OpGetPromoRule
+      tags:
+      - Promotion Rules
+      responses:
+        '200':
+          description: promo_rule object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PromoRule'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a promotion rules
+      description: |
+        OpDeletePromoRule requires `RoleAdmin` privileges.
+      operationId: OpDeletePromoRule
+      tags:
+      - Promotion Rules
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /users:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create and signup a new user
+      description: |
+        Sign up a new customer creates a new user.
+
+        OpCreateCustomer requires no JSON Web Token.
+      operationId: OpCreateCustomer
+      tags:
+      - Users
+      requestBody:
+        description: New user details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        '201':
+          description: Customer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    get:
+      security:
+      - bearerAuth: []
+      summary: List all users
+      description: |
+        OpListUsers requires `RoleAdmin` privileges.
+
+        ## Known Issues
+        Currently, the list of user objects are missing the `price_list_id` attribute value. Use OpGetUser as a workaround.
+      operationId: OpListUsers
+      tags:
+      - Users
+      responses:
+        '200':
+          description: List of Customer objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  /users/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the user.
+      schema:
+        type: string
+        format: uuid
+        example: '88920da9-72c6-4f33-ac2b-306080b5e92c'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a customer object
+      description: |
+        OpGetCustomer requires `RoleCustomer` privileges.
+      operationId: OpGetCustomer
+      tags:
+      - Users
+      parameters:
+      - name: id
+        required: true
+        in: path
+        description: Customer ID
+        schema:
+          type: string
+          example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+      responses:
+        '201':
+          description: Customer object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a user
+      description: |
+        Attempts to delete a user from the system. If this user has previously created addresses or developer keys, these will be delete too.
+
+        If the user has previously placed any orders, a status of 409 Conflict will be retuned with `users/user-in-use` returned in the `code` attribute of the response body.
+
+        OpDeleteUser requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteUser
+      tags:
+      - Users
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'users/not-found'
+                message: user not found
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                users/user-in-use:
+                  summary: users/user-in-use
+                  value:
+                    status: 409
+                    code: 'users/user-in-use'
+                    message: user cannot be deleted as it is associated with previous orders
+  /developer-keys:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Generate a new developer key
+      description: |
+        OpGenerateUserDevKey requires `RoleAdmin` privileges or higher.
+      operationId: OpGenerateUserDevKey
+      tags:
+      - Developer Keys
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - user_id
+              properties:
+                user_id:
+                  type: string
+                  example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
+      responses:
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'users/user-not-found'
+                message: user not found
+        '201':
+          description: developer_key object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeveloperKey'
+    get:
+      parameters:
+      - name: user_id
+        required: true
+        in: query
+        description: A unique identifier for the user
+        schema:
+          type: string
+          example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
+      security:
+      - bearerAuth: []
+      summary: Get a list of all developer keys for a given user id
+      description: |
+        OpListUsersDevKeys requires `RoleAdmin` privileges or higher.
+      operationId: OpListUsersDevKeys
+      tags:
+      - Developer Keys
+      responses:
+        '201':
+          description: developer_key object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeveloperKey'
+  /developer-keys/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the developer key
+      schema:
+        type: string
+        example: 'c2ae4ed9-5785-4963-8d16-1b925252ae88'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a developer key
+      description: |
+        Deleting a developer key revokes access.
+        OpDeleteUserDevKey requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteUserDevKey
+      tags:
+      - Developer Keys
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'developer-keys/developer-key-not-found'
+                message: developer key not found
+  /categories:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get all categories
+      description: |
+        OpGetCatalog requires `RoleShopper` privileges.
+      operationId: OpGetCatalog
+      tags:
+      - Categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Purge all categories
+      description: |
+        OpPurgeCatalog requires `RoleAdmin` privileges.
+      operationId: OpPurgeCatalog
+      tags:
+      - Categories
+      responses:
+        '204':
+          description: No Content
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 409
+                code: assocs/assocs-exists
+                message: OpDeleteCategories cannot be called whilst category to product associations exist
+  /categories-tree:
+    put:
+      security:
+      - bearerAuth: []
+      summary: Replace the entire categories tree
+      description: |
+        Purge and replace the entire categories tree in a single operation.
+      operationId: OpUpdateCategoriesTree
+      tags:
+      - Categories Tree
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+            example:
+              segment: a
+              name: ประเภท A
+              categories:
+              - segment: b
+                name: ประเภท B
+                categories:
+                - segment: e
+                  name: ประเภท E
+                  categories: []
+              - segment: c
+                name: ประเภท C
+                categories:
+                - segment: f
+                  name: ประเภท F
+                  categories:
+                  - segment: i
+                    name: ประเภท I
+                    categories: []
+                  - segment: j
+                    name: ประเภท J
+                    categories:
+                    - segment: m
+                      name: ประเภท M
+                      categories: []
+                    - segment: 'n'
+                      name: ประเภท N
+                      categories: []
+                - segment: g
+                  name: ประเภท G
+                  categories: []
+              - segment: d
+                name: ประเภท D
+                categories:
+                - segment: h
+                  name: ประเภท H
+                  categories:
+                  - segment: k
+                    name: ประเภท K
+                    categories: []
+                  - segment: l
+                    name: ประเภท L
+                    categories: []
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 409
+                code: assocs/assocs-exists
+                message: product to category relations already exist
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get the entire categories as a tree
+      description: |
+        OpGetCategoriesTree requires `RoleShopper` privileges or higher.
+      operationId: OpGetCategoriesTree
+      tags:
+      - Categories Tree
+      responses:
+        '200':
+          description: categories tree structure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categories'
+  /products-categories:
+    put:
+      security:
+      - bearerAuth: []
+      summary: Replace all products to categories associations
+      description: |
+        OpUpdateProductsCategories requires `RoleAdmin` privileges.
+      operationId: OpUpdateProductsCategories
+      tags:
+      - Products Categories
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                object:
+                  type: string
+                  enum: ['list']
+                  example: 'list'
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CreateProductsCategories'
+      responses:
+        '200':
+          description: list of products_categories objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductsCategories'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get all product to category associations
+      description: |
+        OpGetProductsCategories requires `RoleShopper` privileges.
+      operationId: OpGetProductsCategories
+      tags:
+        - Products Categories
+      responses:
+        '200':
+          description: list of products_categories objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductsCategories'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Purge all category to product associations
+      description: |
+        OpPurgeCatalogAssocs requires `RoleAdmin` privileges.
+      operationId: OpPurgeCatalogAssocs
+      tags:
+      - Products Categories
+      responses:
+        '204':
+          description: No Content
+  /signin-with-devkey:
+    post:
+      summary: Signin with a developer key
+      description: |
+        OpSignInWithDevKey requires no JWT Web Token.
+
+        Signin with a secret developer key. After you receive the custom token in the response, pass it to Firebase Auth [signInWithCustomToken](https://firebase.google.com/docs/reference/node/firebase.auth.Auth#sign-inwith-custom-token) to sign in the user:
+
+
+        ```javascript
+          firebase.auth().signInWithCustomToken(token).catch(function(error) {
+            // Handle Errors here.
+            var errorCode = error.code;
+            var errorMessage = error.message;
+            // ...
+          });
+        ```
+
+        To sign out a user, call `signOut`:
+
+        ```javascript
+          firebase.auth().signOut().then(function() {
+            // Sign-out successful.
+          }).catch(function(error) {
+            // An error happened.
+          });
+        ```
+      operationId: OpSignInWithDevKey
+      tags:
+      - Developer Keys
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInDevKeyRequest'
+      responses:
+        '201':
+          description: Custom Token object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInDevKeyCustomToken'
+  /addresses:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new address for a given customer
+      description: |
+        Creates a new billing or shipping address for a given customer.
+        The request body must contain a `type` attribute that should be set to either `billing` or `shipping`. The request body must also contain a `user_id`, `contact_name`, `addr1`, `addr2`, `city`, `county`, `postcode` and `country_code` attributes.
+
+        If called with `RoleCustomer` privileges the `user_id` in the request body must match that of the JWT. That is, `RoleCustomer` authenticated callers can only create addreses for themselves and not other customers. `RoleAdmin` has no such restriction.
+
+        The `country_code` attribute value must be set to an ISO 3166 two character country code.
+
+        OpCreateAddress requires `RoleCustomer` privileges. The
+      operationId: OpCreateAddress
+      tags:
+      - Addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+      responses:
+        '201':
+          description: Address object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+    get:
+      parameters:
+      - name: user_id
+        required: true
+        in: query
+        description: A unique identifier for the user
+        schema:
+          type: string
+          example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
+      security:
+      - bearerAuth: []
+      summary: Get all addresses for a given customer
+      description: |
+        OpGetUsersAddresses requires `RoleCustomer` privileges. Retrieves a list of Address objects for the given customer. If called with `RoleCustomer` you must be the customer you intend to retrieve the addresses for. If called with `RoleAdmin` you can retrieve a list of addresses for any customer.
+      operationId: OpGetUsersAddresses
+      tags:
+      - Addresses
+      responses:
+        '200':
+          description: List of Address objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Address'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'users/user-not-found'
+                message: user not found
+  /addresses/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identfier for the address.
+      schema:
+        type: string
+        example: 'e3afa4f4-c5de-4e0f-8c37-5be677cfde6a'
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update an address
+      description: |
+        OpUpdateAddress requires `RoleCustomer` privileges.
+      operationId: OpUpdateAddress
+      tags:
+      - Addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUpdateRequest'
+      responses:
+        '200':
+          description: Address object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'addresses/address-not-found'
+                message: address not found
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get an address object
+      description: |
+        OpGetAddress requires `RoleCustomer` privileges. The id of the address must also match the customer id in the caller's JWT - that is you can only retrieve your own addresses.
+      operationId: OpGetAddress
+      tags:
+      - Addresses
+      responses:
+        '200':
+          description: Address object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'addresses/address-not-found'
+                message: address not found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete an address object
+      description: |
+        OpDeleteAddress requires `RoleCustomer` privileges.
+      operationId: OpDeleteAddress
+      tags:
+      - Addresses
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: 'addresses/address-not-found'
+                message: address not found
+  /prices:
+    parameters:
+    - name: product_id
+      required: false
+      in: query
+      description: A unique identifier for the product.
+      schema:
+        type: string
+        format: uuid
+        example: '49173212-537f-497b-b76e-1d606855fe66'
+    - name: price_list_id
+      required: false
+      in: query
+      description: A unique identifier for the price list.
+      schema:
+        type: string
+        format: uuid
+        example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get all prices
+      description: |
+        OpGetAllPrices requires `RoleAdmin` privileges.
+      operationId: OpGetAllPrices
+      tags:
+      - Prices
+      responses:
+        '200':
+          description: list of price objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Price'
+  /products/{id}/prices:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the product.
+      schema:
+        type: string
+        format: uuid
+        example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
+    put:
+      parameters:
+      - name: price_list_id
+        required: true
+        in: query
+        description: filter for only a single price list
+        schema:
+          type: string
+          format: uuid
+          example: '72ae053a-e63d-4a8e-8a0b-ac43e9ca89d1'
+      security:
+      - bearerAuth: []
+      summary: Get all prices for a given product
+      description: |
+        OpUpdateProductPrices requires `RoleShopper` privileges.
+      operationId: OpUpdateProductPrices
+      tags:
+      - Prices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductPriceRequest'
+      responses:
+        '200':
+          description: list of price objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Price'
+    get:
+      parameters:
+      - name: price_list_id
+        required: false
+        in: query
+        description: filter for only a single price list
+        schema:
+          type: string
+          format: uuid
+          example: '72ae053a-e63d-4a8e-8a0b-ac43e9ca89d1'
+      security:
+      - bearerAuth: []
+      summary: Get all prices for a given product
+      description: |
+        OpGetProductPrices requires `RoleShopper` privileges.
+      operationId: OpGetProductPrices
+      tags:
+      - Prices
+      responses:
+        '200':
+          description: list of price objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Price'
+  /images:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Add an image to a product
+      description: |
+        Create a new image reference by passing the `product_id` and `path` attributes in the request body.
+
+        OpAddImage requires `RoleAdmin` privileges.
+      operationId: OpAddImage
+      tags:
+      - Images
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - path
+              properties:
+                product_id:
+                  type: string
+                  format: uuid
+                  example: '8c65b9ad-5141-4065-83ba-0eb97c15dc07'
+                path:
+                  type: string
+                  example: 'images/products/front-view.jpg'
+      responses:
+        '201':
+          description: Image object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+    get:
+      parameters:
+      - name: product_id
+        required: true
+        in: query
+        description: A unique identifier for the product.
+        schema:
+          type: string
+          format: uuid
+          example: '8c65b9ad-5141-4065-83ba-0eb97c15dc07'
+      security:
+      - bearerAuth: []
+      summary: List images for a given product
+      description: |
+        Retrieves a list of image objects for a given product. You must pass the `product_id` as a query parameter.
+
+        OpListProductImages requires `RoleShopper` privileges.
+      operationId: OpListProductImages
+      tags:
+      - Images
+      responses:
+        '200':
+          description: List of image objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Image'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete all product images for a given product SKU
+      description: |
+        OpDeleteAllProductImages requires `RoleAdmin` privileges.
+      operationId: OpDeleteAllProductImages
+      tags:
+      - Images
+      responses:
+        '204':
+          description: No Content
+  /images/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the image.
+      schema:
+        type: string
+        example: '390d6786-0ff7-43e7-844b-af816589a045'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get an image by image ID
+      description: |
+        OpGetImage requires `RoleShopper` privileges.
+      operationId: OpGetImage
+      tags:
+      - Images
+      responses:
+        '200':
+          description: Image object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete an image by Image ID
+      description: |
+        OpDeleteImage requires `RoleAdmin` privileges.
+      operationId: OpDeleteImage
+      tags:
+      - Images
+      responses:
+        '204':
+          description: No Content
+  /products/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the product.
+      schema:
+        type: string
+        example: 'd9da65ce-6f2c-42ae-8789-448f3053b185'
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update a product including images and pricing by product id
+      description: |
+        OpUpdateProduct requires `RoleAdmin` privileges. OpUpdateProduct updates an existing product or returns a `404 Not Found` is the product is not found.
+      operationId: OpUpdateProduct
+      tags:
+      - Products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    get:
+      parameters:
+      - name: include
+        required: false
+        in: query
+        description: |
+          When you request a resource, you can include associated resources in the same request, using the include query parameter. This reduces the number of roundtrips.
+          The include query parameter contains a comma separated list of associated resource.
+
+          For OpGetProduct acceptable values are images and prices.
+        schema:
+          type: string
+          example: 'images,prices'
+      security:
+      - bearerAuth: []
+      summary: Get a product by product id
+      description: |
+        OpGetProduct requires `RoleShopper` privileges.
+      operationId: OpGetProduct
+      tags:
+      - Products
+      responses:
+        '200':
+          description: product object
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/Product'
+                - $ref: '#/components/schemas/ProductIncImages'
+              examples:
+                product:
+                  value:
+                    object: product
+                    id: 93f350b5-2320-40f2-8b85-ed07e0092185
+                    path: water-bottle
+                    sku: WATER-SKU
+                    name: Water Bottle
+                    created: '2019-08-22 09:22:53.403045+00Z'
+                    modified: '2019-08-22 09:22:53.403045+00'
+                product-with-images:
+                  value:
+                    object: product
+                    id: 93f350b5-2320-40f2-8b85-ed07e0092185
+                    path: water-bottle
+                    sku: WATER-SKU
+                    name: Water Bottle
+                    images:
+                    - object: image
+                      id: e2a1b7ff-a00a-4d7c-a2dd-86e8ea749ed1
+                      product_id: 8782b771-e6d7-45f3-879a-2b9d3e8ba1c7
+                      sku: 'WATER-SKU'
+                      path: 4439.jpg
+                      gsurl: gs://4439.jpg
+                      width: 0
+                      height: 0
+                      size: 0
+                      created: '2019-07-30T14:31:47.672541Z'
+                      modified: '2019-07-30T14:31:47.672541Z'
+                    created: '2019-08-22 09:22:53.403045+00Z'
+                    modified: '2019-08-22 09:22:53.403045+00'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a product by SKU
+      description: |
+        OpDeleteProduct requires `RoleAdmin` privileges.
+      operationId: OpDeleteProduct
+      tags:
+      - Products
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /products:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new product
+      description: |
+        OpCreateProduct requires `RoleAdmin` privileges.
+      operationId: OpCreateProduct
+      tags:
+      - Products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '201':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product/product-path-exists:
+                  summary: product/product-path-exists
+                  value:
+                    status: 409
+                    code: 'product/product-path-exists'
+                    message: product path already exists
+    get:
+      security:
+      - bearerAuth: []
+      summary: List all products
+      description: |
+        OpListProducts requires `RoleShopper` privileges.
+      operationId: OpListProducts
+      tags:
+      - Products
+      responses:
+        '200':
+          description: Product object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+  /products-assocs-groups:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new product to product association group
+      description: |
+        Creates a new product to product assoication group with the given `pp_assoc_group_code` and `name` attributes. `pp_assoc_group_code` is a unique human readable identifier.
+
+        `OpCreateProductToProductAssocGroup` requires `RoleAdmin` privileges or higher.
+      operationId: OpCreateProductToProductAssocGroup
+      tags:
+      - Product Associations Groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PPAssocGroupRequest'
+      responses:
+        '201':
+          description: pp_assoc_group object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPAssocGroup'
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-exists:
+                  summary: product-to-product-assocs-groups/assoc-group-exists
+                  value:
+                    status: 409
+                    code: 'product-to-product-assocs-groups/assoc-group-exists'
+                    message: product to product assoc group code is already exists
+    get:
+      security:
+      - bearerAuth: []
+      summary: List product to product association groups
+      description: |
+        Retrieves all product to product associations.
+
+        `OpListProductToProductAssocGroups` requires `RoleShopper` privileges or higher.
+      operationId: OpListProductToProductAssocGroups
+      tags:
+      - Product Associations Groups
+      responses:
+        '200':
+          description: list of pp_assoc_group objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PPAssocGroup'
+  /products-assocs-groups/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the product to product association group.
+      schema:
+        type: string
+        format: uuid
+        example: '96ad0d7c-c07b-4766-b0d0-e45eb100a397'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get an individual product to product association group by id
+      description: |
+        Retrieves a single product to product association by id.
+
+        `OpGetProductToProductAssocGroup` requires `RoleShopper` privileges or higher.
+      operationId: OpGetProductToProductAssocGroup
+      tags:
+      - Product Associations Groups
+      responses:
+        '200':
+          description: pp_assoc_group object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPAssocGroup'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-not-found:
+                  summary: product-to-product-assocs-groups/assoc-group-not-found
+                  value:
+                    status: 409
+                    code: 'product-to-product-assocs-groups/assoc-group-not-found'
+                    message: product to product association group not found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete an individual product to product association group
+      description: |
+        The product to product association group must be empty before it can be deleted. Attemping to delete a group that contains product to product associations will result in a `409 Conflict` error response.
+
+        `OpDeleteProductToProductAssocGroup` requires `RoleAdmin` privileges or higher.
+      tags:
+      - Product Associations Groups
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-not-found:
+                  summary: product-to-product-assocs-groups/assoc-group-not-found
+                  value:
+                    status: 404
+                    code: 'product-to-product-assocs-groups/assoc-group-not-found'
+                    message: product to product associations group not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs-groups/assoc-group-contains-assocs:
+                  summary: product-to-product-assocs-groups/assoc-group-contains-assocs
+                  value:
+                    status: 404
+                    code: 'product-to-product-assocs-groups/assoc-group-contains-assocs'
+                    message: product to product assocations group contains associations - delete them first
+  /products-assocs:batch-update:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Batch update product to product associations for a given prodoct to product associations group.
+      description: |
+
+      operationId: OpBatchUpdateProductToProductAssocs
+      tags:
+      - Product Associations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - pp_assoc_group_id
+              - product_from_id
+              - product_to_set
+              properties:
+                pp_assoc_group_id:
+                  type: string
+                  example: 'd4a2608b-1552-4972-845c-f08ca809ea67'
+                product_from_id:
+                  type: string
+                  example: '8e36be24-4854-4b6d-9763-eec4a19e4003'
+                product_to_set:
+                  type: object
+                  required:
+                  - object
+                  - data
+                  properties:
+                    object:
+                      type: string
+                      example: list
+                    data:
+                      type: array
+                      items:
+                        required:
+                        - product_id
+                        properties:
+                          product_id:
+                            type: string
+                            example: '3479242b-7e4f-4d2b-9cab-1ea6cb5bee40'
+      responses:
+        '204':
+          description: No Content
+  /products-assocs:
+    get:
+      parameters:
+      - name: pp_assoc_group_id
+        required: true
+        in: query
+        description: The unique identifier for the product to product associations group.
+        schema:
+          type: string
+          format: uuid
+          example: 'd4a2608b-1552-4972-845c-f08ca809ea67'
+      - name: product_from_id
+        required: false
+        in: query
+        description: The unique identifier for the product
+        schema:
+          type: string
+          format: uuid
+          example: '3afe2260-e5b4-4b60-9d21-e963d3dbba6b'
+      security:
+      - bearerAuth: []
+      summary: List product to product associations
+      description: |
+        Product to product associations provide a bi-directional association between products. Each set of of associations is grouped by a product to product association group.
+
+        Associations are stored as sets of from -> to pairs, organised into distinct groups.
+
+        The query parameters `pp_assoc_group_id` must be set to restrict the result set to a single product to product associations group.
+
+        The query parameter `product_from_id` is optional and filters the results by the product 'from' id.
+
+        `OpListProductToProductAssocs` requires `RoleShopper` privileges or higher.
+      tags:
+      - Product Associations
+      responses:
+        '200':
+          description: list of pg_assoc objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PPAssoc'
+  /products-assocs/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the product to product association.
+      schema:
+        type: string
+        format: uuid
+        example: 'd5521fc8-6084-4154-9eb0-a77eb3db31a9'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get an individual product to product association
+      description: |
+        `OpGetProductToProductAssoc` requires `RoleShopper` privileges or higher.
+      operationId: OpGetProductToProductAssoc
+      tags:
+      - Product Associations
+      responses:
+        '200':
+          description: pg_assoc object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPAssoc'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                product-to-product-assocs/assoc-not-found:
+                  summary: product-to-product-assocs/assoc-not-found
+                  value:
+                    status: 404
+                    code: product-to-product-assocs/assoc-not-found
+                    message: product to product association not found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete an individual product to product association
+      description: |
+        `OpDeleteProductToProductAssoc` requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteProductToProductAssoc
+      tags:
+      - Product Associations
+      responses:
+        '204':
+          description: No Content
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                examples:
+                  product-to-product-assocs/assoc-not-found:
+                    summary: product-to-product-assocs/assoc-not-found
+                    value:
+                      status: 404
+                      code: product-to-product-assocs/assoc-not-found
+                      message: product to product association not found
+  /price-lists:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new price list
+      description: |
+        OpCreatePriceList requires `RoleAdmin` privileges.
+      operationId: OpCreatePriceList
+      tags:
+      - Price Lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceListRequest'
+      responses:
+        '201':
+          description: promo_rule object
+          content:
+            applicatio/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      security:
+      - bearerAuth: []
+      summary: List all price lists
+      description: |
+        OpListPriceLists required `RoleAdmin` privileges.
+      operationId: OpListPriceLists
+      tags:
+      - Price Lists
+      responses:
+        '200':
+          description: list of price_list objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PriceList'
+                example:
+                  object: list
+                  data:
+                    - object: 'price_list'
+                      id: '96459863-28ed-41a0-919d-90de39ca76e0'
+                      price_list_code: 'default'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
+                      name: 'Default tier'
+                      description: 'Default price list'
+                      created: '2019-08-13T17:51:49.45419Z'
+                      modified: '2019-08-13T17:51:49.45419Z'
+                    - object: 'price_list'
+                      id: '23055d5e-e610-4f07-8f8e-b99929e4442b'
+                      price_list_code: 'goldfish'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
+                      name: 'Small Wholesale Customer'
+                      description: 'Small company with turn over less than 10k'
+                      created: '2019-08-13T17:51:54.380625Z'
+                      modified: '2019-08-13T17:51:54.380625Z'
+                    - object: 'price_list'
+                      id: '42a954d2-cbfe-4868-b713-319cfcb97b64'
+                      price_list_code: 'seabass'
+                      currency_code: 'GBP'
+                      strategy: 'simple'
+                      inc_tax: false
+                      name: 'Medium-sized Customer'
+                      description: 'Medium-sized company with turn over less than 100k'
+                      created: '2019-08-13T17:51:54.382624Z'
+                      modified: '2019-08-13T17:51:54.382624Z'
+  /price-lists/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the price list.
+      schema:
+        type: string
+        format: uuid
+        example: '72ae053a-e63d-4a8e-8a0b-ac43e9ca89d1'
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update a price list
+      description: |
+        OpUpdatePriceList requires `RoleAdmin` privileges.
+      operationId: OpUpdatePriceList
+      tags:
+      - Price Lists
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceListRequest'
+      responses:
+        '200':
+          description: price_list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a price list by price list id
+      description: |
+        OpGetPriceList requires `RoleShopper` privileges.
+      operationId: OpGetPriceList
+      tags:
+      - Price Lists
+      responses:
+        '200':
+          description: price_list object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceList'
+        '404':
+          description: Not Found
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a price list
+      description: |
+        OpDeletePriceList requires `RoleAdmin` privileges.
+      operationId: OpDeletePriceList
+      tags:
+      - Price Lists
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                price-list/price-list-in-use:
+                  summary: validate/invalid-request-body
+                  value:
+                    status: 409
+                    code: 'price-list/price-list-in-use'
+                    message: price list is already in use
+  /shipping-tariffs:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new shipping tariff
+      description: |
+        Attempt to create a new shipping tarrif. The request body must contain `country_code`, `shipping_code`, `name`, `price` and `tax_code` attributes.
+
+        OpCreateShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpCreateShippingTariff
+      tags:
+      - Shipping Tariffs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - country_code
+              - shipping_code
+              - name
+              - price
+              - tax_code
+              properties:
+                country_code:
+                  type: string
+                  example: GB
+                shipping_code:
+                  type: string
+                  example: 'NEXTDAY-SPECIAL'
+                name:
+                  type: string
+                  example: Next day special delivery
+                price:
+                  type: integer
+                  example: 99500
+                tax_code:
+                  type: string
+                  example: T20
+      responses:
+        '201':
+          description: shipping_tariff object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingTariff'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: shipping-tariffs/shipping-tariff-code-exists
+                message: shipping tariff code already exists
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of all shipping tariffs
+      description: |
+        Retrieves a complete list of shipping_tariff objects.
+
+        OpListShippingTariffs requires `RoleShopper` privileges or higher.
+      operationId: OpListShippingTariffs
+      tags:
+      - Shipping Tariffs
+      responses:
+        '200':
+          description: list of shipping_tariff objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ShippingTariff'
+  /shipping-tariffs/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the price list.
+      schema:
+        type: string
+        format: uuid
+        example: '32e6a6ce-ed1b-4304-a749-6aa474150950'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a single shipping tariff by id
+      description: |
+        OpGetShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpGetShippingTariff
+      tags:
+      - Shipping Tariffs
+      responses:
+        '200':
+          description: shipping_tariff object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingTariff'
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                example:
+                    status: 404
+                    code: shipping-tariffs/shipping-tariff-not-found
+                    message: shipping tariff not found
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update a shipping tariff
+      description: |
+        Attempt to update all the details of a shipping tariff. `country_code`, `shipping_code`, `name`, `price` and `tax_price` attributes must all be passed..
+
+        OpUpdateShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpUpdateShippingTariff
+      tags:
+      - Shipping Tariffs
+      requestBody:
+        description: Shipping Tariff details to update
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - country_code
+              - shipping_code
+              - name
+              - price
+              - tax_code
+              properties:
+                country_code:
+                  type: string
+                  example: GB
+                shipping_code:
+                  type: string
+                  example: 'NEXTDAY-SPECIAL'
+                name:
+                  type: string
+                  example: 'New name'
+                price:
+                  type: integer
+                  example: 129500
+                tax_code:
+                  type: string
+                  example: T0
+      responses:
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                example:
+                    status: 404
+                    code: shipping-tariffs/shipping-tariff-not-found
+                    message: shipping tariff not found
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                status: 404
+                code: shipping-tariffs/shipping-tariff-code-exists
+                message: shipping tariff code already exists
+        '200':
+          description: shipping_tariff object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingTariff'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a shipping tariff by id
+      description: |
+        Attempts to delete a shipping tariff identified by the given id.
+
+        OpDeleteShippingTariff requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteShippingTariff
+      tags:
+      - Shipping Tariffs
+      responses:
+        '204':
+          description: No Content
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                example:
+                    status: 404
+                    code: shipping-tariffs/shipping-tariff-not-found
+                    message: shipping tariff not found
+  /inventory:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of all invetory objects
+      description: |
+        Retrieves a list of all inventory objects.
+
+        OpListInventory requires `RoleShopper` privileges.
+      operationId: OpListInventory
+      tags:
+      - Inventory
+      responses:
+        '200':
+          description: list of inventory objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Inventory'
+  /inventory/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the inventory object.
+      schema:
+        type: string
+        format: uuid
+        example: '5659fec5-afd1-44a0-bf40-71d63067fd36'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a single inventory object by id
+      description: |
+        Retrieves a single inventory object by id.
+
+        OpGetInventory requires `RoleShopper` privileges.
+      operationId: OpGetInventory
+      tags:
+      - Inventory
+      responses:
+        '200':
+          description: inventory object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                examples:
+                  inventory/inventory-not-found:
+                    summary: inventory/inventory-not-found
+                    value:
+                      status: 404
+                      code: inventory/inventory-not-found
+                      message: inventory not found
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update a single inventory object
+      description: |
+        Partially updates a single inventory object by id. The request body accepts `onhand` (a positive integer or zero) and `overselling` a boolean value.
+
+        If `overselling` is set to true there will be no restriction on the number of items that can be added to the shopping cart and placed in an order.
+
+        `OpUpdateInventory` requires `RoleAdmin` privileges or higher.
+      operationId: OpUpdateInventory
+      tags:
+      - Inventory
+      requestBody:
+        description: Order to place in the system
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                onhand:
+                  type: integer
+                  minimum: 0
+                  maximum: 99999
+                  example: 50
+                overselling:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: inventory object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+        '404':
+            description: Not Found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+                examples:
+                  inventory/inventory-not-found:
+                    summary: inventory/inventory-not-found
+                    value:
+                      status: 404
+                      code: inventory/inventory-not-found
+                      message: inventory not found
+  /inventory:batch-update:
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Batch update inventory
+      description: |
+        OpBatchUpdateInventory requires `RoleAdmin` privileges or higher.
+      operationId: OpBatchUpdateInventory
+      tags:
+      - Inventory
+      requestBody:
+        description: list of inventory to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateRequest'
+      responses:
+        '200':
+          description: list of inventory objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Inventory'
+  /orders:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Place an guest or customer order
+      description: |
+        OpPlaceOrder requires `RoleShopper` privileges.
+      operationId: OpPlaceOrder
+      tags:
+      - Orders
+      requestBody:
+        description: Order to place in the system
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - cart_id
+              - customer
+              - billing_address
+              - shipping_address
+              properties:
+                cart_id:
+                  type: string
+                  format: uuid
+                  example: '33ed8b80-3ba7-4f31-9364-2559a83258a7'
+                contact_name:
+                  type: string
+                  example: 'John Doe'
+                email:
+                  type: string
+                  format: email
+                  example: 'john@example.com'
+                billing_address:
+                    $ref: '#/components/schemas/OrderAddressRequest'
+                shipping_address:
+                    $ref: '#/components/schemas/OrderAddressRequest'
+      responses:
+        '201':
+          description: Order object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: 'invalid input, object invalid'
+        '409':
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                cart/cart-product-exists:
+                  summary: validate/invalid-request-body
+                  value:
+                    status: 409
+                    code: 'validate/invalid-request-body'
+                    message: For placing guest orders set both contact_name and email
+  /orders/{id}/stripecheckout:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Start Stripe checkout session
+      description: |
+        OpStripeCheckout requires `RoleShopper` privileges. Initiates the Stripe checkout process recording an intent to pay against the order with the given `order_id`.
+      operationId: OpStripCheckout
+      tags:
+      - Stripe
+      parameters:
+      - name: id
+        required: true
+        in: path
+        description: A unique identifier for the order.
+        schema:
+          type: string
+          example: '100005'
+      responses:
+        '201':
+          description: Stripe Checkout Session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSession'
+  /webhooks:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new webhook
+      description: |
+        Creates a new webhook with the given `url` and list of `events`.
+      operationId: OpCreateWebhook
+      tags:
+      - Webhooks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCreateRequest'
+      responses:
+        '201':
+          description: webhook object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get a list of webhooks
+      description: |
+        Retrieve a list of all webhooks in the system.
+
+        `OpListWebhooks` requires `RoleAdmin` privileges or higher.
+      operationId: OpListWebhooks
+      tags:
+      - Webhooks
+      responses:
+        '200':
+          description: list of webhook objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+  /webhooks/{id}:
+    parameters:
+    - name: id
+      required: true
+      in: path
+      description: A unique identifier for the webhook.
+      schema:
+        type: string
+        format: uuid
+        example: '9d91fa17-3219-493e-afaf-4deec6bed4e4'
+    get:
+      security:
+      - bearerAuth: []
+      summary: Retrieve a single webhook by id
+      description: |
+        `OpGetWebhook` requires `RoleAdmin` privileges or higher.
+      operationId: OpGetWebhook
+      tags:
+      - Webhooks
+      responses:
+        '200':
+          description: webhook object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    patch:
+      security:
+      - bearerAuth: []
+      summary: Update part of all of a webhook
+      description: |
+        Update the `url`, `events` or `enabled` flag for the webhook identified in the `id` URL parameter.
+
+        `OpUpdateWebhook` requires `AdminRole` privileges or higher.
+      tags:
+      - Webhooks
+      requestBody:
+        description: webhook update request
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: 'https://congruous-riverbed.glitch.me/webhook'
+                events:
+                  type: object
+                  properties:
+                    object:
+                      type: string
+                      example: list
+                    data:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                      - 'order.created'
+                enabled:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: webhook object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a single webhook
+      description: |
+        `OpDeleteWebhook` requires `RoleAdmin` privileges or higher.
+      operationId: OpDeleteWebhook
+      tags:
+      - Webhooks
+      responses:
+        '204':
+          description: No Content
+  /stripe-webhook:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Stripe Web Hook callback for fulfillment
+      description: |
+        OpStripeWebhook requires no privileges and is a public endpoint. See the Stripe documentation on [Fulfilling purchases with webhooks](https://stripe.com/docs/payments/checkout/fulfillment#webhooks).
+
+        After OpStripeWebhook is called successfully, the order status is set to `completed` and payment set to `paid`.
+      operationId: StripeWebhook
+      tags:
+      - Stripe
+      responses:
+        '204':
+          description: No Content
+  /sysinfo:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get system information
+      description: |
+        OpSystemInfo requires `RoleAdmin` privileges.
+      operationId: OpSystemInfo
+      tags:
+      - Misc
+      responses:
+        '200':
+          description: System info object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemInfo'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    StripeCheckoutSession:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'stripe_checkout_session'
+        checkout_session_id:
+          type: string
+          example: 'cs_test_7sKcYwUtBPWVonB6b5aa0UrhwTBrId78Wb9l0GTEduj3rCwmi33EJAEr'
+    Cart:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'cart'
+        id:
+          type: string
+          example: '30ad2997-3d19-4001-88d9-e2568d8cf720'
+        locked:
+          type: string
+          example: false
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-02T12:02:42.217936Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-02T12:02:42.217936Z'
+    CartProduct:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'cart_product'
+        id:
+          type: string
+          example: '69186b07-075f-42b9-b5cb-d66d9addabf1'
+        product_id:
+          type: string
+          format: uuid
+          example: 'ab18bfeb-4dfe-4a69-a6e3-5e9317b29c35'
+        sku:
+          type: string
+          example: 'TV-SKU'
+        name:
+          type: string
+          example: 'LCD TV System'
+        qty:
+          type: integer
+          example: 5
+        unit_price:
+          type: integer
+          example: 2066250
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-01T15:37:32.269875Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-01T15:37:32.269875Z'
+    CartCoupon:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'cart_coupon'
+        id:
+          type: string
+          format: uuid
+          example: '5db8fd80-a7ac-470b-ba10-1d3d051bea72'
+        coupon_id:
+          type: string
+          format: uuid
+          example: '97578732-a3aa-4002-b3f0-7ab12fedd375'
+        cart_id:
+          type: string
+          format: uuid
+          example: 'b00be0e2-9c5c-42e1-a4f9-9f2e6d6434ef'
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-19 18:27:29.662209+00Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-19 18:27:29.662209+00Z'
+    PromoRuleCreateRequest:
+      type: object
+      required:
+      - name
+      - promo_rule_code
+      - amount
+      - type
+      - target
+      properties:
+        name:
+          type: string
+          example: Summer specials
+        promo_rule_code:
+          type: string
+          example: SUMMERSALE20
+        start_at:
+          type: string
+          format: date-time
+          example: '2019-08-20T21:30:21.984856Z'
+        end_at:
+          type: string
+          format: date-time
+          example: '2019-09-20T21:30:21.984856Z'
+        amount:
+          type: integer
+          example: 1000
+        total_threshold:
+          type: integer
+          example: 199500
+        type:
+          type: string
+          enum: ['percentage', 'fixed']
+          example: percentage
+        target:
+          type: string
+          enum: ['product', 'productset', 'category', 'total', 'shipping']
+          example: category
+    PromoRule:
+      type: object
+      properties:
+        object:
+          type: string
+          example: 'promo_rule'
+        id:
+          type: string
+          format: uuid
+          example: 'd8f3d5d4-9143-4ec0-87fe-0753afecaa87'
+        promo_rule_code:
+          type: string
+          example: SUMMER25
+        name:
+          type: string
+          example: 'Summer specials'
+        start_at:
+          type: string
+          format: date-time
+          example: '2019-08-20T21:30:21.984856Z'
+        end_at:
+          type: string
+          format: date-time
+          example: '2019-09-20T21:30:21.984856Z'
+        amount:
+          type: integer
+          example: 1000
+        total_threshold:
+          type: integer
+          example: 199500
+        type:
+          type: string
+          enum: ['percentage', 'fixed']
+          example: 'percentage'
+        target:
+          type: string
+          enum: ['product', 'productset', 'category', 'total', 'shipping']
+          example: category
+        product_id:
+          type: string
+          format: uuid
+          example: '782b3f6d-08c1-4b81-a838-5a91317cde37'
+        product_set_id:
+          type: string
+          format: uuid
+          example: '72708610-8cbb-44c7-8301-942bce3c7121'
+        category_id:
+          type: string
+          format: uuid
+          example: 'a05f6d8e-1610-4b72-89a4-d4e668e6fac3'
+        shipping_tariff_id:
+          type: string
+          format: uuid
+          example: '40a15909-93cf-4aee-a718-867011b6a525'
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+    Coupon:
+      type: object
+      properties:
+        object:
+          type: string
+          example: coupon
+        id:
+          type: string
+          format: uuid
+          example: 'test'
+        coupon_code:
+          type: string
+          example: SALE20
+        promo_rule_id:
+          type: string
+          format: uuid
+          example: 'd54aa60b-a2b7-4f18-b4e2-5c410bd1e263'
+        promo_rule_code:
+          type: string
+          example: PROMO20
+        void:
+          type: boolean
+          example: false
+        reusable:
+          type: boolean
+          example: true
+        spend_count:
+          type: integer
+          minimum: 0
+          example: 5
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+    Offer:
+      type: object
+      properties:
+        object:
+          type: string
+          example: offer
+        id:
+          type: string
+          format: uuid
+          example: '391c499e-5e58-430a-8d92-a8587cbc3517'
+        promo_rule_id:
+          type: string
+          format: uuid
+          example: 'd7962641-1713-4ab2-93b6-ea7c3ac72afa'
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+    OfferApplyRequest:
+      type: object
+      required:
+      - discount_id
+      properties:
+        discount_id:
+          type: string
+          example: '2597d93e-12bf-46be-b712-2a7d2d6b5d29'
+    UserRequest:
+      type: object
+      required:
+      - role
+      - email
+      - password
+      - firstname
+      - lastname
+      properties:
+        role:
+          type: string
+          enum: ['customer', 'admin']
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          example: Xxaks9SfmcT5avBR
+        firstname:
+          type: string
+          example: John
+        lastname:
+          type: string
+          example: Doe
+    User:
+      type: object
+      properties:
+        object:
+          type: string
+          example: user
+        id:
+          type: string
+          format: uuid
+          example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+        uid:
+          type: string
+          example: eocNauyyf3WchJG6WRWXePEqbTE2
+        role:
+          type: string
+          enum: ['customer', 'admin']
+          example: customer
+        price_list_id:
+          type: string
+          format: uuid
+          example: '9f0fb310-6fac-4a06-9438-ca1c2f8bee7b'
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        firstname:
+          type: string
+          example: John
+        lastname:
+          type: string
+          example: Doe
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-30 14:23:31.756204Z'
+    DeveloperKey:
+      type: object
+      properties:
+        object:
+          type: string
+          example: developer_key
+        id:
+          type: string
+          example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
+        user_id:
+          type: string
+          example: '5a85466e-9f23-4d71-b8b7-adbfc479bb6c'
+        key:
+          type: string
+          example: '2Z1uUw7Vo81sHneDKfkbUTfNoQ2UXLEkrd5224tapmK1'
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-31T14:36:13.595972Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-31T14:36:13.595972Z'
+    SignInDevKeyRequest:
+      type: object
+      required:
+      - key
+      properties:
+        key:
+          type: string
+          example: '2Pb3bNxw3PDBEJ8U6hf7mLVgrYBhP8exZBA6xJDSh2zQ'
+    SignInDevKeyCustomToken:
+      type: object
+      properties:
+        custom_token:
+          type: string
+          example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXJlYmFzZS1hZG1pbnNkay1xbGwzaEB0ZXN0LWRhdGEtb2FrLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6Ly9pZGVudGl0eXRvb2xraXQuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJleHAiOjE1NjQ2MTU1NzYsImlhdCI6MTU2NDYxMTk3Niwic3ViIjoiZmlyZWJhc2UtYWRtaW5zZGstcWxsM2hAdGVzdC1kYXRhLW9hay5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsInVpZCI6IkFIeXJWTUZ5cEdOOVJ1VDF3R0VlcmtvcEdybjEifQ.nIUsoOqfSBZuiYM9oWCwLAg9EGiudjYcgN5xEdn-8fN_SXlEOd3zf0COpA2d8R-Bk3WPD2l-EjMwVg4FH3Wefq8_TTbI_N1d4Ih3e-ksvlsvw-PP8Rye9yx58hEojmSsVk7FccBtvW8upl-GSa2j_sfRT4Sfaa9u1WmUdjMu_-wosZDYnDlMs1p73KN6Fq6NizsfcDVSWDDi3kzLg1ROI8kcqPE_O2N33e8Tm2mgfd9SXQL5XlpbuF963qqvLgq--0fQ37r-7Med2m_emfG93ZhsqYzIlBgSx3EgaZ_msW_Cia37d5UApqvR2RH0udzjRpXvN4Evh3CiSnC696oIeQ'
+        customer:
+          type: object
+          properties:
+            object:
+              type: string
+              example: 'customer'
+            id:
+              type: string
+              format: uuid
+              example: '53b3384b-fc35-47d1-9054-6b81f30f382e'
+            uid:
+              type: string
+            role:
+              type: string
+              example: 'eocNauyyf3WchJG6WRWXePEqbTE2'
+            email:
+              type: string
+              format: email
+              example: 'john.doe@example.com'
+            firstname:
+              type: string
+              example: 'John'
+            lastname:
+              type: string
+              example: 'Doe'
+            created:
+              type: string
+              format: date-time
+              example: '2019-07-30 14:23:31.756204Z'
+            modified:
+              type: string
+              format: date-time
+              example: '2019-07-30 14:23:31.756204Z'
+    BatchUpdateRequest:
+      required:
+      - object
+      - data
+      properties:
+        object:
+          type: string
+          example: list
+        data:
+          type: array
+          items:
+            required:
+            - product_id
+            properties:
+              product_id:
+                type: string
+                example: '3479242b-7e4f-4d2b-9cab-1ea6cb5bee40'
+              onhand:
+                type: integer
+                minimum: 0
+                maximum: 99999
+                example: 40
+              overselling:
+                type: boolean
+                example: true
+    Inventory:
+      properties:
+        object:
+          type: string
+          example: inventory
+        id:
+          type: string
+          format: uuid
+          example: '5659fec5-afd1-44a0-bf40-71d63067fd36'
+        product_id:
+          type: string
+          format: uuid
+          example: 'b3d23452-95b7-46e2-902d-721a5c21f680'
+        product_path:
+          type: string
+          example: quad-processor-split-screen-cctv-system
+        product_sku:
+          type: string
+          example: QUAD01
+        onhand:
+          type: integer
+          example: 50
+        overselling:
+          type: boolean
+          example: true
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-01 16:53:24.590938Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-01 16:53:24.590938Z'
+    Order:
+      properties:
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+    AddressUpdateRequest:
+      properties:
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        county:
+          type: string
+          example: 'Cambridgeshire'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country_code:
+          type: string
+          example: 'GB'
+    OrderAddressRequest:
+      required:
+      - type
+      - contact_name
+      - addr1
+      - city
+      - county
+      - postcode
+      - country_code
+      properties:
+        type:
+          type: string
+          enum: [shipping, billing]
+          example: 'billing'
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        county:
+          type: string
+          example: 'Cambridgeshire'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country_code:
+          type: string
+          example: 'GB'
+    AddressRequest:
+      required:
+      - user_id
+      - type
+      - contact_name
+      - addr1
+      - city
+      - county
+      - postcode
+      - country_code
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          example: 'd31bb101-8e44-49f0-86fd-0d4962140687'
+        type:
+          type: string
+          enum: [shipping, billing]
+          example: 'billing'
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        county:
+          type: string
+          example: 'Cambridgeshire'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country_code:
+          type: string
+          example: 'GB'
+    Address:
+      properties:
+        object:
+          type: string
+          example: 'billing'
+        id:
+          type: string
+          format: uuid
+          example: 'c7c9ff19-4bc9-4953-a1bd-9dee0b41b4fe'
+        type:
+          type: string
+          enum: [shipping, billing]
+          example: 'billing'
+        contact_name:
+          type: string
+          example: John Doe
+        addr1:
+          type: string
+          example: '456 The Road'
+        addr2:
+          type: string
+          example: 'Park Lane'
+        city:
+          type: string
+          example: 'Cambridge'
+        postcode:
+          type: string
+          example: 'CB1 9ZZ'
+        country_code:
+          type: string
+          example: 'GB'
+        created:
+          type: string
+          format: date-time
+          example: '2019-06-26T10:26:14.047Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-06-26T10:26:14.047Z'
+    CreateProductsCategories:
+      required:
+      - product_id
+      - category_id
+      properties:
+        product_id:
+          type: string
+          format: uuid
+          example: 3b4c05ff-004e-477c-805d-13f9ef635d27
+        category_id:
+          type: string
+          format: uuid
+          example: c98257b2-1d6a-4b76-97ca-2421603f3bf5
+    ProductsCategories:
+      properties:
+        object:
+          type: string
+          example: products_category
+        id:
+          type: string
+          format: uuid
+          example: f864952e-9711-449a-b3c5-4281e9b671b3
+        product_id:
+          type: string
+          format: uuid
+          example: 3b4c05ff-004e-477c-805d-13f9ef635d27
+        product_path:
+          type: string
+          example: mobile-phone
+        product_sku:
+          type: string
+          example: PHONE-SKU
+        product_name:
+          type: string
+          example: Mobile Phone Kit
+        category_id:
+          type: string
+          format: uuid
+          example: ee8dc5a8-7366-48d3-bdfd-9d8fa6f05564
+        category_path:
+          type: string
+          example: a/b/e
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-22T22:42:41.446412Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-22T22:42:41.446412Z'
+    Category:
+      properties:
+        object:
+          type: string
+          example: category
+        id:
+          type: string
+          format: uuid
+          example: '0c119e3e-2b0e-4ab9-888d-98d8f0f5dd0e'
+        segment:
+          type: string
+          example: security-systems
+        path:
+          type: string
+          example: spy/shop-by-solution/security-systems
+        name:
+          type: string
+          example: Security Systems
+        lft:
+          type: integer
+          minimum: 0
+          example: 1
+        rgt:
+          type: integer
+          minimum: 0
+          example: 120
+        depth:
+          type: integer
+          minimum: 0
+          example: 0
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-16T13:57:52.699517Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-16T13:57:52.699517Z'
+    Categories:
+      properties:
+        object:
+          type: string
+          example: 'category'
+        id:
+          type: string
+          example: 'c2ebdb86-5cd1-4c4c-8614-017a494ff77b'
+        segment:
+          type: string
+          example: 'wireless-cctv'
+        name:
+          type: string
+          example: 'Wireless CCTV'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Categories'
+    CategoryRequest:
+      required:
+      - segment
+      - name
+      - categories
+      properties:
+        segment:
+          type: string
+          example: 'wireless-cctv'
+        name:
+          type: string
+          example: 'Wireless CCTV'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryRequest'
+    UpdateProductPriceRequest:
+      required:
+      - object
+      - data
+      properties:
+        object:
+          type: string
+          enum: ['list']
+          example: list
+        data:
+          type: array
+          items:
+            properties:
+              break:
+                type: integer
+                example: 1
+              unit_price:
+                type: integer
+                example: 191920
+    PriceListRequest:
+      required:
+      - price_list_code
+      - currency_code
+      - strategy
+      - inc_tax
+      - name
+      - description
+      properties:
+        price_list_code:
+          type: string
+          example: 'default'
+        currency_code:
+          type: string
+          enum: ['GBP', 'EUR', 'USD']
+          example: 'GBP'
+        strategy:
+          type: string
+          enum: ['simple', 'volume', 'tiered']
+          example: 'simple'
+        inc_tax:
+          type: boolean
+          example: false
+        name:
+          type: string
+          example: 'Default Tier'
+        description:
+          type: string
+          example: 'Default pricing tier is the fallback pricing tier'
+    PriceList:
+      properties:
+        object:
+          type: string
+          example: 'price_list'
+        id:
+          type: string
+          example: '96459863-28ed-41a0-919d-90de39ca76e0'
+        price_list_code:
+          type: string
+          example: 'default'
+        currency_code:
+          type: string
+          enum: ['GBP', 'EUR', 'USD']
+          example: 'GBP'
+        strategy:
+          type: string
+          enum: ['simple', 'volume', 'tiered']
+          example: 'simple'
+        inc_tax:
+          type: boolean
+          example: false
+        name:
+          type: string
+          example: 'Default Tier'
+        description:
+          type: string
+          example: 'Default pricing tier is the fallback pricing tier'
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-13 17:51:49.45419Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-13 17:51:49.45419'
+    Price:
+      properties:
+        object:
+          type: string
+          example: price
+        id:
+          type: string
+          example: b85f6782-c6a8-4188-81ca-c9c1eba45367
+        product_id:
+          type: string
+          format: uuid
+          example: 49173212-537f-497b-b76e-1d606855fe66
+        price_list_id:
+          type: string
+          example: 5fb5bd58-24f7-42c6-9be8-12f06602cec7
+        break:
+          type: integer
+          example: 1
+        unit_price:
+          type: integer
+          example: 2066250
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30T13:57:23.289157Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-31T15:27:15.536449Z'
+    Image:
+      properties:
+        object:
+          type: string
+          example: 'image'
+        id:
+          type: string
+          example: 'e2a1b7ff-a00a-4d7c-a2dd-86e8ea749ed1'
+        product_id:
+          type: string
+          format: uuid
+          example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
+        product_path:
+          type: string
+          example: '10-metre-power-cable-for-5v-cctv-camera-spycam'
+        product_sku:
+          type: string
+          example: 10M17POWER
+        path:
+          type: string
+          example: '4439.jpg'
+        gsurl:
+          type: string
+          example: 'gs://4439.jpg'
+        width:
+          type: integer
+          minimum: 0
+          example: 999999
+        height:
+          type: integer
+          minimum: 0
+          example: 999999
+        size:
+          type: integer
+          minimum: 0
+          example: 0
+        created:
+          type: string
+          format: date-time
+          example: '2019-07-30T14:31:47.672541Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-07-30T14:31:47.672541Z'
+    ProductRequest:
+      required:
+      - path
+      - sku
+      - name
+      properties:
+        path:
+          type: string
+          example: water-bottle
+        sku:
+          type: string
+          example: WATER-SKU
+        name:
+          type: string
+          example: Water Bottle
+    ProductUpdateRequest:
+      required:
+      - path
+      - sku
+      - name
+      properties:
+        sku:
+          type: string
+          example: WATER-SKU
+        path:
+          type: string
+          example: water-bottle
+        name:
+          type: string
+          example: Water Bottle
+    ProductIncImages:
+      properties:
+        object:
+          type: string
+          example: product
+        id:
+          type: string
+          format: uuid
+          example: '8782b771-e6d7-45f3-879a-2b9d3e8ba1c7'
+        path:
+          type: string
+          example: usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system
+        sku:
+          type: string
+          example: TV-SKU
+        name:
+          type: string
+          example: Green Feathers Wireless Bird Box Camera & USB Recording Kit
+        images:
+          type: object
+          properties:
+            object:
+              type: string
+              example: list
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Image'
+    Product:
+      properties:
+        object:
+          type: string
+          example: product
+        id:
+          type: string
+          format: uuid
+          example: 8782b771-e6d7-45f3-879a-2b9d3e8ba1c7
+        path:
+          type: string
+          example: usb-receiver-cctv-wireless-infrared-day-night-hidden-spy-camera-system
+        sku:
+          type: string
+          example: TV-SKU
+        name:
+          type: string
+          example: Green Feathers Wireless Bird Box Camera & USB Recording Kit
+        created:
+          type: string
+          format: date-time
+          example: '2019-08-22T09:31:35.430Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-08-22T09:31:35.430Z'
+    ShippingTariff:
+      properties:
+        object:
+          type: string
+          example: shipping_tariff
+        id:
+          type: string
+          format: uuid
+          example: 'cf9ad33b-d0eb-4585-b4b7-0ef1355126fb'
+        country_code:
+          type: string
+          example: GB
+        shipping_code:
+          type: string
+          example: 'NEXTDAY-ROYALMAIL'
+        name:
+          type: string
+          example: Royal Mail Special Delivery
+        price:
+          type: integer
+          example: 199500
+        tax_code:
+          type: string
+          example: T20
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-15 16:15:00.810399Z'
+    PPAssocGroupRequest:
+      required:
+      - pp_assoc_group_code
+      - name
+      properties:
+        pp_assoc_group_code:
+          type: string
+          example: UPSELL
+        name:
+          type: string
+          example: Upselling Group
+    PPAssocGroup:
+      properties:
+        object:
+          type: string
+          example: pp_assoc_group
+        id:
+          type: string
+          format: uuid
+          example: d4a2608b-1552-4972-845c-f08ca809ea67
+        pp_assoc_group_code:
+          type: string
+          example: UPSELLS
+        name:
+          type: string
+          example: Upselling Group
+        created:
+          type: string
+          format: date-time
+          example: '2019-09-26 13:19:15.685272Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-09-26 13:19:15.685272Z'
+    PPAssoc:
+      properties:
+        object:
+          type: string
+          example: pp_assoc
+        id:
+          type: string
+          format: uuid
+          example: 'd5521fc8-6084-4154-9eb0-a77eb3db31a9'
+        pp_assoc_group_id:
+          type: string
+          format: uuid
+          example: 'd4a2608b-1552-4972-845c-f08ca809ea67'
+        product_from_id:
+          type: string
+          format: uuid
+          example: '8e36be24-4854-4b6d-9763-eec4a19e4003'
+        product_to_id:
+          type: string
+          format: uuid
+          example: '3479242b-7e4f-4d2b-9cab-1ea6cb5bee40'
+        created:
+          type: string
+          format: uuid
+          example: '2019-09-26 13:19:15.685272Z'
+        modified:
+          type: string
+          format: uuid
+          example: '2019-09-26 13:19:15.685272Z'
+    Webhook:
+      properties:
+        object:
+          type: string
+          example: webhook
+        id:
+          type: string
+          example: '9d91fa17-3219-493e-afaf-4deec6bed4e4'
+        signing_key:
+          type: string
+          example: naJQqCYBptg1jft7SsJWX1dEF6wEv8VDQ7BoqPerQjc
+        url:
+          type: string
+          format: uri
+          example: https://congruous-riverbed.glitch.me/webhook
+        events:
+          type: array
+          example: ['order.created']
+        enabled:
+          type: boolean
+          example: true
+        created:
+          type: string
+          format: date-time
+          example: '2019-10-01T11:49:50.663221Z'
+        modified:
+          type: string
+          format: date-time
+          example: '2019-10-01T11:50:54.547336Z'
+    WebhookCreateRequest:
+      required:
+      - url
+      - events
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://congruous-riverbed.glitch.me/webhook
+        events:
+          type: object
+          required:
+          - object
+          - data
+          properties:
+            object:
+              type: string
+              example: list
+            data:
+              type: array
+              items:
+                type: string
+              example:
+              - 'order.created'
+    SystemConfig:
+      properties:
+        object:
+          type: string
+          example: 'config'
+        ECOM_FIREBASE_PROJECT_ID:
+          type: string
+          example: 'test-data-oak'
+        ECOM_FIREBASE_WEB_API_KEY:
+          type: string
+          example: 'AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc'
+    SystemInfo:
+      properties:
+        api_version:
+          type: string
+          example: 'v0.62.3'
+        env:
+          type: object
+          properties:
+            pg:
+              type: object
+              properties:
+                ECOM_PG_HOST:
+                  type: string
+                  example: 'localhost'
+                ECOM_PG_PORT:
+                  type: string
+                  example: '5432'
+                ECOM_PG_DATABASE:
+                  type: string
+                  example: 'ecom_dev'
+                ECOM_PG_USER:
+                  type: string
+                  example: 'postgres'
+                ECOM_PG_SSLMODE:
+                  type: string
+                  example: 'disable'
+                schema_version:
+                  type: string
+                  example: 'v0.62.3'
+            google:
+              type: object
+              properties:
+                ECOM_GAE_PROJECT_ID:
+                  type: string
+                  example: 'open247-gae'
+            firebase:
+              type: object
+              properties:
+                apiKey:
+                  type: string
+                  example: AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc
+                authDomain:
+                  type: string
+                  example: test-data-oak.firebaseapp.com
+                databaseURL:
+                  type: string
+                  format: uri
+                  example: https://test-data-oak.firebaseio.com
+                projectId:
+                  type: string
+                  example: test-data-oak
+                storageBucket:
+                  type: string
+                  example: test-data-oak.appspot.com
+                messagingSenderId:
+                  type: string
+                  example: '353707113320'
+                appId:
+                  type: string
+                  example: '1:353707113320:web:911378b89130dd98'
+            stripe:
+              type: object
+              properties:
+                ECOM_STRIPE_SUCCESS_URL:
+                  type: string
+                  format: uri
+                  example: http://localhost:8080/stripe-success
+                ECOM_STRIPE_CANCEL_URL:
+                  type: string
+                  format: uri
+                  example: http://localhost:8080/stripe-cancel
+            app:
+              type: object
+              properties:
+                PORT:
+                  type: string
+                  example: '8080'
+                ECOM_APP_ROOT_EMAIL:
+                  type: string
+                  example: 'andy+root@andyfusniak.com'
+                ECOM_APP_ENABLE_STACKDRIVER_LOGGING:
+                  type: boolean
+                  example: true
+                ECOM_APP_ENDPOINT:
+                  type: string
+                  format: uri
+                  example: https://d07a63ae.ngrok.io
+    Error:
+      properties:
+        status:
+          type: integer
+          example: 409
+        code:
+          type: string
+          example: "assocs/assocs-already-exists"
+        message:
+          type: string
+          example: "product to category relations already exist"

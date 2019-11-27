@@ -1,30 +1,33 @@
 package app
 
 import (
-	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
 
 // GetImageHandler returns a handler function that gets a single image by UUID.
 func (a *App) GetImageHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		uuid := chi.URLParam(r, "uuid")
-		product, err := a.Service.GetImage(r.Context(), uuid)
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: GetImageHandler called")
+
+		imageID := chi.URLParam(r, "id")
+		image, err := a.Service.GetImage(ctx, imageID)
+		if err == service.ErrImageNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeImageNotFound, "image not found")
+			return
+		}
 		if err != nil {
-			if err == sql.ErrNoRows {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			fmt.Fprintf(os.Stderr, "service: GetImage(ctx, %q) error: %+v", uuid, err)
+			contextLogger.Errorf("app: GetImage(ctx, imageID=%q) error: %+v", imageID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(*product)
+		json.NewEncoder(w).Encode(image)
 	}
 }

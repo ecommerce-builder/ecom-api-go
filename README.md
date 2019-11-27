@@ -4,6 +4,7 @@
   * [Environment Variable](#environment-variables)
     * [App](#env-app)
     * [Google](#env-google)
+    * [Stripe](#env-stripe)
     * [Postgres](#env-postgres)
   * [File Structure](#file-structure)
 * [Deployment](#deployment)
@@ -12,40 +13,59 @@
   * [Model](#arch-model)
   * [Service](#arch-service)
   * [App](#arch-app)
+* [API](#api)
+  * [CreateCart](#CreateCart)
+  * [AddItemToCart](#AddItemToCart)
+  * [GenerateCustomerDevKey](#GenerateCustomerDevKey)
+  * [SignInWithDevKey](#SignInWithDevKey)
+  * [PlaceOrder](#PlaceOrder)
+  * [StripeCheckout](#StripeCheckout)
 
 ## <a name="configuration"></a>Configuration
 
-The `ecom-api` executable accepts a configuration through the use of environment variables.
+The `ecom-api` executable accepts configuration through the use of environment variables.
 
 
 ### <a name="environment-variables"></a>Environment Variables
 
-Configuration is grouped into three groups; [App](#env-app), [Google](#env-google) and [PostgreSQL](#env-postgres) prefixed with `ECOM_APP_`, `ECOM_GOOGLE_` and `ECOM_PG_` respectively.
+Configuration is split into four groups; [App](#env-app), [Google](#env-google), [Stripe](#env-stripe) and [PostgreSQL](#env-postgres) prefixed with `ECOM_APP_`, `ECOM_GOOGLE_`, `ECOM_STRIPE_` and `ECOM_PG_` respectively. The Stripe configuration is optional and is only require if you intend to take payments with the Stripe payment gateway.
+
+The Google configuration includes Firebase Auth and is mandatory since the API requires Firebase Auth for Authentication and Authorisation.
 
 
 #### <a name="env-app"></a>App
 
 | Env Var                  | Required | Default | Description |
 | -------------            | -------- | ------- | ------------|
-| **`PORT`**                   | Optional | 8080    | Usually set by the container. |
+| **`PORT`**                   | Optional | 8080    | Usually set by the container. For example, Google App Engine sets this on your behalf. |
 | **`ECOM_APP_TLS_MODE`**      | Optional | disable | To enable set the value to `enable`. If enabled you must set `ECOM_APP_TLS_CERT` and `ECOM_APP_TLS_KEY`. |
 | **`ECOM_APP_TLS_CERT`**      | Depends  |         | Path to TLS certificate. e.g. `/etc/secret-volume/tls/api_spycameracctv_com/cert.pem`. Required if `ECOM_APP_TLS_MODE=enable`. |
 | **`ECOM_APP_TLS_KEY`**       | Depends  |         | Path to TSL certificate key. e.g. `/etc/secret-volume/tls/api_spycameracctv_com/key.pem` |
 | **`ECOM_APP_ROOT_EMAIL`**   | Optional |         |
 | **`ECOM_APP_ROOT_PASSWORD`** | Required |         |
 | **`ECOM_APP_ENABLE_STACKDRIVER_LOGGING`** | Optional | on | Accepts a value of `on` or `off` to switch the stack driver JSON formatted logging. |
-
+| **`ECOM_APP_ENDPOINT`** | Required | | An absolute and secure URL endpoint to the API Service. Example URL https://c90e3367.ngrok.iolocalhost:8080. |
 
 
 #### <a name="env-google"></a>Google
 
-| Env Var                       | Required | Default | Description |
-| -------------                 | -------- | ------- | ------------|
-| **`ECOM_GAE_PROJECT_ID`**     | Required |         | Set the value to the Google Project ID where the GAE App is running. For example, `open247-gae`. |
-| **`ECOM_FIREBASE_PROJECT_ID`**  | Required |         | Set the value to the Firebase Project ID. e.g. `ecom-test-bf262`. |
-| **`ECOM_FIREBASE_WEB_API_KEY`** | Required |         | Firebase Web API Key used to Authentication. For example, `AIzaSyDlPXxufb303i4e7fDV9fiURU05lQeX9Kc`. |
-| **`ECOM_FIREBASE_CREDENTIALS`** | Required |         | Use either the filepath of the Firebase Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
+| Env Var                         | Required | Default | Description |
+| -------------                   | -------- | ------- | ------------|
+| **`ECOM_GAE_PROJECT_ID`**       | Required |         | Set the value to the Google Project ID where the GAE App is running. For example, `open247-gae`. |
+| **`ECOM_FIREBASE_PUBLIC_CONFIG`**  | Required |         | base64 encoded string firebase config JSON string. |
+| **`ECOM_FIREBASE_PRIVATE_CREDENTIALS`** | Required |         | Use either the filepath of the Firebase Service Account Credentials file or provide a Base64 encoded string. e.g. `/etc/secret-volume/service_account_credentials/ecom-test-fa3e406ce4fe.json` (or base64 encoded JSON string) |
+| **`ECOM_GOOGLE_PUBSUB_PUSH_TOKEN`** | Required | A secret token used for basic auth to the push endpoint. |
 
+#### <a name="env-stripe"></a>Stripe
+
+The stripe settings are optional and only required if you are processing payments with the Stripe checkout. If you do not use Stripe, you do not need to pass either of the following environment variables to the ecom service. If you are using Stripe, make sure you pass both the secret key and signing key. The secret key is used for payments and the signing key is used to verify confirmations from Stripe webhooks.
+
+| Env Var                       | Required | Default | Description |
+| -------                       | -------- | ------- | ----------- |
+| **`ECOM_STRIPE_SECRET_KEY`**  | Depends  |         | Found in the [API Keys](https://dashboard.stripe.com/test/apikeys) section of the Stripe Dashboard. |
+| **`ECOM_STRIPE_SIGNING_KEY`** | Depends  |         | Found in the [Webhooks](https://dashboard.stripe.com/test/webhooks) section of the Stripe Dashboard. |
+| **`ECOM_STRIPE_SUCCESS_URL`** | Depends  |         | URL to redirect to when checkout payment is successful. |
+| **`ECOM_STRIPE_CANCEL_URL`**  | Depends  |         | URL to redirect to when checkout payment is cancelled. |
 
 #### <a name="env-postgres"></a>Postgres
 
@@ -65,14 +85,14 @@ Configuration is grouped into three groups; [App](#env-app), [Google](#env-googl
 
 `ECOM_GOOGLE_PROJECT_ID` can be obtained from the Firebase Console. When you create a Firebase app, Google creates a Google Cloud project with the same project ID. The Firebase Auth is accessible via the Firebase control panel and is backed by a project of the same ID in the Google Cloud Console.
 
-`ECOM_GOOGLE_CREDENTIALS` is the service account key file found in the Google Cloud Console, or Firebase console under the service account keys section.
+`ECOM_FIREBASE_PRIVATE_CREDENTIALS` is the service account key file found in the Google Cloud Console, or Firebase console under the service account keys section.
 `ECOM_PG_PORT` should use a private IP if running on GKE or GCE.
 
 GAE sets `PORT` for each container it starts. Hard coding the port to 8080 causes an error message to appear in Stackdriver about nginx reverse proxy misconfiguration, resulting in poor performance.
 
 ### <a name="file-structure"></a>File Structure
 
-Each VM running the ecom-api must have access to its own private disk mounted at /etc/secret-volume. This directory contains three directories pg, service_account_credentials and tls housing the PostgreSQL key files for SSL connections, Firebase Service Account files and SSL certificates respectively.
+If you opt to host the `ecom-api` using a virtual machine instance, and opt to use private SSL certificates, the `ecom-api` executable must have access to its own private disk mounted at `/etc/secret-volume`. This directory contains three directories `pg`, `service_account_credentials` and tls housing the PostgreSQL key files for SSL connections, Firebase Service Account files and SSL certificates respectively.
 
 ```
 secret-volume/
@@ -96,7 +116,7 @@ secret-volume/
 ## <a name="deployment"></a>Deployment
 
 ### <a name="gce"></a>Google Compute Engine
-GAE offers free SSL endpoints and provides a proxy method to securely connect to Postgres, so there is no need to deploy the secret volume containing either the `secrets/tls` and `secrets/pg` directories. The `ecom-api` executable accepts the service account credentials as a Base64 encoded string passed using the `ECOM_GOOGLE_CREDENTIALS` so there is often no need to package the service credentials file. The app can be configured entirely using environment variables.
+GAE offers free SSL endpoints and provides a proxy method to securely connect to Postgres, so there is no need to deploy the secret volume containing either the `secrets/tls` and `secrets/pg` directories. The `ecom-api` executable accepts the service account credentials as a Base64 encoded string passed using the `ECOM_FIREBASE_PRIVATE_CREDENTIALS` so there is often no need to package the service credentials file. The app can be configured entirely using environment variables.
 
 See Google's documentation for [Deploying Containers on VMs and Managed Instance Groups](https://cloud.google.com/compute/docs/containers/deploying-containers).
 
@@ -207,15 +227,17 @@ Even if the VM is destroyed and replaced with another, the new VM will be attach
 
 Postgres
 
+```
 docker run --name postgres-9.6.10 -d -p 5432:5432 \
 -e POSTGRES_PASSWORD=postgres postgres:9.6.10
-
+```
 
 Run psql to connect to the database:
 
+```
 CREATE DATABASE ecom_dev WITH ENCODING 'UTF8';
 \connect ecom_dev
-
+```
 
 To enable SQL logging first connect to the running container.
 
@@ -317,83 +339,7 @@ Cons:
 | Proprietary | | Risk of vendor lock-in if relying on Particular dependencies. | Open source |
 
 
-## API
-### Carts
+API Reference Documentation
+---------------------------
 
-#### CreateCart
-Creates a new shopping cart returning a unique cart UUID to be used for all
-subseqent requests.
-```
-POST /carts
-```
-
-
-#### AddItemToCart
-Add a single item to a given cart.
-```
-POST /carts/{uuid}/items
-{
-  "sku": "drill",
-  "qty": 2
-}
-```
-
-
-#### UpdateCartItem
-Update an individual item in a given cart.
-
-##### Request
-```
-POST /carts/{uuid}/items/{sku}
-{
-  "qty": 3
-}
-```
-##### Response
-Returns `201 Created` on success.
-
-
-#### DeleteCartItem
-Delete an individual item from a given cart.
-
-##### Request
-```
-DELETE /carts/{uuid}/items/{sku}
-```
-##### Response
-Returns `204 No Content` if succesfully deleted, or `404 Not Found` if the
-item is not in the cart.
-
-#### EmptyCartItems
-Empties the entire shopping cart of all items.
-##### Request
-```
-DELETE /carts/{uuid}/items
-```
-##### Response
-Returns `204 No Content` if the cart is successfully emptied.
-
-### Customer
-
-#### CreateCustomer
-POST /customers
-
-#### GetCustomer
-GET /customers/{uuid}
-
-### Addresses
-
-#### CreateAddress
-POST /customers/{uuid}/addresses
-
-#### GetAddress
-GET /addresses/{uuid}
-
-#### ListAddresses
-GET /customers/{uuid}/addresses
-
-#### UpdateAddress
-PATCH /addresses/{uuid}
-
-#### DeleteAddress
-DELETE /addresses/{uuid}
+For detailed information see the [API Reference](https://ecom-docs.web.app/api/).

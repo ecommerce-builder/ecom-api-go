@@ -2,69 +2,65 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
-	"github.com/go-chi/chi"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	log "github.com/sirupsen/logrus"
 )
+
+type addImageRequestBody struct {
+	ProductID *string `json:"product_id"`
+	Path      *string `json:"path"`
+}
+
+func validateAddImageRequest(request *addImageRequestBody) (bool, string) {
+	// product_id attribute
+	if request.ProductID == nil {
+		return false, "product_id attribute must be set"
+	}
+	if !IsValidUUID(*request.ProductID) {
+		return false, "product_id attribute must be a valid v4 uuid"
+	}
+
+	// path attribute
+	if request.Path == nil {
+		return false, "path attribute must be set"
+	}
+	return true, ""
+}
 
 // AddImageHandler creates a handler to add an images to a product.
 func (a *App) AddImageHandler() http.HandlerFunc {
-	type imageRequestBody struct {
-		Path string `json:"path"`
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		sku := chi.URLParam(r, "sku")
-		exists, err := a.Service.ProductExists(ctx, sku)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-			return
-		}
-		if !exists {
-			w.WriteHeader(http.StatusConflict) // 409 Conflict
-			json.NewEncoder(w).Encode(struct {
-				Status  int    `json:"status"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}{
-				http.StatusConflict,
-				ErrCodeProductSKUNotFound,
-				fmt.Sprintf("product with sku=%s not found", sku),
-			})
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: AddImageHandler started")
+
+		request := addImageRequestBody{}
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&request); err != nil {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error()) // 400
 			return
 		}
 
-		imageRequestBody := imageRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&imageRequestBody); err != nil {
-			http.Error(w, err.Error(), 400)
+		valid, message := validateAddImageRequest(&request)
+		if !valid {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message) // 400
 			return
 		}
-		exists, err = a.Service.ImagePathExists(ctx, imageRequestBody.Path)
+
+		image, err := a.Service.CreateImage(ctx, *request.ProductID, *request.Path)
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found") // 404
+			return
+		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service ImageExists(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if exists {
-			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(struct {
-				Code    int    `json:"code"`
-				Message string `json:"message"`
-			}{
-				409,
-				fmt.Sprintf("image with path=%s already exists", imageRequestBody.Path),
-			})
-			return
-		}
-		image, err := a.Service.CreateImageEntry(ctx, sku, imageRequestBody.Path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "service CreateImageEntry(ctx, %s, %s) error: %v", imageRequestBody.Path, sku, err)
-			w.WriteHeader(http.StatusInternalServerError)
+			contextLogger.Errorf("app: a.Service.CreateImage(ctx, productID=%q, path=%q) error: %+v", *request.ProductID, *request.Path, err)
+			w.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(image)
+		json.NewEncoder(w).Encode(&image)
 	}
 }

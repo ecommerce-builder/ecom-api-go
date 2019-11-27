@@ -10,7 +10,7 @@ import (
 )
 
 func TestNestedSetEmptyRootNode(t *testing.T) {
-	nodes := map[string]*Category{
+	nodes := map[string]*CategoryNode{
 		"root": NewCategory("", "root"),
 		"a":    NewCategory("a", "Category A"),
 		"b":    NewCategory("b", "Category B"),
@@ -30,7 +30,7 @@ func TestNestedSetEmptyRootNode(t *testing.T) {
 	nodes["a"].AddChild(nodes["f"])
 	nodes["d"].AddChild(nodes["g"])
 
-	nodes["root"].GenerateNestedSet(1, 0, "")
+	// nodes["root"].GenerateNestedSet(1, 0, "")
 
 	buf := new(bytes.Buffer)
 	nodes["root"].PreorderTraversalPrint(buf)
@@ -38,7 +38,7 @@ func TestNestedSetEmptyRootNode(t *testing.T) {
 }
 
 func TestBuildTreeEmptyRootNode(t *testing.T) {
-	nodes := []*postgres.NestedSetNode{
+	nodes := []*postgres.CategoryRow{
 		{Segment: "", Path: "", Name: "root", Lft: 1, Rgt: 16, Depth: 0},
 		{Segment: "a", Path: "a", Name: "Category A", Lft: 2, Rgt: 11, Depth: 1},
 		{Segment: "d", Path: "a/d", Name: "Category D", Lft: 3, Rgt: 6, Depth: 2},
@@ -55,7 +55,7 @@ func TestBuildTreeEmptyRootNode(t *testing.T) {
 }
 
 func TestNestedSet(t *testing.T) {
-	nodes := map[string]*Category{
+	nodes := map[string]*CategoryNode{
 		"a": NewCategory("a", "Category A"),
 		"b": NewCategory("b", "Category B"),
 		"c": NewCategory("c", "Category C"),
@@ -87,7 +87,7 @@ func TestNestedSet(t *testing.T) {
 	nodes["j"].AddChild(nodes["m"])
 	nodes["j"].AddChild(nodes["n"])
 
-	nodes["a"].GenerateNestedSet(1, 0, "")
+	// nodes["a"].GenerateNestedSet(1, 0, "")
 
 	buf := new(bytes.Buffer)
 	nodes["a"].PreorderTraversalPrint(buf)
@@ -128,7 +128,7 @@ func TestNestedSet(t *testing.T) {
 }
 
 func TestBuildTree(t *testing.T) {
-	nodes := []*postgres.NestedSetNode{
+	nodes := []*postgres.CategoryRow{
 		{Segment: "a", Path: "a", Name: "Category A", Lft: 1, Rgt: 28, Depth: 0},
 		{Segment: "b", Path: "a/b", Name: "Category B", Lft: 2, Rgt: 5, Depth: 1},
 		{Segment: "e", Path: "a/b/e", Name: "Category E", Lft: 3, Rgt: 4, Depth: 2},
@@ -151,7 +151,7 @@ func TestBuildTree(t *testing.T) {
 }
 
 func TestFindNodeByPath(t *testing.T) {
-	nodes := []*postgres.NestedSetNode{
+	nodes := []*postgres.CategoryRow{
 		{Segment: "a", Path: "a", Name: "Category A", Lft: 1, Rgt: 28, Depth: 0},
 		{Segment: "b", Path: "a/b", Name: "Category B", Lft: 2, Rgt: 5, Depth: 1},
 		{Segment: "e", Path: "a/b/e", Name: "Category E", Lft: 3, Rgt: 4, Depth: 2},

@@ -1,23 +1,33 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 )
 
 // DeleteProductHandler create a handler to delete a product resource.
 func (a *App) DeleteProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sku := chi.URLParam(r, "sku")
-		if err := a.Service.DeleteProduct(r.Context(), sku); err != nil {
-			fmt.Fprintf(os.Stderr, "delete product sku=%q failed: %v", sku, err)
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: DeleteProductHandler started")
+
+		productID := chi.URLParam(r, "id")
+		err := a.Service.DeleteProduct(ctx, productID)
+		if err == service.ErrProductNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeProductNotFound, "product not found")
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app DeleteProduct(ctx, productID=%q) failed: %+v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
 		w.Header().Del("Content-Type")
+		w.Header().Set("Content-Length", "0")
 		w.WriteHeader(http.StatusNoContent) // 204 No Content
 	}
 }

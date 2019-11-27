@@ -2,9 +2,9 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // SystemInfo contains the system version string and system environment data.
@@ -18,6 +18,7 @@ type SystemEnv struct {
 	PG       PgSystemEnv       `json:"pg"`
 	Goog     GoogSystemEnv     `json:"google"`
 	Firebase FirebaseSystemEnv `json:"firebase"`
+	Stripe   StripeSystemEnv   `json:"stripe"`
 	App      ApplSystemEnv     `json:"app"`
 }
 
@@ -41,24 +42,41 @@ type GoogSystemEnv struct {
 
 // FirebaseSystemEnv contains the Firebase environment variables.
 type FirebaseSystemEnv struct {
-	ProjectID string `json:"ECOM_FIREBASE_PROJECT_ID"`
-	WebAPIKey string `json:"ECOM_FIREBASE_WEB_API_KEY"`
+	APIKEY            string `json:"apiKey"`
+	AuthDomain        string `json:"authDomain"`
+	DatabaseURL       string `json:"databaseURL"`
+	ProjectID         string `json:"projectId"`
+	StorageBucket     string `json:"storageBucket"`
+	MessagingSenderID string `json:"messagingSenderId"`
+	AppID             string `json:"appId"`
+}
+
+// StripeSystemEnv contains the Stripe environment variables.
+type StripeSystemEnv struct {
+	StripeSuccessURL string `json:"ECOM_STRIPE_SUCCESS_URL"`
+	StripeCancelURL  string `json:"ECOM_STRIPE_CANCEL_URL"`
 }
 
 // ApplSystemEnv contains the application port and root email address.
 type ApplSystemEnv struct {
-	AppPort      string `json:"PORT"`
-	AppRootEmail string `json:"ECOM_APP_ROOT_EMAIL"`
+	AppPort                     string `json:"PORT"`
+	AppRootEmail                string `json:"ECOM_APP_ROOT_EMAIL"`
+	AppEnableStackDriverLogging bool   `json:"ECOM_APP_ENABLE_STACKDRIVER_LOGGING"`
+	AppEndpoint                 string `json:"ECOM_APP_ENDPOINT"`
 }
 
 // SystemInfoHandler returns data about the API runtime
-func (app *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
-	fmt.Printf("%#v\n", si)
+func (a *App) SystemInfoHandler(si SystemInfo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		version, err := app.Service.GetSchemaVersion(r.Context())
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: SystemInfoHandler started")
+
+		version, err := a.Service.GetSchemaVersion(ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%+v", err)
+			contextLogger.Errorf("app: a.Service.GetSchemaVersion(ctx) failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+			return
 		}
 		si.Env.PG.SchemaVersion = *version
 		w.WriteHeader(http.StatusOK) // 200 OK

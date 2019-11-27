@@ -1,51 +1,33 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-schemadir=$DIR/../postgres/schema
+schemadir=$DIR/../schema
 
-echo "Initialising"
-cat $schemadir/init.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating schema_version() function"
-cat $schemadir/schema_version_function.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating products"
-cat $schemadir/products.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating carts"
-cat $schemadir/carts.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating pricing_tiers"
-cat $schemadir/pricing_tiers.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating product pricing"
-cat $schemadir/product_pricing.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating product images"
-cat $schemadir/product_images.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating categories"
-cat $schemadir/categories.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating categories_products (is_leaf function and categories_products table)"
-cat $schemadir/categories_products.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating categories_leafs (view)"
-cat $schemadir/categories_leafs.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating customers"
-cat $schemadir/customers.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating customers_devkeys"
-cat $schemadir/customers_devkeys.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating addresses"
-cat $schemadir/addresses.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating orders"
-cat $schemadir/orders.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating order_items"
-cat $schemadir/order_items.sql | psql --no-psqlrc ecom_dev
-
-echo "Creating payments"
-cat $schemadir/payments.sql | psql --no-psqlrc ecom_dev
+cat $schemadir/init.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/schema_version_function.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/product.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/inventory.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/shipping_tariff.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/product_set.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/product_set_item.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/pp_assoc_group.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/pp_assoc.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/cart.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/cart_product.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/price_list.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/price.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/image.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/category.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/product_category.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/category_leaf.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/promo_rule.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/coupon.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/cart_coupon.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/offer.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/usr.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/usr_devkey.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/address.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/order_address.sql | psql --no-psqlrc > /dev/null 
+cat $schemadir/order.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/order_item.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/payment.sql | psql --no-psqlrc > /dev/null
+cat $schemadir/webhook.sql | psql --no-psqlrc > /dev/null

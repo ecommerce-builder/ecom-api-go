@@ -1,4 +1,163 @@
 # CHANGELOG
+## v0.62.3 (Wed, 13 Nov 2019)
++ Validate uuid on path parameters for HTTP DELETE /developer-keys/:id
++ Fix issue with stackdriver logging not enabling.
++ Promo rules return `promo_rule_code` attribute in JSON responses.
+
+
+## v0.62.2 (Tue, 5 Nov 2019)
++ Fix request validation for `PATCH /address` operation `OpUpdateAddress`.
++ Improved logging in main and app level handlers for coupons and addresses.
++ `PromoRuleCode` attribute added to coupons.
++ Minor changes to Open API Def.
++ Update deps using `go get -v all`.
+
+## v0.62.1 (Sun, 3 Nov 2019)
++ Fix sysinfo JSON response to include Stripe and endpoint.
+
+## v0.62.0 (Sat, 2 Nov 2019)
++ Add Stackdriver Profiler when
++ Fix issue with missing `created` and `modified` values when creating a new promo rule.
++ Alter compiler options to use -gcflags=all='-N -l' for compute engine.
++ Update all dependencies using `go get -v all`.
+
+## v0.61.4 (Thu, 31 Oct 2019)
++ Fixes issues with JSON responses for promo_rule objects.
++ [product_id attribute missing from HTTP GET /promo-rules/{id} response](https://bitbucket.org/andyfusniakteam/ecom-api-go/issues/20/product_id-attribute-missing-from-http-get)
++ [HTTP POST /promo-rules returns a blank promo_rule_code attribute](https://bitbucket.org/andyfusniakteam/ecom-api-go/issues/23/http-post-promo-rules-returns-a-blank)
+
+## v0.61.3 (Tue, 22 Oct 2019)
++ Add site to the Open API Def YAML.
++ Ignore google*.html in git.
++ Tidy code
+
+## v0.61.2 (Tue, 22 Oct 2019)
++ Return structured JSON for 401 Unauthorized and 403 Forbidden responses.
+
+## v0.61.1 (Tue, 22 Oct 2019)
++ Fix authorization issues.
++ Remove Google vertification handler and replace with dedicated HTTP service `google-verifcation`.
++ Code tidy `app/create_webhook.go` and fix logging of pointer values.
+
+## v0.61.0 (Mon, 21 Oct 2019)
++ Google Pub/Sub broadcasting of messages to handle HTTP POSTs to webhook endpoints.
++ `overselling` for inventory.
++ `ErrCodeWebhookPostFailed` error handling for HTTP POST failures.
++ Most handlers use pointers for the request body to detect missing attributes.
++ Remove nesting from Go error handling.
++ `ECOM_APP_ENDPOINT env var introduced.
++ `ECOM_GOOGLE_PUBSUB_PUSH_TOKEN` secret token for basic auth to the push endpoint.
++ Initial creating of topics and subscriptions to handle webhooks.
++ `/privte-pubsub-events` and `/privte-pubsub-broadcast` resources.
++ Webhooks calls implemented.
++ Makefile has two new deployments for test and live.
++ GAE now supports go113 so go.mod file is updated to use Go 1.13.3.
++ Open API Def file improved to near match API Service.
++ `offer_id` added to `price` table.
+
+
+## v0.60.1 (Tue 1 Oct 2019)
++ Minor fixes to schema (`shipping_code` on `shipping_tariff` table made non unique)
++ Remove verbosity of schema create, drop and load shell scripts.
++ `OpGetPromoRule` GetPromoRuleHandler validation fix for URL param.
++ `OpGetPromoRule` fix 404 response for promo rule not found.
+
+## v0.60.0 (Tue 1 Oct 2019)
++ Webhooks CRUDL for configuration only.
++ Google Pub/sub connection on startup.
++ Product to product group associations impemented.
++ Product to product associations implemented.
++ Coupons in the cart implemented.
++ Inventory implemented.
++ Shipping Tariffs implemented.
++ `offer_price` added to `price` table in schema.
++ Offer activation.
++ Cart products fixes and Open API def updates.
++ Shipping Tariffs spelling change.
+
+## v0.58.1 (Fri 13 Sep 2019)
++ Fixes issues with the Postgres table creation script order in which the tables are created.
+
+## v0.58.0 (Fri 13 Sep 2019)
++ ecom binary `ECOM_FIREBASE_PROJECT_ID` deprecated.
++ ecom binary `ECOM_FIREBASE_WEB_API_KEY` and `ECOM_FIREBASE_CREDENTIALS` become `ECOM_FIREBASE_PUBLIC_CONFIG` and `ECOM_FIREBASE_PRIVATE_CREDENTIALS` respectively.
++ README.md removes all documenation (held in separate repo and in the Open API Spec Definition).
++ `OpActivateOffer`
++ New handlers for product to category relations.
++ New handlers for adding products to carts.
++ Implements Shipping Tariffs.
++ Implements Price Lists.
++ Implements Coupons.
++ Implements Promo Rules.
++ Implements Inventory.
++ Implements Offers.
++ Implements Carts Products.
++ Improve Developer Keys
++ Implements Addresses.
++ Implements Prices.
++ `/users` has pagination skeleton but not yet working.
++ New `/products-categories` resource.
++ Implements `/products?include=prices,images` although it's not determined if it will be used in the SDK.
++ Merged `/admin` resource to universal `/users` resource.
++ `categories-tree` handles hierarchial data. `categories` handles flat nested set lists.
++ `clientError` and `serverError` functions introduced to remove boilerplate code.
++ Context values use named types to prevent golint errors.
++ Firebase Config is returned in the `/config` resource so the client doesn't need to hard code it.
++ Fixes CORS issue with `PUT` not being allowed.
++ Fixes golint warnings.
++ Postgres Schema changes.
++ Open API Definition file is not up to date with this release.
+
+## v0.57.0 (Mon 5 Aug 2019)
++ Cart split into `carts` and `cart_items` tables.
++ Fix CORS bug with public routes.
++ Updated Open API Spec.
+
+## v0.56.0 (Thu 1 Aug 2019)
++ Fix authorization on `OpDeleteCustomerDevKey`.
++ Apply `"object": "image"` to `OpGetImage` and `OpUpdateTierPricing`.
++ Improve OpenAPI `api.yaml` contract.
+
+## v0.55.0 (Tue 30 Jul 2019)
++ All routes use `id` not `uuid`.
+
+## v0.54.0 (Tue 30 Jul 2019)
++ Cart routes `uuid` becomes `id`.
++ Cart operations return the `name` of the product alongside the `sku` and `qty` etc.
++ Schema test data uses `DESK-SKU=2987083`, `DRILL-SKU=395833`, `PHONE-SKU=241583`, `TV-SKU=2066250` and `WATER-SKU=20417`.
+
+## v0.53.0 (Mon 29 Jul 2019)
++ Stripe webhook implemented
++ Stripe checkout implemented
++ Alter schema for payments
++ Unit prices use 4 decimal places
++ Updated README.md
++ Record Stripe Payment Intent reference with orders
++ Change developer key JSON response
+
+## v0.52.0 (Wed 10 Jul 2019)
++ Silence the Makefile targets.
++ Schema `order_items` table includes `currency`, `discount` and `tax_codes`.
++ Guest and Customer order placement.
+
+## v0.50.0 (Mon 1 Jul 2019)
++ `OpPlaceOrder` basic skelton implemetation.
++ `object: "<name>"` wrapper for image, cart item, customer, devkey
++ `UUID` replaced with `ID` for service layer.
++ Firebase Auth customer claims uses `cid` not `cuuid`.
++ Error handling for `UpdateCartItem` service for missing cart and item combination.
++ Error handling for `AddItemToCart` service for existing item using `ErrCodeCartAlreadyExists`.
++ Contextual logging throughout app, service and model layers.
++ Updated `README.md`.
++ Open API `app.yaml` file for documenation.
+
+## v0.49.3 (Tue 25 Jun 2019)
++ Uses `stackdriver-gae-logrus-plugin` `v0.1.3` with parse `X-Cloud-Trace-Context` bugfix.
+
+## v0.49.2 (Tue 25 Jun 2019)
++ Update deps for `go.mod` including `v0.1.2` of stackdriver-gae-logrus-plugin
++ Contextual logging in Authorization middleware.
+
 ## v0.49.0 (Tue 25 Jun 2019)
 + Implements `stackdriver-gae-logrus-plugin` for structured logging with log entry threading.
 + `OpSysInfo` returns separate Firebase and Google config settings.

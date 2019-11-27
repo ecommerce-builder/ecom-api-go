@@ -1,9 +1,12 @@
 .vscode
 *_secret.yaml
+*.swp
 bin/
 certs/
 data/init.sql
+deploy/*.yaml
 ecom-api
+google*.html
 main
 ecom-api-*
 ecom-test-*.json

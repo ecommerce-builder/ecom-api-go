@@ -2,25 +2,42 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
-	"github.com/go-chi/chi"
+	service "bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	log "github.com/sirupsen/logrus"
 )
 
 // ListProductImagesHandler creates a handler function that returns a
 // slice of ProductImages for the product with the given SKU.
 func (a *App) ListProductImagesHandler() http.HandlerFunc {
+	type listResponse struct {
+		Object string           `json:"object"`
+		Data   []*service.Image `json:"data"`
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		sku := chi.URLParam(r, "sku")
-		products, err := a.Service.ListProductImages(r.Context(), sku)
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: ListProductImagesHandler started")
+
+		productID := r.URL.Query().Get("product_id")
+		if productID == "" {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "query parameter product_id must be set")
+			return
+		}
+
+		products, err := a.Service.GetImagesByProductID(ctx, productID)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "service ListProductImages(ctx, %s) error: %+v", sku, err)
+			contextLogger.Errorf("app: ListProductImages(ctx, productID=%q) error: %+v", productID, err)
 			w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 			return
 		}
+
+		list := listResponse{
+			Object: "list",
+			Data:   products,
+		}
 		w.WriteHeader(http.StatusOK) // 200 OK
-		json.NewEncoder(w).Encode(products)
+		json.NewEncoder(w).Encode(&list)
 	}
 }

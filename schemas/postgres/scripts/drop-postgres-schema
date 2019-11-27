@@ -1,20 +1,40 @@
 #!/bin/bash
-echo "DROP FUNCTION IF EXISTS schema_version()" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS carts" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS addresses" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS payments" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS order_items" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS orders" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS customers_devkeys" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS customers" | psql --no-psqlrc ecom_dev
-echo "DROP VIEW IF EXISTS categories_leafs" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS categories_products" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS categories" | psql --no-psqlrc ecom_dev
-echo "DROP FUNCTION IF EXISTS is_leaf(p text)" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS product_pricing" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS product_images" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS products" | psql --no-psqlrc ecom_dev
-echo "DROP TABLE IF EXISTS pricing_tiers" | psql --no-psqlrc ecom_dev
-echo "DROP TYPE IF EXISTS payment_t" | psql --no-psqlrc ecom_dev
-echo "DROP TYPE IF EXISTS payment_status_t" | psql --no-psqlrc ecom_dev
-echo "DROP TYPE IF EXISTS address_t" | psql --no-psqlrc ecom_dev
+echo "DROP TABLE IF EXISTS cart_product" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS cart_coupon" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS coupon" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS cart" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS address" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS payment" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS order_item" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS \"order\"" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS order_address" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS usr_devkey" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS usr" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS offer" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS promo_rule" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS shipping_tariff" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS product_set_item" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS product_set" | psql --no-psqlrc > /dev/null
+echo "DROP VIEW IF EXISTS category_leaf" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS product_category" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS category" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS price" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS inventory" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS image" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS pp_assoc" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS pp_assoc_group" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS product" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS price_list" | psql --no-psqlrc > /dev/null
+echo "DROP TABLE IF EXISTS webhook" | psql --no-psqlrc > /dev/null
+
+echo "DROP FUNCTION IF EXISTS schema_version()" | psql --no-psqlrc > /dev/null
+echo "DROP FUNCTION IF EXISTS is_leaf(integer)" | psql --no-psqlrc > /dev/null
+echo "DROP FUNCTION IF EXISTS is_leaf_path(text)" | psql --no-psqlrc > /dev/null
+
+echo "DROP TYPE IF EXISTS payment_t" | psql --no-psqlrc > /dev/null
+echo "DROP TYPE IF EXISTS address_t" | psql --no-psqlrc > /dev/null
+echo "DROP TYPE IF EXISTS order_status_t" | psql --no-psqlrc > /dev/null
+echo "DROP TYPE IF EXISTS order_payment_status_t" | psql --no-psqlrc > /dev/null
+echo "DROP TYPE IF EXISTS promo_rule_type_t" | psql --no-psqlrc > /dev/null
+echo "DROP TYPE IF EXISTS promo_rule_target_t" | psql --no-psqlrc > /dev/null
+echo "DROP TYPE IF EXISTS price_list_strategy_t" | psql --no-psqlrc > /dev/null

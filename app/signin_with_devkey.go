@@ -2,11 +2,10 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
 	"bitbucket.org/andyfusniakteam/ecom-api-go/service/firebase"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,27 +15,33 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 		Key string `json:"key"`
 	}
 	type signInResponseBody struct {
-		CustomToken string             `json:"custom_token"`
-		Customer    *firebase.Customer `json:"customer"`
+		CustomToken string         `json:"custom_token"`
+		Customer    *firebase.User `json:"user"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: SignInWithDevKeyHandler started")
+
 		if r.Body == nil {
-			http.Error(w, "Please send a request body", 400)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "missing request body")
 			return
 		}
 		o := signInRequestBody{}
-		err := json.NewDecoder(r.Body).Decode(&o)
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		err := dec.Decode(&o)
 		if err != nil {
-			http.Error(w, err.Error(), 400)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
 			return
 		}
-		customToken, customer, err := a.Service.SignInWithDevKey(r.Context(), o.Key)
+		customToken, customer, err := a.Service.SignInWithDevKey(ctx, o.Key)
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		if err != nil {
-			if err == bcrypt.ErrMismatchedHashAndPassword {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-			fmt.Fprintf(os.Stderr, "service SignInWithDevKeyHandler(ctx, ...) error: %v\n", err)
+			contextLogger.Errorf("app: SignInWithDevKeyHandler(ctx, ...) error: %v\n", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -44,7 +49,7 @@ func (a *App) SignInWithDevKeyHandler() http.HandlerFunc {
 			CustomToken: customToken,
 			Customer:    customer,
 		}
-		w.WriteHeader(http.StatusOK) // 200 Ok
+		w.WriteHeader(http.StatusCreated) // 201 Created
 		json.NewEncoder(w).Encode(ctRes)
 	}
 }
