@@ -243,20 +243,24 @@ func main() {
 	if pghost == "" {
 		log.Fatal("main: postgres host not set. Use ECOM_PG_HOST")
 	}
+	log.Infof("main: ECOM_PG_HOST set to %s", pghost)
 
 	if pgport == "" {
 		log.Info("main: using default port=5432 for postgres because ECOM_PG_PORT is not set")
 		pgport = "5432"
 	}
+	log.Infof("main: ECOM_PG_PORT set to %s", pgport)
 
 	if pguser == "" {
 		log.Info("main: using default user=postgres because ECOM_PG_USER is not set")
 		pguser = "postgres"
 	}
+	log.Infof("main: ECOM_PG_USER set to %s", pguser)
 
 	if pgdatabase == "" {
 		log.Fatal("main: ECOM_PG_DATABASE not set.")
 	}
+	log.Infof("main: ECOM_PG_DATABASE set to %s", pgdatabase)
 
 	if pgpassword == "" {
 		log.Fatal("main: ECOM_PG_PASSWORD not set. You must set a password")
