@@ -21,6 +21,57 @@ type createAddressRequestBody struct {
 	CountryCode *string `json:"country_code"`
 }
 
+// CreateAddressHandler creates an HTTP handler that creates a new user address record.
+func (a *App) CreateAddressHandler() http.HandlerFunc {
+	validate := validateCreateAddressRequestMemoize()
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		contextLogger := log.WithContext(ctx)
+		contextLogger.Info("app: CreateAddressHandler started")
+
+		request := createAddressRequestBody{}
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		err := dec.Decode(&request)
+		if err != nil {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				err.Error()) // 400
+			return
+		}
+		defer r.Body.Close()
+
+		// validate the request body
+		valid, message := validate(ctx, &request)
+		if !valid {
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				message) // 400
+			return
+		}
+
+		address, err := a.Service.CreateAddress(ctx, *request.UserID,
+			*request.Typ, *request.ContactName, *request.Addr1,
+			request.Addr2, *request.City, request.County,
+			*request.Postcode, *request.CountryCode)
+		if err == service.ErrUserNotFound {
+			clientError(w, http.StatusNotFound, ErrCodeUserNotFound,
+				"user not found") // 404
+			return
+		}
+		if err != nil {
+			contextLogger.Errorf("app: a.Service.CreateAddress(ctx, userID=%q, typ=%q, contactName=%q, addr1=%q, addr2=%v, city=%q, county=%v, postcode=%q, countryCode=%q) failed with error: %v", *request.UserID, *request.Typ, *request.ContactName, *request.Addr1, request.Addr2, *request.City, request.County, *request.Postcode, *request.CountryCode, err)
+			serverError(w, http.StatusInternalServerError,
+				ErrCodeInternalServerError,
+				"internal server error") // 500
+			return
+		}
+
+		contextLogger.Infof("app: address created id=%q, userID=%q, typ=%q, contactName=%q, addr1=%q, addr2=%v, city=%q, county=%v, postcode=%q, countryCode=%q", address.ID, address.UserID, address.Typ, address.ContactName, address.Addr1, address.Addr2, address.City, address.County, address.Postcode, address.CountryCode)
+		w.WriteHeader(http.StatusCreated) // 201
+		json.NewEncoder(w).Encode(&address)
+	}
+}
+
 func validateCreateAddressRequestMemoize() func(ctx context.Context, request *createAddressRequestBody) (bool, string) {
 	// TODO: compile regular expression here
 	// TODO: country_code list of acceptable values (ISO ....)
@@ -31,7 +82,7 @@ func validateCreateAddressRequestMemoize() func(ctx context.Context, request *cr
 			return false, "user_id attribute must be set"
 		}
 		if !IsValidUUID(*userID) {
-			return false, "user_id attribute must be a valid v4 UUID"
+			return false, "user_id attribute must be a valid v4 uuid"
 		}
 
 		// type attribute
@@ -76,48 +127,5 @@ func validateCreateAddressRequestMemoize() func(ctx context.Context, request *cr
 		}
 
 		return true, ""
-	}
-}
-
-// CreateAddressHandler creates an HTTP handler that creates a new user address record.
-func (a *App) CreateAddressHandler() http.HandlerFunc {
-	validate := validateCreateAddressRequestMemoize()
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: CreateAddressHandler started")
-
-		request := createAddressRequestBody{}
-		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields()
-		err := dec.Decode(&request)
-		if err != nil {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, err.Error())
-			return
-		}
-		defer r.Body.Close()
-
-		// validate the request body
-		valid, message := validate(ctx, &request)
-		if !valid {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
-			return
-		}
-
-		address, err := a.Service.CreateAddress(ctx, *request.UserID, *request.Typ, *request.ContactName, *request.Addr1, request.Addr2, *request.City, request.County, *request.Postcode, *request.CountryCode)
-		if err == service.ErrUserNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeUserNotFound, "user not found")
-			return
-		}
-		if err != nil {
-			contextLogger.Errorf("app: a.Service.CreateAddress(ctx, userID=%q, typ=%q, contactName=%q, addr1=%q, addr2=%v, city=%q, county=%v, postcode=%q, countryCode=%q) failed with error: %v", *request.UserID, *request.Typ, *request.ContactName, *request.Addr1, request.Addr2, *request.City, request.County, *request.Postcode, *request.CountryCode, err)
-			serverError(w, http.StatusInternalServerError, ErrCodeInternalServerError, "internal server error")
-			return
-		}
-
-		contextLogger.Infof("app: address created id=%q, userID=%q, typ=%q, contactName=%q, addr1=%q, addr2=%v, city=%q, county=%v, postcode=%q, countryCode=%q", address.ID, address.UserID, address.Typ, address.ContactName, address.Addr1, address.Addr2, address.City, address.County, address.Postcode, address.CountryCode)
-		w.WriteHeader(http.StatusCreated) // 201 Created
-		json.NewEncoder(w).Encode(&address)
 	}
 }

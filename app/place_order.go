@@ -24,7 +24,7 @@ func (a *App) PlaceOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		contextLogger := log.WithContext(ctx)
-		contextLogger.Info("app: PlaceOrderHandler called")
+		contextLogger.Info("app: PlaceOrderHandler started")
 
 		req := orderRequestBody{}
 		dec := json.NewDecoder(r.Body)

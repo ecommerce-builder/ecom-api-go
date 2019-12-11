@@ -25,11 +25,6 @@ var ErrEventTypeNotFound = errors.New("service: event type not found")
 // ErrWebhookPostFailed error
 var ErrWebhookPostFailed = errors.New("service: http post failed")
 
-const (
-	// EventOrderCreated triggerred after an order has been placed.
-	EventOrderCreated string = "order.created"
-)
-
 var eventTypes []string
 
 var timeout = time.Duration(10 * time.Second)
@@ -38,7 +33,12 @@ var client *http.Client
 
 func init() {
 	eventTypes = []string{
+		EventServiceStarted,
+		EventAddressCreated,
+		EventAddressUpdated,
+		EventUserCreated,
 		EventOrderCreated,
+		EventOrderUpdated,
 	}
 
 	tr := &http.Transport{
@@ -111,7 +111,9 @@ func (s *Service) CreateWebhook(ctx context.Context, url string, events []string
 		return nil, ErrWebhookExists
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "s.model.CreateWebhook(ctx, url=%q, events=%v) failed", url, events)
+		return nil, errors.Wrapf(err,
+			"s.model.CreateWebhook(ctx, url=%q, events=%v) failed",
+			url, events)
 	}
 	webhook := Webhook{
 		Object:     "webhook",
@@ -175,6 +177,9 @@ func (s *Service) GetWebhooks(ctx context.Context) ([]*Webhook, error) {
 
 // UpdateWebhook partially updates a webhook.
 func (s *Service) UpdateWebhook(ctx context.Context, webhookUUID string, url *string, events []string, enabled *bool) (*Webhook, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Infof("service: UpdateWebhook(ctx, webhookUUID=%q, ...) started")
+
 	// Check the given event name is a known event type
 	eventTypeMap := make(map[string]bool)
 	for _, v := range eventTypes {
@@ -182,6 +187,8 @@ func (s *Service) UpdateWebhook(ctx context.Context, webhookUUID string, url *st
 	}
 	for _, v := range events {
 		if _, ok := eventTypeMap[v]; !ok {
+			contextLogger.Warnf(
+				"service: event %q not a recognised event type", v)
 			return nil, ErrEventTypeNotFound
 		}
 	}

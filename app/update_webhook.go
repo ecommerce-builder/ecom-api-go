@@ -15,14 +15,6 @@ type updateWebhookRequestBody struct {
 	Enabled *bool          `json:"enabled,omitempty"`
 }
 
-func validateUpdateWebhookRequest(request *updateWebhookRequestBody) (bool, string) {
-	if request.URL == nil && request.Events == nil && request.Enabled == nil {
-		return false, "you must set at least one attribute url, events or enabled"
-	}
-
-	return true, ""
-}
-
 // UpdateWebhookHandler returns a http.HandlerFunc that updates a webhook's
 // url, events and enabled status.
 func (a *App) UpdateWebhookHandler() http.HandlerFunc {
@@ -48,13 +40,16 @@ func (a *App) UpdateWebhookHandler() http.HandlerFunc {
 
 		ok, message := validateUpdateWebhookRequest(&request)
 		if !ok {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, message)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				message) // 400
 			return
 		}
 
 		webhookID := chi.URLParam(r, "id")
 		if !IsValidUUID(webhookID) {
-			clientError(w, http.StatusBadRequest, ErrCodeBadRequest, "path parameter id must be a valid v4 uuid")
+			contextLogger.Warnf("400 Bad Request - invalid webhook %s", webhookID)
+			clientError(w, http.StatusBadRequest, ErrCodeBadRequest,
+				"path parameter id must be a valid v4 uuid") // 400
 			return
 		}
 
@@ -64,11 +59,15 @@ func (a *App) UpdateWebhookHandler() http.HandlerFunc {
 		}
 		webhook, err := a.Service.UpdateWebhook(ctx, webhookID, request.URL, events, request.Enabled)
 		if err == service.ErrWebhookNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound, "webhook not found")
+			contextLogger.Warnf("404 Not Found - webhook %s not found", webhookID)
+			clientError(w, http.StatusNotFound, ErrCodeWebhookNotFound,
+				"webhook not found") // 404
 			return
 		}
 		if err == service.ErrEventTypeNotFound {
-			clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound, "one or more event types not recognised")
+			contextLogger.Warn("404 Not Found - one or more events not found")
+			clientError(w, http.StatusNotFound, ErrCodeEventTypeNotFound,
+				"one or more event types not recognised") // 404
 			return
 		}
 		if err != nil {
@@ -77,7 +76,15 @@ func (a *App) UpdateWebhookHandler() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK) // 200 OK
+		w.WriteHeader(http.StatusOK) // 200
 		json.NewEncoder(w).Encode(&webhook)
 	}
+}
+
+func validateUpdateWebhookRequest(request *updateWebhookRequestBody) (bool, string) {
+	if request.URL == nil && request.Events == nil && request.Enabled == nil {
+		return false, "you must set at least one attribute url, events or enabled"
+	}
+
+	return true, ""
 }

@@ -26,7 +26,6 @@ func (s *Service) StripeCheckout(ctx context.Context, orderID, stripeSuccessURL,
 	items := make([]*stripe.CheckoutSessionLineItemParams, 0, len(order.Items))
 
 	for _, i := range order.Items {
-
 		var vatMultiplier float64
 		if i.TaxCode == "T20" {
 			vatMultiplier = 1.2
@@ -36,8 +35,6 @@ func (s *Service) StripeCheckout(ctx context.Context, orderID, stripeSuccessURL,
 		desc := fmt.Sprintf("%d x %s", i.Qty, i.Name)
 
 		stripeUnitPrice := int64((float64(i.UnitPrice) * vatMultiplier) / 100.0)
-
-		fmt.Println("stripeUnitPrice", stripeUnitPrice)
 		t := stripe.CheckoutSessionLineItemParams{
 			Name:        stripe.String(i.SKU),
 			Description: stripe.String(desc),
@@ -83,15 +80,81 @@ func (s *Service) StripeCheckout(ctx context.Context, orderID, stripeSuccessURL,
 }
 
 // StripeProcessWebhook processes the webhook called by the Stripe system.
-func (s *Service) StripeProcessWebhook(ctx context.Context, session stripe.CheckoutSession, body []byte) error {
+func (s *Service) StripeProcessWebhook(ctx context.Context, session stripe.CheckoutSession, body []byte) (*Order, error) {
 	contextLogger := log.WithContext(ctx)
-	contextLogger.Debugf("StripeProcessWebhook: session.ClientReferenceID %s", session.ClientReferenceID)
-	contextLogger.Debugf("StripeProcessWebhook: session.PaymentIntentID %s", session.PaymentIntent.ID)
+	contextLogger.Debugf("service: session.ClientReferenceID=%q", session.ClientReferenceID)
+	contextLogger.Debugf("service: session.PaymentIntentID=%q", session.PaymentIntent.ID)
 
-	err := s.model.RecordPayment(ctx, session.ClientReferenceID, session.PaymentIntent.ID, body)
+	orow, oirows, bill, ship, err := s.model.RecordPayment(ctx,
+		session.ClientReferenceID, session.PaymentIntent.ID, body)
 	if err != nil {
-		return errors.Wrapf(err, "s.model.RecordPayment(ctx, orderID=%s, pi=%s",
-			session.ClientReferenceID, session.PaymentIntent.ID)
+		return nil, errors.Wrapf(err,
+			"s.model.RecordPayment(ctx, orderID=%s, pi=%s",
+			session.ClientReferenceID,
+			session.PaymentIntent.ID)
 	}
-	return nil
+
+	orderItems := make([]*OrderItem, 0, len(oirows))
+	for _, row := range oirows {
+		oi := OrderItem{
+			Object:    "order_item",
+			ID:        row.UUID,
+			Path:      row.Path,
+			SKU:       row.SKU,
+			Name:      row.Name,
+			Qty:       row.Qty,
+			UnitPrice: row.UnitPrice,
+			Currency:  row.Currency,
+			Discount:  row.Discount,
+			TaxCode:   row.TaxCode,
+			VAT:       row.VAT,
+			Created:   &row.Created,
+		}
+		orderItems = append(orderItems, &oi)
+	}
+
+	order := Order{
+		Object:  "order",
+		ID:      orow.UUID,
+		OrderID: orow.ID,
+		Status:  orow.Status,
+		Payment: orow.Payment,
+		User: &OrderUser{
+			ID:          orow.UsrUUID,
+			ContactName: orow.ContactName,
+			Email:       orow.Email,
+		},
+		Billing: &OrderAddress{
+			ContactName: bill.ContactName,
+			Addr1:       bill.Addr1,
+			Addr2:       bill.Addr2,
+			City:        bill.City,
+			County:      bill.County,
+			Postcode:    bill.Postcode,
+			Country:     bill.CountryCode,
+		},
+		Shipping: &OrderAddress{
+			ContactName: ship.ContactName,
+			Addr1:       ship.Addr1,
+			Addr2:       ship.Addr2,
+			City:        ship.City,
+			County:      ship.County,
+			Postcode:    ship.Postcode,
+			Country:     ship.CountryCode,
+		},
+		Currency:    orow.Currency,
+		TotalExVAT:  orow.TotalExVAT,
+		VATTotal:    orow.VATTotal,
+		TotalIncVAT: orow.TotalIncVAT,
+		Items:       orderItems,
+		Created:     orow.Created,
+		Modified:    orow.Modified,
+	}
+	if err := s.PublishTopicEvent(ctx, EventOrderUpdated, &order); err != nil {
+		return nil, errors.Wrapf(err,
+			"service: s.PublishTopicEvent(ctx, event=%q, data=%v) failed",
+			EventOrderUpdated, order)
+	}
+	contextLogger.Infof("service: EventOrderUpdated published")
+	return &order, nil
 }
