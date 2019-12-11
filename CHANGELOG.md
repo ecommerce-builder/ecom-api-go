@@ -1,4 +1,7 @@
 # CHANGELOG
+## v0.64.0 (Wed, 11 Dec 2019)
++ Stripe checkout and order handling publish events.
+
 ## v0.63.0 (Wed, 27 Nov 2019)
 + `OpPlaceOrder`, `OpGetOrder` and `OpListOrders`.
 
