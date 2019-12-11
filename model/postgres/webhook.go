@@ -9,6 +9,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // ErrWebhookExists webhook already exists
@@ -109,11 +110,15 @@ func (m *PgModel) GetWebhooks(ctx context.Context) ([]*WebhookRow, error) {
 
 // UpdateWebhook does a partial update to a row in the webhook table.
 func (m *PgModel) UpdateWebhook(ctx context.Context, webhookUUID string, url *string, events []string, enabled *bool) (*WebhookRow, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Infof("postgres: UpdateWebhook(ctx, webhookUUID=%q, ...) started")
+
 	// 1. Check the webhook exists
 	q1 := "SELECT id FROM webhook WHERE uuid = $1"
 	var webhookID int
 	err := m.db.QueryRowContext(ctx, q1, webhookUUID).Scan(&webhookID)
 	if err == sql.ErrNoRows {
+		contextLogger.Warnf("postgres: webhook uuid %q not found", webhookUUID)
 		return nil, ErrWebhookNotFound
 	}
 	if err != nil {

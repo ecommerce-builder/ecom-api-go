@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // ErrAddressNotFound error
@@ -44,11 +45,15 @@ type AddressJoinRow struct {
 
 // CreateAddress creates a new billing or shipping address for a user
 func (m *PgModel) CreateAddress(ctx context.Context, usrUUID, typ, contactName, addr1 string, addr2 *string, city string, county *string, postcode, countryCode string) (*AddressJoinRow, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Infof("postgres: CreateAddress(ctx, usrUUID=%q) started", usrUUID)
+
 	// 1. Check the user exists
 	q1 := "SELECT id FROM usr WHERE uuid = $1"
 	var usrID int
 	err := m.db.QueryRowContext(ctx, q1, usrUUID).Scan(&usrID)
 	if err == sql.ErrNoRows {
+		contextLogger.Debug("postgres: user usrUUID=%q not found", usrUUID)
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
@@ -77,7 +82,6 @@ func (m *PgModel) CreateAddress(ctx context.Context, usrUUID, typ, contactName, 
 
 // GetAddressByUUID gets an address by UUID. Returns a pointer to an Address.
 func (m *PgModel) GetAddressByUUID(ctx context.Context, addressUUID string) (*AddressJoinRow, error) {
-
 	// 1. Check the address exists
 	q1 := "SELECT id FROM address WHERE uuid = $1"
 	var addressID int
@@ -176,10 +180,14 @@ func (m *PgModel) GetAddresses(ctx context.Context, usrUUID string) ([]*AddressJ
 
 // PartialUpdateAddress updates on or more columns in a single address row
 func (m *PgModel) PartialUpdateAddress(ctx context.Context, addressUUID string, typ, contactName, addr1, addr2, city, county, postcode, countryCode *string) (*AddressJoinRow, error) {
+	contextLogger := log.WithContext(ctx)
+	contextLogger.Infof("postgres: PartialUpdateAddress(ctx, addressUUID=%q, ...) started", addressUUID)
+
 	q1 := "SELECT id FROM address WHERE uuid = $1"
 	var addressID int
 	err := m.db.QueryRowContext(ctx, q1, addressUUID).Scan(&addressID)
 	if err == sql.ErrNoRows {
+		contextLogger.Debugf("postgres: address %q not found", addressUUID)
 		return nil, ErrAddressNotFound
 	}
 	if err != nil {
@@ -251,7 +259,6 @@ func (m *PgModel) PartialUpdateAddress(ctx context.Context, addressUUID string, 
 		&a.Addr2, &a.City, &a.County, &a.Postcode, &a.CountryCode, &a.Created, &a.Modified); err != nil {
 		return nil, errors.Wrapf(err, "postgres: query row context q2=%q", q2)
 	}
-
 	return &a, nil
 }
 

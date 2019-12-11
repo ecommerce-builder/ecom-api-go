@@ -20,6 +20,18 @@ const (
 
 	// EventUserCreated event
 	EventUserCreated = "user.created"
+
+	// EventAddressCreated event
+	EventAddressCreated = "address.created"
+
+	// EventAddressUpdated event
+	EventAddressUpdated = "address.updated"
+
+	// EventOrderCreated triggerred after an order has been placed.
+	EventOrderCreated string = "order.created"
+
+	// EventOrderUpdated event
+	EventOrderUpdated string = "order.updated"
 )
 
 var validEvents map[string]struct{}
@@ -45,21 +57,6 @@ type WebhookPayload struct {
 // startup of the HTTP Service.
 type ServiceStartedEventData struct {
 	Name string `json:"name"`
-}
-
-func init() {
-	validEvents = map[string]struct{}{
-		EventServiceStarted: {},
-		EventUserCreated:    {},
-	}
-}
-
-// IsValidEvent returns true if the event string is known
-func IsValidEvent(event string) bool {
-	if _, ok := validEvents[event]; ok {
-		return true
-	}
-	return false
 }
 
 // DecodeEventData decodes event data.

@@ -45,9 +45,9 @@ func (a *App) StripeWebhookHandler(stripeSigningSecret string) http.HandlerFunc 
 			}
 
 			// Fulfill the purchase...
-			err = a.Service.StripeProcessWebhook(ctx, session, body)
+			_, err = a.Service.StripeProcessWebhook(ctx, session, body)
 			if err != nil {
-				contextLogger.Errorf("service StripeProcessWebhook(ctx, session=%v) error: %v", err, session)
+				contextLogger.Errorf("service StripeProcessWebhook(ctx, session=%v) error: %+v", err, session)
 				w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 				return
 			}

@@ -64,7 +64,7 @@ type OrderUser struct {
 	Email       *string `json:"email,omitempty"`
 }
 
-// Order contains details of an previous order.
+// Order contains details of an existing order.
 type Order struct {
 	Object      string        `json:"object"`
 	ID          string        `json:"id"`
@@ -177,7 +177,12 @@ func (s *Service) PlaceGuestOrder(ctx context.Context, cartID, contactName,
 		Created:     orow.Created,
 		Modified:    orow.Modified,
 	}
-
+	if err := s.PublishTopicEvent(ctx, EventOrderCreated, &order); err != nil {
+		return nil, errors.Wrapf(err,
+			"service: s.PublishTopicEvent(ctx, event=%q, data=%v) failed",
+			EventOrderCreated, order)
+	}
+	contextLogger.Infof("service: EventOrderCreated published")
 	return &order, nil
 }
 
@@ -255,6 +260,12 @@ func (s *Service) PlaceOrder(ctx context.Context, cartID, userID, billingID, shi
 		Created:     orow.Created,
 		Modified:    orow.Modified,
 	}
+	if err := s.PublishTopicEvent(ctx, EventOrderCreated, &order); err != nil {
+		return nil, errors.Wrapf(err,
+			"service: s.PublishTopicEvent(ctx, event=%q, data=%v) failed",
+			EventOrderCreated, order)
+	}
+	contextLogger.Infof("service: EventOrderCreated published")
 	return &order, nil
 }
 
